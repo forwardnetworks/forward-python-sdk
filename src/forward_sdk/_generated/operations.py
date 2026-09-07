@@ -150,6 +150,18 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Devices",
         request_media=('application/json',),
     ),
+    "addDraftChange": OpDef(
+        operation_id="addDraftChange",
+        method="post",
+        path="/users/current/nqe/changes",
+        tag="NQE Repository",
+        parameters=(
+            ParamDef(name="action", location="query", required=True, schema_type="string", enum=('addQuery', 'editQuery', 'addDir')),
+            ParamDef(name="path", location="query", required=True, schema_type="string"),
+        ),
+        request_media=('application/json',),
+        stability="unpublished",
+    ),
     "addInternetNodeConnection": OpDef(
         operation_id="addInternetNodeConnection",
         method="post",
@@ -271,6 +283,18 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         deprecated=True,
         response_media=('application/json',),
+    ),
+    "commitDraftChanges": OpDef(
+        operation_id="commitDraftChanges",
+        method="post",
+        path="/nqe/repos/org/commits",
+        tag="NQE Repository",
+        parameters=(
+            ParamDef(name="dryRun", location="query", schema_type="boolean"),
+            ParamDef(name="snapshotId", location="query", schema_type="string"),
+        ),
+        request_media=('application/json',),
+        stability="unpublished",
     ),
     "computeAdvancedReachability": OpDef(
         operation_id="computeAdvancedReachability",
@@ -889,6 +913,16 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
     ),
+    "discardDraftChange": OpDef(
+        operation_id="discardDraftChange",
+        method="delete",
+        path="/users/current/nqe/changes",
+        tag="NQE Repository",
+        parameters=(
+            ParamDef(name="path", location="query", required=True, schema_type="string"),
+        ),
+        stability="unpublished",
+    ),
     "editJumpServer": OpDef(
         operation_id="editJumpServer",
         method="patch",
@@ -1314,6 +1348,13 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Devices",
         response_media=('application/json',),
     ),
+    "getDraftChanges": OpDef(
+        operation_id="getDraftChanges",
+        method="get",
+        path="/users/current/nqe/changes",
+        tag="NQE Repository",
+        stability="unpublished",
+    ),
     "getEncryptor": OpDef(
         operation_id="getEncryptor",
         method="get",
@@ -1702,6 +1743,13 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
     ),
+    "getOrgHeadCommit": OpDef(
+        operation_id="getOrgHeadCommit",
+        method="get",
+        path="/nqe/repos/org/commits/head",
+        tag="NQE Repository",
+        stability="unpublished",
+    ),
     "getOsVulnerabilities": OpDef(
         operation_id="getOsVulnerabilities",
         method="get",
@@ -1780,6 +1828,28 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json-seq',),
     ),
+    "getQueryHistory": OpDef(
+        operation_id="getQueryHistory",
+        method="get",
+        path="/nqe/queries/{queryId}/history",
+        tag="NQE Repository",
+        parameters=(
+            ParamDef(name="queryId", location="path", required=True, schema_type="string"),
+        ),
+        stability="unpublished",
+    ),
+    "getReachabilityJob": OpDef(
+        operation_id="getReachabilityJob",
+        method="get",
+        path="/networks/{networkId}/snapshots/{snapshotId}/reachability/{jobKey}",
+        tag="Snapshot Reachability",
+        parameters=(
+            ParamDef(name="networkId", location="path", required=True, schema_type="string"),
+            ParamDef(name="snapshotId", location="path", required=True, schema_type="string"),
+            ParamDef(name="jobKey", location="path", required=True, schema_type="string"),
+        ),
+        stability="unpublished",
+    ),
     "getRecentLinkOverrideChanges": OpDef(
         operation_id="getRecentLinkOverrideChanges",
         method="get",
@@ -1791,6 +1861,19 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         response_media=('application/json',),
+    ),
+    "getRepositoryQueries": OpDef(
+        operation_id="getRepositoryQueries",
+        method="get",
+        path="/nqe/repos/{repository}/commits/{commitId}/queries",
+        tag="NQE Repository",
+        parameters=(
+            ParamDef(name="repository", location="path", required=True, schema_type="string", enum=('org', 'fwd')),
+            ParamDef(name="commitId", location="path", required=True, schema_type="string"),
+            ParamDef(name="path", location="query", schema_type="string"),
+            ParamDef(name="with", location="query", schema_type="string"),
+        ),
+        stability="unpublished",
     ),
     "getSingleAlias": OpDef(
         operation_id="getSingleAlias",
@@ -2416,6 +2499,17 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         request_media=('application/json',),
         response_media=('application/json',),
+    ),
+    "startReachabilityJob": OpDef(
+        operation_id="startReachabilityJob",
+        method="post",
+        path="/networks/{networkId}/snapshots/{snapshotId}/reachability",
+        tag="Snapshot Reachability",
+        parameters=(
+            ParamDef(name="networkId", location="path", required=True, schema_type="string"),
+            ParamDef(name="snapshotId", location="path", required=True, schema_type="string"),
+        ),
+        stability="unpublished",
     ),
     "stopCollectorTask": OpDef(
         operation_id="stopCollectorTask",

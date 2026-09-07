@@ -1,0 +1,195 @@
+# Endpoints the SDK supports that are NOT in Forward's published API description.
+#
+# These are used by real integrations (the Forward NetBox and Nautobot plugins
+# both depend on them) but they carry no compatibility promise and may change
+# without notice. They are described here so that the coverage test can hold
+# them to the same standard as published operations, and so their shapes are
+# documented somewhere.
+#
+# Everything here is reached through client.nqe.repo or client.snapshots.unstable.
+openapi: 3.2.0
+info:
+  title: "Forward: Unpublished endpoints used by this SDK"
+  version: unpublished
+servers:
+  - url: /api
+tags:
+  - name: NQE Repository
+    description: Reading and writing the NQE query library.
+  - name: Snapshot Reachability
+    description: Advanced reachability computation as a pollable job.
+paths:
+  /nqe/repos/{repository}/commits/{commitId}/queries:
+    get:
+      operationId: getRepositoryQueries
+      summary: List queries in a repository at a commit
+      x-forward-stability: unpublished
+      tags: [NQE Repository]
+      parameters:
+        - name: repository
+          in: path
+          required: true
+          schema: { type: string, enum: [org, fwd] }
+        - name: commitId
+          in: path
+          required: true
+          description: A full commit hash, or "head" for the latest.
+          schema: { type: string }
+        - name: path
+          in: query
+          description: Restrict to one query path.
+          schema: { type: string }
+        - name: with
+          in: query
+          description: Set to "sourceCode" to include each query's source.
+          schema: { type: string }
+      responses:
+        "200": { description: The queries. }
+
+  /nqe/repos/org/commits/head:
+    get:
+      operationId: getOrgHeadCommit
+      summary: Get the organization repository's current commit
+      x-forward-stability: unpublished
+      tags: [NQE Repository]
+      responses:
+        "200": { description: The head commit. }
+
+  /nqe/queries/{queryId}/history:
+    get:
+      operationId: getQueryHistory
+      summary: List the commits that touched a query
+      x-forward-stability: unpublished
+      tags: [NQE Repository]
+      parameters:
+        - name: queryId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: The commit history. }
+
+  /users/current/nqe/changes:
+    get:
+      operationId: getDraftChanges
+      summary: List the current user's uncommitted query changes
+      x-forward-stability: unpublished
+      tags: [NQE Repository]
+      responses:
+        "200": { description: The pending changes. }
+    post:
+      operationId: addDraftChange
+      summary: Stage a query addition, edit, or new directory
+      x-forward-stability: unpublished
+      tags: [NQE Repository]
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema: { type: string, enum: [addQuery, editQuery, addDir] }
+        - name: path
+          in: query
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sourceCode: { type: string }
+                basis:
+                  type: object
+                  description: The query and commit an edit is based on.
+                  properties:
+                    queryId: { type: string }
+                    commitId: { type: string }
+      responses:
+        "200": { description: The change was staged. }
+    delete:
+      operationId: discardDraftChange
+      summary: Discard one staged change
+      x-forward-stability: unpublished
+      tags: [NQE Repository]
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: The change was discarded. }
+
+  /nqe/repos/org/commits:
+    post:
+      operationId: commitDraftChanges
+      summary: Commit staged query changes
+      x-forward-stability: unpublished
+      tags: [NQE Repository]
+      parameters:
+        - name: dryRun
+          in: query
+          description: Validate without committing.
+          schema: { type: boolean }
+        - name: snapshotId
+          in: query
+          description: Snapshot to validate the queries against during a dry run.
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paths:
+                  type: array
+                  items: { type: string }
+                accessSettings:
+                  type: array
+                  items: { type: object }
+                message:
+                  type: object
+                  properties:
+                    title: { type: string }
+                    body: { type: string }
+      responses:
+        "200": { description: The commit result, or the dry-run report. }
+
+  /networks/{networkId}/snapshots/{snapshotId}/reachability:
+    post:
+      operationId: startReachabilityJob
+      summary: Start computing advanced reachability
+      x-forward-stability: unpublished
+      tags: [Snapshot Reachability]
+      parameters:
+        - name: networkId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: snapshotId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: The job identifier and its initial status. }
+
+  /networks/{networkId}/snapshots/{snapshotId}/reachability/{jobKey}:
+    get:
+      operationId: getReachabilityJob
+      summary: Poll a reachability computation
+      x-forward-stability: unpublished
+      tags: [Snapshot Reachability]
+      parameters:
+        - name: networkId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: snapshotId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: jobKey
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: The job's status. }

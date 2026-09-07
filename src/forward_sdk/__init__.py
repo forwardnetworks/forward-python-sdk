@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from forward_sdk._async.client import AsyncForwardClient
+from forward_sdk._sync.client import ForwardClient
 from forward_sdk._version import __version__
 from forward_sdk.errors import (
     ForwardAPIError,
@@ -20,11 +22,15 @@ from forward_sdk.errors import (
     ForwardTimeoutError,
     ForwardTransportError,
 )
+from forward_sdk.nqe import LATEST_PROCESSED, PageGuards, QueryRef
 
 __all__ = [
+    "LATEST_PROCESSED",
+    "AsyncForwardClient",
     "ForwardAPIError",
     "ForwardAuthError",
     "ForwardBadRequestError",
+    "ForwardClient",
     "ForwardConfigurationError",
     "ForwardConflictError",
     "ForwardError",
@@ -37,5 +43,7 @@ __all__ = [
     "ForwardServerError",
     "ForwardTimeoutError",
     "ForwardTransportError",
+    "PageGuards",
+    "QueryRef",
     "__version__",
 ]

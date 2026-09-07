@@ -39,7 +39,9 @@ SUBSTITUTIONS: tuple[tuple[str, str], ...] = (
     (r"\basync def\b", "def"),
     (r"\basync with\b", "with"),
     (r"\basync for\b", "for"),
-    (r"\bawait \b", ""),
+    # `await x` and `await (…)` alike; the trailing \s+ avoids requiring a word
+    # character after the keyword.
+    (r"\bawait\s+", ""),
     (r"\byield from await\b", "yield from"),
     # Module paths.
     (r"forward_sdk\._async", "forward_sdk._sync"),
@@ -78,6 +80,8 @@ SUBSTITUTIONS: tuple[tuple[str, str], ...] = (
     (r"\bAsyncNqeExecution\b", "NqeExecution"),
     (r"\bAsyncSnapshotJob\b", "SnapshotJob"),
     (r"\bAsyncReachabilityJob\b", "ReachabilityJob"),
+    (r"\bAsyncNqeService\b", "NqeService"),
+    (r"\bAsyncNqeRepository\b", "NqeRepository"),
     (r"\bAsyncNqe\b", "Nqe"),
     (r"\bAsyncPager\b", "Pager"),
     # pytest.

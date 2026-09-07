@@ -11,7 +11,9 @@ client = ForwardClient.from_env()  # FORWARD_URL, FORWARD_USERNAME, FORWARD_PASS
 for network in client.networks.list():
     print(network.id, network.name)
 
-rows = client.nqe.query(QueryRef.inline("foreach d in network.devices select {name: d.name}"), network_id="101")
+rows = client.nqe.query(
+    QueryRef.inline("foreach d in network.devices select {name: d.name}"), network_id="101"
+)
 ```
 
 See the [documentation](https://forwardnetworks.github.io/forward-python-sdk/) for details.

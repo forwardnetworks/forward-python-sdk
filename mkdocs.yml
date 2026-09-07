@@ -1,0 +1,70 @@
+site_name: forward-sdk
+site_description: Official Python SDK for the Forward Networks REST API
+repo_url: https://github.com/forwardnetworks/forward-python-sdk
+repo_name: forwardnetworks/forward-python-sdk
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: false
+            show_root_heading: true
+            members_order: source
+            docstring_style: google
+            separate_signature: true
+            show_signature_annotations: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Quickstart: quickstart.md
+      - Configuration: configuration.md
+      - Errors: errors.md
+      - Availability: gating.md
+  - NQE:
+      - Overview: nqe/index.md
+      - Query library: nqe/library.md
+  - Snapshots: snapshots.md
+  - Async: async.md
+  - Unpublished endpoints: unpublished.md
+  - Migrating:
+      - From forward-netbox: migration/netbox.md
+      - From the Nautobot plugin: migration/nautobot.md
+  - Reference:
+      - Client: reference/client.md
+      - NQE: reference/nqe.md
+      - Errors: reference/errors.md

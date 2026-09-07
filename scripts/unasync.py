@@ -180,9 +180,11 @@ def main(argv: list[str] | None = None) -> int:
     changed: list[Path] = []
     for source_root, target_root in TREES:
         if args.check:
-            before = {
-                path: path.read_text() for path in target_root.rglob("*.py")
-            } if target_root.exists() else {}
+            before = (
+                {path: path.read_text() for path in target_root.rglob("*.py")}
+                if target_root.exists()
+                else {}
+            )
             sync_tree(source_root, target_root)
             after = {path: path.read_text() for path in target_root.rglob("*.py")}
             if before != after:

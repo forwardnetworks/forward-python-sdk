@@ -52,12 +52,17 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(f"generator {name} failed")
 
     existing = [str(p) for p in GENERATED if p.exists()]
-    diff = subprocess.run(
-        ["git", "diff", "--stat", "--", *existing], capture_output=True, text=True, check=False
+    # `git status --porcelain` rather than `git diff`: a newly generated file is
+    # untracked, and a diff would not mention it at all.
+    status = subprocess.run(
+        ["git", "status", "--porcelain", "--", *existing],
+        capture_output=True,
+        text=True,
+        check=False,
     )
-    if diff.stdout.strip():
+    if status.stdout.strip():
         print("Generated code is stale. Re-run the generators and commit the result:\n")
-        print(diff.stdout)
+        print(status.stdout)
         return 1
 
     print("generated code is up to date")

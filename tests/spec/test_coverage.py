@@ -16,6 +16,7 @@ import pytest
 import yaml
 
 import forward_sdk._ops as ops_package
+from forward_sdk import AsyncForwardClient, ForwardClient
 from forward_sdk._generated.operations import OPERATIONS
 from forward_sdk._ops import REGISTRY
 
@@ -88,8 +89,6 @@ def test_builder_matches_the_spec(operation_id: str) -> None:
 
 def test_client_exposes_a_method_for_each_implemented_group() -> None:
     """The services wired onto the client cover the groups implemented so far."""
-    from forward_sdk import ForwardClient
-
     client = ForwardClient("https://forward.test")
     try:
         for attribute in ("networks", "snapshots", "devices", "device_tags", "nqe"):
@@ -101,7 +100,6 @@ def test_client_exposes_a_method_for_each_implemented_group() -> None:
 
 def test_sync_and_async_clients_have_the_same_surface() -> None:
     """The generated sync client must not lag behind its async source."""
-    from forward_sdk import AsyncForwardClient, ForwardClient
 
     def public(obj: type) -> set[str]:
         return {name for name in dir(obj) if not name.startswith("_")}

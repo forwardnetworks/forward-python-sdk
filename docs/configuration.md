@@ -108,6 +108,37 @@ watching.
 The SDK logs to the `forward_sdk` logger at debug level, and never logs
 credentials or bodies.
 
+## What the SDK caches, and what it does not
+
+One thing is cached: the NQE query index, the map of library path to query,
+because resolving a batch of paths would otherwise re-fetch the whole library
+once per path. Any write through `client.nqe.repo` clears it.
+
+Nothing else is. In particular a snapshot is resolved on every call that needs
+one, including `latest_processed` and `latest_collected`. That is deliberate.
+Caching a snapshot means deciding how long "latest" stays true, and only the
+caller knows: a long sync wants one snapshot for the whole run, while a
+dashboard polling for new data wants the opposite, and a wrong guess here is
+silent, because a stale snapshot returns real data from the wrong point in time.
+
+The cost is real, so plan for it. An integration migrating onto this SDK went
+from one snapshot request per sync to one per slice, because its planner
+resolved a snapshot inside a thread pool and the client it replaced had cached
+that itself. Nothing failed and no test noticed. It showed up only as request
+volume against a live account.
+
+If you know an invariant the SDK cannot assume, cache on your own side and say
+which invariant you are relying on:
+
+```python
+# This sync pins one snapshot for its whole run, and snapshots are immutable,
+# so resolving once is safe here even though it would not be in general.
+snapshot_id = client.snapshots.latest_processed(network_id).id
+```
+
+Read `client.counters` for `cache_hits` and `cache_misses` on the one cache
+that exists, and for the request counts that would reveal this kind of change.
+
 ## Threads and event loops
 
 A synchronous `ForwardClient` is safe to share across threads. An

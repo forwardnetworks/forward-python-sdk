@@ -313,6 +313,34 @@ class TestWhereBuilders:
     def test_enum_one_of_with_no_values(self) -> None:
         assert enum_one_of("f", "Vendor", []) is None
 
+
+class TestNoBuilderEmitsAnEmptyListLiteral:
+    """NQE rejects an empty list literal outright, at submission.
+
+    An integration hit that with a hand-written query and lost the whole
+    submission to it. Every builder here drops the clause instead, so an
+    unconstrained filter becomes no filter rather than a query Forward refuses.
+    Dropping is right because the values came from a caller's filter: no values
+    means no constraint, not a constraint nothing satisfies.
+
+    The failure is at submission rather than at run time, so it takes the whole
+    query with it however small the filter was.
+    """
+
+    def test_every_builder_drops_an_empty_filter(self) -> None:
+        assert membership("device.tagNames", []) is None
+        assert one_of("device.model", []) is None
+        assert enum_one_of("device.platform.vendor", "Vendor", []) is None
+
+    def test_values_that_reduce_to_nothing_also_drop(self) -> None:
+        assert one_of("device.model", ["", None]) is None
+        assert enum_one_of("device.platform.vendor", "Vendor", ["", "  "]) is None
+
+    def test_a_dropped_clause_disappears_from_the_query(self) -> None:
+        assert where(one_of("device.model", []), 'device.name != "x"') == (
+            'where device.name != "x"'
+        )
+
     def test_where_skips_empty_clauses(self) -> None:
         assert where("a == 1", None, "b == 2") == "where a == 1\nwhere b == 2"
         assert where(None) == ""

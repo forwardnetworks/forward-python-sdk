@@ -3,13 +3,25 @@ name: Release
 # Publishes to PyPI with Trusted Publishing (OIDC): no API token is stored in
 # this repository.
 #
-# One-time setup before the first tag:
-#   1. On PyPI, add a GitHub Trusted Publisher for project forward-sdk:
-#      owner=forwardnetworks, repo=forward-python-sdk, workflow=release.yml,
-#      environment=pypi. For a project that does not exist yet, use PyPI's
-#      "pending publisher" form.
-#   2. In this repository, create an environment named "pypi", optionally with
-#      required reviewers to gate publishes.
+# 0.1.0 was published manually with an API token, which claimed the project
+# name. Every release after it should come from here instead, which needs one
+# piece of setup that can only be done on pypi.org.
+#
+# On https://pypi.org/manage/project/forward-sdk/settings/publishing/ add a
+# GitHub publisher with exactly these values, which are the claims this workflow
+# presents:
+#
+#   Owner:              forwardnetworks
+#   Repository:         forward-python-sdk
+#   Workflow name:      release.yml
+#   Environment name:   pypi
+#
+# Then, in this repository, create an environment named "pypi" under
+# Settings -> Environments, optionally with required reviewers so a publish
+# needs a human approval.
+#
+# Until that exists, this workflow fails at the publish step with
+# `invalid-publisher`. The build job still runs, so a tag is still verified.
 
 "on":
   push:

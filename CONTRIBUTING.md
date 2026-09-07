@@ -96,3 +96,26 @@ isolated and say so in the docstring.
 1. Update `__version__` in `src/forward_sdk/_version.py` and `CHANGELOG.md`.
 2. Tag `vX.Y.Z`. The release workflow refuses to publish if the tag and the
    version disagree, then publishes via PyPI Trusted Publishing.
+
+### One-time PyPI setup
+
+`0.1.0` was published manually with an API token, which claimed the project
+name. Releases after it should come from CI, which needs a Trusted Publisher
+registered once at
+<https://pypi.org/manage/project/forward-sdk/settings/publishing/>:
+
+| Field | Value |
+| --- | --- |
+| Owner | `forwardnetworks` |
+| Repository | `forward-python-sdk` |
+| Workflow name | `release.yml` |
+| Environment name | `pypi` |
+
+Then create a `pypi` environment in this repository under **Settings →
+Environments**, optionally with required reviewers so publishing needs a human
+approval.
+
+Until that exists, tagging fails at the publish step with `invalid-publisher`.
+The build and test job still runs, so the tag is still verified; only the upload
+is blocked. Trusted Publishing is preferred over a stored token because no
+long-lived credential has to live in the repository.

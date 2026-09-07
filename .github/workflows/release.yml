@@ -1,27 +1,25 @@
 name: Release
 
 # Publishes to PyPI with Trusted Publishing (OIDC): no API token is stored in
-# this repository.
+# this repository. The publisher is registered and the `pypi` environment
+# exists, so tagging is all a release needs.
 #
-# 0.1.0 was published manually with an API token, which claimed the project
-# name. Every release after it should come from here instead, which needs one
-# piece of setup that can only be done on pypi.org.
-#
-# On https://pypi.org/manage/project/forward-sdk/settings/publishing/ add a
-# GitHub publisher with exactly these values, which are the claims this workflow
-# presents:
+# The claims this workflow presents, which must match the publisher at
+# https://pypi.org/manage/project/forward-sdk/settings/publishing/ :
 #
 #   Owner:              forwardnetworks
 #   Repository:         forward-python-sdk
 #   Workflow name:      release.yml
 #   Environment name:   pypi
 #
-# Then, in this repository, create an environment named "pypi" under
-# Settings -> Environments, optionally with required reviewers so a publish
-# needs a human approval.
+# An `invalid-publisher` failure means those stopped matching. The error prints
+# the claims actually presented; compare them against the list above. The build
+# job runs first regardless, so a tag is still verified when an upload is
+# refused.
 #
-# Until that exists, this workflow fails at the publish step with
-# `invalid-publisher`. The build job still runs, so a tag is still verified.
+# Releases up to 0.1.4 were uploaded manually and carry no attestations. PyPI
+# does not backfill them onto published files, so attestations begin with the
+# first release that goes through this workflow.
 
 "on":
   push:

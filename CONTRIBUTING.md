@@ -168,12 +168,11 @@ and the account should be left as it was found.
 2. Tag `vX.Y.Z`. The release workflow refuses to publish if the tag and the
    version disagree, then publishes via PyPI Trusted Publishing.
 
-### One-time PyPI setup
+### PyPI setup, already done
 
-`0.1.0` was published manually with an API token, which claimed the project
-name. Releases after it should come from CI, which needs a Trusted Publisher
-registered once at
-<https://pypi.org/manage/project/forward-sdk/settings/publishing/>:
+Trusted Publishing is configured, so tagging is all a release needs. No
+long-lived credential lives in this repository. The publisher registered at
+<https://pypi.org/manage/project/forward-sdk/settings/publishing/> is:
 
 | Field | Value |
 | --- | --- |
@@ -182,11 +181,18 @@ registered once at
 | Workflow name | `release.yml` |
 | Environment name | `pypi` |
 
-Then create a `pypi` environment in this repository under **Settings →
-Environments**, optionally with required reviewers so publishing needs a human
-approval.
+The `pypi` environment exists under **Settings → Environments** and can take
+required reviewers if publishing should need a human approval.
 
-Until that exists, tagging fails at the publish step with `invalid-publisher`.
-The build and test job still runs, so the tag is still verified; only the upload
-is blocked. Trusted Publishing is preferred over a stored token because no
-long-lived credential has to live in the repository.
+Releases `0.1.0` through `0.1.4` predate this and were uploaded manually with an
+API token, so their files carry no attestations; PyPI does not add them to files
+already published, and re-running a release job over an existing version does
+not backfill them. Attestations start with the first release published through
+the workflow.
+
+If a future release fails with `invalid-publisher`, the publisher record no
+longer matches the claims the workflow presents. The failure text prints those
+claims, so compare them against the table above rather than against the
+workflow file: `workflow_ref` must end in `release.yml`, and `environment` must
+read `pypi`. The build and test job runs first either way, so a tag is verified
+even when the upload is refused.

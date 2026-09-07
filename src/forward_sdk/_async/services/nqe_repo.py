@@ -12,114 +12,25 @@ committed together.
 
 from __future__ import annotations
 
-import re
+import time
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
 from typing import Any
 
 from forward_sdk._async.services._base import AsyncService
 from forward_sdk._ops import nqe_repo as ops
 from forward_sdk.errors import ForwardConflictError, ForwardNotFoundError
+from forward_sdk.nqe.repository import (
+    INVALID_CHANGE_PATH,
+    NO_CHANGES_PREFIX,
+    CommitReport,
+    DraftChange,
+    RepositoryQuery,
+    optional_str,
+    paths_without_changes,
+    queries_from_payload,
+)
 
-__all__ = ["AsyncNqeRepository", "CommitReport", "DraftChange", "RepositoryQuery"]
-
-#: Forward rejects a commit naming a path with no staged change, listing the
-#: offending paths in the message. That happens routinely when a query's source
-#: is unchanged, so the offending paths are dropped and the commit retried.
-NO_CHANGES_PREFIX = "User has no changes at the following paths:"
-INVALID_CHANGE_PATH = "INVALID_CHANGE_PATH"
-
-
-@dataclass(frozen=True, slots=True)
-class RepositoryQuery:
-    """A query in the library."""
-
-    query_id: str
-    path: str
-    commit_id: str | None = None
-    intent: str | None = None
-    repository: str = "org"
-    source: str | None = None
-
-    @classmethod
-    def from_payload(
-        cls, payload: Mapping[str, Any], *, repository: str = "org"
-    ) -> RepositoryQuery:
-        return cls(
-            query_id=str(payload.get("queryId") or payload.get("id") or ""),
-            path=str(payload.get("path") or ""),
-            commit_id=_optional_str(payload.get("lastCommitId") or payload.get("commitId")),
-            intent=_optional_str(payload.get("intent")),
-            repository=str(payload.get("repository") or repository).lower(),
-            source=_optional_str(payload.get("sourceCode")),
-        )
-
-
-@dataclass(frozen=True, slots=True)
-class DraftChange:
-    """One staged, uncommitted change."""
-
-    path: str
-    action: str | None = None
-
-    @classmethod
-    def from_payload(cls, payload: Mapping[str, Any]) -> DraftChange:
-        return cls(
-            path=str(payload.get("path") or ""),
-            action=_optional_str(payload.get("action") or payload.get("type")),
-        )
-
-
-@dataclass(frozen=True, slots=True)
-class CommitReport:
-    """The outcome of publishing queries."""
-
-    committed_paths: tuple[str, ...] = ()
-    skipped_paths: tuple[str, ...] = ()
-    commit_id: str | None = None
-    dry_run: bool = False
-    new_errors: tuple[Any, ...] = field(default_factory=tuple)
-
-    @property
-    def changed(self) -> bool:
-        return bool(self.committed_paths)
-
-
-def _optional_str(value: Any) -> str | None:
-    return str(value) if value not in (None, "") else None
-
-
-def _queries_from_payload(payload: Any, repository: str) -> list[RepositoryQuery]:
-    """Read a query listing.
-
-    Forward returns either a wrapped ``{"queries": [...]}`` object or a bare
-    list, and a single-path lookup may return the query object on its own.
-    """
-    if payload is None:
-        return []
-    if isinstance(payload, Mapping):
-        rows = payload.get("queries")
-        if rows is None:
-            return [RepositoryQuery.from_payload(payload, repository=repository)]
-    else:
-        rows = payload
-    return [
-        RepositoryQuery.from_payload(row, repository=repository)
-        for row in rows or []
-        if isinstance(row, Mapping)
-    ]
-
-
-def _paths_without_changes(message: str) -> set[str]:
-    """Pull the offending paths out of Forward's rejection message."""
-    match = re.search(re.escape(NO_CHANGES_PREFIX) + r"\s*(?P<paths>.+)", message, re.DOTALL)
-    if not match:
-        return set()
-    return {
-        part.strip().strip("'\"")
-        for part in re.split(r"[,\n]", match.group("paths"))
-        if part.strip()
-    }
+__all__ = ["AsyncNqeRepository"]
 
 
 class AsyncNqeRepository(AsyncService):
@@ -131,6 +42,7 @@ class AsyncNqeRepository(AsyncService):
     def __init__(self, transport: Any) -> None:
         super().__init__(transport)
         self._index_cache: dict[str, dict[str, RepositoryQuery]] = {}
+        self._index_fetched_at: dict[str, float] = {}
 
     async def queries(
         self,
@@ -149,7 +61,7 @@ class AsyncNqeRepository(AsyncService):
                 with_source=with_source,
             )
         )
-        return _queries_from_payload(payload, repository)
+        return queries_from_payload(payload, repository)
 
     async def index(
         self, *, repository: str = "org", refresh: bool = False
@@ -160,13 +72,29 @@ class AsyncNqeRepository(AsyncService):
         paths otherwise re-fetches the whole library for each one. Any write
         through this object clears the cache.
         """
-        if refresh or repository not in self._index_cache:
+        if refresh or self._index_is_stale(repository):
             entries = await self.queries(repository=repository)
             self._index_cache[repository] = {e.path: e for e in entries if e.path}
+            self._index_fetched_at[repository] = time.monotonic()
             self._transport.counters.increment("cache_misses")
         else:
             self._transport.counters.increment("cache_hits")
         return self._index_cache[repository]
+
+    def _index_is_stale(self, repository: str) -> bool:
+        """Whether the cached index must be fetched again.
+
+        The library changes when someone else publishes, so a long-lived client
+        would otherwise resolve query paths against an index from hours ago.
+        The client's ``cache_ttl`` bounds that; zero disables caching.
+        """
+        if repository not in self._index_cache:
+            return True
+        ttl = self._config.cache_ttl
+        if ttl <= 0:
+            return True
+        fetched = self._index_fetched_at.get(repository)
+        return fetched is None or (time.monotonic() - fetched) >= ttl
 
     async def find(self, path: str, *, repository: str = "org") -> RepositoryQuery:
         """Look up one query by its library path.
@@ -189,7 +117,7 @@ class AsyncNqeRepository(AsyncService):
         if isinstance(payload, str):
             return payload
         data = payload or {}
-        return _optional_str(data.get("id") or data.get("commitId"))
+        return optional_str(data.get("id") or data.get("commitId"))
 
     async def history(self, query_id: str) -> list[dict[str, Any]]:
         """List the commits that touched a query."""
@@ -282,7 +210,7 @@ class AsyncNqeRepository(AsyncService):
         message = getattr(error.error_info, "message", "") or str(error)
         if error.reason != INVALID_CHANGE_PATH and NO_CHANGES_PREFIX not in message:
             return None
-        named = _paths_without_changes(message)
+        named = paths_without_changes(message)
         matched = {path for path in requested if path in named}
         return matched or None
 
@@ -356,3 +284,4 @@ class AsyncNqeRepository(AsyncService):
 
     def _invalidate(self) -> None:
         self._index_cache.clear()
+        self._index_fetched_at.clear()

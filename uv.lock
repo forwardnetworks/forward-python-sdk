@@ -615,7 +615,7 @@ dev = [
     { name = "anyio", specifier = ">=4" },
     { name = "mypy", specifier = ">=1.13" },
     { name = "openapi-core", specifier = ">=0.19" },
-    { name = "openapi-spec-validator", specifier = ">=0.7" },
+    { name = "openapi-spec-validator", specifier = ">=0.7,<0.9" },
     { name = "pre-commit", specifier = ">=4" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-cov", specifier = ">=5" },

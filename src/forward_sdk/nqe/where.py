@@ -42,26 +42,35 @@ def membership(
 ) -> str | None:
     """Build a clause testing ``expression`` against ``values``.
 
+    NQE's membership operators are ``in`` and ``not in``, and the element goes
+    on the left: ``"core" in device.tagNames``.
+
     Args:
-        expression: The NQE expression to test, e.g. ``device.tagNames``.
-        values: Values to test against. Empty means no constraint.
-        match: ``any`` requires one match, ``all`` requires every value.
-        negate: Require that none of the values match.
+        expression: The collection to test against, e.g. ``device.tagNames``.
+        values: Values to test for. Empty means no constraint.
+        match: Whether one value must be present (``any``) or all of them
+            (``all``). Ignored when ``negate`` is set.
+        negate: Exclude anything carrying *any* of the values. Exclusion is
+            all-or-nothing by nature: "exclude these tags" means none of them
+            may be present, so ``match`` does not apply.
 
     Returns:
         The clause, or ``None`` when ``values`` is empty, so callers can drop
         an unconstrained filter rather than emit ``where true``.
     """
-    items = [v for v in values if v]
+    items = [value for value in values if value]
     if not items:
         return None
 
-    tests = [f"{expression} contains {literal(value)}" for value in items]
-    joiner = " && " if (match == "all") != negate else " || "
-    clause = joiner.join(tests)
-    if negate:
-        return f"!({clause})" if len(tests) > 1 else f"!{clause}"
-    return f"({clause})" if len(tests) > 1 else clause
+    operator = "not in" if negate else "in"
+    tests = [f"{literal(value)} {operator} {expression}" for value in items]
+    if len(tests) == 1:
+        return tests[0]
+
+    # Excluding several values means none of them may be present, so the tests
+    # are joined with && whatever `match` says.
+    joiner = " && " if (negate or match == "all") else " || "
+    return f"({joiner.join(tests)})"
 
 
 def where(*clauses: str | None) -> str:

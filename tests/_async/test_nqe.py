@@ -183,6 +183,79 @@ class TestExecute:
         assert caught.value.outcome == "TIMED_OUT"
         assert "time budget" in str(caught.value)
 
+    async def test_wait_skips_polling_when_already_finished(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        """A short query can finish in the response that started it."""
+        recorder.add(
+            "POST",
+            EXECUTIONS,
+            json_response({"executionKey": "exec-1", **COMPLETED}),
+        )
+        async with make_client(recorder) as client:
+            execution = await client.nqe.execute("q")
+            status = await execution.wait()
+
+        assert status["outcome"] == "OK"
+        assert recorder.count("GET", STATUS) == 0
+        assert no_sleep == []
+
+    async def test_wait_honours_retry_after_while_polling(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        """Forward's pacing request wins over the client's own schedule."""
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        recorder.add(
+            "GET",
+            STATUS,
+            json_response({"status": "EXECUTING"}, headers={"Retry-After": "12"}),
+            json_response(COMPLETED),
+        )
+        async with make_client(recorder) as client:
+            await (await client.nqe.execute("q")).wait()
+
+        assert no_sleep == [12.0]
+
+    async def test_wait_stops_at_the_budget_forward_allows(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        """Past Forward's own budget the execution can only end in a timeout."""
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        recorder.add(
+            "GET",
+            STATUS,
+            json_response({"status": "EXECUTING", "timeoutMinutes": 0}),
+        )
+        async with make_client(recorder) as client:
+            execution = await client.nqe.execute("q")
+            with pytest.raises(ForwardTimeoutError, match="budget Forward"):
+                # A local timeout far beyond Forward's own budget.
+                await execution.wait(timeout=100_000)
+
+    async def test_server_budget_is_read_from_the_status(self, recorder: Recorder) -> None:
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        recorder.add("GET", STATUS, json_response({"status": "EXECUTING", "timeoutMinutes": 30}))
+        async with make_client(recorder) as client:
+            execution = await client.nqe.execute("q")
+            assert execution.server_deadline is None  # not yet known
+            await execution.status()
+            assert execution.server_deadline is not None
+
+    async def test_execution_reports_forward_progress(self, recorder: Recorder) -> None:
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        recorder.add(
+            "GET",
+            STATUS,
+            json_response({"status": "EXECUTING", "millisExecuting": 4200, "rowsProduced": 17}),
+        )
+        async with make_client(recorder) as client:
+            execution = await client.nqe.execute("q")
+            await execution.status()
+
+        assert execution.millis_executing == 4200
+        assert execution.rows_produced == 17
+        assert execution.is_finished is False
+
     async def test_wait_timeout_leaves_execution_running(
         self, recorder: Recorder, no_sleep: list[float]
     ) -> None:

@@ -159,15 +159,31 @@ class TestWhereBuilders:
         assert literal(None) == "null"
         assert literal(7) == "7"
 
-    def test_membership_of_one_value(self) -> None:
-        assert membership("device.tagNames", ["core"]) == 'device.tagNames contains "core"'
+    def test_membership_uses_the_nqe_in_operator(self) -> None:
+        """NQE's membership operators are `in` and `not in`, element on the left."""
+        assert membership("device.tagNames", ["core"]) == '"core" in device.tagNames'
 
     def test_membership_any_and_all(self) -> None:
-        assert membership("t", ["a", "b"]) == '(t contains "a" || t contains "b")'
-        assert membership("t", ["a", "b"], match="all") == '(t contains "a" && t contains "b")'
+        assert membership("t", ["a", "b"]) == '("a" in t || "b" in t)'
+        assert membership("t", ["a", "b"], match="all") == '("a" in t && "b" in t)'
 
-    def test_membership_negation_excludes_every_value(self) -> None:
-        assert membership("t", ["a", "b"], negate=True) == '!(t contains "a" && t contains "b")'
+    def test_exclusion_of_one_value(self) -> None:
+        assert membership("t", ["lab"], negate=True) == '"lab" not in t'
+
+    def test_exclusion_requires_every_value_absent(self) -> None:
+        """Excluding two tags means neither may be present, not "not both".
+
+        Getting this backwards admits devices carrying one of the excluded tags,
+        which for a sync that prunes out-of-scope objects means deleting things
+        that should have stayed.
+        """
+        assert membership("t", ["a", "b"], negate=True) == '("a" not in t && "b" not in t)'
+
+    def test_match_does_not_apply_to_exclusion(self) -> None:
+        """Exclusion is all-or-nothing, so `match` cannot invert it."""
+        assert membership("t", ["a", "b"], negate=True, match="all") == membership(
+            "t", ["a", "b"], negate=True
+        )
 
     def test_empty_values_produce_no_clause(self) -> None:
         assert membership("t", []) is None
@@ -179,16 +195,15 @@ class TestWhereBuilders:
 
     def test_tag_scope_combines_include_and_exclude(self) -> None:
         clause = tag_scope(include=["core"], exclude=["lab"])
-        assert (
-            clause == 'where device.tagNames contains "core"\nwhere !device.tagNames contains "lab"'
-        )
+        assert clause == ('where "core" in device.tagNames\nwhere "lab" not in device.tagNames')
 
     def test_tag_scope_without_tags_is_unscoped(self) -> None:
         assert tag_scope() == ""
 
     def test_injection_attempt_is_escaped_not_executed(self) -> None:
+        """A value that looks like NQE must arrive as a string, not as syntax."""
         clause = membership("t", ['x" || true || "'])
-        assert clause == 't contains "x\\" || true || \\""'
+        assert clause == r'"x\" || true || \"" in t'
 
 
 QUERY_WITH_KEY = """/**

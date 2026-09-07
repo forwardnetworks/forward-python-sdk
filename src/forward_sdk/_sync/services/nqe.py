@@ -23,6 +23,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from typing import Any
 
 from forward_sdk._generated.models import NqeQuery, NqeRunResult
+from forward_sdk._http import parse_retry_after
 from forward_sdk._ops import nqe as ops
 from forward_sdk._sync.services._base import Service
 from forward_sdk._sync.services.nqe_repo import NqeRepository
@@ -53,6 +54,12 @@ INITIAL_POLL_INTERVAL = 0.5
 
 TERMINAL_STATUS = "COMPLETED"
 SUCCESS_OUTCOME = "OK"
+
+# Forward reports its own budget for an execution as `timeoutMinutes`. Polling
+# past that only confirms a timeout the server has already decided, so waiting
+# stops there, with a small grace so the client does not give up first on a
+# clock that runs slightly ahead.
+SERVER_DEADLINE_GRACE = 60.0
 
 
 def _rows_from_payload(payload: Any) -> tuple[list[Row], int | None]:
@@ -89,6 +96,8 @@ class NqeExecution:
         self.key = key
         self.network_id = network_id
         self._status: dict[str, Any] = dict(status or {})
+        self._started = time.monotonic()
+        self._retry_after: float | None = None
 
     def __repr__(self) -> str:
         return f"<NqeExecution key={self.key!r} status={self.last_status!r}>"
@@ -104,11 +113,41 @@ class NqeExecution:
         value = self._status.get("rowsProduced")
         return int(value) if value is not None else None
 
+    @property
+    def millis_executing(self) -> int | None:
+        """How long Forward reports it has spent on this query."""
+        value = self._status.get("millisExecuting")
+        return int(value) if value is not None else None
+
+    @property
+    def is_finished(self) -> bool:
+        """Whether the last status seen was terminal, without making a request."""
+        return self._status.get("status") == TERMINAL_STATUS
+
+    @property
+    def server_deadline(self) -> float | None:
+        """When Forward's own budget for this execution runs out.
+
+        A ``time.monotonic()`` value, or ``None`` if Forward has not said.
+        """
+        minutes = self._status.get("timeoutMinutes")
+        if minutes is None:
+            return None
+        try:
+            return self._started + float(minutes) * 60.0 + SERVER_DEADLINE_GRACE
+        except (TypeError, ValueError):
+            return None
+
     def status(self) -> dict[str, Any]:
         """Fetch the execution's current status."""
-        payload = self._service._send_json(
+        response = self._service._transport.send(
             ops.execution_status(network_id=self.network_id, execution_key=self.key)
         )
+        # Forward may ask to be polled less often; obeying that is better than
+        # the client's own schedule, and the transport already honours the same
+        # header on retries.
+        self._retry_after = parse_retry_after(response.headers.get("retry-after"))
+        payload = response.json() if response.content else {}
         self._status = dict(payload or {})
         self._service._transport.counters.increment("nqe_polls")
         return self._status
@@ -130,11 +169,14 @@ class NqeExecution:
             ForwardTimeoutError: ``timeout`` elapsed first. The query keeps
                 running on Forward; the handle stays usable.
         """
-        deadline = None if timeout is None else time.monotonic() + timeout
+        local_deadline = None if timeout is None else time.monotonic() + timeout
         interval = min(INITIAL_POLL_INTERVAL, poll_interval)
 
+        # A short query can already be finished in the response that started it,
+        # in which case there is nothing to poll for.
+        status = self._status if self.is_finished else self.status()
+
         while True:
-            status = self.status()
             if status.get("status") == TERMINAL_STATUS:
                 outcome = status.get("outcome")
                 if outcome and outcome != SUCCESS_OUTCOME:
@@ -147,14 +189,42 @@ class NqeExecution:
                     )
                 return status
 
-            if deadline is not None and time.monotonic() >= deadline:
-                raise ForwardTimeoutError(
-                    f"NQE execution {self.key} did not finish within {timeout}s "
-                    f"(last status {status.get('status')!r}); it is still running on Forward"
-                )
+            self._check_deadlines(local_deadline, timeout, status)
 
-            time.sleep(interval)
+            # Forward's own pacing request wins over the local schedule.
+            time.sleep(self._retry_after or interval)
             interval = min(poll_interval, interval * 2)
+            status = self.status()
+
+    def _check_deadlines(
+        self,
+        local_deadline: float | None,
+        timeout: float | None,
+        status: Mapping[str, Any],
+    ) -> None:
+        """Stop waiting once either the caller's or Forward's budget is spent.
+
+        Forward reports its own budget for the query, and once that is gone the
+        execution can only end in a timeout, so continuing to poll would just
+        confirm it slowly. Reporting which budget ran out matters: one means
+        raise the caller's timeout, the other means make the query cheaper.
+        """
+        now = time.monotonic()
+        last = status.get("status")
+
+        if local_deadline is not None and now >= local_deadline:
+            raise ForwardTimeoutError(
+                f"NQE execution {self.key} did not finish within {timeout}s "
+                f"(last status {last!r}); it is still running on Forward"
+            )
+
+        server_deadline = self.server_deadline
+        if server_deadline is not None and now >= server_deadline:
+            budget = status.get("timeoutMinutes")
+            raise ForwardTimeoutError(
+                f"NQE execution {self.key} passed the {budget}-minute budget Forward "
+                f"allows it (last status {last!r}); the query needs to do less work"
+            )
 
     def result_page(self, *, offset: int = 0, limit: int | None = None) -> NqeRunResult:
         """Fetch one page of results as the API returns it."""

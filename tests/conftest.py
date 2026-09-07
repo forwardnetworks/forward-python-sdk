@@ -134,21 +134,36 @@ def config() -> ClientConfig:
 
 @pytest.fixture
 def no_sleep(monkeypatch: pytest.MonkeyPatch) -> list[float]:
-    """Make every sleep instantaneous and record how long it would have been.
+    """Make sleeping instant, and advance the clock as if it had happened.
 
-    Retry and poll tests assert on the computed delays rather than enduring
-    them, which keeps the suite fast and makes the backoff itself testable.
+    Retry and polling tests assert on the delays rather than enduring them. The
+    clock has to move with them: code that waits for a deadline would otherwise
+    spin against real time, turning a test of a thirty-minute budget into a
+    thirty-minute test.
     """
     slept: list[float] = []
+    elapsed = 0.0
+    real_monotonic = time.monotonic
+    start = real_monotonic()
+
+    def advance(seconds: float) -> None:
+        nonlocal elapsed
+        slept.append(seconds)
+        elapsed += seconds
 
     async def fake_async_sleep(seconds: float, *args: Any, **kwargs: Any) -> None:
-        slept.append(seconds)
+        advance(seconds)
 
     def fake_sleep(seconds: float) -> None:
-        slept.append(seconds)
+        advance(seconds)
+
+    def fake_monotonic() -> float:
+        # Real time still moves, so a loop that never sleeps still terminates.
+        return real_monotonic() - start + elapsed
 
     monkeypatch.setattr(asyncio, "sleep", fake_async_sleep)
     monkeypatch.setattr(time, "sleep", fake_sleep)
+    monkeypatch.setattr(time, "monotonic", fake_monotonic)
     return slept
 
 

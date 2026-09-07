@@ -95,7 +95,9 @@ class ClientConfig:
 
     base_url: str
     username: str | None = None
-    password: str | None = None
+    # Kept out of repr: a config object lands in tracebacks, logs and debug
+    # dumps, and a credential must not travel with it.
+    password: str | None = field(default=None, repr=False)
     verify: bool | str = True
     timeout: httpx.Timeout = field(
         default_factory=lambda: httpx.Timeout(

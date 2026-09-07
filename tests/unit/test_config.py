@@ -140,6 +140,16 @@ class TestEnvironment:
         assert settings["verify"] is False
 
 
+def test_password_is_kept_out_of_repr() -> None:
+    """A config object lands in tracebacks and debug dumps; the secret must not."""
+    config = build_config("https://fwd.app", username="key", password="s3cr3t-token")
+    rendered = repr(config)
+    assert "s3cr3t-token" not in rendered
+    assert "key" in rendered
+    # Still usable for authentication.
+    assert config.auth == ("key", "s3cr3t-token")
+
+
 def test_user_agent_identifies_the_sdk_and_the_application() -> None:
     config = build_config("https://fwd.app", user_agent="my-app/2.0")
     agent = config.full_user_agent()

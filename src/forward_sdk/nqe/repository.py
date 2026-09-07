@@ -1,0 +1,123 @@
+"""Types and parsing for the NQE query library.
+
+Kept out of the service modules deliberately: those are duplicated into a
+synchronous twin by ``scripts/unasync.py``, and a dataclass defined there would
+become two distinct classes for the same thing, so an ``isinstance`` check would
+fail depending on which client produced the value.
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Mapping
+from dataclasses import dataclass, field
+from typing import Any
+
+__all__ = [
+    "INVALID_CHANGE_PATH",
+    "NO_CHANGES_PREFIX",
+    "CommitReport",
+    "DraftChange",
+    "RepositoryQuery",
+    "optional_str",
+    "paths_without_changes",
+    "queries_from_payload",
+]
+
+#: Forward rejects a commit naming a path with no staged change, listing the
+#: offending paths in the message. That happens routinely when a query's source
+#: is unchanged, so the offending paths are dropped and the commit retried.
+NO_CHANGES_PREFIX = "User has no changes at the following paths:"
+INVALID_CHANGE_PATH = "INVALID_CHANGE_PATH"
+
+
+@dataclass(frozen=True, slots=True)
+class RepositoryQuery:
+    """A query in the library."""
+
+    query_id: str
+    path: str
+    commit_id: str | None = None
+    intent: str | None = None
+    repository: str = "org"
+    source: str | None = None
+
+    @classmethod
+    def from_payload(
+        cls, payload: Mapping[str, Any], *, repository: str = "org"
+    ) -> RepositoryQuery:
+        return cls(
+            query_id=str(payload.get("queryId") or payload.get("id") or ""),
+            path=str(payload.get("path") or ""),
+            commit_id=optional_str(payload.get("lastCommitId") or payload.get("commitId")),
+            intent=optional_str(payload.get("intent")),
+            repository=str(payload.get("repository") or repository).lower(),
+            source=optional_str(payload.get("sourceCode")),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class DraftChange:
+    """One staged, uncommitted change."""
+
+    path: str
+    action: str | None = None
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> DraftChange:
+        return cls(
+            path=str(payload.get("path") or ""),
+            action=optional_str(payload.get("action") or payload.get("type")),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class CommitReport:
+    """The outcome of publishing queries."""
+
+    committed_paths: tuple[str, ...] = ()
+    skipped_paths: tuple[str, ...] = ()
+    commit_id: str | None = None
+    dry_run: bool = False
+    new_errors: tuple[Any, ...] = field(default_factory=tuple)
+
+    @property
+    def changed(self) -> bool:
+        return bool(self.committed_paths)
+
+
+def optional_str(value: Any) -> str | None:
+    return str(value) if value not in (None, "") else None
+
+
+def queries_from_payload(payload: Any, repository: str) -> list[RepositoryQuery]:
+    """Read a query listing.
+
+    Forward returns either a wrapped ``{"queries": [...]}`` object or a bare
+    list, and a single-path lookup may return the query object on its own.
+    """
+    if payload is None:
+        return []
+    if isinstance(payload, Mapping):
+        rows = payload.get("queries")
+        if rows is None:
+            return [RepositoryQuery.from_payload(payload, repository=repository)]
+    else:
+        rows = payload
+    return [
+        RepositoryQuery.from_payload(row, repository=repository)
+        for row in rows or []
+        if isinstance(row, Mapping)
+    ]
+
+
+def paths_without_changes(message: str) -> set[str]:
+    """Pull the offending paths out of Forward's rejection message."""
+    match = re.search(re.escape(NO_CHANGES_PREFIX) + r"\s*(?P<paths>.+)", message, re.DOTALL)
+    if not match:
+        return set()
+    return {
+        part.strip().strip("'\"")
+        for part in re.split(r"[,\n]", match.group("paths"))
+        if part.strip()
+    }

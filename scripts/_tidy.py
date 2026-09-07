@@ -13,8 +13,9 @@ import subprocess
 
 __all__ = ["tidy"]
 
-# Import sorting, unused-import removal, and the project's formatting.
-FIX_RULES = "I,F401"
+# Import sorting, unused-import removal, and __all__ sorting. Letting the linter
+# apply its own ordering avoids generators guessing at it and drifting.
+FIX_RULES = "I,F401,RUF022"
 
 
 def tidy(source: str, filename: str) -> str:

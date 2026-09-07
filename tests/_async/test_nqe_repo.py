@@ -7,6 +7,7 @@ shape.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any
 
@@ -236,6 +237,28 @@ class TestPublishing:
                 await client.nqe.repo.publish({"/A": "x"}, title="t", discard_on_failure=False)
 
         assert recorder.count("DELETE", CHANGES) == 0
+
+    async def test_index_is_refetched_once_the_cache_expires(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        """The library changes when someone else publishes, so the cache expires."""
+        recorder.add("GET", QUERIES, json_response({"queries": []}))
+        async with make_client(recorder, cache_ttl=30.0) as client:
+            await client.nqe.repo.index()
+            await client.nqe.repo.index()
+            assert recorder.count("GET", QUERIES) == 1
+            await asyncio.sleep(31)  # advances the fake clock
+            await client.nqe.repo.index()
+
+        assert recorder.count("GET", QUERIES) == 2
+
+    async def test_cache_can_be_disabled(self, recorder: Recorder) -> None:
+        recorder.add("GET", QUERIES, json_response({"queries": []}))
+        async with make_client(recorder, cache_ttl=0) as client:
+            await client.nqe.repo.index()
+            await client.nqe.repo.index()
+
+        assert recorder.count("GET", QUERIES) == 2
 
     async def test_writes_invalidate_the_cached_index(self, recorder: Recorder) -> None:
         recorder.add("GET", QUERIES, json_response({"queries": []}))

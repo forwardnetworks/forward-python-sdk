@@ -164,6 +164,7 @@ def main(argv: list[str] | None = None) -> int:
         run_step("generate models", ["scripts/gen_models.py"])
         run_step("generate operation table", ["scripts/gen_operations.py"])
         run_step("generate service classes", ["scripts/gen_services.py"])
+        run_step("generate public models", ["scripts/gen_public_models.py"])
         run_step("generate the sync client", ["scripts/unasync.py"])
 
     return 0

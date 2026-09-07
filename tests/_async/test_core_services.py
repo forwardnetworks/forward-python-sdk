@@ -241,7 +241,8 @@ class TestSnapshots:
             await client.snapshots.latest_collected_id(include_tags=["core"])
 
         query = recorder.body_for()["query"]
-        assert 'device.tagNames contains "core"' in query
+        # NQE's membership operator is `in`, with the element on the left.
+        assert '"core" in device.tagNames' in query
 
     async def test_latest_collected_reports_when_nothing_qualifies(
         self, recorder: Recorder

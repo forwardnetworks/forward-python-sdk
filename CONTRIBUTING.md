@@ -107,6 +107,27 @@ that talks to the same endpoint. The wire shapes in `spec/unpublished.yaml` exis
 for this reason, and `tests/spec/test_unpublished_shapes.py` runs the parsers
 against them rather than against fixtures written alongside the parsers.
 
+The first run against a real instance found seven defects in code that had a
+green suite, including a predicate helper that could never have worked, a
+repository method that failed on every call, and a Forward AI response that
+failed to parse at all. None was subtle. All were assumptions.
+
+### Running the live tests
+
+```bash
+export FORWARD_URL=https://fwd.app
+export FORWARD_USERNAME=... FORWARD_PASSWORD=... FORWARD_NETWORK_ID=...
+uv run pytest -m live
+```
+
+They are skipped without credentials, so they never block an ordinary run. If
+you change a predicate builder, a response parser, or anything under
+`spec/unpublished.yaml`, run them before you believe the unit tests.
+
+Be careful what you write on a shared instance. Verification should be
+read-only where it can be, anything created should be removed in a `finally`,
+and the account should be left as it was found.
+
 ## Tests
 
 - `tests/unit/` -- pure functions, no I/O.

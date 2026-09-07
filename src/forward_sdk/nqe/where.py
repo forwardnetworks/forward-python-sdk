@@ -13,6 +13,9 @@ import re
 from collections.abc import Iterable, Sequence
 from typing import Any, Literal
 
+from forward_sdk.nqe.enums import members as nqe_members
+from forward_sdk.nqe.enums import suggest
+
 __all__ = ["enum_one_of", "literal", "membership", "one_of", "tag_scope", "where"]
 
 MatchMode = Literal["any", "all"]
@@ -131,19 +134,18 @@ def enum_one_of(field: str, enum_type: str, values: Sequence[Any]) -> str | None
         toString(device.platform.os)      -> "OS.PAN_OS"          so "OS"
         toString(device.platform.vendor)  -> "Vendor.CISCO"       so "Vendor"
 
-    Take member names from the same reference, not from the SDK's models. The
-    generated enums describe Forward's **REST** schema, and NQE's namespace
-    differs in members as well as in type names. Measured against a live
-    instance, ``Vendor`` alone diverges three ways::
+    Member names are checked against NQE's own data model, so a name NQE would
+    reject fails here instead of at query time. Do not take them from
+    :mod:`forward_sdk.models`: those describe Forward's REST schema, and the two
+    namespaces disagree. Measured against a live instance, ``Vendor`` alone
+    diverges three ways::
 
-        Vendor.MICROSOFT  rejected: "Unknown alternative MICROSOFT"
-        Vendor.AZURE      accepted, and absent from the SDK enum
+        Vendor.MICROSOFT  rejected by NQE; the REST model has it
+        Vendor.AZURE      accepted by NQE; the REST model does not have it
         Vendor.GD         rejected; NQE spells it GENERAL_DYNAMICS
 
-    So passing ``forward_sdk.models.Vendor`` members is safe for most of them
-    and produces a query Forward rejects for the rest. Enum values are accepted
-    here for convenience, but the reference is what decides whether a name is
-    real.
+    :mod:`forward_sdk.nqe.enums` carries the NQE names and is what this checks
+    against.
 
     Args:
         field: The enum-valued field.
@@ -157,9 +159,10 @@ def enum_one_of(field: str, enum_type: str, values: Sequence[Any]) -> str | None
         The clause, or ``None`` when ``values`` is empty.
 
     Raises:
-        ValueError: If a member name could not be an NQE identifier. Enum
-            members cannot be escaped the way a string can, so anything
-            unexpected is refused rather than interpolated.
+        ValueError: If a member name could not be an NQE identifier, or if NQE
+            has no such member for a type it knows. Enum members cannot be
+            escaped the way a string can, so anything unexpected is refused
+            rather than interpolated.
     """
     type_name = str(enum_type)
     members = [str(value).strip() for value in values if str(value).strip()]
@@ -173,9 +176,32 @@ def enum_one_of(field: str, enum_type: str, values: Sequence[Any]) -> str | None
             )
     if not IDENTIFIER.fullmatch(type_name):
         raise ValueError(f"{type_name!r} is not a valid NQE type name")
+    _check_members(type_name, members)
 
     tests = [f"{field} == {type_name}.{member}" for member in members]
     return tests[0] if len(tests) == 1 else f"({' || '.join(tests)})"
+
+
+def _check_members(type_name: str, members: Sequence[str]) -> None:
+    """Reject a member NQE does not have, while the caller can still see why.
+
+    Only checked for types the data model knows. An unknown type is left alone,
+    since the model covers the network schema rather than every namespace a
+    query might reach.
+    """
+    known = nqe_members(type_name)
+    if not known:
+        return
+    for member in members:
+        if member in known:
+            continue
+        close = suggest(type_name, member)
+        hint = f" Did you mean {' or '.join(close)}?" if close else ""
+        raise ValueError(
+            f"NQE has no member {member!r} for type {type_name!r}.{hint} "
+            "Note that forward_sdk.models describes the REST schema, which "
+            "differs from NQE; forward_sdk.nqe.enums has the NQE names."
+        )
 
 
 def where(*clauses: str | None) -> str:

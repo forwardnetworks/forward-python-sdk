@@ -14,6 +14,7 @@ from forward_sdk.errors import (
 )
 from forward_sdk.models import Vendor
 from forward_sdk.nqe import PageGuards, PageTracker, QueryRef, sanitize_commit_id
+from forward_sdk.nqe.enums import members as nqe_members
 from forward_sdk.nqe.files import (
     contract_version,
     inline_local_imports,
@@ -223,6 +224,42 @@ class TestWhereBuilders:
     def test_one_of_escapes_its_values(self) -> None:
         assert one_of("f", ['a"b']) == 'f in ["a\\"b"]'
 
+    def test_nqe_member_names_are_checked_before_the_query_is_sent(self) -> None:
+        """A REST name in a predicate fails here, not at query time.
+
+        Verified live: NQE rejects Vendor.MICROSOFT with "Unknown alternative".
+        Catching it locally turns a failed query into a message naming the two
+        namespaces.
+        """
+        for rest_only in ("MICROSOFT", "GD", "IBM"):
+            with pytest.raises(ValueError, match="NQE has no member"):
+                enum_one_of("d.platform.vendor", "Vendor", [rest_only])
+
+    def test_nqe_only_members_are_accepted(self) -> None:
+        """The names NQE actually takes, which the REST model does not have."""
+        assert enum_one_of("d.platform.vendor", "Vendor", ["AZURE"]) == (
+            "d.platform.vendor == Vendor.AZURE"
+        )
+        assert enum_one_of("d.platform.vendor", "Vendor", ["GENERAL_DYNAMICS"]) == (
+            "d.platform.vendor == Vendor.GENERAL_DYNAMICS"
+        )
+
+    def test_an_unknown_type_is_not_second_guessed(self) -> None:
+        """The data model covers the network schema, not every namespace."""
+        assert enum_one_of("f", "NotInTheDataModel", ["ANYTHING"]) == (
+            "f == NotInTheDataModel.ANYTHING"
+        )
+
+    def test_nqe_enums_match_what_was_measured_live(self) -> None:
+        """The generated lists agree with what a real instance accepted."""
+        vendor = nqe_members("Vendor")
+        assert {"AZURE", "GENERAL_DYNAMICS", "CISCO"} <= vendor
+        assert not ({"MICROSOFT", "GD", "IBM"} & vendor)
+        # NQE's DeviceType describes what a device does, in 16 members; the REST
+        # model has 75 describing how it is deployed. Different concepts.
+        assert len(nqe_members("DeviceType")) == 16
+        assert nqe_members("CloudType") == frozenset({"AWS", "AZURE", "GCP", "IBM"})
+
     def test_shipped_enums_are_not_a_source_of_nqe_member_names(self) -> None:
         """The generated enums describe the REST schema, not NQE's namespace.
 
@@ -253,7 +290,9 @@ class TestWhereBuilders:
 
     def test_enum_one_of_emits_equality_not_membership(self) -> None:
         """An enum member is not a string, so `in [..]` fails at run time."""
-        assert enum_one_of("f", "Vendor", ["A", "B"]) == ("(f == Vendor.A || f == Vendor.B)")
+        assert enum_one_of("f", "Vendor", ["CISCO", "ARISTA"]) == (
+            "(f == Vendor.CISCO || f == Vendor.ARISTA)"
+        )
 
     def test_enum_one_of_refuses_an_unquotable_member(self) -> None:
         with pytest.raises(ValueError, match="not a valid enum member"):

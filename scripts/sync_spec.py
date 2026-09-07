@@ -28,6 +28,11 @@ from typing import Any
 import yaml
 
 JOINED = Path("api/build/joined/complete.yaml")
+#: Forward's NQE data model, from which its published data-model pages are
+#: generated. A separate namespace from the REST schema, and the source for
+#: enum member names used in query predicates.
+NQE_SCHEMA = Path("docs/.generated/nqe-network-schema.json")
+VENDORED_NQE = Path("spec/nqe-network-schema.json")
 VENDORED = Path("spec/forward-openapi.yaml")
 SOURCE_METADATA = Path("spec/SPEC_SOURCE.json")
 
@@ -154,6 +159,13 @@ def main(argv: list[str] | None = None) -> int:
         encoding="utf-8",
     )
 
+    nqe_source = args.fwd_root / NQE_SCHEMA
+    if nqe_source.exists():
+        VENDORED_NQE.write_text(nqe_source.read_text(encoding="utf-8"), encoding="utf-8")
+        print(f"vendored {nqe_source} -> {VENDORED_NQE}")
+    else:
+        print(f"note: {nqe_source} not found; NQE enums keep their current copy")
+
     print(f"vendored {source} -> {VENDORED}")
     print(f"  fwd {commit[:12]}, api version {api_version}")
     print("\n== operation changes since last sync")
@@ -165,6 +177,7 @@ def main(argv: list[str] | None = None) -> int:
         run_step("generate operation table", ["scripts/gen_operations.py"])
         run_step("generate service classes", ["scripts/gen_services.py"])
         run_step("generate public models", ["scripts/gen_public_models.py"])
+        run_step("generate NQE enums", ["scripts/gen_nqe_enums.py"])
         run_step("generate the sync client", ["scripts/unasync.py"])
 
     return 0

@@ -123,10 +123,17 @@ class NqeRepository(Service):
         omission is easy to miss: ``RepositoryQuery.source`` is simply ``None``,
         which reads like an empty query rather than a forgotten flag.
 
+        A failure to ask is never reported as an absent query. A timeout or a
+        server error propagates as itself, because it is not evidence about what
+        is published: a consumer auditing a library against what it ships would
+        otherwise read one gateway timeout as every query having disappeared.
+
         Raises:
             ForwardNotFoundError: If no query exists at that path, or Forward
                 returned it without source, which would otherwise surface later
                 as a confusing empty comparison.
+            ForwardAPIError: If the lookup itself failed. Distinct from the
+                above on purpose; see above.
         """
         normalized = path if path.startswith("/") else "/" + path
         found = self.queries(repository=repository, path=normalized, with_source=True)

@@ -15,7 +15,11 @@ import httpx
 import pytest
 
 from forward_sdk._async.client import AsyncForwardClient
-from forward_sdk.errors import ForwardConflictError, ForwardNotFoundError
+from forward_sdk.errors import (
+    ForwardConflictError,
+    ForwardNotFoundError,
+    ForwardServerError,
+)
 from tests.conftest import Recorder, error_response, json_response
 
 pytestmark = pytest.mark.anyio
@@ -128,6 +132,21 @@ class TestReading:
         )
         async with make_client(recorder) as client:
             with pytest.raises(ForwardNotFoundError, match="no source"):
+                await client.nqe.repo.source("/A")
+
+    async def test_a_failed_lookup_is_not_reported_as_a_missing_query(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        """Failing to ask is not evidence about what is published.
+
+        A consumer auditing a library against what it ships distinguishes "not
+        published" from "could not check". Collapsing a server error into
+        ForwardNotFoundError would let one gateway timeout read as every query
+        having disappeared, and prompt a republish that was never needed.
+        """
+        recorder.add("GET", QUERIES, error_response(502, "gateway"))
+        async with make_client(recorder, retries=0) as client:
+            with pytest.raises(ForwardServerError):
                 await client.nqe.repo.source("/A")
 
     async def test_source_of_a_missing_query(self, recorder: Recorder) -> None:

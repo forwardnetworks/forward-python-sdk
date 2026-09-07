@@ -31,11 +31,20 @@ class CounterSnapshot:
     transport_errors: int = 0
     throttle_sleep_seconds: float = 0.0
     retry_sleep_seconds: float = 0.0
+    #: Failures split by cause, because they call for different responses: a
+    #: timeout means slow, a transport error means unreachable, a transient
+    #: status means Forward asked to be retried, and anything else is a request
+    #: the server rejected outright.
+    http_timeouts: int = 0
+    http_transient: int = 0
+    http_rejected: int = 0
     nqe_runs: int = 0
     nqe_executions: int = 0
     nqe_polls: int = 0
     nqe_pages: int = 0
     nqe_rows: int = 0
+    nqe_diff_calls: int = 0
+    nqe_diff_pages: int = 0
     cache_hits: int = 0
     cache_misses: int = 0
     #: When the first and most recent requests were sent, as Unix timestamps.
@@ -74,17 +83,33 @@ class Counters:
     taken under a lock and :meth:`snapshot` returns a consistent reading.
     """
 
-    __slots__ = ("_lock", "_values")
+    __slots__ = ("_lock", "_status_classes", "_values")
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._values: dict[str, float] = {f.name: 0 for f in fields(CounterSnapshot)}
+        self._status_classes: dict[str, int] = {}
 
     def increment(self, name: str, amount: float = 1) -> None:
         with self._lock:
             if name not in self._values:
                 raise KeyError(f"unknown counter {name!r}")
             self._values[name] += amount
+
+    def record_status(self, status: int) -> None:
+        """Record a response by its status class.
+
+        Kept outside :class:`CounterSnapshot` because it is a mapping and that
+        is a flat record of scalars; read it with :meth:`status_classes`.
+        """
+        bucket = f"{status // 100}xx"
+        with self._lock:
+            self._status_classes[bucket] = self._status_classes.get(bucket, 0) + 1
+
+    def status_classes(self) -> dict[str, int]:
+        """Responses seen, counted by status class: ``{"2xx": 41, "5xx": 2}``."""
+        with self._lock:
+            return dict(self._status_classes)
 
     def mark_attempt(self, when: float) -> None:
         """Record when a request was sent, for the observed-rate window."""
@@ -108,6 +133,7 @@ class Counters:
         with self._lock:
             for key in self._values:
                 self._values[key] = 0
+            self._status_classes.clear()
 
 
 class Hooks:

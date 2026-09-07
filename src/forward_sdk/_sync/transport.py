@@ -157,6 +157,8 @@ class Transport:
                 response = self._client.send(request)
             except httpx.TransportError as exc:
                 self.counters.increment("transport_errors")
+                if isinstance(exc, httpx.TimeoutException):
+                    self.counters.increment("http_timeouts")
                 last_error = exc
                 if final or not _retry_on_transport_error(spec, exc):
                     raise ForwardTransportError(
@@ -168,10 +170,12 @@ class Transport:
                 continue
 
             self._notify("on_response", spec.operation, response, time.monotonic() - started)
+            self.counters.record_status(response.status_code)
 
             if response.status_code in RETRYABLE_STATUS and spec.idempotent and not final:
                 if response.status_code == 429:
                     self.counters.increment("http_429")
+                self.counters.increment("http_transient")
                 response.read()
                 delay = self._retry_delay(
                     attempt, parse_retry_after(response.headers.get("retry-after"))
@@ -183,6 +187,10 @@ class Transport:
                 self.counters.increment("http_errors")
                 if response.status_code == 429:
                     self.counters.increment("http_429")
+                if response.status_code in RETRYABLE_STATUS:
+                    self.counters.increment("http_transient")
+                else:
+                    self.counters.increment("http_rejected")
                 response.read()
                 raise_for_response(response, operation=spec.operation, attempts=attempt + 1)
 

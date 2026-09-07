@@ -15,7 +15,7 @@ from forward_sdk._async.services.snapshots import AsyncSnapshotsService
 from forward_sdk._async.throttle import Throttle
 from forward_sdk._async.transport import AsyncTransport
 from forward_sdk.config import ClientConfig, RetryPolicy, build_config, config_from_env
-from forward_sdk.telemetry import CounterSnapshot, Hooks
+from forward_sdk.telemetry import Counters, CounterSnapshot, Hooks
 
 __all__ = ["AsyncForwardClient"]
 
@@ -129,6 +129,15 @@ class AsyncForwardClient(AsyncGeneratedServices):
     def counters(self) -> CounterSnapshot:
         """A reading of this client's request counters."""
         return self._transport.counters.snapshot()
+
+    @property
+    def counters_raw(self) -> Counters:
+        """The live counters, for readings that are not a flat record.
+
+        :meth:`Counters.status_classes` in particular, which is a mapping and
+        so does not belong in the snapshot's scalars.
+        """
+        return self._transport.counters
 
     async def aclose(self) -> None:
         await self._transport.aclose()

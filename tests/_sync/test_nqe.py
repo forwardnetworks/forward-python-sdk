@@ -467,6 +467,33 @@ class TestDiff:
         assert str(entries[0].type) == "ADDED"
         assert recorder.body_for()["queryId"] == "FQ_abc"
 
+    def test_diff_calls_and_pages_are_counted_apart_from_queries(self, recorder: Recorder) -> None:
+        """A release gate reads these separately; they are different workloads."""
+        recorder.add(
+            "POST",
+            "/api/nqe-diffs/100/101",
+            json_response({"rows": [{"type": "ADDED"}], "totalNumRows": 1}),
+        )
+        with make_client(recorder) as client:
+            client.nqe.diff(QueryRef.by_id("FQ_abc"), before="100", after="101")
+            counters = client.counters
+
+        assert counters.nqe_diff_calls == 1
+        assert counters.nqe_diff_pages == 1
+        assert counters.nqe_pages == 0
+
+    def test_execute_accepts_parameters_and_sort_keys(self, recorder: Recorder) -> None:
+        """Matching run(), for callers not building a QueryRef up front."""
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        with make_client(recorder) as client:
+            client.nqe.execute(
+                QueryRef.by_id("FQ_abc"), parameters={"site": "nyc"}, sort_keys=["name"]
+            )
+
+        body = recorder.body_for()
+        assert body["parameters"] == {"site": "nyc"}
+        assert body["sortKeys"] == [{"columnName": "name", "order": "ASC"}]
+
     def test_diff_rejects_inline_source(self, recorder: Recorder) -> None:
         """Forward cannot diff query source it has never seen."""
         with make_client(recorder) as client:

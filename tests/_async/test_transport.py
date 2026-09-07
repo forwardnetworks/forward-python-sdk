@@ -17,6 +17,7 @@ from forward_sdk._generated.operations import OPERATIONS
 from forward_sdk._ops import RequestSpec, spec_for
 from forward_sdk.config import RetryPolicy, build_config
 from forward_sdk.errors import (
+    ForwardAPIError,
     ForwardAuthError,
     ForwardConflictError,
     ForwardNotFoundError,
@@ -280,6 +281,59 @@ async def test_rate_limiter_paces_requests(recorder: Recorder, no_sleep: list[fl
     assert len(no_sleep) == 1
     assert no_sleep[0] == pytest.approx(0.1, abs=0.05)
     assert transport.counters.snapshot().throttle_sleep_seconds > 0
+
+
+async def test_failures_are_counted_by_cause(recorder: Recorder, no_sleep: list[float]) -> None:
+    """Each cause calls for a different response, so they are counted apart."""
+    recorder.add("GET", "/api/networks", error_response(503, "later"), json_response([]))
+    async with make_transport(recorder) as transport:
+        await transport.send(NETWORKS)
+        counters = transport.counters.snapshot()
+
+    assert counters.http_transient == 1
+    assert counters.http_rejected == 0
+    assert counters.http_timeouts == 0
+    assert transport.counters.status_classes() == {"5xx": 1, "2xx": 1}
+
+
+async def test_a_rejected_request_is_not_counted_as_transient(
+    recorder: Recorder,
+) -> None:
+    recorder.add("GET", "/api/networks", error_response(400, "bad"))
+    async with make_transport(recorder) as transport:
+        with pytest.raises(ForwardAPIError):
+            await transport.send(NETWORKS)
+        counters = transport.counters.snapshot()
+
+    assert counters.http_rejected == 1
+    assert counters.http_transient == 0
+
+
+async def test_timeouts_are_counted_apart_from_other_transport_errors(
+    recorder: Recorder, no_sleep: list[float]
+) -> None:
+    recorder.add("GET", "/api/networks", httpx.ReadTimeout("slow"))
+    async with make_transport(recorder, retries=0) as transport:
+        with pytest.raises(ForwardTransportError):
+            await transport.send(NETWORKS)
+        counters = transport.counters.snapshot()
+
+    assert counters.http_timeouts == 1
+    assert counters.transport_errors == 1
+
+
+async def test_observed_request_rate_needs_a_window(
+    recorder: Recorder, no_sleep: list[float]
+) -> None:
+    """A rate is uncomputable without the elapsed window, which is the point."""
+    recorder.add("GET", "/api/networks", json_response([]))
+    async with make_transport(recorder) as transport:
+        await transport.send(NETWORKS)
+        counters = transport.counters.snapshot()
+
+    assert counters.first_attempt_at > 0
+    assert counters.last_attempt_at >= counters.first_attempt_at
+    assert counters.attempts_per_minute >= 0
 
 
 async def test_saas_default_rate_limit_applied() -> None:

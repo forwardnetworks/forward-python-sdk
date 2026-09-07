@@ -43,7 +43,7 @@ from forward_sdk.nqe.pagination import (
     PageGuards,
     PageTracker,
 )
-from forward_sdk.nqe.query_ref import QueryRef
+from forward_sdk.nqe.query_ref import QueryRef, SortKey
 from forward_sdk.nqe.telemetry import ExecutionReport, ExecutionReports
 
 __all__ = ["AsyncNqeExecution", "AsyncNqeService"]
@@ -423,9 +423,20 @@ class AsyncNqeService(AsyncService):
         network_id: str | None = None,
         snapshot_id: str | None = None,
         column_filters: Sequence[Mapping[str, Any]] | None = None,
+        parameters: Mapping[str, Any] | None = None,
+        sort_keys: Sequence[SortKey | str] | None = None,
     ) -> AsyncNqeExecution:
-        """Start a query in the background and return a handle to it."""
+        """Start a query in the background and return a handle to it.
+
+        ``parameters`` and ``sort_keys`` are conveniences for the common case;
+        :class:`QueryRef` carries the same things when a reference is built once
+        and reused.
+        """
         ref = _as_ref(query)
+        if parameters:
+            ref = ref.with_parameters(**parameters)
+        if sort_keys:
+            ref = ref.with_sort(*sort_keys)
         if not ref.is_runnable:
             ref = await self.resolve(ref)
         resolved_network = self._network(network_id)
@@ -514,6 +525,7 @@ class AsyncNqeService(AsyncService):
         if not ref.is_runnable:
             ref = await self.resolve(ref)
 
+        self._transport.counters.increment("nqe_diff_calls")
         query_id = ref.effective_query_id
         assert query_id is not None  # guaranteed by is_runnable for non-text refs
         tracker = PageTracker(guards, page_size=page_size)
@@ -532,6 +544,7 @@ class AsyncNqeService(AsyncService):
             )
             data = payload or {}
             page = list(data.get("rows") or [])
+            self._transport.counters.increment("nqe_diff_pages")
             entries.extend(NqeDiffEntry.model_validate(row) for row in page)
             if tracker.observe(page, data.get("totalNumRows")) is Decision.DONE:
                 return entries

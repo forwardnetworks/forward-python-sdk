@@ -403,9 +403,7 @@ def main(argv: list[str] | None = None) -> int:
             "SERVICE_TAGS: dict[str, str] = {",
         ]
     )
-    init.extend(
-        f'    "{tag}": "{attribute}",' for tag, attribute in sorted(tag_attributes)
-    )
+    init.extend(f'    "{tag}": "{attribute}",' for tag, attribute in sorted(tag_attributes))
     init.append("}")
     init.append("")
     init_path = args.output / "__init__.py"

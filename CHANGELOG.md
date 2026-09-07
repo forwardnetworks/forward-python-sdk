@@ -5,6 +5,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `nqe.diff_page()`, one page of a snapshot diff, the counterpart to `run()`
+  for diffs. `diff()` pages to completion, which is the wrong shape for showing
+  an operator the first rows that changed: it fetches the whole diff to display
+  fifty rows. Page guards cannot stand in, because a page ceiling raises rather
+  than stopping, which is right for a ceiling and wrong for a limit. Requested
+  by the NetBox integration, which was slicing a complete diff.
+
 ### Fixed
 
 - NQE result rows are no longer rewritten. `rows()` and `stream()` stripped a
@@ -32,6 +41,15 @@ All notable changes to this project are documented here. The format follows
   attempts, 5% at twenty. The error was pessimistic, so a release gate comparing
   it against Forward's published ceiling could fail a build on a rate that was
   within the limit.
+
+- Forward's error body is parsed on its own merits rather than on the
+  `content-type` it arrives with. A proxy that rewrote or dropped the header
+  turned a described denial into a bare status. That mattered because Forward
+  exposes no endpoint for an account's entitlements, so a refusal's message is
+  the only signal a licence-tier denial exists, and losing it fails silently:
+  the denial looks like any other 4xx. A body that is not a JSON object still
+  parses to nothing, so an HTML gateway page is unchanged. A test now pins that
+  the message and the raw body reach the exception verbatim.
 
 ### Changed
 

@@ -163,10 +163,14 @@ def parse_error_body(response: httpx.Response) -> Any:
     Forward maps errors centrally and returns ``ErrorInfo`` on any 4xx or 5xx,
     even where the spec documents no such response, so this is attempted for
     every failure. NQE extends the shape with query diagnostics.
+
+    The body is parsed on its own merits rather than on the content type it
+    arrives with. A proxy that rewrites or drops the header would otherwise turn
+    a described denial into a bare status, and silently: consumers tell a licence
+    or permission denial from an ordinary failure by reading Forward's message,
+    because no endpoint reports an account's entitlements. Anything that is not
+    a JSON object still parses to ``None``, so an HTML gateway page is unchanged.
     """
-    content_type = response.headers.get("content-type", "")
-    if "json" not in content_type:
-        return None
     try:
         payload = response.json()
     except ValueError:

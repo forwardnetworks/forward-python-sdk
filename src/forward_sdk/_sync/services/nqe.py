@@ -24,6 +24,7 @@ from typing import Any
 
 from forward_sdk._generated.models import (
     NqeDiffEntry,
+    NqeDiffResult,
     NqeExecutionStatus,
     NqeQuery,
     NqeRunResult,
@@ -519,6 +520,46 @@ class NqeService(Service):
             and either may be absent: a row added between the snapshots has no
             ``before``, a removed one has no ``after``.
         """
+        ref = self._diffable(query)
+        self._transport.counters.increment("nqe_diff_calls")
+        tracker = PageTracker(guards, page_size=page_size)
+        entries: list[NqeDiffEntry] = []
+        while True:
+            data = self._diff_page(
+                ref, before=before, after=after, offset=tracker.offset, limit=tracker.page_size
+            )
+            page = list(data.get("rows") or [])
+            entries.extend(NqeDiffEntry.model_validate(row) for row in page)
+            if tracker.observe(page, data.get("totalNumRows")) is Decision.DONE:
+                return entries
+
+    def diff_page(
+        self,
+        query: QueryRef | str,
+        *,
+        before: str,
+        after: str,
+        offset: int = 0,
+        limit: int | None = DEFAULT_PAGE_SIZE,
+    ) -> NqeDiffResult:
+        """Compare two snapshots and return one page of changes.
+
+        The counterpart to :meth:`run` for diffs. :meth:`diff` pages to
+        completion, which is the wrong shape for showing an operator the first
+        rows that changed: that would fetch the whole diff to display fifty rows.
+        Page guards cannot stand in for this, because a page ceiling raises
+        rather than stopping, which is right for a ceiling and wrong for a limit.
+
+        ``totalNumRows`` reports the size of the whole diff, so a caller can show
+        how much was not fetched.
+        """
+        ref = self._diffable(query)
+        self._transport.counters.increment("nqe_diff_calls")
+        data = self._diff_page(ref, before=before, after=after, offset=offset, limit=limit)
+        return NqeDiffResult.model_validate(data)
+
+    def _diffable(self, query: QueryRef | str) -> QueryRef:
+        """Resolve a reference to something Forward can diff."""
         ref = _as_ref(query)
         if ref.mode == "text":
             raise ForwardConfigurationError(
@@ -527,30 +568,32 @@ class NqeService(Service):
             )
         if not ref.is_runnable:
             ref = self.resolve(ref)
+        return ref
 
-        self._transport.counters.increment("nqe_diff_calls")
+    def _diff_page(
+        self,
+        ref: QueryRef,
+        *,
+        before: str,
+        after: str,
+        offset: int,
+        limit: int | None,
+    ) -> Mapping[str, Any]:
         query_id = ref.effective_query_id
         assert query_id is not None  # guaranteed by is_runnable for non-text refs
-        tracker = PageTracker(guards, page_size=page_size)
-        entries: list[NqeDiffEntry] = []
-        while True:
-            payload = self._send_json(
-                ops.diff(
-                    before_snapshot_id=before,
-                    after_snapshot_id=after,
-                    query_id=query_id,
-                    commit_id=ref.effective_commit_id,
-                    offset=tracker.offset,
-                    limit=tracker.page_size,
-                    parameters=ref.parameters or None,
-                )
+        payload = self._send_json(
+            ops.diff(
+                before_snapshot_id=before,
+                after_snapshot_id=after,
+                query_id=query_id,
+                commit_id=ref.effective_commit_id,
+                offset=offset,
+                limit=limit,
+                parameters=ref.parameters or None,
             )
-            data = payload or {}
-            page = list(data.get("rows") or [])
-            self._transport.counters.increment("nqe_diff_pages")
-            entries.extend(NqeDiffEntry.model_validate(row) for row in page)
-            if tracker.observe(page, data.get("totalNumRows")) is Decision.DONE:
-                return entries
+        )
+        self._transport.counters.increment("nqe_diff_pages")
+        return payload or {}
 
     def execution_reports(self) -> list[ExecutionReport]:
         """What happened to each execution this client has run.

@@ -9,6 +9,7 @@ twin, so both clients are covered by one set of assertions.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import httpx
@@ -165,6 +166,53 @@ def test_error_carries_forward_message_and_operation(recorder: Recorder) -> None
     assert error.error_info is not None
     assert error.error_info.message == "not permitted"
     assert error.operation is OPERATIONS["getNetworks"]
+
+
+def test_forward_message_and_body_survive_verbatim(recorder: Recorder) -> None:
+    """Forward's own wording is load-bearing, so it is never reworded here.
+
+    Forward exposes no endpoint for an account's licence tier, so a refusal
+    arriving mid-sync is the only signal a tier denial exists. An integration
+    tells that apart from an ordinary failure by matching Forward's text. If the
+    SDK ever summarised, truncated or normalised the message, or dropped the raw
+    body, that detection would go silent rather than fail, because the denial
+    would look like any other 4xx.
+
+    So: the message is carried character for character, and the undecoded body
+    stays on the exception for anything the parsed model does not model.
+    """
+    message = "Feature 'Vulnerability Analysis' is not included in your licence tier (tier: BASE)."
+    body = {"httpMethod": "GET", "apiUrl": "/api/networks", "message": message, "reason": "DENIED"}
+    raw = json.dumps(body)
+    recorder.add("GET", "/api/networks", httpx.Response(403, content=raw.encode()))
+    with make_transport(recorder) as transport:
+        with pytest.raises(ForwardPermissionError) as caught:
+            transport.send(NETWORKS)
+
+    error = caught.value
+    assert error.error_info is not None
+    assert error.error_info.message == message
+    assert error.reason == "DENIED"
+    assert error.text == raw
+    assert message in str(error)
+
+
+def test_error_body_parses_without_a_json_content_type(recorder: Recorder) -> None:
+    """A proxy that rewrites the header must not erase Forward's explanation."""
+    body = {"httpMethod": "GET", "apiUrl": "/api/networks", "message": "denied", "reason": "X"}
+    recorder.add(
+        "GET",
+        "/api/networks",
+        httpx.Response(
+            403, content=json.dumps(body).encode(), headers={"content-type": "text/html"}
+        ),
+    )
+    with make_transport(recorder) as transport:
+        with pytest.raises(ForwardPermissionError) as caught:
+            transport.send(NETWORKS)
+
+    assert caught.value.error_info is not None
+    assert caught.value.error_info.message == "denied"
 
 
 def test_gating_hint_surfaces_on_denial(recorder: Recorder) -> None:

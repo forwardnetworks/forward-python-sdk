@@ -521,6 +521,49 @@ class TestDiff:
         assert body["parameters"] == {"site": "nyc"}
         assert body["sortKeys"] == [{"columnName": "name", "order": "ASC"}]
 
+    def test_diff_page_fetches_one_page_only(self, recorder: Recorder) -> None:
+        """A diff preview should cost one page, not the whole diff.
+
+        Page guards cannot stand in for this: a page ceiling raises rather than
+        stopping, which is right for a ceiling and wrong for a limit.
+        """
+        recorder.add(
+            "POST",
+            "/api/nqe-diffs/100/101",
+            json_response({"rows": [{"type": "ADDED"}], "totalNumRows": 500}),
+        )
+        with make_client(recorder) as client:
+            result = client.nqe.diff_page(
+                QueryRef.by_id("FQ_abc"), before="100", after="101", limit=1
+            )
+            counters = client.counters
+
+        assert len(result.rows or []) == 1
+        assert result.total_num_rows == 500
+        assert recorder.count("POST", "/api/nqe-diffs/100/101") == 1
+        assert counters.nqe_diff_pages == 1
+
+    def test_diff_page_honours_offset_and_limit(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            "/api/nqe-diffs/100/101",
+            json_response({"rows": [], "totalNumRows": 500}),
+        )
+        with make_client(recorder) as client:
+            client.nqe.diff_page(
+                QueryRef.by_id("FQ_abc"), before="100", after="101", offset=50, limit=25
+            )
+
+        options = recorder.body_for()["options"]
+        assert options["offset"] == 50
+        assert options["limit"] == 25
+
+    def test_diff_page_rejects_inline_source(self, recorder: Recorder) -> None:
+        """The same rule as diff(): Forward cannot diff source it has not seen."""
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardConfigurationError, match="committed query"):
+                client.nqe.diff_page("foreach d in x select {}", before="1", after="2")
+
     def test_diff_rejects_inline_source(self, recorder: Recorder) -> None:
         """Forward cannot diff query source it has never seen."""
         with make_client(recorder) as client:

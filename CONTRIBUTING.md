@@ -112,6 +112,32 @@ green suite, including a predicate helper that could never have worked, a
 repository method that failed on every call, and a Forward AI response that
 failed to parse at all. None was subtle. All were assumptions.
 
+### Another client agreeing with you is not evidence
+
+The advice above has a hole, and one defect went through it. Both plugins this
+SDK replaces stripped a `fields` wrapper from NQE result rows, so the SDK did
+too. Forward never sends that wrapper. Its serializer holds a row in a field
+named `fields` internally and writes the row's own entries at the top level, so
+the envelope exists only in the server's own representation, and the API
+description documents bare rows on every result endpoint.
+
+Three codebases held the belief at once, and one of them had encoded it in
+seventeen fixtures. Every one of those fixtures was written by the same people
+who wrote the parser it fed. Consensus between consumers is not independent
+confirmation, because consumers copy each other, and this SDK copied both.
+
+The stripping was not merely useless. `select {fields: {...}}` yields a row whose
+single key is `fields`, indistinguishable on the wire from the envelope it was
+mistaken for, so those rows were silently rewritten and could not be recovered
+downstream.
+
+Rank your evidence. The server's source and its generated description outrank a
+live call, which outranks a recorded payload, which outranks another client's
+behaviour. Another client tells you what someone else believed. Only the first
+three tell you what Forward does. When a shape is not in the description, say in
+the docstring which of these you checked, so the next person knows whether they
+are reading an observation or an inheritance.
+
 ### Running the live tests
 
 ```bash

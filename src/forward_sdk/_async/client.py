@@ -76,6 +76,7 @@ class AsyncForwardClient(AsyncGeneratedServices):
         snapshot_id: str | None = None,
         user_agent: str | None = None,
         cache_ttl: float = 60.0,
+        snapshot_cache_ttl: float = 0.0,
         proxy: str | None = None,
         trust_env: bool = True,
         transport: httpx.AsyncBaseTransport | None = None,
@@ -94,6 +95,7 @@ class AsyncForwardClient(AsyncGeneratedServices):
             snapshot_id=snapshot_id,
             user_agent=user_agent,
             cache_ttl=cache_ttl,
+            snapshot_cache_ttl=snapshot_cache_ttl,
             proxy=proxy,
             trust_env=trust_env,
         )

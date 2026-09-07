@@ -99,6 +99,12 @@ class ClientConfig:
             Forward uses the network's latest processed snapshot.
         user_agent: Extra token identifying the calling application.
         cache_ttl: Seconds to reuse cached reads, or ``0`` to disable.
+        snapshot_cache_ttl: Seconds to reuse a resolved snapshot, or ``0``, the
+            default, to resolve every time. Off by default because only the
+            caller knows how long "latest" should stay true, and a stale
+            snapshot fails silently: it returns real data from the wrong moment.
+            Set it when a run pins one point in time, which is the usual case
+            for a sync.
     """
 
     base_url: str
@@ -122,6 +128,7 @@ class ClientConfig:
     snapshot_id: str | None = None
     user_agent: str | None = None
     cache_ttl: float = 60.0
+    snapshot_cache_ttl: float = 0.0
     proxy: str | None = None
     trust_env: bool = True
 
@@ -239,6 +246,9 @@ def config_from_env(environ: dict[str, str] | None = None, **overrides: Any) -> 
     retries = _env("RETRIES", environ)
     if retries:
         settings["retries"] = int(retries)
+    snapshot_ttl = _env("SNAPSHOT_CACHE_TTL", environ)
+    if snapshot_ttl:
+        settings["snapshot_cache_ttl"] = float(snapshot_ttl)
 
     settings.update(overrides)
     return settings
@@ -257,6 +267,7 @@ def build_config(
     snapshot_id: str | None = None,
     user_agent: str | None = None,
     cache_ttl: float = 60.0,
+    snapshot_cache_ttl: float = 0.0,
     proxy: str | None = None,
     trust_env: bool = True,
     stream_read_timeout: float = DEFAULT_STREAM_READ_TIMEOUT,
@@ -286,6 +297,7 @@ def build_config(
         snapshot_id=snapshot_id,
         user_agent=user_agent,
         cache_ttl=max(0.0, cache_ttl),
+        snapshot_cache_ttl=max(0.0, snapshot_cache_ttl),
         proxy=proxy,
         trust_env=trust_env,
     )

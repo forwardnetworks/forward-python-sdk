@@ -21,6 +21,18 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `snapshot_cache_ttl`, an opt-in cache for snapshot resolution, off by default.
+  Covers `latest_processed` and `latest_collected_id`, keyed by the exact
+  question so two tag scopes stay two answers, and cleared when an upload
+  through the same client makes it wrong. `client.snapshots.clear_cache()`
+  handles what the SDK cannot see.
+
+  It exists for the rate limit rather than for latency. Forward's budget is per
+  authenticated user and exceeding it blocks the user, so a sync resolving a
+  snapshot once per slice across a thread pool spends a large share of an
+  allowance on a question with one answer. It stays off by default because a
+  stale snapshot does not raise, it returns real data from the wrong moment, and
+  only the caller knows how long "latest" should stay true.
 - `.github/workflows/live.yml` runs the live tests weekly against a configured
   instance and opens an issue on failure. The unpublished endpoints have no
   generated description to check against, so nothing in CI could notice Forward

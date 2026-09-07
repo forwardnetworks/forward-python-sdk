@@ -52,6 +52,18 @@ select {{ name: device.name }}
 """
 
 
+class _Miss:
+    """Sentinel for "not cached", distinct from a cached ``None``."""
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging aid
+        return "<cache miss>"
+
+
+_MISS = _Miss()
+
+
 def _state_of(snapshot: SnapshotInfo) -> str:
     return str(snapshot.state) if snapshot.state is not None else ""
 
@@ -62,6 +74,46 @@ class AsyncSnapshotsService(AsyncService):
     def __init__(self, transport: Any) -> None:
         super().__init__(transport)
         self._nqe_service: AsyncNqeService | None = None
+        self._resolved: dict[tuple[Any, ...], tuple[float, Any]] = {}
+
+    def clear_cache(self) -> None:
+        """Forget any cached snapshot resolution.
+
+        Call this when something you did makes "latest" mean something new and
+        the SDK cannot know: an upload from another process, or a snapshot that
+        finished processing while this client was running. Uploading through
+        this client clears it for you.
+        """
+        self._resolved.clear()
+
+    def _cached(self, key: tuple[Any, ...]) -> Any:
+        """A previously resolved answer to exactly this question, or a miss.
+
+        Returns ``_MISS`` rather than ``None`` because ``None`` is a real
+        answer: a network with no processed snapshot resolves to nothing, and
+        re-asking every time would spend the budget the cache exists to save.
+
+        A race between two threads costs a duplicate resolution, never a wrong
+        answer, since both compute the same thing from the same server state.
+        """
+        ttl = self._config.snapshot_cache_ttl
+        if ttl <= 0:
+            return _MISS
+        entry = self._resolved.get(key)
+        if entry is None:
+            self._transport.counters.increment("cache_misses")
+            return _MISS
+        fetched, value = entry
+        if (time.monotonic() - fetched) >= ttl:
+            self._transport.counters.increment("cache_misses")
+            return _MISS
+        self._transport.counters.increment("cache_hits")
+        return value
+
+    def _remember(self, key: tuple[Any, ...], value: Any) -> Any:
+        if self._config.snapshot_cache_ttl > 0:
+            self._resolved[key] = (time.monotonic(), value)
+        return value
 
     async def list(
         self,
@@ -100,8 +152,13 @@ class AsyncSnapshotsService(AsyncService):
         finished processing. Picking an arbitrary processed snapshot would pin a
         sync to the wrong baseline without anything appearing to go wrong.
         """
+        key = ("latest_processed", self._network(network_id))
+        cached = self._cached(key)
+        if cached is not _MISS:
+            return cached  # type: ignore[no-any-return]
         snapshots = await self.list(network_id, state=PROCESSED)
-        return max(snapshots, key=_processed_order, default=None)
+        latest = max(snapshots, key=_processed_order, default=None)
+        return self._remember(key, latest)  # type: ignore[no-any-return]
 
     async def latest_processed_id(self, network_id: str | None = None) -> str | None:
         snapshot = await self.latest_processed(network_id)
@@ -139,6 +196,18 @@ class AsyncSnapshotsService(AsyncService):
             ForwardNotFoundError: If no scanned snapshot has devices in scope.
         """
         resolved = self._network(network_id)
+        key = (
+            "latest_collected",
+            resolved,
+            scan_limit,
+            tuple(include_tags),
+            tuple(exclude_tags),
+            include_match,
+            where,
+        )
+        cached = self._cached(key)
+        if cached is not _MISS:
+            return cached  # type: ignore[no-any-return]
         scope = "\n".join(
             part
             for part in (
@@ -161,7 +230,7 @@ class AsyncSnapshotsService(AsyncService):
                 probe, network_id=resolved, snapshot_id=snapshot.id, limit=1
             )
             if result.items:
-                return snapshot.id
+                return self._remember(key, snapshot.id)  # type: ignore[no-any-return]
 
         raise ForwardNotFoundError(
             f"none of the {len(candidates)} most recent processed snapshots of network "
@@ -222,6 +291,9 @@ class AsyncSnapshotsService(AsyncService):
                 wait=wait,
             )
         )
+        # A new snapshot is exactly the event that makes a cached "latest"
+        # wrong, and this client caused it, so it does not wait for a TTL.
+        self.clear_cache()
         return SnapshotInfo.model_validate(payload or {})
 
     async def export(self, snapshot_id: str, *, only: str | None = None) -> AsyncIterator[bytes]:

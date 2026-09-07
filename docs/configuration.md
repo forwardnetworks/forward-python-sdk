@@ -144,14 +144,28 @@ resolved a snapshot inside a thread pool and the client it replaced had cached
 that itself. Nothing failed and no test noticed. It showed up only as request
 volume against a live account.
 
-If you know an invariant the SDK cannot assume, cache on your own side and say
-which invariant you are relying on:
+If you know an invariant the SDK cannot assume, tell it, with
+`snapshot_cache_ttl`. It is off by default and takes a number of seconds:
 
 ```python
-# This sync pins one snapshot for its whole run, and snapshots are immutable,
-# so resolving once is safe here even though it would not be in general.
-snapshot_id = client.snapshots.latest_processed(network_id).id
+# This sync pins one point in time for its whole run, so resolving "latest"
+# once is right here even though it would not be in general.
+client = ForwardClient.from_env(snapshot_cache_ttl=600)
 ```
+
+That covers `latest_processed` and `latest_collected_id`, keyed by the exact
+question asked, so two different tag scopes stay two different answers. A
+network with no processed snapshot is cached as an answer too, since re-asking
+would spend the budget the setting exists to save.
+
+Uploading a snapshot through the same client clears it, because that is the
+event that makes a cached answer wrong. For anything the SDK cannot see, such
+as an upload from another process or a snapshot that finished while you were
+running, call `client.snapshots.clear_cache()`.
+
+Leave it off if "latest" genuinely has to mean latest. A stale snapshot does not
+raise. It returns real data from the wrong moment, which is why this is a
+setting rather than a default.
 
 Read `client.counters` for `cache_hits` and `cache_misses` on the one cache
 that exists, and for the request counts that would reveal this kind of change.

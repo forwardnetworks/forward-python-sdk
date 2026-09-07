@@ -268,6 +268,116 @@ class TestSnapshots:
 
         assert recorder.count("POST", "/api/nqe") == 2
 
+
+class TestSnapshotResolutionCache:
+    """Opt-in, because only the caller knows how long "latest" stays true.
+
+    It exists for the rate limit rather than for latency: Forward's budget is
+    per authenticated user, spent by every process holding those credentials,
+    and exceeding it blocks the user rather than slowing them. A sync that
+    resolves a snapshot once per slice across a thread pool spends a large share
+    of that allowance on a question with one answer.
+
+    Off by default because a stale snapshot is the worst kind of wrong. It does
+    not fail, it returns real data from the wrong moment.
+    """
+
+    def test_off_by_default(self, recorder: Recorder) -> None:
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
+        with make_client(recorder) as client:
+            client.snapshots.latest_processed()
+            client.snapshots.latest_processed()
+
+        assert recorder.count("GET", SNAPSHOTS) == 2
+
+    def test_reuses_a_resolution_within_the_ttl(self, recorder: Recorder) -> None:
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
+        with make_client(recorder, snapshot_cache_ttl=300) as client:
+            first = client.snapshots.latest_processed()
+            second = client.snapshots.latest_processed()
+            counters = client.counters
+
+        assert first is not None and second is not None
+        assert first.id == second.id == "9"
+        assert recorder.count("GET", SNAPSHOTS) == 1
+        assert counters.cache_hits == 1
+
+    def test_a_network_with_no_snapshot_is_a_real_answer(self, recorder: Recorder) -> None:
+        """Caching None matters: re-asking spends the budget the cache saves."""
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": []}))
+        with make_client(recorder, snapshot_cache_ttl=300) as client:
+            assert client.snapshots.latest_processed() is None
+            assert client.snapshots.latest_processed() is None
+
+        assert recorder.count("GET", SNAPSHOTS) == 1
+
+    def test_different_networks_do_not_share_an_answer(self, recorder: Recorder) -> None:
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
+        recorder.add(
+            "GET",
+            "/api/networks/202/snapshots",
+            json_response({"snapshots": [snapshot("7")]}),
+        )
+        with make_client(recorder, snapshot_cache_ttl=300) as client:
+            first = client.snapshots.latest_processed()
+            second = client.snapshots.latest_processed("202")
+
+        assert first is not None and first.id == "9"
+        assert second is not None and second.id == "7"
+
+    def test_a_different_scope_is_a_different_question(self, recorder: Recorder) -> None:
+        """The collected probe depends on its scope, so the key must carry it."""
+        for _ in range(2):
+            recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
+            recorder.add("POST", "/api/nqe", json_response({"items": [{"n": "x"}]}))
+        with make_client(recorder, snapshot_cache_ttl=300) as client:
+            client.snapshots.latest_collected_id(include_tags=["core"])
+            client.snapshots.latest_collected_id(include_tags=["edge"])
+
+        assert recorder.count("POST", "/api/nqe") == 2
+
+    def test_expires_after_the_ttl(
+        self, recorder: Recorder, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        now = [1000.0]
+        monkeypatch.setattr("forward_sdk._sync.services.snapshots.time.monotonic", lambda: now[0])
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
+        with make_client(recorder, snapshot_cache_ttl=60) as client:
+            client.snapshots.latest_processed()
+            now[0] += 61
+            client.snapshots.latest_processed()
+
+        assert recorder.count("GET", SNAPSHOTS) == 2
+
+    def test_uploading_invalidates_it(self, recorder: Recorder, tmp_path: Path) -> None:
+        """The upload is the event that makes a cached answer wrong."""
+        archive = tmp_path / "snap.zip"
+        archive.write_bytes(b"zip")
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
+        recorder.add("POST", SNAPSHOTS, json_response(snapshot("10")))
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("10")]}))
+        with make_client(recorder, snapshot_cache_ttl=300) as client:
+            before = client.snapshots.latest_processed()
+            client.snapshots.upload([str(archive)])
+            after = client.snapshots.latest_processed()
+
+        assert before is not None and before.id == "9"
+        assert after is not None and after.id == "10"
+
+    def test_clear_cache_forces_a_fresh_resolution(self, recorder: Recorder) -> None:
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("11")]}))
+        with make_client(recorder, snapshot_cache_ttl=300) as client:
+            client.snapshots.latest_processed()
+            client.snapshots.clear_cache()
+            latest = client.snapshots.latest_processed()
+
+        assert latest is not None and latest.id == "11"
+
+
+class TestSnapshotsContinued:
     def test_latest_collected_applies_tag_scope(self, recorder: Recorder) -> None:
         recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
         recorder.add("POST", "/api/nqe", json_response({"items": [{"name": "x"}]}))

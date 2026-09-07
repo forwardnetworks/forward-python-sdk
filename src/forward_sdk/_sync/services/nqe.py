@@ -106,6 +106,10 @@ class NqeExecution:
         self._status: dict[str, Any] = dict(status or {})
         self._started = time.monotonic()
         self._retry_after: float | None = None
+        # Retained separately from the value used for the next sleep: that one
+        # is cleared when a response arrives without the header, which would
+        # otherwise erase the evidence that Forward ever asked us to slow down.
+        self._last_retry_after: float | None = None
         self._polls = 0
         self._poll_sleep = 0.0
         self._terminal_reason: str | None = None
@@ -138,18 +142,24 @@ class NqeExecution:
         return self._status.get("status") == TERMINAL_STATUS
 
     @property
+    def timeout_minutes(self) -> int | None:
+        """The budget Forward allows this execution, in minutes."""
+        value = self._status.get("timeoutMinutes")
+        try:
+            return int(value) if value is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    @property
     def server_deadline(self) -> float | None:
         """When Forward's own budget for this execution runs out.
 
         A ``time.monotonic()`` value, or ``None`` if Forward has not said.
         """
-        minutes = self._status.get("timeoutMinutes")
+        minutes = self.timeout_minutes
         if minutes is None:
             return None
-        try:
-            return self._started + float(minutes) * 60.0 + SERVER_DEADLINE_GRACE
-        except (TypeError, ValueError):
-            return None
+        return self._started + minutes * 60.0 + SERVER_DEADLINE_GRACE
 
     def status(self) -> NqeExecutionStatus:
         """Fetch the execution's current status."""
@@ -160,6 +170,8 @@ class NqeExecution:
         # the client's own schedule, and the transport already honours the same
         # header on retries.
         self._retry_after = parse_retry_after(response.headers.get("retry-after"))
+        if self._retry_after is not None:
+            self._last_retry_after = self._retry_after
         payload = response.json() if response.content else {}
         self._status = dict(payload or {})
         self._polls += 1
@@ -259,8 +271,10 @@ class NqeExecution:
             query=self._query_label,
             millis_executing=self.millis_executing,
             rows_produced=self.rows_produced,
+            timeout_minutes=self.timeout_minutes,
             poll_count=self._polls,
             poll_sleep_seconds=round(self._poll_sleep, 3),
+            retry_after_seconds=self._last_retry_after,
             terminal_reason=self._terminal_reason,
             wall_seconds=round(time.monotonic() - self._started, 3),
         )

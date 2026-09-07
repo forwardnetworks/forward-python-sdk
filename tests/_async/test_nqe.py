@@ -405,8 +405,30 @@ class TestTelemetry:
         assert report.millis_executing == 250
         assert report.poll_count == 2
         assert report.poll_sleep_seconds > 0
+        assert report.timeout_minutes is None
         assert "inline query" in (report.query or "")
         assert set(report.as_dict()) >= {"execution_key", "terminal_reason"}
+
+    async def test_report_records_the_budget_and_the_pacing_forward_asked_for(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        """Both explain a slow run, and both go into a support bundle."""
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        recorder.add(
+            "GET",
+            STATUS,
+            json_response(
+                {"status": "EXECUTING", "timeoutMinutes": 30},
+                headers={"Retry-After": "8"},
+            ),
+            json_response({**COMPLETED, "timeoutMinutes": 30}),
+        )
+        async with make_client(recorder) as client:
+            await (await client.nqe.execute("q")).wait()
+            report = client.nqe.execution_reports()[0]
+
+        assert report.timeout_minutes == 30
+        assert report.retry_after_seconds == 8.0
 
     async def test_a_failed_execution_is_recorded_with_its_reason(
         self, recorder: Recorder, no_sleep: list[float]

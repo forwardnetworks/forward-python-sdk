@@ -107,8 +107,13 @@ across threads can report what happened without holding on to the handles:
 
 ```python
 for report in client.nqe.execution_reports():
-    print(report.query, report.rows_produced, report.millis_executing,
-          report.poll_count, report.terminal_reason)
+    print(
+        report.query,
+        report.rows_produced,
+        report.millis_executing,
+        report.poll_count,
+        report.terminal_reason,
+    )
 ```
 
 `terminal_reason` is Forward's outcome when it finished, or the client-side
@@ -173,3 +178,15 @@ query = f"foreach d in network.devices\n{scope}\nselect {{n: d.name}}"
 
 `literal()` renders a Python value as an NQE literal with correct escaping.
 Never interpolate a raw value into query text.
+
+Two shapes, and picking the wrong one fails quietly:
+
+| Field | Helper | Emits |
+| --- | --- | --- |
+| A collection, such as `device.tagNames` | `membership()` | `"core" in device.tagNames` |
+| A scalar, such as `device.platform.vendor` | `one_of()` | `device.platform.vendor in ["cisco"]` |
+
+Using `membership()` on a scalar asks whether a string is a member of a single
+value, which matches nothing. A probe built that way reports an empty scope on a
+perfectly healthy network, and reads like a data problem rather than a predicate
+one.

@@ -35,8 +35,14 @@ class ExecutionReport:
         query: How the query was referenced, for attribution.
         millis_executing: Time Forward reports it spent, in milliseconds.
         rows_produced: Rows Forward reports the query produced.
+        timeout_minutes: The budget Forward allowed this execution. Recorded
+            alongside the verdict so a reader can tell a query that overran a
+            generous budget from one that overran a tight one.
         poll_count: How many times the SDK asked for status.
         poll_sleep_seconds: Total time spent waiting between polls.
+        retry_after_seconds: The last delay Forward asked for while polling, if
+            any. Without it, server-driven pacing is invisible and a slow run
+            looks the same whether Forward throttled it or the query was large.
         terminal_reason: How it ended: the outcome Forward reported, or the
             client-side reason it stopped waiting.
         wall_seconds: Time from starting the execution to it finishing.
@@ -48,8 +54,10 @@ class ExecutionReport:
     query: str | None = None
     millis_executing: int | None = None
     rows_produced: int | None = None
+    timeout_minutes: int | None = None
     poll_count: int = 0
     poll_sleep_seconds: float = 0.0
+    retry_after_seconds: float | None = None
     terminal_reason: str | None = None
     wall_seconds: float = 0.0
 

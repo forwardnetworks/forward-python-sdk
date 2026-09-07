@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable, Sequence
-from typing import Literal
+from typing import Any, Literal
 
-__all__ = ["literal", "membership", "tag_scope", "where"]
+__all__ = ["literal", "membership", "one_of", "tag_scope", "where"]
 
 MatchMode = Literal["any", "all"]
 
@@ -40,10 +40,14 @@ def membership(
     match: MatchMode = "any",
     negate: bool = False,
 ) -> str | None:
-    """Build a clause testing ``expression`` against ``values``.
+    """Test whether a **collection** contains any of ``values``.
 
-    NQE's membership operators are ``in`` and ``not in``, and the element goes
-    on the left: ``"core" in device.tagNames``.
+    Emits ``"value" in expression``, so ``expression`` must be a collection --
+    ``device.tagNames``, ``device.groupNames``. For a scalar field such as
+    ``device.platform.vendor`` use :func:`one_of` instead: asking whether a
+    string is a member of a scalar matches nothing, and a probe built that way
+    reports an empty scope on a perfectly healthy network, which reads like a
+    data problem rather than a predicate one.
 
     Args:
         expression: The collection to test against, e.g. ``device.tagNames``.
@@ -71,6 +75,23 @@ def membership(
     # are joined with && whatever `match` says.
     joiner = " && " if (negate or match == "all") else " || "
     return f"({joiner.join(tests)})"
+
+
+def one_of(field: str, values: Sequence[Any]) -> str | None:
+    """Test whether a **scalar** field equals any of ``values``.
+
+    Emits ``field in ["a", "b"]``, the other direction from :func:`membership`:
+    here the field is on the left and the collection is the literal. This is
+    the form to use for scalar fields such as a vendor, model or platform.
+
+    Returns:
+        The clause, or ``None`` when ``values`` is empty.
+    """
+    items = [value for value in values if value is not None and value != ""]
+    if not items:
+        return None
+    rendered = ", ".join(literal(value) for value in items)
+    return f"{field} in [{rendered}]"
 
 
 def where(*clauses: str | None) -> str:

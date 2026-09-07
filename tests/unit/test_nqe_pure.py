@@ -24,7 +24,7 @@ from forward_sdk.nqe.files import (
 )
 from forward_sdk.nqe.pagination import Decision
 from forward_sdk.nqe.query_ref import SortKey
-from forward_sdk.nqe.where import literal, membership, tag_scope, where
+from forward_sdk.nqe.where import literal, membership, one_of, tag_scope, where
 
 FULL_COMMIT = "84f84b0c0a0a1805ddff0ca5451c2c55c58605e5"
 
@@ -198,6 +198,22 @@ class TestWhereBuilders:
     def test_empty_values_produce_no_clause(self) -> None:
         assert membership("t", []) is None
         assert membership("t", ["", None]) is None  # type: ignore[list-item]
+
+    def test_one_of_puts_the_scalar_field_on_the_left(self) -> None:
+        """A scalar needs `field in [values]`, the other direction from membership.
+
+        Using membership on a scalar matches nothing, and a probe built that way
+        reports an empty scope on a healthy network.
+        """
+        assert one_of("device.platform.vendor", ["cisco", "juniper"]) == (
+            'device.platform.vendor in ["cisco", "juniper"]'
+        )
+
+    def test_one_of_with_no_values(self) -> None:
+        assert one_of("device.model", []) is None
+
+    def test_one_of_escapes_its_values(self) -> None:
+        assert one_of("f", ['a"b']) == 'f in ["a\\"b"]'
 
     def test_where_skips_empty_clauses(self) -> None:
         assert where("a == 1", None, "b == 2") == "where a == 1\nwhere b == 2"

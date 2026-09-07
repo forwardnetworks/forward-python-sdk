@@ -131,11 +131,19 @@ def enum_one_of(field: str, enum_type: str, values: Sequence[Any]) -> str | None
         toString(device.platform.os)      -> "OS.PAN_OS"          so "OS"
         toString(device.platform.vendor)  -> "Vendor.CISCO"       so "Vendor"
 
-    Members may be given as shipped enum values, which removes any question of
-    how a member is spelled::
+    Take member names from the same reference, not from the SDK's models. The
+    generated enums describe Forward's **REST** schema, and NQE's namespace
+    differs in members as well as in type names. Measured against a live
+    instance, ``Vendor`` alone diverges three ways::
 
-        from forward_sdk.models import Vendor
-        enum_one_of("device.platform.vendor", "Vendor", [Vendor.cisco])
+        Vendor.MICROSOFT  rejected: "Unknown alternative MICROSOFT"
+        Vendor.AZURE      accepted, and absent from the SDK enum
+        Vendor.GD         rejected; NQE spells it GENERAL_DYNAMICS
+
+    So passing ``forward_sdk.models.Vendor`` members is safe for most of them
+    and produces a query Forward rejects for the rest. Enum values are accepted
+    here for convenience, but the reference is what decides whether a name is
+    real.
 
     Args:
         field: The enum-valued field.

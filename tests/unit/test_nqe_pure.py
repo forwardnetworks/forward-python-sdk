@@ -223,6 +223,22 @@ class TestWhereBuilders:
     def test_one_of_escapes_its_values(self) -> None:
         assert one_of("f", ['a"b']) == 'f in ["a\\"b"]'
 
+    def test_shipped_enums_are_not_a_source_of_nqe_member_names(self) -> None:
+        """The generated enums describe the REST schema, not NQE's namespace.
+
+        Measured against a live instance: NQE accepts Vendor.AZURE and
+        Vendor.GENERAL_DYNAMICS, which the SDK enum does not have, and rejects
+        Vendor.MICROSOFT, Vendor.GD and Vendor.IBM, which it does. Building a
+        predicate from these names produces a query Forward refuses, so the
+        helper's docstring points at the NQE reference instead. This test
+        records the divergence rather than asserting it away.
+        """
+        members = {e.value for e in Vendor}
+        assert {"MICROSOFT", "GD", "IBM"} <= members, "REST-only names still present"
+        assert not ({"AZURE", "GENERAL_DYNAMICS"} & members), (
+            "the SDK enum has gained an NQE-only name; re-check the guidance"
+        )
+
     def test_enum_one_of_accepts_shipped_enum_members(self) -> None:
         """Members may be enum values; the type name is still given explicitly.
 

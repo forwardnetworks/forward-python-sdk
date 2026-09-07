@@ -204,14 +204,17 @@ one_of("device.platform.osVersion", ["17.9.4"])
 membership("device.tagNames", ["production"])
 ```
 
-Members may be shipped enum values, which removes any question of how a member
-is spelled. Names are validated as identifiers rather than quoted, since quoting
-one turns it into a string and reintroduces the type error.
+Names are validated as identifiers rather than quoted, since quoting one turns
+it into a string and reintroduces the type error.
 
-!!! warning "The NQE type name is not the SDK class name"
+!!! warning "NQE's namespace is not the SDK's"
 
-    NQE's data model is its own namespace and the two disagree. Verified
-    against a live instance:
+    The generated models describe Forward's REST schema. NQE's data model is a
+    separate namespace, and the two disagree about **type names and member
+    names both**. Do not build a predicate from `forward_sdk.models`; take the
+    names from the NQE reference.
+
+    Type names, verified against a live instance:
 
     | Field | NQE type | SDK model class |
     | --- | --- | --- |

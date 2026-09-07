@@ -15,8 +15,9 @@ from dataclasses import dataclass, field
 Gating = str
 
 #: Whether an operation appears in Forward's published OpenAPI description.
-#: ``"unpublished"`` operations are used by real integrations but carry no
-#: compatibility promise and may change without notice.
+#: ``"unpublished"`` operations are stable and safe to use -- Forward's own
+#: integrations depend on them -- but their shapes are described by hand here,
+#: so a change to one would not show up in a spec diff.
 Stability = str
 
 

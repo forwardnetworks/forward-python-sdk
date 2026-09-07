@@ -1,10 +1,11 @@
 # Endpoints the SDK supports that are NOT in Forward's published API description.
 #
-# These are used by real integrations (the Forward NetBox and Nautobot plugins
-# both depend on them) but they carry no compatibility promise and may change
-# without notice. They are described here so that the coverage test can hold
-# them to the same standard as published operations, and so their shapes are
-# documented somewhere.
+# These are stable and safe to depend on -- the Forward NetBox and Nautobot
+# plugins both use them -- but they are absent from the description Forward
+# generates from its server, so their shapes are written out here instead. That
+# lets the coverage test hold them to the same standard as published operations,
+# and means a change to one is caught by this SDK's tests rather than by a spec
+# diff, which would not see it.
 #
 # Everything here is reached through client.nqe.repo or client.snapshots.unstable.
 openapi: 3.2.0

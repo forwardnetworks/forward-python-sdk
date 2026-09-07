@@ -1,9 +1,10 @@
 """Request builders for the NQE query library.
 
-These endpoints are **unpublished**: they are not in Forward's public API
-description and may change without notice. They are supported here because
-publishing queries from code is how integrations keep their queries in step with
-the code that consumes them, and there is no published alternative.
+These endpoints are unpublished: they are absent from Forward's public API
+description, so their shapes are described by hand in ``spec/unpublished.yaml``
+rather than derived from it. They are stable and safe to depend on -- Forward's
+own integrations use them -- and there is no published alternative for
+publishing queries from code.
 """
 
 from __future__ import annotations

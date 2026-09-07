@@ -265,8 +265,8 @@ class SnapshotsService(Service):
     ) -> ReachabilityJob:
         """Start reachability computation as a pollable job.
 
-        Unpublished: this uses endpoints outside Forward's documented API, which
-        may change without notice. :meth:`compute_advanced_reachability` is the
+        Unpublished: these endpoints are outside Forward's documented API, though
+        stable and safe to use. :meth:`compute_advanced_reachability` is the
         published equivalent, without progress polling.
         """
         resolved = self._network(network_id)

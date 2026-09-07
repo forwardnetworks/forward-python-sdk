@@ -74,9 +74,11 @@ value cannot stall a caller indefinitely.
 ## Rate limiting
 
 `rate_limit_rpm="auto"`, the default, paces requests at 1800 per minute against
-Forward's hosted service, where a server-side ceiling of 2000 per minute is
-known to exist. Self-hosted deployments are left unthrottled, because their
-limits are a local matter. Pass an integer to set a rate, or `None` to disable.
+Forward's hosted service, which blocks above 2000 per minute. The gap leaves
+headroom for anything else using the same account, since the ceiling is
+account-wide rather than per client. Self-hosted deployments are left
+unthrottled, because their limits are a local matter. Pass an integer to set a
+rate, or `None` to disable.
 
 The limiter is per client. A fleet of workers sharing one Forward account needs
 a shared counter to stay under an account-wide ceiling; pass any object with an

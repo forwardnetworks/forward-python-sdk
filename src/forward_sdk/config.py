@@ -26,8 +26,10 @@ __all__ = ["ClientConfig", "RetryPolicy"]
 SAAS_HOST_SUFFIX = ".fwd.app"
 SAAS_HOSTS = frozenset({"fwd.app"})
 
-#: Forward's hosted service throttles hard above 2000 requests/minute. The
-#: default leaves headroom for other clients using the same account.
+#: Forward's hosted service blocks above 2000 requests/minute, and the ceiling
+#: is account-wide rather than per client, so the default leaves headroom for
+#: anything else using the same credentials.
+SAAS_HARD_LIMIT_RPM = 2000
 SAAS_DEFAULT_RPM = 1800
 
 DEFAULT_CONNECT_TIMEOUT = 10.0
@@ -162,9 +164,9 @@ def resolve_rate_limit(
 ) -> int | None:
     """Resolve the request rate, defaulting only for Forward's hosted service.
 
-    ``"auto"`` paces requests on ``fwd.app`` where a server-side ceiling is
-    known to exist, and leaves self-hosted deployments unthrottled, since their
-    limits are a local matter.
+    ``"auto"`` paces requests on ``fwd.app``, which blocks above 2000 per
+    minute, and leaves self-hosted deployments unthrottled, since their limits
+    are a local matter.
     """
     if rate_limit_rpm == "auto":
         return SAAS_DEFAULT_RPM if is_saas else None

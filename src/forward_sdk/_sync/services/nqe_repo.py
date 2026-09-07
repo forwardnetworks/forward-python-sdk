@@ -3,10 +3,10 @@
 
 """Reading and publishing NQE queries in the query library.
 
-**These endpoints are unpublished.** They are absent from Forward's public API
-description and may change without notice. They are supported because shipping
-queries alongside the code that consumes them is a real need with no published
-alternative, and because two Forward integrations already depend on them.
+These endpoints are unpublished: absent from Forward's public API description,
+so the SDK describes their shapes by hand. They are stable and safe to depend
+on, and two Forward integrations already do. Shipping queries alongside the code
+that consumes them has no published alternative.
 
 Publishing is a staged workflow, mirroring version control: changes are staged
 as drafts against the current user, optionally validated with a dry run, then

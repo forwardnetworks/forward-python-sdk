@@ -12,14 +12,21 @@ keeps the queries it ships in step with the code that consumes them.
 
 ## What that means for you
 
-- They may change or disappear in any Forward release, without notice.
-- They are not covered by Forward's API compatibility expectations.
-- The SDK tolerates the response shape variations observed in the field, but
-  cannot promise to keep doing so.
+These endpoints are confirmed stable and safe to use. Forward's own integrations
+depend on them, and they are exercised by this SDK's test suite like any other.
 
-They are kept in their own modules, described in `spec/unpublished.yaml`, and
-marked `stability="unpublished"` in the operation table, so nothing is
-unpublished by accident.
+Being unpublished means only that they are absent from the OpenAPI description
+Forward generates from its server, so:
+
+- The SDK describes their shapes by hand, in `spec/unpublished.yaml`, rather
+  than deriving them.
+- They will not appear in Forward's generated API reference.
+- A change to one would not show up in a spec diff, so it would not be caught by
+  the drift check that covers the published API. The SDK tolerates the response
+  shape variations seen in the field for exactly that reason.
+
+They are kept in their own modules and marked `stability="unpublished"` in the
+operation table, so nothing lands here by accident.
 
 ## The list
 

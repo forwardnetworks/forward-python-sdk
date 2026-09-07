@@ -1,11 +1,12 @@
 # The query library
 
-!!! warning "Unpublished"
+!!! note "Unpublished, but stable"
 
-    These operations use endpoints that are **not** part of Forward's published
-    API. They may change without notice. They are supported because publishing
-    queries from code has no published alternative, and because existing Forward
-    integrations depend on them.
+    These operations use endpoints that are not part of Forward's published API
+    description. They are stable and confirmed safe to depend on: Forward's own
+    integrations use them, and publishing queries from code has no published
+    alternative. Being outside the description simply means they are not covered
+    by the generated reference, so the SDK models them by hand.
 
 Reach them through `client.nqe.repo`.
 

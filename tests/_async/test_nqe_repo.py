@@ -16,6 +16,7 @@ import pytest
 
 from forward_sdk._async.client import AsyncForwardClient
 from forward_sdk.errors import (
+    ForwardConfigurationError,
     ForwardConflictError,
     ForwardNotFoundError,
     ForwardServerError,
@@ -29,6 +30,8 @@ CHANGES = "/api/users/current/nqe/changes"
 COMMITS = "/api/nqe/repos/org/commits"
 HEAD = "/api/nqe/repos/org/commits/head"
 NO_DRAFTS: dict[str, Any] = {"changes": []}
+COMMIT = "a" * 40
+AT_COMMIT = f"/api/nqe/repos/org/commits/{COMMIT}/queries"
 
 
 def make_client(recorder: Recorder, **overrides: Any) -> AsyncForwardClient:
@@ -75,13 +78,66 @@ class TestReading:
             assert (await client.nqe.repo.queries())[0].path == "/A"
 
     async def test_single_query_returned_bare(self, recorder: Recorder) -> None:
-        recorder.add("GET", QUERIES, json_response({"queryId": "FQ_1", "path": "/A"}))
+        recorder.add("GET", HEAD, json_response({"id": COMMIT}))
+        recorder.add("GET", AT_COMMIT, json_response({"queryId": "FQ_1", "path": "/A"}))
         async with make_client(recorder) as client:
             queries = await client.nqe.repo.queries(path="/A")
 
         assert len(queries) == 1
         assert queries[0].query_id == "FQ_1"
         assert recorder.query_for()["path"] == ["/A"]
+
+    async def test_filtering_at_head_resolves_the_commit_first(self, recorder: Recorder) -> None:
+        """Forward ignores path and source at head instead of refusing them.
+
+        The listing comes back whole and sourceless, so a path filter looks
+        applied and a source audit reads every query as source-unavailable and
+        passes vacuously. Resolving head to its commit makes both arguments mean
+        what they say.
+        """
+        recorder.add("GET", HEAD, json_response({"id": COMMIT}))
+        recorder.add("GET", AT_COMMIT, json_response({"queryId": "FQ_1", "path": "/A", "src": "x"}))
+        async with make_client(recorder) as client:
+            found = await client.nqe.repo.queries(path="/A", with_source=True)
+
+        assert recorder.count("GET", QUERIES) == 0
+        assert recorder.count("GET", AT_COMMIT) == 1
+        assert [q.path for q in found] == ["/A"]
+
+    async def test_listing_the_library_still_asks_head_directly(self, recorder: Recorder) -> None:
+        """Enumerating needs no commit, so it costs no extra request."""
+        recorder.add("GET", QUERIES, json_response({"queries": [{"path": "/A"}]}))
+        async with make_client(recorder) as client:
+            assert len(await client.nqe.repo.queries()) == 1
+
+        assert recorder.count("GET", HEAD) == 0
+
+    async def test_source_without_a_path_is_refused_locally(self, recorder: Recorder) -> None:
+        """Forward will not stream the whole library's text.
+
+        It answers with a message naming the parameter combination rather than
+        the reason, so the request is refused here with one that explains it.
+        """
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardConfigurationError, match="one query at a time"):
+                await client.nqe.repo.queries(with_source=True)
+
+        assert recorder.count("GET", QUERIES) == 0
+        assert recorder.count("GET", HEAD) == 0
+
+    async def test_filtering_needs_a_commit_to_resolve_to(self, recorder: Recorder) -> None:
+        """An empty repository has no commit, which is not an empty result."""
+        recorder.add("GET", HEAD, json_response({}))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError, match="no commit"):
+                await client.nqe.repo.queries(path="/A")
+
+    async def test_an_explicit_commit_is_used_as_given(self, recorder: Recorder) -> None:
+        recorder.add("GET", AT_COMMIT, json_response({"queries": [{"path": "/A"}]}))
+        async with make_client(recorder) as client:
+            await client.nqe.repo.queries(commit_id=COMMIT, path="/A", with_source=True)
+
+        assert recorder.count("GET", HEAD) == 0
 
     async def test_head_commit_from_either_field(self, recorder: Recorder) -> None:
         recorder.add("GET", HEAD, json_response({"commitId": "abc"}))

@@ -3,6 +3,43 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Fixed
+
+- NQE result rows are no longer rewritten. `rows()` and `stream()` stripped a
+  `fields` wrapper that Forward never sends. Its serializer holds a row in a
+  field it calls `fields` internally and writes the row's own entries at the top
+  level, confirmed against the server source, the API description and a live
+  instance. The stripping silently rewrote the result of
+  `select {fields: {...}}`, dropping a level and a key name, and it could not be
+  detected downstream because a row with one key named `fields` and the envelope
+  it was mistaken for are identical on the wire.
+
+  This also settles a shape disagreement reported by an integration: `run()` and
+  `result_page()` never stripped, so asking for one bounded page returned
+  different rows than iterating all of them. All four paths now agree.
+
+- `nqe.repo.queries()` honours `path` and `with_source` at `head`. Forward
+  ignores both there and returns the whole library without source, so a path
+  filter looked applied and a source audit read every query as
+  source-unavailable and passed vacuously. `head` is now resolved to its commit
+  whenever either argument is used.
+
+- `attempts_per_minute` counts intervals, not attempts. The window runs from the
+  first attempt to the most recent, which spans one fewer interval than there
+  are attempts, so the rate was overstated by `n / (n - 1)`: 100% at two
+  attempts, 5% at twenty. The error was pessimistic, so a release gate comparing
+  it against Forward's published ceiling could fail a build on a rate that was
+  within the limit.
+
+### Changed
+
+- `nqe.repo.queries(with_source=True)` without a `path` now raises
+  `ForwardConfigurationError`. Forward returns committed source one query at a
+  time and rejects the combination with a message naming the parameters rather
+  than the reason. Use `source()` for a single query's text.
+
 ## [0.1.3] - 2026-09-07
 
 ### Added

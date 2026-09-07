@@ -69,16 +69,17 @@ SERVER_DEADLINE_GRACE = 60.0
 def _rows_from_payload(payload: Any) -> tuple[list[Row], int | None]:
     """Extract rows and the reported total from a result page.
 
-    Forward has returned rows both bare and wrapped in a ``fields`` object, so
-    both are unwrapped here.
+    Rows arrive exactly as the query selected them. Forward's serializer holds a
+    row in a field it calls ``fields`` internally but writes the row's own
+    entries at the top level, so no envelope reaches the wire and none is
+    stripped here. Stripping one would corrupt the query
+    ``select {fields: {...}}``, whose rows have a single key named ``fields``
+    and are indistinguishable from the envelope they were mistaken for.
     """
     if not isinstance(payload, dict):
         return [], None
     items = payload.get("items") or []
-    rows = [
-        item["fields"] if isinstance(item, dict) and "fields" in item else item for item in items
-    ]
-    return rows, payload.get("totalNumItems")
+    return list(items), payload.get("totalNumItems")
 
 
 class AsyncNqeExecution:
@@ -354,7 +355,7 @@ class AsyncNqeExecution:
                     continue
                 row = json.loads(line)
                 counters.increment("nqe_rows")
-                yield row["fields"] if isinstance(row, dict) and "fields" in row else row
+                yield row
 
 
 def _is_ndjson(response: Any) -> bool:

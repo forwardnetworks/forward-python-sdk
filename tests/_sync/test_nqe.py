@@ -283,16 +283,43 @@ class TestResults:
         assert rows == [{"n": 1}, {"n": 2}, {"n": 3}]
         assert recorder.query_for()["offset"] == ["2"]
 
-    def test_rows_unwraps_fields_envelope(self, recorder: Recorder) -> None:
-        """Forward has returned rows both bare and wrapped in 'fields'."""
+    def test_rows_are_passed_through_unaltered(self, recorder: Recorder) -> None:
+        """A row whose only key is 'fields' is a row, not an envelope.
+
+        Both plugins this SDK replaces stripped a ``fields`` wrapper, and the
+        SDK copied them. Forward's serializer names its internal field ``fields``
+        but writes the row's own entries at the top level, so no envelope is ever
+        sent. Stripping one silently rewrote the result of
+        ``select {fields: {...}}``, dropping a level and a key name, and it was
+        unrecoverable because the row and the supposed envelope are identical on
+        the wire.
+        """
         recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
         recorder.add("GET", STATUS, json_response(COMPLETED))
-        recorder.add("GET", RESULT, page([{"fields": {"n": 1}}], total=1))
+        recorder.add("GET", RESULT, page([{"fields": {"inner": 1}}], total=1))
         with make_client(recorder) as client:
             execution = client.nqe.execute("q")
             rows = [row for row in execution.rows(page_size=10)]
 
-        assert rows == [{"n": 1}]
+        assert rows == [{"fields": {"inner": 1}}]
+
+    def test_one_page_and_every_row_agree_on_shape(self, recorder: Recorder) -> None:
+        """The bounded-page path and the iterate-everything path must match.
+
+        A caller who asks for one page rather than every row should not get a
+        different row shape for it.
+        """
+        row = {"fields": {"inner": 1}, "n": 2}
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        recorder.add("GET", STATUS, json_response(COMPLETED))
+        recorder.add("GET", RESULT, page([row], total=1))
+        recorder.add("GET", RESULT, page([row], total=1))
+        with make_client(recorder) as client:
+            execution = client.nqe.execute("q")
+            paged = (execution.result_page(offset=0, limit=1)).items
+            iterated = [r for r in execution.rows(page_size=10)]
+
+        assert paged == iterated == [row]
 
     def test_rows_stop_on_short_page_without_a_total(self, recorder: Recorder) -> None:
         recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))

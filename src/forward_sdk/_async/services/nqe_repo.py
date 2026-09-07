@@ -18,7 +18,12 @@ from typing import Any
 
 from forward_sdk._async.services._base import AsyncService
 from forward_sdk._ops import nqe_repo as ops
-from forward_sdk.errors import ForwardConflictError, ForwardNotFoundError
+from forward_sdk.errors import (
+    ForwardConfigurationError,
+    ForwardConflictError,
+    ForwardNotFoundError,
+)
+from forward_sdk.nqe.query_ref import sanitize_commit_id
 from forward_sdk.nqe.repository import (
     INVALID_CHANGE_PATH,
     NO_CHANGES_PREFIX,
@@ -55,12 +60,38 @@ class AsyncNqeRepository(AsyncService):
     ) -> list[RepositoryQuery]:
         """List queries in a repository.
 
-        ``path`` and ``with_source`` are honoured only against a specific
-        ``commit_id``. At ``head`` Forward ignores both and returns the whole
-        library without source, so filtering there will appear to do nothing.
-        Use :meth:`source` to read one query's text, which pins the commit for
-        you.
+        Forward honours ``path`` and ``with_source`` only against a specific
+        commit. Asked at ``head`` it ignores both and returns the whole library
+        without source, so a caller filtering by path would think the filter had
+        applied, and one auditing published source against what it ships would
+        find every query source-unavailable and conclude nothing was wrong. So
+        ``head`` is resolved to its commit first whenever either is requested.
+
+        Source is per query: Forward rejects ``with_source`` without a ``path``,
+        because it will not stream the whole library's text at once. That is
+        raised here as a configuration error rather than sent, since the server's
+        own message names the parameter combination and not the reason.
+
+        Raises:
+            ForwardConfigurationError: If ``with_source`` is set without a
+                ``path``. Use :meth:`source` for one query's text.
         """
+        if with_source and path is None:
+            raise ForwardConfigurationError(
+                "with_source needs a path: Forward returns committed source one "
+                "query at a time. Use source(path) for a single query's text, or "
+                "list without source to enumerate the library."
+            )
+        # sanitize_commit_id maps "head" and the empty string to None, and
+        # rejects an abbreviated hash rather than resolving past it.
+        if (path is not None or with_source) and sanitize_commit_id(commit_id) is None:
+            resolved = await self.head_commit_id()
+            if resolved is None:
+                raise ForwardNotFoundError(
+                    f"the {repository} repository has no commit to read from",
+                    status=404,
+                )
+            commit_id = resolved
         payload = await self._send_json(
             ops.list_queries(
                 repository=repository,

@@ -121,9 +121,12 @@ def enum_one_of(field: str, enum_type: str, values: Sequence[Any]) -> str | None
     with *Variable VendorOs not in scope*.
 
     Forward documents the NQE data model, and that is the authoritative source
-    for these names: each field's type is linked from its record's page under
-    ``application/nqe/language/data-model`` on docs.fwd.app. A ``toString()``
-    rendering confirms it, since it prefixes the member with the type name::
+    for these names:
+
+        https://docs.fwd.app/latest/application/nqe/language/data-model/
+
+    A ``toString()`` rendering confirms a name rather than discovering it, since
+    it prefixes the member with the type name::
 
         toString(device.platform.os)      -> "OS.PAN_OS"          so "OS"
         toString(device.platform.vendor)  -> "Vendor.CISCO"       so "Vendor"

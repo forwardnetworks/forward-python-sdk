@@ -14,6 +14,7 @@ from forward_sdk.errors import (
 )
 from forward_sdk.models import Vendor
 from forward_sdk.nqe import PageGuards, PageTracker, QueryRef, sanitize_commit_id
+from forward_sdk.nqe.enums import NQE_ENUMS
 from forward_sdk.nqe.enums import members as nqe_members
 from forward_sdk.nqe.files import (
     contract_version,
@@ -249,6 +250,17 @@ class TestWhereBuilders:
         assert enum_one_of("f", "NotInTheDataModel", ["ANYTHING"]) == (
             "f == NotInTheDataModel.ANYTHING"
         )
+
+    def test_no_nqe_type_has_zero_members(self) -> None:
+        """So an empty result means "type unknown", not "nothing is valid".
+
+        Consumers treat an empty member set as no information and accept the
+        value, which is the right reading only while this holds. If a type ever
+        arrives with no members, that fallback would silently switch off a
+        check, so the guidance needs revisiting rather than the test relaxing.
+        """
+        empty = sorted(name for name, values in NQE_ENUMS.items() if not values)
+        assert not empty, f"types with no members: {empty}; revisit members() docs"
 
     def test_nqe_enums_match_what_was_measured_live(self) -> None:
         """The generated lists agree with what a real instance accepted."""

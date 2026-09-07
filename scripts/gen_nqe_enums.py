@@ -60,9 +60,12 @@ FOOTER = '''
 def members(type_name: str) -> frozenset[str]:
     """The members NQE accepts for ``type_name``, or empty if it is unknown.
 
-    Empty means the type is not in the data model at all, which is different
-    from a type with no members; check ``type_name in NQE_ENUMS`` to tell them
-    apart.
+    Every type in the current data model has at least one member, so an empty
+    result means the type is not described here rather than that it has none.
+    Treat that as "no information", not as "nothing is valid": refusing every
+    value on the strength of an absent type would turn a gap in the model into a
+    failure. ``type_name in NQE_ENUMS`` distinguishes the two if the invariant
+    ever changes; a test asserts it currently holds.
     """
     return NQE_ENUMS.get(type_name, frozenset())
 

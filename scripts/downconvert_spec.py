@@ -44,6 +44,12 @@ import yaml
 SOURCE_VERSION = "3.2.0"
 TARGET_VERSION = "3.1.0"
 
+#: Endpoints Forward does not publish, described by hand. Merged in here so
+#: models are generated for their responses exactly as for published ones, and
+#: so request validation covers them too. Without this their shapes are read by
+#: hand, which is what lost a commit id nested under `lastCommit`.
+UNPUBLISHED = Path("spec/unpublished.yaml")
+
 STREAMING_MEDIA_TYPES = ("application/jsonl", "application/x-ndjson", "application/json-seq")
 
 # Schemas whose contents are defined by the user's NQE query rather than by the
@@ -248,6 +254,38 @@ def _coerce_scalar(value: Any, declared: str) -> Any | None:
     return None
 
 
+def merge_unpublished(doc: dict[str, Any], extra: dict[str, Any]) -> int:
+    """Fold the hand-written description of unpublished endpoints into ``doc``.
+
+    Their operations are marked so that anything reading the merged document can
+    tell them apart from what Forward publishes.
+    """
+    merged = 0
+    schemas = doc.setdefault("components", {}).setdefault("schemas", {})
+    for name, schema in (extra.get("components", {}).get("schemas") or {}).items():
+        if name in schemas:
+            raise UnsupportedSpecFeature(
+                f"unpublished schema {name!r} collides with a published one; rename it"
+            )
+        schemas[name] = schema
+
+    for path, item in (extra.get("paths") or {}).items():
+        target = doc.setdefault("paths", {}).setdefault(path, {})
+        for method, operation in item.items():
+            if method in target:
+                raise UnsupportedSpecFeature(
+                    f"unpublished {method.upper()} {path} collides with a published operation"
+                )
+            if isinstance(operation, dict):
+                operation.setdefault("x-forward-stability", "unpublished")
+                merged += 1
+            target[method] = operation
+
+    for tag in extra.get("tags") or []:
+        doc.setdefault("tags", []).append(tag)
+    return merged
+
+
 def downconvert(doc: dict[str, Any]) -> tuple[dict[str, Any], dict[str, int]]:
     if doc.get("openapi") != SOURCE_VERSION:
         raise UnsupportedSpecFeature(
@@ -269,11 +307,19 @@ def downconvert(doc: dict[str, Any]) -> tuple[dict[str, Any], dict[str, int]]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=Path("spec/forward-openapi.yaml"))
+    parser.add_argument("--unpublished", type=Path, default=UNPUBLISHED)
     parser.add_argument("--output", type=Path, default=Path("spec/forward-openapi-3.1.json"))
     args = parser.parse_args(argv)
 
     doc = yaml.safe_load(args.input.read_text(encoding="utf-8"))
+
+    unpublished = 0
+    if args.unpublished.exists():
+        extra = yaml.safe_load(args.unpublished.read_text(encoding="utf-8")) or {}
+        unpublished = merge_unpublished(doc, extra)
+
     converted, stats = downconvert(doc)
+    stats["unpublished_operations"] = unpublished
     args.output.write_text(json.dumps(converted, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     print(f"wrote {args.output}")

@@ -48,14 +48,14 @@ class AsyncUserAccountsService(AsyncService):
 
     async def get_current_user(
         self,
-    ) -> Any:
+    ) -> models.CurrentUser:
         """Get the authenticated user.
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["getCurrentUser"]())
-        return payload
+        return models.CurrentUser.model_validate(payload or {})
 
     async def get_user(
         self,

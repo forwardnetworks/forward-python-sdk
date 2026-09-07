@@ -90,7 +90,32 @@ def test_version_is_downgraded(source: dict[str, Any], derived: dict[str, Any]) 
 
 def test_no_operation_is_lost(source: dict[str, Any], derived: dict[str, Any]) -> None:
     """Merging query-dispatched paths must not drop the operations sharing them."""
-    assert operation_ids(source) == operation_ids(derived)
+    published = operation_ids(source)
+    assert published <= operation_ids(derived), (
+        f"operations lost in conversion: {sorted(published - operation_ids(derived))}"
+    )
+
+
+def test_unpublished_endpoints_are_merged_in(derived: dict[str, Any]) -> None:
+    """Their schemas must reach codegen, or their responses are read by hand.
+
+    Reading an unpublished response by hand is what lost a commit id nested
+    under lastCommit, so these are described and merged like published ones.
+    """
+    unpublished = yaml.safe_load(Path("spec/unpublished.yaml").read_text(encoding="utf-8"))
+    expected = operation_ids(unpublished)
+    assert expected <= operation_ids(derived)
+
+    schemas = derived["components"]["schemas"]
+    for name in unpublished["components"]["schemas"]:
+        assert name in schemas, f"unpublished schema {name} did not reach codegen"
+
+
+def test_merged_operations_are_marked_unpublished(derived: dict[str, Any]) -> None:
+    """Anything reading the merged document can tell the two apart."""
+    repo_queries = derived["paths"]["/nqe/repos/{repository}/commits/{commitId}/queries"]["get"]
+    assert repo_queries["x-forward-stability"] == "unpublished"
+    assert "x-forward-stability" not in derived["paths"]["/networks"]["get"]
 
 
 def test_dispatched_operations_keep_their_selector(derived: dict[str, Any]) -> None:

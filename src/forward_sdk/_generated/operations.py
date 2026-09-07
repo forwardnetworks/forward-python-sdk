@@ -326,6 +326,7 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         stability="unpublished",
+        response_model="CommitResult",
         summary="Commit staged query changes",
     ),
     "computeAdvancedReachability": OpDef(
@@ -1296,6 +1297,7 @@ OPERATIONS: dict[str, OpDef] = {
         response_media=('application/json',),
         stability="unpublished",
         gating=('admin',),
+        response_model="CurrentUser",
         summary="Get the authenticated user",
     ),
     "getCveAnalyses": OpDef(
@@ -1555,6 +1557,7 @@ OPERATIONS: dict[str, OpDef] = {
         tag="NQE Repository",
         response_media=('application/json',),
         stability="unpublished",
+        response_model="DraftChangePage",
         summary="List the current user's uncommitted query changes",
     ),
     "getEncryptor": OpDef(
@@ -2022,6 +2025,7 @@ OPERATIONS: dict[str, OpDef] = {
         tag="NQE Repository",
         response_media=('application/json',),
         stability="unpublished",
+        response_model="RepositoryCommit",
         summary="Get the organization repository's current commit",
     ),
     "getOsVulnerabilities": OpDef(
@@ -2121,6 +2125,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         response_media=('application/json',),
         stability="unpublished",
+        response_model="RepositoryCommitHistory",
         summary="List the commits that touched a query",
     ),
     "getReachabilityJob": OpDef(
@@ -2135,6 +2140,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         response_media=('application/json',),
         stability="unpublished",
+        response_model="ReachabilityJob",
         summary="Poll a reachability computation",
     ),
     "getRecentLinkOverrideChanges": OpDef(
@@ -2164,6 +2170,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         response_media=('application/json',),
         stability="unpublished",
+        response_model="RepositoryQueryPage",
         summary="List queries in a repository at a commit",
     ),
     "getSingleAlias": OpDef(
@@ -2875,6 +2882,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         response_media=('application/json',),
         stability="unpublished",
+        response_model="ReachabilityJob",
         summary="Start computing advanced reachability",
     ),
     "stopCollectorTask": OpDef(

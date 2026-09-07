@@ -8,10 +8,13 @@ fail depending on which client produced the value.
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
+
+from forward_sdk._generated import models as wire
 
 __all__ = [
     "INVALID_CHANGE_PATH",
@@ -20,6 +23,7 @@ __all__ = [
     "DraftChange",
     "RepositoryQuery",
     "commit_id_of",
+    "message_of",
     "optional_str",
     "paths_without_changes",
     "queries_from_payload",
@@ -60,13 +64,22 @@ class RepositoryQuery:
     def from_payload(
         cls, payload: Mapping[str, Any], *, repository: str = "org"
     ) -> RepositoryQuery:
+        """Flatten one entry from a query listing.
+
+        Validated against the declared schema first, so a shape change is a
+        validation error rather than a field quietly reading as None. The commit
+        is then read tolerantly, because Forward nests it while integrations
+        that normalize synthesize a flat key.
+        """
+        parsed = wire.RepositoryQuery.model_validate(dict(payload))
+        nested = parsed.last_commit.id if parsed.last_commit else None
         return cls(
-            query_id=str(payload.get("queryId") or payload.get("id") or ""),
-            path=str(payload.get("path") or ""),
-            commit_id=optional_str(commit_id_of(payload)),
-            intent=optional_str(payload.get("intent")),
-            repository=str(payload.get("repository") or repository).lower(),
-            source=optional_str(payload.get("sourceCode")),
+            query_id=str(parsed.query_id or payload.get("id") or ""),
+            path=str(parsed.path or ""),
+            commit_id=optional_str(nested or commit_id_of(payload)),
+            intent=optional_str(parsed.intent),
+            repository=str(parsed.repository or repository).lower(),
+            source=optional_str(parsed.source_code),
         )
 
 
@@ -79,9 +92,10 @@ class DraftChange:
 
     @classmethod
     def from_payload(cls, payload: Mapping[str, Any]) -> DraftChange:
+        parsed = wire.DraftChange.model_validate(dict(payload))
         return cls(
-            path=str(payload.get("path") or ""),
-            action=optional_str(payload.get("action") or payload.get("type")),
+            path=str(parsed.path or ""),
+            action=optional_str(parsed.action or payload.get("type")),
         )
 
 
@@ -142,6 +156,34 @@ def queries_from_payload(payload: Any, repository: str) -> list[RepositoryQuery]
         for row in rows or []
         if isinstance(row, Mapping)
     ]
+
+
+def message_of(error: Any) -> str | None:
+    """The server's message for an error, from data rather than from display text.
+
+    Prefers the parsed error body. Falls back to re-reading the raw body as
+    JSON, which matters for endpoints Forward does not publish: their error
+    envelopes are not guaranteed to carry the fields the parsed model requires,
+    so it can be absent even though the server did send a message.
+
+    Never falls back to ``str(error)``. Keying behaviour off an exception's
+    display string is the pattern this SDK exists to remove from its consumers.
+    """
+    parsed = getattr(getattr(error, "error_info", None), "message", None)
+    if parsed:
+        return str(parsed)
+
+    raw = getattr(error, "text", "") or ""
+    if not raw.strip():
+        return None
+    try:
+        body = json.loads(raw)
+    except ValueError:
+        return None
+    if isinstance(body, Mapping):
+        found = body.get("message")
+        return str(found) if found else None
+    return None
 
 
 def paths_without_changes(message: str) -> set[str]:

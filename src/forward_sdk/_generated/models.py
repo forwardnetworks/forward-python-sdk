@@ -654,6 +654,31 @@ class ColumnFilter2(BetweenColumnFilter):
     operator: Literal["IS_BETWEEN"]
 
 
+class CommitResult(ForwardModel):
+    """
+    The outcome of a commit, or the report from a dry run.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    new_errors: Annotated[list[dict[str, Any]] | None, Field(alias="newErrors")] = None
+    """
+    Errors the change would introduce. Non-empty means do not commit.
+    """
+    unauthorized_access_setting_changes: Annotated[
+        list[dict[str, Any]] | None, Field(alias="unauthorizedAccessSettingChanges")
+    ] = None
+    unauthorized_query_changes: Annotated[
+        list[dict[str, Any]] | None, Field(alias="unauthorizedQueryChanges")
+    ] = None
+    uses: list[dict[str, Any]] | None = None
+    """
+    Existing queries that depend on the ones being changed.
+    """
+
+
 class ComputationStatus(OpenEnum):
     unknown = "UNKNOWN"
     failure = "FAILURE"
@@ -792,6 +817,22 @@ class CreateWorkspaceNetworkRequest(ForwardModel):
     Names of the
     [vCenters](https://docs.fwd.app/latest/application/sources/configure-collection/vmware-account/#adding-a-vcenter-source)
     to include. Can be omitted or empty if `devices` or `cloudAccounts` is nonempty.
+    """
+
+
+class CurrentUserRoles(ForwardModel):
+    """
+    The roles the calling user holds. `org` applies across the organization; `network` maps a network id to the role held on it. Integrations read both to decide whether a login may write to the shared query library.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    network: dict[str, str] | None = None
+    org: list[str] | str | None = None
+    """
+    Usually a list, but observed as a bare string, so consumers coerce.
     """
 
 
@@ -1337,6 +1378,33 @@ class DevicesAndTags(ForwardModel):
     )
     devices: Annotated[list[str] | None, Field(examples=[["atl-edge-fw01", "ny-edge-fw2"]])] = None
     tags: Annotated[list[str] | None, Field(examples=[["SEC"]])] = None
+
+
+class Action1(OpenEnum):
+    add_query = "addQuery"
+    edit_query = "editQuery"
+    add_dir = "addDir"
+
+
+class DraftChange(ForwardModel):
+    """
+    One staged, uncommitted change to the library.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    action: Action1 | None = None
+    path: str | None = None
+
+
+class DraftChangePage(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    changes: list[DraftChange] | None = None
 
 
 class EncryptorConnection(ForwardModel):
@@ -3333,6 +3401,84 @@ class QueryStringCheck(ForwardModel):
     check_type: Annotated[Literal["QueryStringBased"], Field(alias="checkType")]
     for_request: Annotated[str | None, Field(alias="forRequest")] = None
     value: str | None = None
+
+
+class ReachabilityJob(ForwardModel):
+    """
+    A reachability computation. The identifier has been observed under three names, so all three are declared.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    execution_key: Annotated[str | None, Field(alias="executionKey")] = None
+    id: str | None = None
+    job_key: Annotated[str | None, Field(alias="jobKey")] = None
+    status: Annotated[str | None, Field(examples=["COMPLETED"])] = None
+
+
+class RepositoryCommit(ForwardModel):
+    """
+    A commit in the NQE query library.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    author: str | None = None
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    id: str | None = None
+    """
+    The full 40-character hash.
+    """
+    message: str | None = None
+
+
+class RepositoryCommitHistory(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    commits: list[RepositoryCommit] | None = None
+
+
+class Repository1(OpenEnum):
+    org = "org"
+    fwd = "fwd"
+    org_1 = "ORG"
+    fwd_1 = "FWD"
+
+
+class RepositoryQuery(ForwardModel):
+    """
+    A query in the library. Note that the commit is nested under `lastCommit`; Forward does not send a flat `lastCommitId`. Reading the flat key loses the pin on every query resolved by path, which runs the query against whatever is at head without anything failing.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    intent: str | None = None
+    last_commit: Annotated[RepositoryCommit | None, Field(alias="lastCommit")] = None
+    path: Annotated[str | None, Field(examples=["/NetBox/Devices"])] = None
+    query_id: Annotated[
+        str | None, Field(alias="queryId", examples=["FQ_ac651cb2901b067fe7dbfb511613ab44776d8029"])
+    ] = None
+    repository: Repository1 | None = None
+    source_code: Annotated[str | None, Field(alias="sourceCode")] = None
+    """
+    Present only when the query was fetched with `with=sourceCode`.
+    """
+
+
+class RepositoryQueryPage(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    queries: list[RepositoryQuery] | None = None
 
 
 class SearchIntent(OpenEnum):
@@ -5512,6 +5658,17 @@ class ColumnFilter1(DefaultColumnFilter):
         populate_by_name=True,
     )
     operator: Literal["DEFAULT"]
+
+
+class CurrentUser(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    email: str | None = None
+    id: str | None = None
+    roles: CurrentUserRoles | None = None
+    username: str | None = None
 
 
 class CveAnalysis(Attribution):

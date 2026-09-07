@@ -28,6 +28,7 @@ from forward_sdk.nqe.repository import (
     CommitReport,
     DraftChange,
     RepositoryQuery,
+    message_of,
     optional_str,
     paths_without_changes,
     queries_from_payload,
@@ -205,11 +206,28 @@ class NqeRepository(Service):
 
     @staticmethod
     def _unchanged_paths(error: ForwardConflictError, requested: Sequence[str]) -> set[str] | None:
-        """Return the paths Forward says have no staged change, if that is why it refused."""
-        message = getattr(error.error_info, "message", "") or str(error)
+        """The paths Forward says have no staged change, if that is why it refused.
+
+        The message comes from the parsed error body, or from the raw body
+        re-read as JSON. Never from the exception's display string: that embeds
+        the raw body inside formatting, so splitting it yields fragments like
+        ``/a/b"}`` which match nothing, and the retry then strips only some of
+        the named paths and fails again on a second 409 that looks like a
+        different problem. This endpoint is unpublished, so its error envelope
+        is the least guaranteed of any, and it is exactly where a parsed body
+        cannot be relied on.
+
+        Returns ``None`` when the paths cannot be identified, so the caller
+        re-raises rather than retrying a partial strip.
+        """
+        message = message_of(error)
+        if message is None:
+            return None
         if error.reason != INVALID_CHANGE_PATH and NO_CHANGES_PREFIX not in message:
             return None
         named = paths_without_changes(message)
+        if not named:
+            return None
         matched = {path for path in requested if path in named}
         return matched or None
 
@@ -222,6 +240,7 @@ class NqeRepository(Service):
         repository: str = "org",
         dry_run_snapshot_id: str | None = None,
         discard_on_failure: bool = True,
+        overwrite_drafts: bool = False,
     ) -> CommitReport:
         """Publish a set of queries to the library in one commit.
 
@@ -235,11 +254,23 @@ class NqeRepository(Service):
                 compiles before it reaches anyone else.
             discard_on_failure: Remove staged drafts if publishing fails, so a
                 failed run does not leave half-staged changes behind.
+            overwrite_drafts: Publish even when one of these paths already has
+                an uncommitted draft. Off by default: a commit names paths, not
+                changes, so someone's half-finished edit sitting on a path you
+                are publishing would be committed along with yours, and neither
+                of you would be told.
+
+        Raises:
+            ForwardConflictError: If a path already has a draft and
+                ``overwrite_drafts`` is not set.
         """
         index = self.index(repository=repository, refresh=True)
         normalized = {
             (path if path.startswith("/") else "/" + path): source for path, source in files.items()
         }
+
+        if not overwrite_drafts:
+            self._refuse_existing_drafts(normalized)
 
         staged: list[str] = []
         try:
@@ -271,6 +302,23 @@ class NqeRepository(Service):
             if discard_on_failure:
                 self._discard_quietly(staged)
             raise
+
+    def _refuse_existing_drafts(self, paths: Mapping[str, str]) -> None:
+        """Stop if any path already carries an uncommitted change.
+
+        Committing publishes whatever is staged on the named paths, so an
+        unrelated draft would be published as part of this commit with no
+        signal to either party.
+        """
+        existing = {draft.path for draft in self.drafts()}
+        clashes = sorted(path for path in paths if path in existing)
+        if clashes:
+            raise ForwardConflictError(
+                f"{len(clashes)} path(s) already have uncommitted changes: "
+                f"{', '.join(clashes)}. Committing would publish those too. "
+                "Discard them, or pass overwrite_drafts=True to publish anyway.",
+                status=409,
+            )
 
     def _discard_quietly(self, paths: Sequence[str]) -> None:
         """Best-effort cleanup; never mask the failure that triggered it."""

@@ -9,13 +9,21 @@
 #
 # Everything here is reached through client.nqe.repo or client.snapshots.unstable.
 #
-# The `example` on each response is the shape Forward actually sends, recorded
-# from live traffic by the integrations that use these endpoints. Those examples
-# are not decoration: tests/spec/test_unpublished_shapes.py runs them through the
-# SDK's own parsers, so a parser and a hand-written fixture cannot quietly agree
-# with each other while both disagree with Forward. That is how a commit id
-# nested under lastCommit was read from a flat key Forward never sends, losing
-# the pin on every query resolved by path.
+# Each response carries a real schema and an example of what Forward actually
+# sends, recorded from live traffic by the integrations that use these
+# endpoints. Both earn their place:
+#
+#   * The schemas are merged into the generated description, so models are
+#     generated for these responses exactly as they are for published ones.
+#     That replaces hand-written key-reading, which is what produced the bug
+#     below, with validation against a declared shape.
+#   * The examples are run through the SDK's own parsers by
+#     tests/spec/test_unpublished_shapes.py, so a parser and a hand-written
+#     fixture cannot quietly agree with each other while both disagree with
+#     Forward.
+#
+# That is how a commit id nested under lastCommit came to be read from a flat
+# key Forward never sends, losing the pin on every query resolved by path.
 openapi: 3.2.0
 info:
   title: "Forward: Unpublished endpoints used by this SDK"
@@ -59,6 +67,7 @@ paths:
           description: The queries.
           content:
             application/json:
+              schema: { $ref: "#/components/schemas/RepositoryQueryPage" }
               example:
                 queries:
                   - queryId: FQ_ac651cb2901b067fe7dbfb511613ab44776d8029
@@ -79,6 +88,7 @@ paths:
           description: The head commit.
           content:
             application/json:
+              schema: { $ref: "#/components/schemas/RepositoryCommit" }
               example:
                 id: 84f84b0c0a0a1805ddff0ca5451c2c55c58605e5
 
@@ -98,6 +108,7 @@ paths:
           description: The commit history.
           content:
             application/json:
+              schema: { $ref: "#/components/schemas/RepositoryCommitHistory" }
               example:
                 commits:
                   - id: 84f84b0c0a0a1805ddff0ca5451c2c55c58605e5
@@ -114,6 +125,7 @@ paths:
           description: The pending changes.
           content:
             application/json:
+              schema: { $ref: "#/components/schemas/DraftChangePage" }
               example:
                 changes:
                   - path: /NetBox/Devices
@@ -197,6 +209,7 @@ paths:
           description: The commit result, or the dry-run report.
           content:
             application/json:
+              schema: { $ref: "#/components/schemas/CommitResult" }
               example:
                 newErrors: []
                 uses: []
@@ -219,6 +232,7 @@ paths:
           description: The authenticated user.
           content:
             application/json:
+              schema: { $ref: "#/components/schemas/CurrentUser" }
               example:
                 id: "1234"
                 username: mary
@@ -280,6 +294,7 @@ paths:
           description: The job identifier and its initial status.
           content:
             application/json:
+              schema: { $ref: "#/components/schemas/ReachabilityJob" }
               example:
                 jobKey: job-8f2c
                 status: RUNNING
@@ -308,5 +323,144 @@ paths:
           description: The job's status.
           content:
             application/json:
+              schema: { $ref: "#/components/schemas/ReachabilityJob" }
               example:
                 status: COMPLETED
+
+components:
+  schemas:
+    RepositoryCommit:
+      type: object
+      description: A commit in the NQE query library.
+      properties:
+        id:
+          type: string
+          description: The full 40-character hash.
+        message:
+          type: string
+        author:
+          type: string
+        createdAt:
+          type: string
+
+    RepositoryCommitHistory:
+      type: object
+      properties:
+        commits:
+          type: array
+          items: { $ref: "#/components/schemas/RepositoryCommit" }
+
+    RepositoryQuery:
+      type: object
+      description: >-
+        A query in the library. Note that the commit is nested under
+        `lastCommit`; Forward does not send a flat `lastCommitId`. Reading the
+        flat key loses the pin on every query resolved by path, which runs the
+        query against whatever is at head without anything failing.
+      properties:
+        queryId:
+          type: string
+          examples: ["FQ_ac651cb2901b067fe7dbfb511613ab44776d8029"]
+        path:
+          type: string
+          examples: ["/NetBox/Devices"]
+        intent:
+          type: string
+        repository:
+          type: string
+          enum: [org, fwd, ORG, FWD]
+        lastCommit:
+          $ref: "#/components/schemas/RepositoryCommit"
+        sourceCode:
+          type: string
+          description: Present only when the query was fetched with `with=sourceCode`.
+
+    RepositoryQueryPage:
+      type: object
+      properties:
+        queries:
+          type: array
+          items: { $ref: "#/components/schemas/RepositoryQuery" }
+
+    DraftChange:
+      type: object
+      description: One staged, uncommitted change to the library.
+      properties:
+        path:
+          type: string
+        action:
+          type: string
+          enum: [addQuery, editQuery, addDir]
+
+    DraftChangePage:
+      type: object
+      properties:
+        changes:
+          type: array
+          items: { $ref: "#/components/schemas/DraftChange" }
+
+    CommitResult:
+      type: object
+      description: The outcome of a commit, or the report from a dry run.
+      properties:
+        newErrors:
+          type: array
+          description: Errors the change would introduce. Non-empty means do not commit.
+          items: { type: object, additionalProperties: true }
+        uses:
+          type: array
+          description: Existing queries that depend on the ones being changed.
+          items: { type: object, additionalProperties: true }
+        unauthorizedQueryChanges:
+          type: array
+          items: { type: object, additionalProperties: true }
+        unauthorizedAccessSettingChanges:
+          type: array
+          items: { type: object, additionalProperties: true }
+
+    ReachabilityJob:
+      type: object
+      description: >-
+        A reachability computation. The identifier has been observed under
+        three names, so all three are declared.
+      properties:
+        jobKey:
+          type: string
+        executionKey:
+          type: string
+        id:
+          type: string
+        status:
+          type: string
+          examples: ["COMPLETED"]
+
+    CurrentUserRoles:
+      type: object
+      description: >-
+        The roles the calling user holds. `org` applies across the
+        organization; `network` maps a network id to the role held on it.
+        Integrations read both to decide whether a login may write to the
+        shared query library.
+      properties:
+        org:
+          description: >-
+            Usually a list, but observed as a bare string, so consumers coerce.
+          oneOf:
+            - type: array
+              items: { type: string }
+            - type: string
+        network:
+          type: object
+          additionalProperties: { type: string }
+
+    CurrentUser:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        roles:
+          $ref: "#/components/schemas/CurrentUserRoles"

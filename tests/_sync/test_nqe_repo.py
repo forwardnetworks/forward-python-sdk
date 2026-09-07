@@ -14,6 +14,7 @@ import json
 import time
 from typing import Any
 
+import httpx
 import pytest
 
 from forward_sdk._sync.client import ForwardClient
@@ -26,6 +27,7 @@ QUERIES = "/api/nqe/repos/org/commits/head/queries"
 CHANGES = "/api/users/current/nqe/changes"
 COMMITS = "/api/nqe/repos/org/commits"
 HEAD = "/api/nqe/repos/org/commits/head"
+NO_DRAFTS: dict[str, Any] = {"changes": []}
 
 
 def make_client(recorder: Recorder, **overrides: Any) -> ForwardClient:
@@ -109,6 +111,7 @@ class TestReading:
 
 class TestPublishing:
     def test_publish_stages_adds_and_edits_then_commits(self, recorder: Recorder) -> None:
+        recorder.add("GET", CHANGES, json_response(NO_DRAFTS))
         recorder.add(
             "GET",
             QUERIES,
@@ -124,12 +127,13 @@ class TestPublishing:
         assert set(report.committed_paths) == {"/A", "/B"}
         assert report.commit_id == "new-commit"
 
-        staged = [r for r in recorder.requests if r.url.path == CHANGES]
+        staged = [r for r in recorder.requests if r.url.path == CHANGES and r.method == "POST"]
         actions = [r.url.params.get("action") for r in staged]
         # /A exists so it is an edit; /B is new so it is an add.
         assert actions == ["editQuery", "addQuery"]
 
     def test_edit_records_the_version_it_is_based_on(self, recorder: Recorder) -> None:
+        recorder.add("GET", CHANGES, json_response(NO_DRAFTS))
         recorder.add(
             "GET",
             QUERIES,
@@ -142,10 +146,11 @@ class TestPublishing:
         with make_client(recorder) as client:
             client.nqe.repo.publish({"/A": "new source"}, title="Update")
 
-        staged = next(r for r in recorder.requests if r.url.path == CHANGES)
+        staged = next(r for r in recorder.requests if r.url.path == CHANGES and r.method == "POST")
         assert json.loads(staged.content)["basis"] == {"queryId": "FQ_1", "commitId": "c1"}
 
     def test_paths_gain_a_leading_slash(self, recorder: Recorder) -> None:
+        recorder.add("GET", CHANGES, json_response(NO_DRAFTS))
         recorder.add("GET", QUERIES, json_response({"queries": []}))
         recorder.add("POST", CHANGES, json_response({}))
         recorder.add("POST", COMMITS, json_response({}))
@@ -156,9 +161,88 @@ class TestPublishing:
 
         assert report.committed_paths == ("/MyOrg/Q",)
 
+    def test_publish_refuses_to_commit_over_an_existing_draft(self, recorder: Recorder) -> None:
+        """A commit names paths, so someone else's draft would be published too."""
+        recorder.add("GET", QUERIES, json_response({"queries": []}))
+        recorder.add(
+            "GET", CHANGES, json_response({"changes": [{"path": "/B", "action": "editQuery"}]})
+        )
+        recorder.default = lambda request: pytest.fail(
+            f"publish should have stopped before {request.method} {request.url.path}"
+        )
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardConflictError, match="already have uncommitted"):
+                client.nqe.repo.publish({"/A": "a", "/B": "b"}, title="t")
+
+        assert recorder.count("POST", CHANGES) == 0
+        assert recorder.count("POST", COMMITS) == 0
+
+    def test_publish_can_be_told_to_overwrite_drafts(self, recorder: Recorder) -> None:
+        recorder.add("GET", QUERIES, json_response({"queries": []}))
+        recorder.add("POST", CHANGES, json_response({}))
+        recorder.add("POST", COMMITS, json_response({}))
+        recorder.add("GET", HEAD, json_response({"id": "c"}))
+
+        with make_client(recorder) as client:
+            report = client.nqe.repo.publish({"/A": "a"}, title="t", overwrite_drafts=True)
+
+        assert report.committed_paths == ("/A",)
+        # The draft listing is not even consulted when overwriting.
+        assert recorder.count("GET", CHANGES) == 0
+
+    def test_strip_and_retry_reads_the_body_not_the_display_string(
+        self, recorder: Recorder
+    ) -> None:
+        """An error envelope missing ErrorInfo's required fields must still parse.
+
+        The unpublished commit endpoint is not obliged to send a full ErrorInfo.
+        Falling back to str(error) embeds the raw JSON in formatting, so paths
+        come back as fragments, only some get stripped, and the retry fails
+        again on a 409 that looks like a different problem.
+        """
+        recorder.add("GET", QUERIES, json_response({"queries": []}))
+        recorder.add("GET", CHANGES, json_response({"changes": []}))
+        recorder.add("POST", CHANGES, json_response({}))
+        recorder.add(
+            "POST",
+            COMMITS,
+            # No apiUrl or httpMethod, so ErrorInfo will not validate.
+            httpx.Response(
+                409,
+                json={
+                    "reason": "INVALID_CHANGE_PATH",
+                    "message": ("User has no changes at the following paths: /B, /C"),
+                },
+            ),
+            json_response({}),
+        )
+        recorder.add("GET", HEAD, json_response({"id": "c2"}))
+
+        with make_client(recorder) as client:
+            report = client.nqe.repo.publish({"/A": "a", "/B": "b", "/C": "c"}, title="t")
+
+        assert report.committed_paths == ("/A",)
+        assert report.skipped_paths == ("/B", "/C")
+
+    def test_unidentifiable_conflict_is_raised_rather_than_half_stripped(
+        self, recorder: Recorder
+    ) -> None:
+        """If the paths cannot be read, fail honestly instead of retrying blind."""
+        recorder.add(
+            "POST",
+            COMMITS,
+            httpx.Response(409, content=b"<html>gateway</html>"),
+        )
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardConflictError):
+                client.nqe.repo.commit(["/A"], title="t")
+
+        assert recorder.count("POST", COMMITS) == 1
+
     def test_unchanged_paths_are_skipped_not_fatal(self, recorder: Recorder) -> None:
         """Publishing a directory where some files are identical is routine."""
         recorder.add("GET", QUERIES, json_response({"queries": []}))
+        recorder.add("GET", CHANGES, json_response({"changes": []}))
         recorder.add("POST", CHANGES, json_response({}))
         recorder.add(
             "POST",
@@ -203,6 +287,7 @@ class TestPublishing:
                 client.nqe.repo.commit(["/A"], title="t")
 
     def test_dry_run_failure_prevents_the_commit(self, recorder: Recorder) -> None:
+        recorder.add("GET", CHANGES, json_response(NO_DRAFTS))
         recorder.add("GET", QUERIES, json_response({"queries": []}))
         recorder.add("POST", CHANGES, json_response({}))
         recorder.add("DELETE", CHANGES, json_response({}))
@@ -224,6 +309,7 @@ class TestPublishing:
         assert recorder.count("DELETE", CHANGES) == 1
 
     def test_staging_failure_discards_earlier_drafts(self, recorder: Recorder) -> None:
+        recorder.add("GET", CHANGES, json_response(NO_DRAFTS))
         recorder.add("GET", QUERIES, json_response({"queries": []}))
         recorder.add(
             "POST",
@@ -240,6 +326,7 @@ class TestPublishing:
         assert recorder.count("DELETE", CHANGES) == 1
 
     def test_cleanup_can_be_turned_off(self, recorder: Recorder) -> None:
+        recorder.add("GET", CHANGES, json_response(NO_DRAFTS))
         recorder.add("GET", QUERIES, json_response({"queries": []}))
         recorder.add("POST", CHANGES, error_response(400, "nope"))
 

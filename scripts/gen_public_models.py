@@ -32,6 +32,12 @@ ALIASES = {
     "DiffEntryType": "Type32",
 }
 
+#: Generated names the SDK supersedes with a friendlier type of its own. The
+#: generated ones mirror the wire shape (a nested commit object, for instance);
+#: the hand-written ones are flat and are what callers use. Exporting both under
+#: one name would leave which you got depending on import order.
+SUPERSEDED = frozenset({"RepositoryQuery", "DraftChange"})
+
 #: Types the SDK defines itself, alongside the generated ones, because they
 #: describe endpoints Forward does not publish a schema for.
 HAND_WRITTEN = (
@@ -65,7 +71,9 @@ def model_names() -> list[str]:
     return sorted(
         name
         for name in CLASS_DECLARATION.findall(source)
-        if not name.startswith("_") and name not in {"ForwardModel", "OpenEnum"}
+        if not name.startswith("_")
+        and name not in {"ForwardModel", "OpenEnum"}
+        and name not in SUPERSEDED
     )
 
 

@@ -2127,6 +2127,42 @@
         "const": "UNIX",
         "type": "string"
       },
+      "CommitResult": {
+        "description": "The outcome of a commit, or the report from a dry run.",
+        "properties": {
+          "newErrors": {
+            "description": "Errors the change would introduce. Non-empty means do not commit.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "unauthorizedAccessSettingChanges": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "unauthorizedQueryChanges": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "uses": {
+            "description": "Existing queries that depend on the ones being changed.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "ComputationStatus": {
         "enum": [
           "UNKNOWN",
@@ -2301,6 +2337,49 @@
         "required": [
           "name"
         ],
+        "type": "object"
+      },
+      "CurrentUser": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "roles": {
+            "$ref": "#/components/schemas/CurrentUserRoles"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CurrentUserRoles": {
+        "description": "The roles the calling user holds. `org` applies across the organization; `network` maps a network id to the role held on it. Integrations read both to decide whether a login may write to the shared query library.",
+        "properties": {
+          "network": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "org": {
+            "description": "Usually a list, but observed as a bare string, so consumers coerce.",
+            "oneOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        },
         "type": "object"
       },
       "CustomCveStatus": {
@@ -3617,6 +3696,34 @@
               "10.110.4.14"
             ],
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DraftChange": {
+        "description": "One staged, uncommitted change to the library.",
+        "properties": {
+          "action": {
+            "enum": [
+              "addQuery",
+              "editQuery",
+              "addDir"
+            ],
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DraftChangePage": {
+        "properties": {
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/DraftChange"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -8797,6 +8904,105 @@
         ],
         "type": "object"
       },
+      "ReachabilityJob": {
+        "description": "A reachability computation. The identifier has been observed under three names, so all three are declared.",
+        "properties": {
+          "executionKey": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "jobKey": {
+            "type": "string"
+          },
+          "status": {
+            "examples": [
+              "COMPLETED"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RepositoryCommit": {
+        "description": "A commit in the NQE query library.",
+        "properties": {
+          "author": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "id": {
+            "description": "The full 40-character hash.",
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RepositoryCommitHistory": {
+        "properties": {
+          "commits": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryCommit"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RepositoryQuery": {
+        "description": "A query in the library. Note that the commit is nested under `lastCommit`; Forward does not send a flat `lastCommitId`. Reading the flat key loses the pin on every query resolved by path, which runs the query against whatever is at head without anything failing.",
+        "properties": {
+          "intent": {
+            "type": "string"
+          },
+          "lastCommit": {
+            "$ref": "#/components/schemas/RepositoryCommit"
+          },
+          "path": {
+            "examples": [
+              "/NetBox/Devices"
+            ],
+            "type": "string"
+          },
+          "queryId": {
+            "examples": [
+              "FQ_ac651cb2901b067fe7dbfb511613ab44776d8029"
+            ],
+            "type": "string"
+          },
+          "repository": {
+            "enum": [
+              "org",
+              "fwd",
+              "ORG",
+              "FWD"
+            ],
+            "type": "string"
+          },
+          "sourceCode": {
+            "description": "Present only when the query was fetched with `with=sourceCode`.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RepositoryQueryPage": {
+        "properties": {
+          "queries": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryQuery"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "SearchIntent": {
         "enum": [
           "PREFER_VIOLATIONS",
@@ -12774,6 +12980,58 @@
           ]
         ],
         "x-position": 5
+      }
+    },
+    "/networks/{networkId}/data-files": {
+      "get": {
+        "operationId": "getDataFiles",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Set to \"snapshot\" to list the files of one snapshot.",
+            "in": "query",
+            "name": "view",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "snapshotId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "dataFiles": [
+                    {
+                      "contentMd5Hex": "9f86d081884c7d659a2feaa0c55ad015",
+                      "dataFileName": "netbox_device_type_aliases.json"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "The data files. Observed both as a bare list and wrapped under dataFiles, items or results, with names and hashes under several key spellings, so consumers normalize this themselves."
+          }
+        },
+        "summary": "List the data files collected for a network",
+        "tags": [
+          "Data Files"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/device-tags": {
@@ -18007,6 +18265,101 @@
         ]
       }
     },
+    "/networks/{networkId}/snapshots/{snapshotId}/reachability": {
+      "post": {
+        "operationId": "startReachabilityJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "jobKey": "job-8f2c",
+                  "status": "RUNNING"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ReachabilityJob"
+                }
+              }
+            },
+            "description": "The job identifier and its initial status."
+          }
+        },
+        "summary": "Start computing advanced reachability",
+        "tags": [
+          "Snapshot Reachability"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/snapshots/{snapshotId}/reachability/{jobKey}": {
+      "get": {
+        "operationId": "getReachabilityJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "jobKey",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "COMPLETED"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ReachabilityJob"
+                }
+              }
+            },
+            "description": "The job's status."
+          }
+        },
+        "summary": "Poll a reachability computation",
+        "tags": [
+          "Snapshot Reachability"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/startcollection": {
       "post": {
         "deprecated": true,
@@ -18913,6 +19266,224 @@
           "NQE"
         ],
         "x-position": 7
+      }
+    },
+    "/nqe/queries/{queryId}/history": {
+      "get": {
+        "operationId": "getQueryHistory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "queryId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "commits": [
+                    {
+                      "id": "84f84b0c0a0a1805ddff0ca5451c2c55c58605e5",
+                      "message": "Update device query"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryCommitHistory"
+                }
+              }
+            },
+            "description": "The commit history."
+          }
+        },
+        "summary": "List the commits that touched a query",
+        "tags": [
+          "NQE Repository"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/nqe/repos/org/commits": {
+      "post": {
+        "operationId": "commitDraftChanges",
+        "parameters": [
+          {
+            "description": "Validate without committing.",
+            "in": "query",
+            "name": "dryRun",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Snapshot to validate the queries against during a dry run.",
+            "in": "query",
+            "name": "snapshotId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "accessSettings": {
+                    "items": {
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "message": {
+                    "properties": {
+                      "body": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "paths": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "newErrors": [],
+                  "unauthorizedAccessSettingChanges": [],
+                  "unauthorizedQueryChanges": [],
+                  "uses": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CommitResult"
+                }
+              }
+            },
+            "description": "The commit result, or the dry-run report."
+          }
+        },
+        "summary": "Commit staged query changes",
+        "tags": [
+          "NQE Repository"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/nqe/repos/org/commits/head": {
+      "get": {
+        "operationId": "getOrgHeadCommit",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "84f84b0c0a0a1805ddff0ca5451c2c55c58605e5"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryCommit"
+                }
+              }
+            },
+            "description": "The head commit."
+          }
+        },
+        "summary": "Get the organization repository's current commit",
+        "tags": [
+          "NQE Repository"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/nqe/repos/{repository}/commits/{commitId}/queries": {
+      "get": {
+        "operationId": "getRepositoryQueries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repository",
+            "required": true,
+            "schema": {
+              "enum": [
+                "org",
+                "fwd"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "A full commit hash, or \"head\" for the latest.",
+            "in": "path",
+            "name": "commitId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Restrict to one query path.",
+            "in": "query",
+            "name": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Set to \"sourceCode\" to include each query's source.",
+            "in": "query",
+            "name": "with",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "queries": [
+                    {
+                      "intent": "List devices",
+                      "lastCommit": {
+                        "id": "84f84b0c0a0a1805ddff0ca5451c2c55c58605e5"
+                      },
+                      "path": "/NetBox/Devices",
+                      "queryId": "FQ_ac651cb2901b067fe7dbfb511613ab44776d8029"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryQueryPage"
+                }
+              }
+            },
+            "description": "The queries."
+          }
+        },
+        "summary": "List queries in a repository at a commit",
+        "tags": [
+          "NQE Repository"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/predefinedChecks": {
@@ -19918,6 +20489,156 @@
         ]
       }
     },
+    "/users/current": {
+      "get": {
+        "description": "Returns the calling user, including the roles it holds. `roles.org` applies across the organization; `roles.network` maps a network id to the role held on that network. Integrations use these to decide whether a login may write to the shared NQE query library before attempting it.",
+        "operationId": "getCurrentUser",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "1234",
+                  "roles": {
+                    "network": {
+                      "101": "OPERATOR"
+                    },
+                    "org": [
+                      "ADMIN"
+                    ]
+                  },
+                  "username": "mary"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUser"
+                }
+              }
+            },
+            "description": "The authenticated user."
+          }
+        },
+        "summary": "Get the authenticated user",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/users/current/nqe/changes": {
+      "delete": {
+        "operationId": "discardDraftChange",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The change was discarded."
+          }
+        },
+        "summary": "Discard one staged change",
+        "tags": [
+          "NQE Repository"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "operationId": "getDraftChanges",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "changes": [
+                    {
+                      "action": "editQuery",
+                      "path": "/NetBox/Devices"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DraftChangePage"
+                }
+              }
+            },
+            "description": "The pending changes."
+          }
+        },
+        "summary": "List the current user's uncommitted query changes",
+        "tags": [
+          "NQE Repository"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "operationId": "addDraftChange",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "action",
+            "required": true,
+            "schema": {
+              "enum": [
+                "addQuery",
+                "editQuery",
+                "addDir"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "basis": {
+                    "description": "The query and commit an edit is based on.",
+                    "properties": {
+                      "commitId": {
+                        "type": "string"
+                      },
+                      "queryId": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "sourceCode": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The change was staged."
+          }
+        },
+        "summary": "Stage a query addition, edit, or new directory",
+        "tags": [
+          "NQE Repository"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/users/{userId}": {
       "delete": {
         "description": "**Warning**: This operation *cannot* be undone.",
@@ -20274,6 +20995,18 @@
       "name": "System Administration",
       "x-parent": "Platform Management",
       "x-summary": "System Administration"
+    },
+    {
+      "description": "Reading and writing the NQE query library.",
+      "name": "NQE Repository"
+    },
+    {
+      "description": "Advanced reachability computation as a pollable job.",
+      "name": "Snapshot Reachability"
+    },
+    {
+      "description": "Files collected alongside a snapshot.",
+      "name": "Data Files"
     }
   ]
 }

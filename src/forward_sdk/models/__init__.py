@@ -362,6 +362,7 @@ from forward_sdk._generated.models import (
     WanCircuitList,
     WanCircuitPatch,
 )
+from forward_sdk._generated.models import Type32 as DiffEntryType
 from forward_sdk.nqe.pagination import (
     PageGuards,
 )
@@ -485,6 +486,7 @@ __all__ = [
     "DevicesAndTags",
     "DiagnosisDetail",
     "DiagnosisReference",
+    "DiffEntryType",
     "Direction",
     "DiscoveryMethod",
     "DraftChange",

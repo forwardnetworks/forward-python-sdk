@@ -78,7 +78,11 @@ class AsyncSnapshotsService(AsyncService):
                 network_id=self._network(network_id),
                 state=_state_param(state),
                 limit=limit,
-                include_archived=include_archived,
+                # Sent even when false. Forward's default happens to match, but
+                # relying on a server default means this argument does not
+                # actually assert anything, and a change upstream would alter
+                # behaviour silently.
+                include_archived=bool(include_archived),
                 **filters,
             )
         )
@@ -89,10 +93,15 @@ class AsyncSnapshotsService(AsyncService):
         """The most recent fully processed snapshot, or ``None`` if there is none.
 
         Uses the snapshot listing rather than Forward's dedicated endpoint,
-        which is deprecated.
+        which it deprecated.
+
+        The listing's order is not documented, so this does not take the first
+        row of a one-row request. It sorts what comes back by when each snapshot
+        finished processing. Picking an arbitrary processed snapshot would pin a
+        sync to the wrong baseline without anything appearing to go wrong.
         """
-        snapshots = await self.list(network_id, state=PROCESSED, limit=1)
-        return snapshots[0] if snapshots else None
+        snapshots = await self.list(network_id, state=PROCESSED)
+        return max(snapshots, key=_processed_order, default=None)
 
     async def latest_processed_id(self, network_id: str | None = None) -> str | None:
         snapshot = await self.latest_processed(network_id)
@@ -379,6 +388,16 @@ class AsyncReachabilityJob:
                     f"reachability job {self.key} was still {state or 'pending'} after {timeout}s"
                 )
             await asyncio.sleep(poll_interval)
+
+
+def _processed_order(snapshot: SnapshotInfo) -> tuple[str, str]:
+    """Sort key placing the most recently processed snapshot last.
+
+    Forward's timestamps are ISO-8601 in UTC, which sorts correctly as text.
+    ``createdAt`` breaks ties, and an absent value sorts first so a snapshot
+    missing a timestamp never wins by accident.
+    """
+    return (str(snapshot.processed_at or ""), str(snapshot.created_at or ""))
 
 
 def _state_param(

@@ -35,7 +35,10 @@ def make_client(recorder: Recorder, **overrides: Any) -> AsyncForwardClient:
 
 
 def snapshot(id_: str, state: str = "PROCESSED", **extra: Any) -> dict[str, Any]:
-    return {"id": id_, "state": state, "createdAt": "2026-01-01T00:00:00.000Z", **extra}
+    payload = {"id": id_, "state": state, "createdAt": "2026-01-01T00:00:00.000Z"}
+    payload.setdefault("processedAt", "2026-01-01T00:00:00.000Z")
+    payload.update(extra)
+    return payload
 
 
 class TestNetworks:
@@ -120,10 +123,42 @@ class TestSnapshots:
             latest = await client.snapshots.latest_processed()
 
         assert latest is not None and latest.id == "9"
-        query = recorder.query_for()
-        assert query["state"] == ["PROCESSED"]
-        assert query["limit"] == ["1"]
+        assert recorder.query_for()["state"] == ["PROCESSED"]
         assert recorder.paths == [SNAPSHOTS]
+
+    async def test_latest_processed_does_not_trust_the_listing_order(
+        self, recorder: Recorder
+    ) -> None:
+        """The listing's order is not documented, so the newest is chosen here.
+
+        Taking the first row would pin a sync to an arbitrary processed
+        snapshot, and nothing about the result would look wrong.
+        """
+        recorder.add(
+            "GET",
+            SNAPSHOTS,
+            json_response(
+                {
+                    "snapshots": [
+                        snapshot("7", processedAt="2026-01-01T00:00:00.000Z"),
+                        snapshot("9", processedAt="2026-03-01T00:00:00.000Z"),
+                        snapshot("8", processedAt="2026-02-01T00:00:00.000Z"),
+                    ]
+                }
+            ),
+        )
+        async with make_client(recorder) as client:
+            latest = await client.snapshots.latest_processed()
+
+        assert latest is not None and latest.id == "9"
+
+    async def test_archived_flag_is_always_sent(self, recorder: Recorder) -> None:
+        """The argument must reach the wire, not rely on a server default."""
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": []}))
+        async with make_client(recorder) as client:
+            await client.snapshots.list(include_archived=False)
+
+        assert recorder.query_for()["includeArchived"] == ["false"]
 
     async def test_latest_processed_returns_none_when_empty(self, recorder: Recorder) -> None:
         recorder.add("GET", SNAPSHOTS, json_response({"snapshots": []}))

@@ -26,6 +26,12 @@ OUTPUT = Path("src/forward_sdk/models/__init__.py")
 
 CLASS_DECLARATION = re.compile(r"^class (\w+)\(", re.MULTILINE)
 
+#: Readable names for enums the generator names positionally. A caller who
+#: needs to name one of these should not have to import "Type32".
+ALIASES = {
+    "DiffEntryType": "Type32",
+}
+
 #: Types the SDK defines itself, alongside the generated ones, because they
 #: describe endpoints Forward does not publish a schema for.
 HAND_WRITTEN = (
@@ -69,6 +75,8 @@ def render(names: list[str]) -> str:
     lines.append("from forward_sdk._generated.models import (")
     lines.extend(f"    {name}," for name in names)
     lines.append(")")
+    for alias, generated in sorted(ALIASES.items()):
+        lines.append(f"from forward_sdk._generated.models import {generated} as {alias}")
     for module, exports in HAND_WRITTEN:
         lines.append(f"from {module} import (")
         lines.extend(f"    {name}," for name in exports)
@@ -77,7 +85,13 @@ def render(names: list[str]) -> str:
     lines.append("__all__ = [")
     # Order does not matter here: tidy() runs ruff, which sorts __all__ itself.
     everything = sorted(
-        {*names, "ForwardModel", "OpenEnum", *(n for _, e in HAND_WRITTEN for n in e)}
+        {
+            *names,
+            "ForwardModel",
+            "OpenEnum",
+            *ALIASES,
+            *(n for _, e in HAND_WRITTEN for n in e),
+        }
     )
     lines.extend(f'    "{name}",' for name in everything)
     lines.append("]")

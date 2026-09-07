@@ -77,7 +77,9 @@ def list_snapshots(
     query: dict[str, Any] = {
         "state": state,
         "limit": limit,
-        "includeArchived": include_archived or None,
+        # Sent even when false, so the argument asserts something rather than
+        # deferring to a server default that could change.
+        "includeArchived": bool(include_archived),
     }
     query.update(filters)
     return spec_for("listNetworkSnapshots", path_params={"networkId": network_id}, query=query)

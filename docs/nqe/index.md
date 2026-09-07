@@ -218,10 +218,16 @@ one turns it into a string and reintroduces the type error.
     | `device.platform.vendor` | `Vendor` | `Vendor` |
     | `device.platform.deviceType` | `DeviceType` | `DeviceType` |
     | `device.platform.os` | `OS` | `VendorOs` |
+| `cloudAccounts.cloudType` | `CloudType` | — |
 
-    Passing `VendorOs` fails with *Variable VendorOs not in scope*. Read the
-    type name off a `toString()` rendering of the field, which prefixes it:
-    `toString(device.platform.os)` gives `"OS.PAN_OS"`.
+    Passing `VendorOs` fails with *Variable VendorOs not in scope*.
+
+    Forward documents the NQE data model, and it is the authoritative source
+    for these names: each record's page under
+    `application/nqe/language/data-model` on docs.fwd.app links every field to
+    its type. There is no `VendorOs` page there, which is the tell. A
+    `toString()` rendering confirms it, since it prefixes the member with the
+    type name: `toString(device.platform.os)` gives `"OS.PAN_OS"`.
 
     The same prefix matters when reading values back. A query selecting
     `toString(device.platform.os)` yields `OS.PAN_OS`, not `PAN_OS`, so strip

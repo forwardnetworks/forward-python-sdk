@@ -59,6 +59,7 @@ nav:
       - Overview: nqe/index.md
       - Query library: nqe/library.md
   - Snapshots: snapshots.md
+  - API groups: services.md
   - Async: async.md
   - Unpublished endpoints: unpublished.md
   - Migrating:
@@ -67,4 +68,5 @@ nav:
   - Reference:
       - Client: reference/client.md
       - NQE: reference/nqe.md
+      - API groups: reference/services.md
       - Errors: reference/errors.md

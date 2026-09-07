@@ -13,13 +13,21 @@ with ForwardClient.from_env() as client:
 
 ## What it covers
 
+The whole published API, plus a few endpoints Forward does not publish that
+integrations depend on. The groups people use most are hand-written:
+
 - **NQE**, the Network Query Engine, which is how most integrations read the
   Forward model. Run queries inline or in the background, page or stream the
   results, diff a query across two snapshots, and publish queries to the
   library. See [the NQE guide](nqe/index.md).
 - **Snapshots**: list, inspect, upload, export, and wait for processing.
 - **Networks**, **devices** and **device tags**.
-- Both a synchronous and an asynchronous client, with identical surfaces.
+
+Everything else -- path search, checks, locations, topology, credentials,
+collectors, VPNs, vulnerabilities and the rest -- is generated from Forward's
+API description. See [the API groups](services.md).
+
+Both a synchronous and an asynchronous client, with identical surfaces.
 
 ## Design notes
 

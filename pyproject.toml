@@ -104,6 +104,7 @@ markers = [
   "live: tests that hit a real Forward instance (need FORWARD_URL/USERNAME/PASSWORD/NETWORK_ID)",
 ]
 addopts = "-m 'not live' -ra"
+pythonpath = ["."]
 filterwarnings = ["error::DeprecationWarning:forward_sdk"]
 
 [tool.coverage.run]

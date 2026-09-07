@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass, fields
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:  # pragma: no cover - imported for typing only
     import httpx
@@ -78,11 +78,13 @@ class Counters:
                 self._values[key] = 0
 
 
-class Hooks(Protocol):
-    """Optional callbacks invoked around each request.
+class Hooks:
+    """Callbacks invoked around each request.
 
-    Implement any subset; the transport calls only what is defined. Hooks run
-    inline on the calling thread, so they must be cheap and must not raise.
+    Subclass and override only what you need; every method defaults to doing
+    nothing. Hooks run inline on the calling thread, so they should be cheap.
+    A hook that raises is logged and ignored rather than failing the request it
+    was observing.
     """
 
     def on_request(self, operation: OpDef | None, request: httpx.Request) -> None:

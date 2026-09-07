@@ -9,6 +9,7 @@ from typing import Any, Literal
 
 import httpx
 
+from forward_sdk._sync.services._generated import GeneratedServices
 from forward_sdk._sync.services.device_tags import DeviceTagsService
 from forward_sdk._sync.services.devices import DevicesService
 from forward_sdk._sync.services.networks import NetworksService
@@ -22,7 +23,7 @@ from forward_sdk.telemetry import CounterSnapshot, Hooks
 __all__ = ["ForwardClient"]
 
 
-class ForwardClient:
+class ForwardClient(GeneratedServices):
     """Talks to a Forward Networks instance.
 
     Authentication is HTTP basic. Use an API token: its access key is the
@@ -31,6 +32,13 @@ class ForwardClient:
 
     One client holds one connection pool, so reuse it rather than creating one
     per call. It is bound to the event loop it was created on.
+
+    Services hang off the client by group: ``client.networks``,
+    ``client.snapshots``, ``client.devices``, ``client.device_tags`` and
+    ``client.nqe`` are hand-written for the paths integrations use most; the
+    remaining groups (``client.checks``, ``client.path_search``,
+    ``client.aliases`` and so on) are generated from Forward's API description,
+    and their method names are the operation ids in Python casing.
 
     Example:
         >>> with ForwardClient.from_env() as client:
@@ -99,6 +107,9 @@ class ForwardClient:
         self.devices = DevicesService(self._transport)
         self.device_tags = DeviceTagsService(self._transport)
         self.nqe = NqeService(self._transport)
+
+        # The rest of the API, one attribute per group; see scripts/gen_services.py.
+        self._attach_generated_services(self._transport)
 
     @classmethod
     def from_env(cls, **overrides: Any) -> ForwardClient:

@@ -16,14 +16,18 @@ GENERATED = (
     Path("spec/forward-openapi-3.1.json"),
     Path("src/forward_sdk/_generated/models.py"),
     Path("src/forward_sdk/_generated/operations.py"),
+    Path("src/forward_sdk/_async/services/_generated"),
     Path("src/forward_sdk/_sync"),
     Path("tests/_sync"),
 )
 
+# Ordered: services are generated from the operation table, and the sync tree
+# from everything above it.
 STEPS = (
     ("down-convert", ["scripts/downconvert_spec.py"]),
     ("models", ["scripts/gen_models.py"]),
     ("operations", ["scripts/gen_operations.py"]),
+    ("services", ["scripts/gen_services.py"]),
     ("unasync", ["scripts/unasync.py"]),
 )
 

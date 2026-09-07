@@ -23,6 +23,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="NetworkCheckResult",
+        summary="Add a check",
     ),
     "addClassicDevice": OpDef(
         operation_id="addClassicDevice",
@@ -35,6 +37,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Collection Sources",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="ClassicDevice",
+        summary="Add a new classic device",
     ),
     "addClassicDevices": OpDef(
         operation_id="addClassicDevices",
@@ -47,6 +51,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Collection Sources",
         request_media=('application/json',),
+        summary="Add new classic devices",
     ),
     "addCollectionSchedule": OpDef(
         operation_id="addCollectionSchedule",
@@ -59,6 +64,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="CollectionSchedule",
+        summary="Add a network collection schedule",
     ),
     "addCollectorTask": OpDef(
         operation_id="addCollectorTask",
@@ -67,10 +74,12 @@ OPERATIONS: dict[str, OpDef] = {
         tag="Collector Tasks",
         parameters=(
             ParamDef(name="networkId", location="query", required=True, schema_type="string"),
-            ParamDef(name="type", location="query", required=True, schema_type="string"),
+            ParamDef(name="type", location="query", required=True, schema_type="string", enum=('NETWORK_COLLECTION',)),
         ),
         parent_tag="Network Collection",
         response_media=('application/json',),
+        response_model="StartCollectionResponse",
+        summary="Add a collector task",
     ),
     "addDataConnector": OpDef(
         operation_id="addDataConnector",
@@ -84,6 +93,8 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="DataConnector",
+        summary="Add a data connector",
     ),
     "addDeviceCluster": OpDef(
         operation_id="addDeviceCluster",
@@ -96,6 +107,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         request_media=('application/json',),
+        summary="Create a device cluster at a location",
     ),
     "addDeviceTag": OpDef(
         operation_id="addDeviceTag",
@@ -108,6 +120,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Devices",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="DeviceTag",
+        summary="Create a device tag",
     ),
     "addDeviceTagToDevices": OpDef(
         operation_id="addDeviceTagToDevices",
@@ -123,6 +137,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         request_media=('application/json',),
+        summary="Add a tag to devices",
     ),
     "addDeviceTagsBatch": OpDef(
         operation_id="addDeviceTagsBatch",
@@ -135,6 +150,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         request_media=('application/json',),
+        summary="Create device tags",
     ),
     "addDeviceTagsToDevices": OpDef(
         operation_id="addDeviceTagsToDevices",
@@ -149,6 +165,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         request_media=('application/json',),
+        summary="Add tags to devices",
     ),
     "addDraftChange": OpDef(
         operation_id="addDraftChange",
@@ -161,6 +178,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         request_media=('application/json',),
         stability="unpublished",
+        summary="Stage a query addition, edit, or new directory",
     ),
     "addInternetNodeConnection": OpDef(
         operation_id="addInternetNodeConnection",
@@ -172,6 +190,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Add a connection to the internet node",
     ),
     "addIntranetNodeConnection": OpDef(
         operation_id="addIntranetNodeConnection",
@@ -184,6 +203,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Add a connection to an intranet node",
     ),
     "addL2VpnConnection": OpDef(
         operation_id="addL2VpnConnection",
@@ -196,6 +216,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Add a connection to an L2VPN",
     ),
     "addL3VpnConnection": OpDef(
         operation_id="addL3VpnConnection",
@@ -208,6 +229,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Add a connection to an L3VPN",
     ),
     "addLocation": OpDef(
         operation_id="addLocation",
@@ -220,6 +242,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Topology",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="Location",
+        summary="Create a network location",
     ),
     "addNqeQueryExecution": OpDef(
         operation_id="addNqeQueryExecution",
@@ -233,6 +257,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="NqeExecutionResponse",
+        summary="Request an NQE query execution",
     ),
     "appendCveAnalysisRule": OpDef(
         operation_id="appendCveAnalysisRule",
@@ -247,6 +273,7 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         request_media=('application/json',),
         gating=('license',),
+        summary="Append a CVE analysis rule",
     ),
     "backdateLinkOverrides": OpDef(
         operation_id="backdateLinkOverrides",
@@ -259,6 +286,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="snapshotId", location="query", required=True, schema_type="string"),
         ),
         parent_tag="Topology",
+        summary="Apply recent link override changes",
     ),
     "cancelCollect": OpDef(
         operation_id="cancelCollect",
@@ -271,6 +299,7 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         deprecated=True,
         response_media=('application/json',),
+        summary="Cancel an in-progress network collection",
     ),
     "collect": OpDef(
         operation_id="collect",
@@ -283,6 +312,7 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         deprecated=True,
         response_media=('application/json',),
+        summary="Trigger a network collection",
     ),
     "commitDraftChanges": OpDef(
         operation_id="commitDraftChanges",
@@ -295,6 +325,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         request_media=('application/json',),
         stability="unpublished",
+        summary="Commit staged query changes",
     ),
     "computeAdvancedReachability": OpDef(
         operation_id="computeAdvancedReachability",
@@ -306,6 +337,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="snapshotId", location="path", required=True, schema_type="string"),
         ),
         parent_tag="Networks",
+        summary="Trigger advanced reachability computation",
     ),
     "createAlias": OpDef(
         operation_id="createAlias",
@@ -319,6 +351,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="Alias",
+        summary="Create an Alias",
     ),
     "createCliCredential": OpDef(
         operation_id="createCliCredential",
@@ -332,6 +366,8 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="CliCredential",
+        summary="Create a CLI credential",
     ),
     "createCliCredentials": OpDef(
         operation_id="createCliCredentials",
@@ -345,6 +381,9 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="StoredCliCredential",
+        response_is_array=True,
+        summary="Create CLI credentials",
     ),
     "createCliEndpointProfile": OpDef(
         operation_id="createCliEndpointProfile",
@@ -356,6 +395,8 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="EndpointProfile",
+        summary="Add a CLI endpoint profile",
     ),
     "createCliNetworkEndpoint": OpDef(
         operation_id="createCliNetworkEndpoint",
@@ -369,6 +410,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Collection Sources",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="CliNetworkEndpoint",
+        summary="Add a CLI network endpoint",
     ),
     "createCliNetworkEndpoints": OpDef(
         operation_id="createCliNetworkEndpoints",
@@ -381,6 +424,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Collection Sources",
         request_media=('application/json',),
+        summary="Add CLI network endpoints",
     ),
     "createHttpCredential": OpDef(
         operation_id="createHttpCredential",
@@ -394,6 +438,8 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="HttpCredential",
+        summary="Create an HTTP credential",
     ),
     "createHttpCredentials": OpDef(
         operation_id="createHttpCredentials",
@@ -407,6 +453,9 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="StoredHttpCredential",
+        response_is_array=True,
+        summary="Create HTTP credentials",
     ),
     "createHttpEndpointProfile": OpDef(
         operation_id="createHttpEndpointProfile",
@@ -418,6 +467,8 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="EndpointProfile",
+        summary="Add an HTTP endpoint profile",
     ),
     "createHttpNetworkEndpoint": OpDef(
         operation_id="createHttpNetworkEndpoint",
@@ -431,6 +482,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Collection Sources",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="HttpNetworkEndpoint",
+        summary="Add an HTTP network endpoint",
     ),
     "createHttpNetworkEndpoints": OpDef(
         operation_id="createHttpNetworkEndpoints",
@@ -443,6 +496,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Collection Sources",
         request_media=('application/json',),
+        summary="Add HTTP network endpoints",
     ),
     "createJumpServer": OpDef(
         operation_id="createJumpServer",
@@ -456,6 +510,8 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="JumpServer",
+        summary="Create a jump server",
     ),
     "createNetwork": OpDef(
         operation_id="createNetwork",
@@ -467,6 +523,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Networks",
         response_media=('application/json',),
+        response_model="Network",
+        summary="Create a network",
     ),
     "createSnapshot": OpDef(
         operation_id="createSnapshot",
@@ -479,6 +537,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Networks",
         request_media=('multipart/form-data',),
         response_media=('application/json',),
+        response_model="SnapshotInfo",
+        summary="Import a Snapshot",
     ),
     "createSnmpEndpointProfile": OpDef(
         operation_id="createSnmpEndpointProfile",
@@ -490,6 +550,8 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="EndpointProfile",
+        summary="Add an SNMP endpoint profile",
     ),
     "createSnmpNetworkEndpoint": OpDef(
         operation_id="createSnmpNetworkEndpoint",
@@ -503,6 +565,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Collection Sources",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="SnmpNetworkEndpoint",
+        summary="Add an SNMP network endpoint",
     ),
     "createSnmpNetworkEndpoints": OpDef(
         operation_id="createSnmpNetworkEndpoints",
@@ -515,6 +579,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Collection Sources",
         request_media=('application/json',),
+        summary="Add SNMP network endpoints",
     ),
     "createUser": OpDef(
         operation_id="createUser",
@@ -525,6 +590,8 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="User",
+        summary="Create a user account",
     ),
     "createWorkspaceNetwork": OpDef(
         operation_id="createWorkspaceNetwork",
@@ -537,6 +604,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Networks",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="Network",
+        summary="Create a Workspace network",
     ),
     "deactivateAlias": OpDef(
         operation_id="deactivateAlias",
@@ -549,6 +618,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Analysis",
         response_media=('application/json',),
+        response_model="Alias",
+        summary="Delete an Alias",
     ),
     "deactivateAliases": OpDef(
         operation_id="deactivateAliases",
@@ -561,6 +632,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Analysis",
         response_media=('application/json',),
+        response_model="Aliases",
+        summary="Delete Aliases",
     ),
     "deactivateCheck": OpDef(
         operation_id="deactivateCheck",
@@ -573,6 +646,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Analysis",
         response_media=('application/json',),
+        summary="Deactivate a check",
     ),
     "deactivateChecks": OpDef(
         operation_id="deactivateChecks",
@@ -584,6 +658,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Analysis",
         response_media=('application/json',),
+        summary="Deactivate all checks",
     ),
     "deleteAllClassicDevices": OpDef(
         operation_id="deleteAllClassicDevices",
@@ -595,6 +670,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="networkId", location="path", required=True, schema_type="string"),
         ),
         parent_tag="Collection Sources",
+        summary="Delete all of a network’s classic devices",
     ),
     "deleteClassicDevice": OpDef(
         operation_id="deleteClassicDevice",
@@ -606,6 +682,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="deviceName", location="path", required=True, schema_type="string"),
         ),
         parent_tag="Collection Sources",
+        summary="Delete a classic device",
     ),
     "deleteClassicDevices": OpDef(
         operation_id="deleteClassicDevices",
@@ -618,6 +695,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Collection Sources",
         request_media=('application/json',),
+        summary="Delete specific classic devices",
     ),
     "deleteCliCredential": OpDef(
         operation_id="deleteCliCredential",
@@ -630,6 +708,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Collection",
         gating=('admin',),
+        summary="Delete a CLI credential",
     ),
     "deleteCollectionSchedule": OpDef(
         operation_id="deleteCollectionSchedule",
@@ -641,6 +720,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="scheduleId", location="path", required=True, schema_type="string"),
         ),
         parent_tag="Network Collection",
+        summary="Delete a network collection schedule",
     ),
     "deleteCveAnalysis": OpDef(
         operation_id="deleteCveAnalysis",
@@ -654,6 +734,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Analysis",
         gating=('license',),
+        summary="Delete a custom CVE analysis",
     ),
     "deleteDataConnector": OpDef(
         operation_id="deleteDataConnector",
@@ -666,6 +747,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Collection Sources",
         gating=('admin',),
+        summary="Delete a data connector",
     ),
     "deleteDeviceCluster": OpDef(
         operation_id="deleteDeviceCluster",
@@ -678,6 +760,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="clusterName", location="path", required=True, schema_type="string"),
         ),
         parent_tag="Topology",
+        summary="Delete a device cluster",
     ),
     "deleteDeviceTag": OpDef(
         operation_id="deleteDeviceTag",
@@ -689,6 +772,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="tagName", location="path", required=True, schema_type="string"),
         ),
         parent_tag="Devices",
+        summary="Delete a device tag",
     ),
     "deleteEncryptor": OpDef(
         operation_id="deleteEncryptor",
@@ -700,6 +784,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="deviceName", location="path", required=True, schema_type="string"),
         ),
         parent_tag="Synthetic Devices",
+        summary="Remove an encryptor",
     ),
     "deleteEndpointProfile": OpDef(
         operation_id="deleteEndpointProfile",
@@ -711,6 +796,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Collection",
         gating=('admin',),
+        summary="Delete an endpoint profile",
     ),
     "deleteHttpCredential": OpDef(
         operation_id="deleteHttpCredential",
@@ -723,6 +809,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Collection",
         gating=('admin',),
+        summary="Delete an HTTP credential",
     ),
     "deleteInternetNodeConnections": OpDef(
         operation_id="deleteInternetNodeConnections",
@@ -739,6 +826,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="L3SyntheticWanConnections",
+        summary="Remove internet node connections",
     ),
     "deleteIntranetNode": OpDef(
         operation_id="deleteIntranetNode",
@@ -750,6 +839,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="nodeName", location="path", required=True, schema_type="string"),
         ),
         parent_tag="Synthetic Devices",
+        summary="Remove an intranet node",
     ),
     "deleteIntranetNodeConnections": OpDef(
         operation_id="deleteIntranetNodeConnections",
@@ -767,6 +857,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="L3SyntheticWanConnections",
+        summary="Remove an intranet node’s connections",
     ),
     "deleteJumpServer": OpDef(
         operation_id="deleteJumpServer",
@@ -780,6 +872,7 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         response_media=('application/json',),
         gating=('admin',),
+        summary="Delete a jump server",
     ),
     "deleteL2Vpn": OpDef(
         operation_id="deleteL2Vpn",
@@ -791,6 +884,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="l2VpnName", location="path", required=True, schema_type="string"),
         ),
         parent_tag="Synthetic Devices",
+        summary="Remove an L2VPN",
     ),
     "deleteL2VpnConnections": OpDef(
         operation_id="deleteL2VpnConnections",
@@ -806,6 +900,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="L2VpnConnections",
+        summary="Remove an L2VPN’s connections",
     ),
     "deleteL3Vpn": OpDef(
         operation_id="deleteL3Vpn",
@@ -817,6 +913,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="l3VpnName", location="path", required=True, schema_type="string"),
         ),
         parent_tag="Synthetic Devices",
+        summary="Remove an L3VPN",
     ),
     "deleteL3VpnConnections": OpDef(
         operation_id="deleteL3VpnConnections",
@@ -834,6 +931,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="L3SyntheticWanConnections",
+        summary="Remove an L3VPN’s connections",
     ),
     "deleteLocation": OpDef(
         operation_id="deleteLocation",
@@ -845,6 +944,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="locationId", location="path", required=True, schema_type="string"),
         ),
         parent_tag="Topology",
+        summary="Delete a network location",
     ),
     "deleteNetwork": OpDef(
         operation_id="deleteNetwork",
@@ -856,6 +956,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Networks",
         response_media=('application/json',),
+        response_model="Network",
+        summary="Delete a network",
     ),
     "deleteNetworkEndpoint": OpDef(
         operation_id="deleteNetworkEndpoint",
@@ -867,6 +969,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="endpointName", location="path", required=True, schema_type="string"),
         ),
         parent_tag="Collection Sources",
+        summary="Delete a network endpoint",
     ),
     "deleteNetworkEndpoints": OpDef(
         operation_id="deleteNetworkEndpoints",
@@ -879,6 +982,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Collection Sources",
         request_media=('application/json',),
+        summary="Delete specific network endpoints",
     ),
     "deleteSnapshot": OpDef(
         operation_id="deleteSnapshot",
@@ -890,6 +994,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Networks",
         response_media=('application/json',),
+        summary="Delete a Snapshot",
     ),
     "deleteUser": OpDef(
         operation_id="deleteUser",
@@ -901,6 +1006,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Platform Management",
         gating=('admin',),
+        summary="Delete a user account",
     ),
     "deleteWanCircuit": OpDef(
         operation_id="deleteWanCircuit",
@@ -912,6 +1018,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="wanCircuitName", location="path", required=True, schema_type="string"),
         ),
         parent_tag="Synthetic Devices",
+        summary="Remove a WAN circuit",
     ),
     "discardDraftChange": OpDef(
         operation_id="discardDraftChange",
@@ -922,6 +1029,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="path", location="query", required=True, schema_type="string"),
         ),
         stability="unpublished",
+        summary="Discard one staged change",
     ),
     "editJumpServer": OpDef(
         operation_id="editJumpServer",
@@ -936,6 +1044,7 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        summary="Update a jump server",
     ),
     "editSnapshotLinkOverrides": OpDef(
         operation_id="editSnapshotLinkOverrides",
@@ -949,6 +1058,7 @@ OPERATIONS: dict[str, OpDef] = {
         deprecated=True,
         request_media=('application/json',),
         response_media=('application/json',),
+        summary="Edit link overrides at a Snapshot",
     ),
     "exportSnapshot": OpDef(
         operation_id="exportSnapshot",
@@ -957,9 +1067,10 @@ OPERATIONS: dict[str, OpDef] = {
         tag="Network Snapshots",
         parameters=(
             ParamDef(name="snapshotId", location="path", required=True, schema_type="string"),
-            ParamDef(name="only", location="query", schema_type="string"),
+            ParamDef(name="only", location="query", schema_type="string", enum=('CONFIG',)),
         ),
         parent_tag="Networks",
+        summary="Export a Snapshot",
     ),
     "exportSnapshotSubset": OpDef(
         operation_id="exportSnapshotSubset",
@@ -968,10 +1079,11 @@ OPERATIONS: dict[str, OpDef] = {
         tag="Network Snapshots",
         parameters=(
             ParamDef(name="snapshotId", location="path", required=True, schema_type="string"),
-            ParamDef(name="only", location="query", schema_type="string"),
+            ParamDef(name="only", location="query", schema_type="string", enum=('CONFIG',)),
         ),
         parent_tag="Networks",
         request_media=('application/json',),
+        summary="Export a Snapshot subset",
     ),
     "getAllAliases": OpDef(
         operation_id="getAllAliases",
@@ -983,6 +1095,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Analysis",
         response_media=('application/json',),
+        response_model="Aliases",
+        summary="Get all Aliases",
     ),
     "getApiVersion": OpDef(
         operation_id="getApiVersion",
@@ -990,6 +1104,8 @@ OPERATIONS: dict[str, OpDef] = {
         path="/version",
         tag="Current Version",
         response_media=('application/json',),
+        response_model="ApiVersion",
+        summary="Get the API’s version",
     ),
     "getAtlas": OpDef(
         operation_id="getAtlas",
@@ -1001,6 +1117,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         response_media=('application/json',),
+        summary="Get device locations",
     ),
     "getAvailablePredefinedChecks": OpDef(
         operation_id="getAvailablePredefinedChecks",
@@ -1009,6 +1126,9 @@ OPERATIONS: dict[str, OpDef] = {
         tag="Checks",
         parent_tag="Network Analysis",
         response_media=('application/json',),
+        response_model="AvailablePredefinedCheck",
+        response_is_array=True,
+        summary="Get available Predefined checks",
     ),
     "getCheck": OpDef(
         operation_id="getCheck",
@@ -1021,6 +1141,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Analysis",
         response_media=('application/json',),
+        response_model="NetworkCheckResultWithDiagnosis",
+        summary="Get a check (with status)",
     ),
     "getChecks": OpDef(
         operation_id="getChecks",
@@ -1035,6 +1157,9 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Analysis",
         response_media=('application/json',),
+        response_model="NetworkCheckResult",
+        response_is_array=True,
+        summary="Get checks (with status)",
     ),
     "getClassicDevice": OpDef(
         operation_id="getClassicDevice",
@@ -1048,6 +1173,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Collection Sources",
         response_media=('application/json',),
+        response_model="ClassicDevice",
+        summary="Get a classic device",
     ),
     "getClassicDevices": OpDef(
         operation_id="getClassicDevices",
@@ -1060,6 +1187,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Collection Sources",
         response_media=('application/json',),
+        response_model="ClassicDevices",
+        summary="Get all classic devices",
     ),
     "getCliCredential": OpDef(
         operation_id="getCliCredential",
@@ -1073,6 +1202,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         response_media=('application/json',),
         gating=('admin',),
+        response_model="StoredCliCredential",
+        summary="Get a CLI credential",
     ),
     "getCliCredentials": OpDef(
         operation_id="getCliCredentials",
@@ -1085,6 +1216,9 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         response_media=('application/json',),
         gating=('admin',),
+        response_model="StoredCliCredential",
+        response_is_array=True,
+        summary="Get all CLI credentials",
     ),
     "getCollectionSchedule": OpDef(
         operation_id="getCollectionSchedule",
@@ -1097,6 +1231,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Collection",
         response_media=('application/json',),
+        response_model="CollectionSchedule",
+        summary="Get a network collection schedule",
     ),
     "getCollectionSchedules": OpDef(
         operation_id="getCollectionSchedules",
@@ -1108,6 +1244,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Collection",
         response_media=('application/json',),
+        response_model="CollectionSchedules",
+        summary="Get a network’s collection schedules",
     ),
     "getCollectorState": OpDef(
         operation_id="getCollectorState",
@@ -1120,6 +1258,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         deprecated=True,
         response_media=('application/json',),
+        response_model="CollectorState",
+        summary="Get the status of a network’s collector",
     ),
     "getCollectorTask": OpDef(
         operation_id="getCollectorTask",
@@ -1131,6 +1271,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Collection",
         response_media=('application/json',),
+        response_model="CollectorTask",
+        summary="Get a collector task",
     ),
     "getCollectorTasks": OpDef(
         operation_id="getCollectorTasks",
@@ -1143,6 +1285,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Collection",
         response_media=('application/json',),
+        summary="Get collector tasks",
     ),
     "getCveAnalyses": OpDef(
         operation_id="getCveAnalyses",
@@ -1156,6 +1299,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         response_media=('application/json',),
         gating=('license',),
+        response_model="CveAnalyses",
+        summary="Get custom CVE analyses",
     ),
     "getCveAnalysis": OpDef(
         operation_id="getCveAnalysis",
@@ -1170,6 +1315,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         response_media=('application/json',),
         gating=('license',),
+        response_model="CveAnalysis",
+        summary="Get a custom CVE analysis",
     ),
     "getCveIndex": OpDef(
         operation_id="getCveIndex",
@@ -1179,6 +1326,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Platform Management",
         response_media=('application/gzip',),
         gating=('license', 'deployment', 'admin'),
+        stream=True,
+        summary="Export the CVE index",
     ),
     "getDataConnector": OpDef(
         operation_id="getDataConnector",
@@ -1193,6 +1342,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Collection Sources",
         response_media=('application/json',),
         gating=('admin',),
+        response_model="DataConnector",
+        summary="Get a data connector",
     ),
     "getDataConnectors": OpDef(
         operation_id="getDataConnectors",
@@ -1206,6 +1357,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Collection Sources",
         response_media=('application/json',),
         gating=('admin',),
+        response_model="DataConnectors",
+        summary="Get a network’s data connectors",
     ),
     "getDevice": OpDef(
         operation_id="getDevice",
@@ -1220,6 +1373,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         response_media=('application/json',),
+        response_model="Device",
+        summary="Get a network device",
     ),
     "getDeviceCluster": OpDef(
         operation_id="getDeviceCluster",
@@ -1233,6 +1388,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         response_media=('application/json',),
+        response_model="DeviceCluster",
+        summary="Get a device cluster",
     ),
     "getDeviceClusters": OpDef(
         operation_id="getDeviceClusters",
@@ -1245,6 +1402,9 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         response_media=('application/json',),
+        response_model="DeviceCluster",
+        response_is_array=True,
+        summary="Get the device clusters at a location",
     ),
     "getDeviceFileContent": OpDef(
         operation_id="getDeviceFileContent",
@@ -1259,6 +1419,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         response_media=('application/octet-stream', 'text/plain'),
+        stream=True,
+        summary="Get device data file content",
     ),
     "getDeviceFiles": OpDef(
         operation_id="getDeviceFiles",
@@ -1272,6 +1434,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         response_media=('application/json',),
+        response_model="DeviceFiles",
+        summary="List a device’s data files",
     ),
     "getDeviceTag": OpDef(
         operation_id="getDeviceTag",
@@ -1284,6 +1448,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         response_media=('application/json',),
+        response_model="DeviceTag",
+        summary="Get a device tag",
     ),
     "getDeviceTagWithDevices": OpDef(
         operation_id="getDeviceTagWithDevices",
@@ -1298,6 +1464,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         response_media=('application/json',),
+        response_model="DeviceTagWithDevices",
+        summary="Get a tag with its devices",
     ),
     "getDeviceTags": OpDef(
         operation_id="getDeviceTags",
@@ -1309,6 +1477,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         response_media=('application/json',),
+        response_model="DeviceTags",
+        summary="Get all device tags",
     ),
     "getDeviceTagsWithDevices": OpDef(
         operation_id="getDeviceTagsWithDevices",
@@ -1322,6 +1492,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         response_media=('application/json',),
+        response_model="DeviceTagsWithDevices",
+        summary="Get all tags with their devices",
     ),
     "getDevices": OpDef(
         operation_id="getDevices",
@@ -1347,6 +1519,9 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         response_media=('application/json',),
+        response_model="Device",
+        response_is_array=True,
+        summary="Get all network devices",
     ),
     "getDraftChanges": OpDef(
         operation_id="getDraftChanges",
@@ -1354,6 +1529,7 @@ OPERATIONS: dict[str, OpDef] = {
         path="/users/current/nqe/changes",
         tag="NQE Repository",
         stability="unpublished",
+        summary="List the current user's uncommitted query changes",
     ),
     "getEncryptor": OpDef(
         operation_id="getEncryptor",
@@ -1366,6 +1542,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="Encryptor",
+        summary="Get an encryptor",
     ),
     "getEncryptors": OpDef(
         operation_id="getEncryptors",
@@ -1377,6 +1555,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="EncryptorList",
+        summary="Get a network's encryptors",
     ),
     "getEndpointProfile": OpDef(
         operation_id="getEndpointProfile",
@@ -1389,6 +1569,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         response_media=('application/json',),
         gating=('admin',),
+        response_model="EndpointProfile",
+        summary="Get an endpoint profile",
     ),
     "getEndpointProfiles": OpDef(
         operation_id="getEndpointProfiles",
@@ -1398,6 +1580,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         response_media=('application/json',),
         gating=('admin',),
+        response_model="EndpointProfiles",
+        summary="Get all endpoint profiles",
     ),
     "getHttpCredential": OpDef(
         operation_id="getHttpCredential",
@@ -1411,6 +1595,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         response_media=('application/json',),
         gating=('admin',),
+        response_model="StoredHttpCredential",
+        summary="Get an HTTP credential",
     ),
     "getHttpCredentials": OpDef(
         operation_id="getHttpCredentials",
@@ -1423,6 +1609,9 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         response_media=('application/json',),
         gating=('admin',),
+        response_model="StoredHttpCredential",
+        response_is_array=True,
+        summary="Get all HTTP credentials",
     ),
     "getInternetNode": OpDef(
         operation_id="getInternetNode",
@@ -1434,6 +1623,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="InternetNode",
+        summary="Get the network’s internet node",
     ),
     "getInternetNodeConnections": OpDef(
         operation_id="getInternetNodeConnections",
@@ -1450,6 +1641,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="L3SyntheticWanConnections",
+        summary="Get the internet node’s connections",
     ),
     "getIntranetNode": OpDef(
         operation_id="getIntranetNode",
@@ -1462,6 +1655,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="IntranetNode",
+        summary="Get an intranet node",
     ),
     "getIntranetNodeConnections": OpDef(
         operation_id="getIntranetNodeConnections",
@@ -1479,6 +1674,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="L3SyntheticWanConnections",
+        summary="Get an intranet node’s connections",
     ),
     "getIntranetNodes": OpDef(
         operation_id="getIntranetNodes",
@@ -1490,6 +1687,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="IntranetNodeList",
+        summary="Get a network’s intranet nodes",
     ),
     "getJumpServers": OpDef(
         operation_id="getJumpServers",
@@ -1502,6 +1701,9 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         response_media=('application/json',),
         gating=('admin',),
+        response_model="StoredJumpServer",
+        response_is_array=True,
+        summary="Get all jump servers",
     ),
     "getL2Vpn": OpDef(
         operation_id="getL2Vpn",
@@ -1514,6 +1716,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="L2Vpn",
+        summary="Get an L2VPN",
     ),
     "getL2VpnConnections": OpDef(
         operation_id="getL2VpnConnections",
@@ -1529,6 +1733,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="L2VpnConnections",
+        summary="Get an L2VPN’s connections",
     ),
     "getL2Vpns": OpDef(
         operation_id="getL2Vpns",
@@ -1540,6 +1746,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="L2VpnList",
+        summary="Get a network’s L2VPNs",
     ),
     "getL3Vpn": OpDef(
         operation_id="getL3Vpn",
@@ -1552,6 +1760,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="L3Vpn",
+        summary="Get an L3VPN",
     ),
     "getL3VpnConnections": OpDef(
         operation_id="getL3VpnConnections",
@@ -1569,6 +1779,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="L3SyntheticWanConnections",
+        summary="Get an L3VPN’s connections",
     ),
     "getL3Vpns": OpDef(
         operation_id="getL3Vpns",
@@ -1580,6 +1792,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="L3VpnList",
+        summary="Get a network’s L3VPNs",
     ),
     "getL7Applications": OpDef(
         operation_id="getL7Applications",
@@ -1588,6 +1802,9 @@ OPERATIONS: dict[str, OpDef] = {
         tag="Path Search",
         parent_tag="Network Analysis",
         response_media=('application/json',),
+        response_model="L7Application",
+        response_is_array=True,
+        summary="List known L7 applications",
     ),
     "getLatestProcessedSnapshot": OpDef(
         operation_id="getLatestProcessedSnapshot",
@@ -1600,6 +1817,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Networks",
         deprecated=True,
         response_media=('application/json',),
+        response_model="SnapshotInfo",
+        summary="Get the latest processed Snapshot",
     ),
     "getLinkOverrides": OpDef(
         operation_id="getLinkOverrides",
@@ -1611,6 +1830,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         response_media=('application/json',),
+        response_model="LinkOverrides",
+        summary="Get the network’s link overrides",
     ),
     "getLinkOverridesAtSnapshot": OpDef(
         operation_id="getLinkOverridesAtSnapshot",
@@ -1624,6 +1845,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         response_media=('application/json',),
+        response_model="LinkOverrides",
+        summary="Get a Snapshot’s link overrides",
     ),
     "getLocation": OpDef(
         operation_id="getLocation",
@@ -1636,6 +1859,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         response_media=('application/json',),
+        response_model="Location",
+        summary="Get a network location",
     ),
     "getLocations": OpDef(
         operation_id="getLocations",
@@ -1647,6 +1872,9 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         response_media=('application/json',),
+        response_model="Location",
+        response_is_array=True,
+        summary="Get a network’s locations",
     ),
     "getMissingDevices": OpDef(
         operation_id="getMissingDevices",
@@ -1659,6 +1887,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         response_media=('application/json',),
+        response_model="MissingDevices",
+        summary="Get missing network devices",
     ),
     "getNetworkEndpoint": OpDef(
         operation_id="getNetworkEndpoint",
@@ -1672,6 +1902,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Collection Sources",
         response_media=('application/json',),
+        response_model="NetworkEndpoint",
+        summary="Get a network endpoint",
     ),
     "getNetworkEndpoints": OpDef(
         operation_id="getNetworkEndpoints",
@@ -1684,6 +1916,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Collection Sources",
         response_media=('application/json',),
+        response_model="NetworkEndpoints",
+        summary="Get a network’s endpoints",
     ),
     "getNetworks": OpDef(
         operation_id="getNetworks",
@@ -1692,6 +1926,9 @@ OPERATIONS: dict[str, OpDef] = {
         tag="Network Management",
         parent_tag="Networks",
         response_media=('application/json',),
+        response_model="Network",
+        response_is_array=True,
+        summary="Get all networks",
     ),
     "getNqeExecutionResult": OpDef(
         operation_id="getNqeExecutionResult",
@@ -1706,6 +1943,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Analysis",
         response_media=('application/json', 'application/jsonl', 'application/x-ndjson', 'text/csv'),
+        response_model="NqeRunResult",
+        summary="Get NQE query execution result",
     ),
     "getNqeExecutionStatus": OpDef(
         operation_id="getNqeExecutionStatus",
@@ -1718,6 +1957,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Analysis",
         response_media=('application/json',),
+        response_model="NqeExecutionStatus",
+        summary="Get NQE query execution status",
     ),
     "getNqeQueries": OpDef(
         operation_id="getNqeQueries",
@@ -1729,6 +1970,9 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Analysis",
         response_media=('application/json',),
+        response_model="NqeQuery",
+        response_is_array=True,
+        summary="List all NQE queries",
     ),
     "getNqeQueryDiff": OpDef(
         operation_id="getNqeQueryDiff",
@@ -1742,6 +1986,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="NqeDiffResult",
+        summary="Compare NQE query results",
     ),
     "getOrgHeadCommit": OpDef(
         operation_id="getOrgHeadCommit",
@@ -1749,6 +1995,7 @@ OPERATIONS: dict[str, OpDef] = {
         path="/nqe/repos/org/commits/head",
         tag="NQE Repository",
         stability="unpublished",
+        summary="Get the organization repository's current commit",
     ),
     "getOsVulnerabilities": OpDef(
         operation_id="getOsVulnerabilities",
@@ -1764,6 +2011,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         response_media=('application/json',),
         gating=('license',),
+        response_model="OsVulnerabilityAnalysis",
+        summary="Get full vulnerability analysis",
     ),
     "getPaths": OpDef(
         operation_id="getPaths",
@@ -1801,6 +2050,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Analysis",
         response_media=('application/json',),
+        response_model="PathSearchResponse",
+        summary="Trace packets through the network",
     ),
     "getPathsBulk": OpDef(
         operation_id="getPathsBulk",
@@ -1814,6 +2065,9 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="PathSearchResponse",
+        response_is_array=True,
+        summary="Trace sets of packets through the network",
     ),
     "getPathsBulkSeq": OpDef(
         operation_id="getPathsBulkSeq",
@@ -1827,6 +2081,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         request_media=('application/json',),
         response_media=('application/json-seq',),
+        stream=True,
+        summary="Trace sets of packets through the network (streaming)",
     ),
     "getQueryHistory": OpDef(
         operation_id="getQueryHistory",
@@ -1837,6 +2093,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="queryId", location="path", required=True, schema_type="string"),
         ),
         stability="unpublished",
+        summary="List the commits that touched a query",
     ),
     "getReachabilityJob": OpDef(
         operation_id="getReachabilityJob",
@@ -1849,6 +2106,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="jobKey", location="path", required=True, schema_type="string"),
         ),
         stability="unpublished",
+        summary="Poll a reachability computation",
     ),
     "getRecentLinkOverrideChanges": OpDef(
         operation_id="getRecentLinkOverrideChanges",
@@ -1861,6 +2119,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         response_media=('application/json',),
+        response_model="LinkOverridesEdit",
+        summary="Get recent link override changes",
     ),
     "getRepositoryQueries": OpDef(
         operation_id="getRepositoryQueries",
@@ -1874,6 +2134,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="with", location="query", schema_type="string"),
         ),
         stability="unpublished",
+        summary="List queries in a repository at a commit",
     ),
     "getSingleAlias": OpDef(
         operation_id="getSingleAlias",
@@ -1886,6 +2147,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Analysis",
         response_media=('application/json',),
+        response_model="AliasAndValue",
+        summary="Get an Alias",
     ),
     "getSnapshotLinkOverrides": OpDef(
         operation_id="getSnapshotLinkOverrides",
@@ -1898,6 +2161,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Topology",
         deprecated=True,
         response_media=('application/json',),
+        response_model="LinkOverrides",
+        summary="Get link overrides for a Snapshot",
     ),
     "getSnapshotMetrics": OpDef(
         operation_id="getSnapshotMetrics",
@@ -1909,6 +2174,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Networks",
         response_media=('application/json',),
+        response_model="SnapshotMetrics",
+        summary="Get Snapshot metrics",
     ),
     "getSpecificClassicDevices": OpDef(
         operation_id="getSpecificClassicDevices",
@@ -1923,6 +2190,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Collection Sources",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="ClassicDevices",
+        summary="Get specific classic devices",
     ),
     "getTopology": OpDef(
         operation_id="getTopology",
@@ -1934,6 +2203,9 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         response_media=('application/json',),
+        response_model="TopologyLink",
+        response_is_array=True,
+        summary="Get the network topology",
     ),
     "getUser": OpDef(
         operation_id="getUser",
@@ -1946,6 +2218,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Platform Management",
         response_media=('application/json',),
         gating=('admin',),
+        response_model="User",
+        summary="Get a user account",
     ),
     "getUsers": OpDef(
         operation_id="getUsers",
@@ -1955,6 +2229,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Platform Management",
         response_media=('application/json',),
         gating=('admin',),
+        response_model="Users",
+        summary="Get all user accounts",
     ),
     "getVulnerabilities": OpDef(
         operation_id="getVulnerabilities",
@@ -1972,6 +2248,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         response_media=('application/json',),
         gating=('license',),
+        response_model="VulnerabilityAnalysis",
+        summary="Get vulnerabilities",
     ),
     "getVulnerability": OpDef(
         operation_id="getVulnerability",
@@ -1986,6 +2264,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         response_media=('application/json',),
         gating=('license',),
+        response_model="VulnerabilityWithDevices",
+        summary="Get a vulnerability",
     ),
     "getWanCircuit": OpDef(
         operation_id="getWanCircuit",
@@ -1998,6 +2278,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="WanCircuit",
+        summary="Get a WAN circuit",
     ),
     "getWanCircuits": OpDef(
         operation_id="getWanCircuits",
@@ -2009,6 +2291,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         response_media=('application/json',),
+        response_model="WanCircuitList",
+        summary="Get a network’s WAN circuits",
     ),
     "listNetworkSnapshots": OpDef(
         operation_id="listNetworkSnapshots",
@@ -2030,6 +2314,8 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Networks",
         response_media=('application/json',),
+        response_model="NetworkSnapshots",
+        summary="List network Snapshots",
     ),
     "patchClassicDevice": OpDef(
         operation_id="patchClassicDevice",
@@ -2043,6 +2329,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Collection Sources",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="ClassicDevice",
+        summary="Update a classic device",
     ),
     "patchClassicDevices": OpDef(
         operation_id="patchClassicDevices",
@@ -2054,6 +2342,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Collection Sources",
         request_media=('application/json',),
+        summary="Update specific classic devices",
     ),
     "patchCliCredential": OpDef(
         operation_id="patchCliCredential",
@@ -2068,6 +2357,8 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="StoredCliCredential",
+        summary="Update a CLI credential",
     ),
     "patchEncryptor": OpDef(
         operation_id="patchEncryptor",
@@ -2081,6 +2372,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="Encryptor",
+        summary="Update an encryptor",
     ),
     "patchHttpCredential": OpDef(
         operation_id="patchHttpCredential",
@@ -2094,6 +2387,7 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         request_media=('application/json',),
         gating=('admin',),
+        summary="Update an HTTP credential",
     ),
     "patchIntranetNode": OpDef(
         operation_id="patchIntranetNode",
@@ -2107,6 +2401,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="IntranetNode",
+        summary="Update an intranet node",
     ),
     "patchL2Vpn": OpDef(
         operation_id="patchL2Vpn",
@@ -2120,6 +2416,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="L2Vpn",
+        summary="Update an L2VPN",
     ),
     "patchL3Vpn": OpDef(
         operation_id="patchL3Vpn",
@@ -2133,6 +2431,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="L3Vpn",
+        summary="Update an L3VPN",
     ),
     "patchLinkOverrides": OpDef(
         operation_id="patchLinkOverrides",
@@ -2144,6 +2444,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         request_media=('application/json',),
+        summary="Edit the network’s link overrides",
     ),
     "patchLocation": OpDef(
         operation_id="patchLocation",
@@ -2157,6 +2458,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Topology",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="Location",
+        summary="Update a network location",
     ),
     "patchLocations": OpDef(
         operation_id="patchLocations",
@@ -2168,6 +2471,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         request_media=('application/json',),
+        summary="Create or update network locations",
     ),
     "patchNetworkEndpoints": OpDef(
         operation_id="patchNetworkEndpoints",
@@ -2179,6 +2483,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Collection Sources",
         request_media=('application/json',),
+        summary="Update specific network endpoints",
     ),
     "patchWanCircuit": OpDef(
         operation_id="patchWanCircuit",
@@ -2192,6 +2497,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="WanCircuit",
+        summary="Update a WAN circuit",
     ),
     "putClassicDevice": OpDef(
         operation_id="putClassicDevice",
@@ -2205,6 +2512,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Collection Sources",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="ClassicDevice",
+        summary="Add or update a classic device",
     ),
     "putClassicDevices": OpDef(
         operation_id="putClassicDevices",
@@ -2217,6 +2526,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Collection Sources",
         request_media=('application/json',),
+        summary="Add or update classic devices",
     ),
     "putCveAnalysis": OpDef(
         operation_id="putCveAnalysis",
@@ -2231,6 +2541,7 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         request_media=('application/json',),
         gating=('license',),
+        summary="Set a custom CVE analysis",
     ),
     "putCveIndex": OpDef(
         operation_id="putCveIndex",
@@ -2243,6 +2554,7 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Platform Management",
         request_media=('application/json',),
         gating=('license', 'deployment', 'admin'),
+        summary="Import a new CVE index",
     ),
     "putDeviceClusters": OpDef(
         operation_id="putDeviceClusters",
@@ -2255,6 +2567,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         request_media=('application/json',),
+        summary="Replace all device clusters at a location",
     ),
     "putEncryptor": OpDef(
         operation_id="putEncryptor",
@@ -2267,6 +2580,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Add or replace an encryptor",
     ),
     "putEncryptors": OpDef(
         operation_id="putEncryptors",
@@ -2278,6 +2592,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Replace all of a network’s encryptors",
     ),
     "putInternetNode": OpDef(
         operation_id="putInternetNode",
@@ -2289,6 +2604,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Replace the network’s internet node",
     ),
     "putIntranetNode": OpDef(
         operation_id="putIntranetNode",
@@ -2301,6 +2617,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Add or replace an intranet node",
     ),
     "putIntranetNodes": OpDef(
         operation_id="putIntranetNodes",
@@ -2312,6 +2629,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Replace all of a network’s intranet nodes",
     ),
     "putL2Vpn": OpDef(
         operation_id="putL2Vpn",
@@ -2324,6 +2642,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Add or replace an L2VPN",
     ),
     "putL2Vpns": OpDef(
         operation_id="putL2Vpns",
@@ -2335,6 +2654,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Replace all of a network’s L2VPNs",
     ),
     "putL3Vpn": OpDef(
         operation_id="putL3Vpn",
@@ -2347,6 +2667,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Add or replace an L3VPN",
     ),
     "putL3Vpns": OpDef(
         operation_id="putL3Vpns",
@@ -2358,6 +2679,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Replace all of a network’s L3VPNs",
     ),
     "putLinkOverrides": OpDef(
         operation_id="putLinkOverrides",
@@ -2369,6 +2691,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         request_media=('application/json',),
+        summary="Set the network’s link overrides",
     ),
     "putLocations": OpDef(
         operation_id="putLocations",
@@ -2380,6 +2703,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         request_media=('application/json',),
+        summary="Create network locations",
     ),
     "putWanCircuit": OpDef(
         operation_id="putWanCircuit",
@@ -2392,6 +2716,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Add or replace a WAN circuit",
     ),
     "putWanCircuits": OpDef(
         operation_id="putWanCircuits",
@@ -2403,6 +2728,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
+        summary="Replace all of a network’s WAN circuits",
     ),
     "removeAllDeviceTagsFromDevices": OpDef(
         operation_id="removeAllDeviceTagsFromDevices",
@@ -2417,6 +2743,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         request_media=('application/json',),
+        summary="Remove all tags from devices",
     ),
     "removeDeviceTagFromDevices": OpDef(
         operation_id="removeDeviceTagFromDevices",
@@ -2432,6 +2759,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         request_media=('application/json',),
+        summary="Remove a tag from devices",
     ),
     "removeDeviceTagsFromDevices": OpDef(
         operation_id="removeDeviceTagsFromDevices",
@@ -2446,6 +2774,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         request_media=('application/json',),
+        summary="Remove tags from devices",
     ),
     "replaceAllDeviceTagsForDevices": OpDef(
         operation_id="replaceAllDeviceTagsForDevices",
@@ -2460,6 +2789,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Devices",
         request_media=('application/json',),
+        summary="Replace all tags for devices",
     ),
     "replaceCollectionSchedule": OpDef(
         operation_id="replaceCollectionSchedule",
@@ -2473,6 +2803,7 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Collection",
         request_media=('application/json',),
         response_media=('application/json',),
+        summary="Replace a network collection schedule",
     ),
     "replaceSnapshotLinkOverrides": OpDef(
         operation_id="replaceSnapshotLinkOverrides",
@@ -2486,6 +2817,7 @@ OPERATIONS: dict[str, OpDef] = {
         deprecated=True,
         request_media=('application/json',),
         response_media=('application/json',),
+        summary="Replace link overrides at a Snapshot",
     ),
     "runNqeQuery": OpDef(
         operation_id="runNqeQuery",
@@ -2499,6 +2831,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Network Analysis",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="NqeRunResult",
+        summary="Run an NQE query",
     ),
     "startReachabilityJob": OpDef(
         operation_id="startReachabilityJob",
@@ -2510,6 +2844,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="snapshotId", location="path", required=True, schema_type="string"),
         ),
         stability="unpublished",
+        summary="Start computing advanced reachability",
     ),
     "stopCollectorTask": OpDef(
         operation_id="stopCollectorTask",
@@ -2523,6 +2858,7 @@ OPERATIONS: dict[str, OpDef] = {
             ParamDef(name="note", location="query", schema_type="string"),
         ),
         parent_tag="Network Collection",
+        summary="Stop a collector task",
     ),
     "testDataConnector": OpDef(
         operation_id="testDataConnector",
@@ -2537,6 +2873,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Collection Sources",
         response_media=('application/json',),
         gating=('admin',),
+        response_model="DataConnectorTestResult",
+        summary="Test a data connector",
     ),
     "updateAtlas": OpDef(
         operation_id="updateAtlas",
@@ -2548,6 +2886,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         request_media=('application/json',),
+        summary="Update device locations",
     ),
     "updateCliEndpointProfile": OpDef(
         operation_id="updateCliEndpointProfile",
@@ -2561,6 +2900,8 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="EndpointProfile",
+        summary="Update a CLI endpoint profile",
     ),
     "updateCliNetworkEndpoint": OpDef(
         operation_id="updateCliNetworkEndpoint",
@@ -2575,6 +2916,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Collection Sources",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="CliNetworkEndpoint",
+        summary="Update a CLI network endpoint",
     ),
     "updateDataConnector": OpDef(
         operation_id="updateDataConnector",
@@ -2589,6 +2932,8 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="DataConnector",
+        summary="Update a data connector",
     ),
     "updateDeviceCluster": OpDef(
         operation_id="updateDeviceCluster",
@@ -2602,6 +2947,7 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         request_media=('application/json',),
+        summary="Update a device cluster",
     ),
     "updateDeviceTag": OpDef(
         operation_id="updateDeviceTag",
@@ -2615,6 +2961,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Devices",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="DeviceTag",
+        summary="Update a device tag",
     ),
     "updateHttpEndpointProfile": OpDef(
         operation_id="updateHttpEndpointProfile",
@@ -2628,6 +2976,8 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="EndpointProfile",
+        summary="Update an HTTP endpoint profile",
     ),
     "updateHttpNetworkEndpoint": OpDef(
         operation_id="updateHttpNetworkEndpoint",
@@ -2642,6 +2992,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Collection Sources",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="HttpNetworkEndpoint",
+        summary="Update an HTTP network endpoint",
     ),
     "updateInternetNode": OpDef(
         operation_id="updateInternetNode",
@@ -2654,6 +3006,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Synthetic Devices",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="InternetNode",
+        summary="Update the network’s internet node",
     ),
     "updateNetwork": OpDef(
         operation_id="updateNetwork",
@@ -2666,6 +3020,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Networks",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="Network",
+        summary="Update a network",
     ),
     "updateSnmpEndpointProfile": OpDef(
         operation_id="updateSnmpEndpointProfile",
@@ -2679,6 +3035,8 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="EndpointProfile",
+        summary="Update an SNMP endpoint profile",
     ),
     "updateSnmpNetworkEndpoint": OpDef(
         operation_id="updateSnmpNetworkEndpoint",
@@ -2693,6 +3051,8 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Collection Sources",
         request_media=('application/json',),
         response_media=('application/json',),
+        response_model="SnmpNetworkEndpoint",
+        summary="Update an SNMP network endpoint",
     ),
     "updateUser": OpDef(
         operation_id="updateUser",
@@ -2706,5 +3066,7 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         response_media=('application/json',),
         gating=('admin',),
+        response_model="User",
+        summary="Update a user account",
     ),
 }

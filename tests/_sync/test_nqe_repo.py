@@ -230,8 +230,9 @@ class TestPublishing:
         recorder.add("GET", QUERIES, json_response({"queries": []}))
         recorder.add("POST", CHANGES, error_response(400, "nope"))
 
-        with make_client(recorder) as client, pytest.raises(Exception, match="nope"):
-            client.nqe.repo.publish({"/A": "x"}, title="t", discard_on_failure=False)
+        with make_client(recorder) as client:
+            with pytest.raises(Exception, match="nope"):
+                client.nqe.repo.publish({"/A": "x"}, title="t", discard_on_failure=False)
 
         assert recorder.count("DELETE", CHANGES) == 0
 

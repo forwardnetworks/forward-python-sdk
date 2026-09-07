@@ -29,6 +29,7 @@ from forward_sdk._generated._defs import OpDef
 from forward_sdk._generated.operations import OPERATIONS
 from forward_sdk._http import encode_query
 from forward_sdk._ops import REGISTRY, RequestSpec
+from forward_sdk._ops._generic import snake
 from forward_sdk.nqe.query_ref import QueryRef
 
 # Importing the coverage module populates the builder registry.
@@ -92,9 +93,15 @@ def sample_for(name: str, annotation: Any) -> Any:
     return "example"
 
 
+def enum_values(operation: OpDef) -> dict[str, str]:
+    """Allowed values for parameters the spec constrains to an enumeration."""
+    return {snake(param.name): param.enum[0] for param in operation.parameters if param.enum}
+
+
 def build(operation_id: str) -> RequestSpec | None:
     """Build a representative request for an operation, or None if not possible."""
     builder = REGISTRY[operation_id]
+    allowed = enum_values(OPERATIONS[operation_id])
     # eval_str resolves the string annotations that `from __future__ import
     # annotations` leaves behind; without it every annotation is just text and
     # the type dispatch below silently does nothing.
@@ -105,14 +112,14 @@ def build(operation_id: str) -> RequestSpec | None:
             continue
         if parameter.default is not inspect.Parameter.empty:
             continue
-        arguments[name] = sample_for(name, parameter.annotation)
+        arguments[name] = allowed.get(name) or sample_for(name, parameter.annotation)
     return builder(**arguments)
 
 
 def mock_request(spec: RequestSpec, operation: OpDef) -> MockRequest:
     """Turn a built request into something openapi-core can validate."""
     path_pattern = API_ROOT + operation.path
-    view_args = {p.name: "101" for p in operation.path_params}
+    view_args = {p.name: (p.enum[0] if p.enum else "101") for p in operation.path_params}
     args = {key: value for key, value in spec.params}
     return MockRequest(
         HOST,

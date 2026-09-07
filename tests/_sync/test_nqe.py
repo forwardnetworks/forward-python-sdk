@@ -103,8 +103,9 @@ class TestRun:
                 },
             ),
         )
-        with make_client(recorder) as client, pytest.raises(ForwardNqeQueryError) as caught:
-            client.nqe.run("foreach d in x select {n: d.nmae}")
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardNqeQueryError) as caught:
+                client.nqe.run("foreach d in x select {n: d.nmae}")
 
         assert caught.value.query_errors[0].message == "unknown field 'nmae'"
 
@@ -352,8 +353,9 @@ class TestLibrary:
         recorder.add(
             "GET", "/api/nqe/repos/org/commits/head/queries", json_response({"queries": []})
         )
-        with make_client(recorder) as client, pytest.raises(Exception, match="no query at"):
-            client.nqe.execute(QueryRef.by_path("/Missing"))
+        with make_client(recorder) as client:
+            with pytest.raises(Exception, match="no query at"):
+                client.nqe.execute(QueryRef.by_path("/Missing"))
 
     def test_query_index_is_cached_across_resolutions(self, recorder: Recorder) -> None:
         recorder.add(

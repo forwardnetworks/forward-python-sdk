@@ -24,7 +24,7 @@ from forward_sdk._ops import nqe_repo as ops
 from forward_sdk._sync.services._base import Service
 from forward_sdk.errors import ForwardConflictError, ForwardNotFoundError
 
-__all__ = ["CommitReport", "DraftChange", "NqeRepository", "RepositoryQuery"]
+__all__ = ["NqeRepository", "CommitReport", "DraftChange", "RepositoryQuery"]
 
 #: Forward rejects a commit naming a path with no staged change, listing the
 #: offending paths in the message. That happens routinely when a query's source

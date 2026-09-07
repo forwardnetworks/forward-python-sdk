@@ -123,8 +123,9 @@ def test_gives_up_after_max_attempts(recorder: Recorder, no_sleep: list[float]) 
 
 def test_does_not_retry_authentication_failure(recorder: Recorder, no_sleep: list[float]) -> None:
     recorder.add("GET", "/api/networks", error_response(401, "bad credentials"))
-    with make_transport(recorder) as transport, pytest.raises(ForwardAuthError):
-        transport.send(NETWORKS)
+    with make_transport(recorder) as transport:
+        with pytest.raises(ForwardAuthError):
+            transport.send(NETWORKS)
 
     assert recorder.count("GET", "/api/networks") == 1
     assert no_sleep == []
@@ -143,8 +144,9 @@ def test_maps_status_to_exception(
     recorder: Recorder, status: int, expected: type[Exception]
 ) -> None:
     recorder.add("GET", "/api/networks", error_response(status, "no", reason="SOME_REASON"))
-    with make_transport(recorder) as transport, pytest.raises(expected) as caught:
-        transport.send(NETWORKS)
+    with make_transport(recorder) as transport:
+        with pytest.raises(expected) as caught:
+            transport.send(NETWORKS)
 
     error = caught.value
     assert error.status == status  # type: ignore[attr-defined]
@@ -154,8 +156,9 @@ def test_maps_status_to_exception(
 
 def test_error_carries_forward_message_and_operation(recorder: Recorder) -> None:
     recorder.add("GET", "/api/networks", error_response(403, "not permitted"))
-    with make_transport(recorder) as transport, pytest.raises(ForwardPermissionError) as caught:
-        transport.send(NETWORKS)
+    with make_transport(recorder) as transport:
+        with pytest.raises(ForwardPermissionError) as caught:
+            transport.send(NETWORKS)
 
     error = caught.value
     assert error.error_info is not None
@@ -167,8 +170,9 @@ def test_gating_hint_surfaces_on_denial(recorder: Recorder) -> None:
     """A denial on a licence-gated group carries the documented hint."""
     spec = spec_for("getVulnerabilities", path_params={"networkId": "101"})
     recorder.add("GET", "/api/networks/101/vulnerabilities", error_response(403, "denied"))
-    with make_transport(recorder) as transport, pytest.raises(ForwardPermissionError) as caught:
-        transport.send(spec)
+    with make_transport(recorder) as transport:
+        with pytest.raises(ForwardPermissionError) as caught:
+            transport.send(spec)
 
     assert caught.value.gating == ("license",)
 
@@ -192,8 +196,9 @@ def test_nqe_query_error_exposes_diagnostics(recorder: Recorder) -> None:
     }
     recorder.add("POST", "/api/nqe", httpx.Response(400, json=body))
     spec = spec_for("runNqeQuery", json={"query": "bad"})
-    with make_transport(recorder) as transport, pytest.raises(ForwardNqeQueryError) as caught:
-        transport.send(spec)
+    with make_transport(recorder) as transport:
+        with pytest.raises(ForwardNqeQueryError) as caught:
+            transport.send(spec)
 
     error = caught.value
     assert error.completion_type == "FINISHED"
@@ -239,8 +244,9 @@ def test_non_idempotent_request_not_retried_after_read_timeout(
         idempotent=False,
     )
     recorder.add("POST", "/api/networks", httpx.ReadTimeout("timed out"))
-    with make_transport(recorder) as transport, pytest.raises(ForwardTransportError):
-        transport.send(spec)
+    with make_transport(recorder) as transport:
+        with pytest.raises(ForwardTransportError):
+            transport.send(spec)
 
     assert recorder.count("POST", "/api/networks") == 1
 
@@ -398,9 +404,10 @@ def test_stream_maps_errors(recorder: Recorder) -> None:
         path_params={"networkId": "101", "executionKey": "k"},
         stream=True,
     )
-    with make_transport(recorder) as transport, pytest.raises(ForwardNotFoundError):
-        with transport.stream(spec):
-            pass
+    with make_transport(recorder) as transport:
+        with pytest.raises(ForwardNotFoundError):
+            with transport.stream(spec):
+                pass
 
 
 def test_rate_limiter_first_acquire_is_free() -> None:

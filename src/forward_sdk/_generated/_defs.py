@@ -55,6 +55,10 @@ class OpDef:
     response_media: tuple[str, ...] = ()
     stability: Stability = "published"
     gating: tuple[Gating, ...] = field(default_factory=tuple)
+    response_model: str | None = None
+    response_is_array: bool = False
+    summary: str | None = None
+    stream: bool = False
 
     @property
     def path_params(self) -> tuple[ParamDef, ...]:

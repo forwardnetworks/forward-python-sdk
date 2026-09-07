@@ -18,10 +18,10 @@ from __future__ import annotations
 
 import argparse
 import re
-import shutil
-import subprocess
 import sys
 from pathlib import Path
+
+from _tidy import tidy
 
 TREES = (
     (Path("src/forward_sdk/_async"), Path("src/forward_sdk/_sync")),
@@ -80,6 +80,11 @@ SUBSTITUTIONS: tuple[tuple[str, str], ...] = (
     (r"\bAsyncNqeExecution\b", "NqeExecution"),
     (r"\bAsyncSnapshotJob\b", "SnapshotJob"),
     (r"\bAsyncReachabilityJob\b", "ReachabilityJob"),
+    # Generated service classes follow one naming rule, so one substitution
+    # covers all of them.
+    (r"\bAsync(\w+)Service\b", r"\1Service"),
+    (r"\bAsyncGeneratedServices\b", "GeneratedServices"),
+    (r"_attach_generated_services\b", "_attach_generated_services"),
     (r"\bAsyncNetworksService\b", "NetworksService"),
     (r"\bAsyncSnapshotsService\b", "SnapshotsService"),
     (r"\bAsyncDevicesService\b", "DevicesService"),
@@ -142,34 +147,6 @@ def sync_tree(source_root: Path, target_root: Path) -> list[Path]:
             written.append(stale)
 
     return written
-
-
-def tidy(source: str, filename: str) -> str:
-    """Sort imports and format converted code, in memory.
-
-    Substitution reorders imports (asyncio becomes threading) and can leave odd
-    spacing. Formatting the text *before* it is compared with what is on disk
-    keeps generation idempotent: re-running this script on an unchanged async
-    source must produce no diff, or the CI freshness gate would fire forever.
-    """
-    if shutil.which("ruff") is None:
-        return source
-    fixed = subprocess.run(
-        ["ruff", "check", "--fix-only", "--quiet", "--stdin-filename", filename, "-"],
-        input=source,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    body = fixed.stdout if fixed.returncode == 0 and fixed.stdout else source
-    formatted = subprocess.run(
-        ["ruff", "format", "--quiet", "--stdin-filename", filename, "-"],
-        input=body,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    return formatted.stdout if formatted.returncode == 0 and formatted.stdout else body
 
 
 def main(argv: list[str] | None = None) -> int:

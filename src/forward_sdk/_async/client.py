@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 import httpx
 
+from forward_sdk._async.services._generated import AsyncGeneratedServices
 from forward_sdk._async.services.device_tags import AsyncDeviceTagsService
 from forward_sdk._async.services.devices import AsyncDevicesService
 from forward_sdk._async.services.networks import AsyncNetworksService
@@ -19,7 +20,7 @@ from forward_sdk.telemetry import CounterSnapshot, Hooks
 __all__ = ["AsyncForwardClient"]
 
 
-class AsyncForwardClient:
+class AsyncForwardClient(AsyncGeneratedServices):
     """Talks to a Forward Networks instance.
 
     Authentication is HTTP basic. Use an API token: its access key is the
@@ -28,6 +29,13 @@ class AsyncForwardClient:
 
     One client holds one connection pool, so reuse it rather than creating one
     per call. It is bound to the event loop it was created on.
+
+    Services hang off the client by group: ``client.networks``,
+    ``client.snapshots``, ``client.devices``, ``client.device_tags`` and
+    ``client.nqe`` are hand-written for the paths integrations use most; the
+    remaining groups (``client.checks``, ``client.path_search``,
+    ``client.aliases`` and so on) are generated from Forward's API description,
+    and their method names are the operation ids in Python casing.
 
     Example:
         >>> async with AsyncForwardClient.from_env() as client:
@@ -96,6 +104,9 @@ class AsyncForwardClient:
         self.devices = AsyncDevicesService(self._transport)
         self.device_tags = AsyncDeviceTagsService(self._transport)
         self.nqe = AsyncNqeService(self._transport)
+
+        # The rest of the API, one attribute per group; see scripts/gen_services.py.
+        self._attach_generated_services(self._transport)
 
     @classmethod
     def from_env(cls, **overrides: Any) -> AsyncForwardClient:

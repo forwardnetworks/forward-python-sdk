@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib
 import pkgutil
+import re
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +20,7 @@ import forward_sdk._ops as ops_package
 from forward_sdk import AsyncForwardClient, ForwardClient
 from forward_sdk._generated.operations import OPERATIONS
 from forward_sdk._ops import REGISTRY
+from forward_sdk._ops._generic import snake
 
 ALLOWLIST_PATH = Path("spec/coverage-allowlist.yaml")
 GATING_PATH = Path("spec/gating.yaml")
@@ -87,15 +89,70 @@ def test_builder_matches_the_spec(operation_id: str) -> None:
     assert "?" not in operation.path
 
 
-def test_client_exposes_a_method_for_each_implemented_group() -> None:
-    """The services wired onto the client cover the groups implemented so far."""
+def test_client_exposes_every_api_group() -> None:
+    """Each group in the description is reachable from the client."""
+
+    hand_written = {
+        "Network Management": "networks",
+        "Network Snapshots": "snapshots",
+        "Network Devices": "devices",
+        "Device Tags": "device_tags",
+        "NQE": "nqe",
+        "Current Version": "networks",
+        "NQE Repository": "nqe",
+        "Snapshot Reachability": "snapshots",
+    }
     client = ForwardClient("https://forward.test")
     try:
-        for attribute in ("networks", "snapshots", "devices", "device_tags", "nqe"):
-            assert hasattr(client, attribute), f"client is missing .{attribute}"
+        for tag in sorted({op.tag for op in OPERATIONS.values()}):
+            attribute = hand_written.get(tag) or re.sub(r"[^a-z0-9]+", "_", tag.lower()).strip("_")
+            assert hasattr(client, attribute), f"no client attribute for {tag!r}"
         assert hasattr(client.nqe, "repo")
     finally:
         client.close()
+
+
+def test_every_operation_has_a_service_method() -> None:
+    """No operation is reachable only through a raw request builder."""
+    client = ForwardClient("https://forward.test")
+    try:
+        available: set[str] = set()
+        for attribute in dir(client):
+            if attribute.startswith("_"):
+                continue
+            service = getattr(client, attribute, None)
+            if service is None or not type(service).__name__.endswith("Service"):
+                continue
+            available.update(name for name in dir(service) if not name.startswith("_"))
+            repo = getattr(service, "repo", None)
+            if repo is not None:
+                available.update(n for n in dir(repo) if not n.startswith("_"))
+    finally:
+        client.close()
+
+    # Hand-written services use curated names, so only the generated groups are
+    # checked by operation id.
+    generated_tags = {
+        op.tag
+        for op in OPERATIONS.values()
+        if op.tag
+        not in {
+            "Network Management",
+            "Network Snapshots",
+            "Network Devices",
+            "Device Tags",
+            "NQE",
+            "Current Version",
+            "NQE Repository",
+            "Snapshot Reachability",
+        }
+    }
+    missing = sorted(
+        op.operation_id
+        for op in OPERATIONS.values()
+        if op.tag in generated_tags and snake(op.operation_id) not in available
+    )
+    assert not missing, f"operations with no service method: {missing}"
 
 
 def test_sync_and_async_clients_have_the_same_surface() -> None:

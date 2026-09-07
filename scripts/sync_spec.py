@@ -139,6 +139,8 @@ def main(argv: list[str] | None = None) -> int:
         run_step("down-convert to OpenAPI 3.1", ["scripts/downconvert_spec.py"])
         run_step("generate models", ["scripts/gen_models.py"])
         run_step("generate operation table", ["scripts/gen_operations.py"])
+        run_step("generate service classes", ["scripts/gen_services.py"])
+        run_step("generate the sync client", ["scripts/unasync.py"])
 
     return 0
 

@@ -1,9 +1,8 @@
 {
   "fwd_commit": "4eb9133058584cd93788dad10a35a386529313a7",
-  "fwd_describe": "appserver-pin-eca20b9f244-1103-g4eb913305858",
-  "api_version": "appserver-pin-eca20b9f244-1103-g4eb913305858",
+  "api_version": "unreleased",
   "openapi": "3.2.0",
-  "synced_at": "2026-09-07T11:57:51Z",
-  "sha256": "8978bcee63d04f8f86dd7f41f174f8ebb6ea2397a89976de3ce9e8479c64b8fd",
+  "synced_at": "2026-09-07T13:07:01Z",
+  "sha256": "390fe91b70888abf959b4e7a9819c42f3b6c01dca5e58a9cfd442b3f1a4a4c4f",
   "operations": 208
 }

@@ -7,7 +7,7 @@ info:
   license:
     name: MIT
     url: https://spdx.org/licenses/MIT
-  version: appserver-pin-eca20b9f244-1103-g4eb913305858
+  version: unreleased
 servers:
   - url: /api
 tags:

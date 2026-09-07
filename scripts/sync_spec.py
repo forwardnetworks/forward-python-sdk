@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -38,6 +39,30 @@ def git(root: Path, *args: str) -> str:
         ["git", "-C", str(root), *args], capture_output=True, text=True, check=False
     )
     return result.stdout.strip() if result.returncode == 0 else ""
+
+
+#: A Forward release version looks like "26.4.1". Anything else -- a snapshot
+#: build, an internal branch tag -- is not a version anyone outside Forward can
+#: interpret, and internal build names do not belong in a published artifact.
+RELEASE_VERSION = re.compile(r"^\d+\.\d+(\.\d+)?([.-]\w+)?$")
+
+UNRELEASED = "unreleased"
+
+
+def _release_version(root: Path) -> str:
+    """The Forward release this description came from, if it is identifiable.
+
+    Pass ``--api-version`` when building from a checkout that is not on a
+    release tag; otherwise the version is recorded as unreleased rather than
+    guessed from an internal build name.
+    """
+    for candidate in (
+        git(root, "describe", "--tags", "--abbrev=0", "--match", "[0-9]*"),
+        git(root, "describe", "--tags", "--abbrev=0"),
+    ):
+        if candidate and RELEASE_VERSION.match(candidate):
+            return candidate
+    return UNRELEASED
 
 
 def operation_summary(doc: dict[str, Any]) -> dict[str, str]:
@@ -104,9 +129,8 @@ def main(argv: list[str] | None = None) -> int:
         previous = operation_summary(yaml.safe_load(VENDORED.read_text()))
 
     text = source.read_text()
-    describe = git(args.fwd_root, "describe", "--tags", "--always")
     commit = git(args.fwd_root, "rev-parse", "HEAD")
-    api_version = args.api_version or describe or "unknown"
+    api_version = args.api_version or _release_version(args.fwd_root)
 
     # The upstream description carries a build-time placeholder; a literal
     # "${apiVersion}" makes the document invalid for strict validators.
@@ -118,7 +142,6 @@ def main(argv: list[str] | None = None) -> int:
         json.dumps(
             {
                 "fwd_commit": commit,
-                "fwd_describe": describe,
                 "api_version": api_version,
                 "openapi": doc.get("openapi"),
                 "synced_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -131,7 +154,7 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     print(f"vendored {source} -> {VENDORED}")
-    print(f"  fwd {describe or commit[:12]}, api version {api_version}")
+    print(f"  fwd {commit[:12]}, api version {api_version}")
     print("\n== operation changes since last sync")
     report_diff(previous, operation_summary(doc))
 

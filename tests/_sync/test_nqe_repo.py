@@ -45,13 +45,25 @@ class TestReading:
         recorder.add(
             "GET",
             QUERIES,
-            json_response({"queries": [{"queryId": "FQ_1", "path": "/A", "lastCommitId": "c1"}]}),
+            json_response(
+                {"queries": [{"queryId": "FQ_1", "path": "/A", "lastCommit": {"id": "c1"}}]}
+            ),
         )
         with make_client(recorder) as client:
             queries = client.nqe.repo.queries()
 
         assert queries[0].query_id == "FQ_1"
         assert queries[0].commit_id == "c1"
+
+    def test_flat_commit_id_is_also_understood(self, recorder: Recorder) -> None:
+        """Integrations synthesize the flat key when normalizing; accept both."""
+        recorder.add(
+            "GET",
+            QUERIES,
+            json_response({"queries": [{"queryId": "FQ_1", "path": "/A", "lastCommitId": "c1"}]}),
+        )
+        with make_client(recorder) as client:
+            assert (client.nqe.repo.queries())[0].commit_id == "c1"
 
     def test_queries_returned_as_a_bare_list(self, recorder: Recorder) -> None:
         """Forward has answered this endpoint both ways."""

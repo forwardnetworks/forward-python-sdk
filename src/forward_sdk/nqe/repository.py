@@ -19,6 +19,7 @@ __all__ = [
     "CommitReport",
     "DraftChange",
     "RepositoryQuery",
+    "commit_id_of",
     "optional_str",
     "paths_without_changes",
     "queries_from_payload",
@@ -62,7 +63,7 @@ class RepositoryQuery:
         return cls(
             query_id=str(payload.get("queryId") or payload.get("id") or ""),
             path=str(payload.get("path") or ""),
-            commit_id=optional_str(payload.get("lastCommitId") or payload.get("commitId")),
+            commit_id=optional_str(commit_id_of(payload)),
             intent=optional_str(payload.get("intent")),
             repository=str(payload.get("repository") or repository).lower(),
             source=optional_str(payload.get("sourceCode")),
@@ -101,6 +102,25 @@ class CommitReport:
 
 def optional_str(value: Any) -> str | None:
     return str(value) if value not in (None, "") else None
+
+
+def commit_id_of(payload: Mapping[str, Any]) -> Any:
+    """Read a query's commit id from whichever shape Forward sent.
+
+    Forward nests it as ``lastCommit.id``. The flat ``lastCommitId`` is checked
+    too, because integrations synthesize it when normalizing, so a payload that
+    has already been through one is still understood.
+
+    Getting this wrong loses the pin silently: a query resolved by path would
+    run against whatever is at head, and a diff would stop being an assertion
+    about a known version without anything failing.
+    """
+    nested = payload.get("lastCommit")
+    if isinstance(nested, Mapping):
+        found = nested.get("id")
+        if found:
+            return found
+    return payload.get("lastCommitId") or payload.get("commitId")
 
 
 def queries_from_payload(payload: Any, repository: str) -> list[RepositoryQuery]:

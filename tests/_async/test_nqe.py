@@ -502,6 +502,35 @@ class TestLibrary:
 
         assert recorder.body_for() == {"queryId": "FQ_9"}
 
+    async def test_resolving_a_path_keeps_the_commit_pin(self, recorder: Recorder) -> None:
+        """Forward nests the commit as lastCommit.id.
+
+        Reading only the flat key loses the pin on every path resolution, so the
+        query runs against whatever is at head. Nothing fails; the run just
+        quietly answers a different question.
+        """
+        commit = "84f84b0c0a0a1805ddff0ca5451c2c55c58605e5"
+        recorder.add(
+            "GET",
+            "/api/nqe/repos/org/commits/head/queries",
+            json_response(
+                {
+                    "queries": [
+                        {
+                            "queryId": "FQ_9",
+                            "path": "/NetBox/Devices",
+                            "lastCommit": {"id": commit},
+                        }
+                    ]
+                }
+            ),
+        )
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        async with make_client(recorder) as client:
+            await client.nqe.execute(QueryRef.by_path("/NetBox/Devices"))
+
+        assert recorder.body_for() == {"queryId": "FQ_9", "commitId": commit}
+
     async def test_unknown_path_is_reported_clearly(self, recorder: Recorder) -> None:
         recorder.add(
             "GET", "/api/nqe/repos/org/commits/head/queries", json_response({"queries": []})

@@ -12,6 +12,7 @@ from forward_sdk.errors import (
     ForwardPaginationError,
     ForwardTimeoutError,
 )
+from forward_sdk.models import Vendor
 from forward_sdk.nqe import PageGuards, PageTracker, QueryRef, sanitize_commit_id
 from forward_sdk.nqe.files import (
     contract_version,
@@ -224,8 +225,6 @@ class TestWhereBuilders:
 
     def test_enum_one_of_accepts_the_shipped_enum(self) -> None:
         """Passing the enum removes any guessing about member spelling."""
-        from forward_sdk.models import Vendor
-
         assert enum_one_of("d.platform.vendor", Vendor, [Vendor.cisco]) == (
             "d.platform.vendor == Vendor.CISCO"
         )

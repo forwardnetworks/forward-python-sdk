@@ -83,6 +83,30 @@ Endpoints outside Forward's published description belong in
 in `docs/unpublished.md`. They carry no compatibility promise, so keep them
 isolated and say so in the docstring.
 
+## A blind spot this suite has
+
+Most of these tests assert that the SDK produces the strings and requests it
+produces. That catches regressions, and it cannot catch a shared wrong
+assumption: when a parser and its fixtures are written together, they agree with
+each other whether or not they agree with Forward.
+
+Two shipped defects came from exactly that. `where.py` emitted `field contains
+"value"` for months of development, and NQE has no `contains` operator, so every
+tag-scoped predicate would have been rejected. A query's commit id was read from
+a flat key Forward never sends, so every query resolved by path silently ran
+against head. Both had tests. Both tests passed.
+
+What found them was a second implementation. Running this client and an existing
+one against the same fake Forward and diffing the request sequences surfaces
+disagreements that neither suite can see alone, because the disagreement does
+not exist inside either one.
+
+So when you change how a request is built or a response is read, prefer evidence
+from outside this repository: a recorded payload, a live call, or another client
+that talks to the same endpoint. The wire shapes in `spec/unpublished.yaml` exist
+for this reason, and `tests/spec/test_unpublished_shapes.py` runs the parsers
+against them rather than against fixtures written alongside the parsers.
+
 ## Tests
 
 - `tests/unit/` -- pure functions, no I/O.

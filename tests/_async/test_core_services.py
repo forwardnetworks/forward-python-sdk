@@ -1,0 +1,367 @@
+"""Networks, snapshots, devices and device tags."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+import httpx
+import pytest
+
+from forward_sdk._async.client import AsyncForwardClient
+from forward_sdk.errors import (
+    ForwardExecutionError,
+    ForwardNotFoundError,
+    ForwardTimeoutError,
+)
+from tests.conftest import Recorder, json_response
+
+pytestmark = pytest.mark.anyio
+
+SNAPSHOTS = "/api/networks/101/snapshots"
+DEVICES = "/api/networks/101/devices"
+
+
+def make_client(recorder: Recorder, **overrides: Any) -> AsyncForwardClient:
+    settings: dict[str, Any] = {
+        "username": "key",
+        "password": "secret",
+        "rate_limit_rpm": None,
+        "network_id": "101",
+        "transport": recorder.transport,
+    }
+    settings.update(overrides)
+    return AsyncForwardClient("https://forward.test", **settings)
+
+
+def snapshot(id_: str, state: str = "PROCESSED", **extra: Any) -> dict[str, Any]:
+    return {"id": id_, "state": state, "createdAt": "2026-01-01T00:00:00.000Z", **extra}
+
+
+class TestNetworks:
+    async def test_list_parses_networks(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/networks",
+            json_response([{"id": "101", "name": "Prod", "orgId": "7"}]),
+        )
+        async with make_client(recorder) as client:
+            networks = await client.networks.list()
+
+        assert networks[0].id == "101"
+        assert networks[0].name == "Prod"
+        assert networks[0].org_id == "7"
+
+    async def test_get_filters_the_listing(self, recorder: Recorder) -> None:
+        """Forward has no single-network endpoint, so this reads the list."""
+        recorder.add(
+            "GET",
+            "/api/networks",
+            json_response(
+                [{"id": "1", "name": "a", "orgId": "7"}, {"id": "2", "name": "b", "orgId": "7"}]
+            ),
+        )
+        async with make_client(recorder) as client:
+            assert (await client.networks.get("2")).name == "b"
+
+    async def test_get_missing_network_raises(self, recorder: Recorder) -> None:
+        recorder.add("GET", "/api/networks", json_response([]))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError, match="no network with id"):
+                await client.networks.get("999")
+
+    async def test_create_sends_name_and_note(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST", "/api/networks", json_response({"id": "5", "name": "New", "orgId": "7"})
+        )
+        async with make_client(recorder) as client:
+            network = await client.networks.create("New", note="from the SDK")
+
+        assert network.id == "5"
+        assert recorder.body_for() == {"name": "New", "note": "from the SDK"}
+
+    async def test_version(self, recorder: Recorder) -> None:
+        recorder.add("GET", "/api/version", json_response({"version": "26.4.1", "build": "abc"}))
+        async with make_client(recorder) as client:
+            assert (await client.version())["version"] == "26.4.1"
+
+
+class TestSnapshots:
+    async def test_list_reads_the_snapshots_field(self, recorder: Recorder) -> None:
+        recorder.add("GET", SNAPSHOTS, json_response({"id": "101", "snapshots": [snapshot("9")]}))
+        async with make_client(recorder) as client:
+            snapshots = await client.snapshots.list()
+
+        assert snapshots[0].id == "9"
+        assert str(snapshots[0].state) == "PROCESSED"
+
+    async def test_latest_processed_uses_the_listing(self, recorder: Recorder) -> None:
+        """Forward's dedicated latestProcessed endpoint is deprecated."""
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
+        async with make_client(recorder) as client:
+            latest = await client.snapshots.latest_processed()
+
+        assert latest is not None and latest.id == "9"
+        query = recorder.query_for()
+        assert query["state"] == ["PROCESSED"]
+        assert query["limit"] == ["1"]
+        assert recorder.paths == [SNAPSHOTS]
+
+    async def test_latest_processed_returns_none_when_empty(self, recorder: Recorder) -> None:
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": []}))
+        async with make_client(recorder) as client:
+            assert await client.snapshots.latest_processed() is None
+
+    async def test_metrics_and_completeness(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/snapshots/9/metrics",
+            json_response({"numCollectionFailureDevices": 0, "numProcessingFailureDevices": 0}),
+        )
+        async with make_client(recorder) as client:
+            assert await client.snapshots.is_complete("9") is True
+
+    async def test_completeness_detects_failures(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/snapshots/9/metrics",
+            json_response({"numCollectionFailureDevices": 3}),
+        )
+        async with make_client(recorder) as client:
+            assert await client.snapshots.is_complete("9") is False
+
+    async def test_wait_until_processed_polls(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add(
+            "GET",
+            SNAPSHOTS,
+            json_response({"snapshots": [snapshot("9", "PROCESSING")]}),
+            json_response({"snapshots": [snapshot("9", "PROCESSED")]}),
+        )
+        async with make_client(recorder) as client:
+            result = await client.snapshots.wait_until_processed("9")
+
+        assert str(result.state) == "PROCESSED"
+        assert recorder.count("GET", SNAPSHOTS) == 2
+
+    async def test_wait_reports_a_failed_snapshot(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9", "FAILED")]}))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardExecutionError, match="ended in state FAILED"):
+                await client.snapshots.wait_until_processed("9")
+
+    async def test_wait_times_out_without_cancelling_processing(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9", "PROCESSING")]}))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardTimeoutError, match="processing continues"):
+                await client.snapshots.wait_until_processed("9", timeout=0)
+
+    async def test_wait_on_unknown_snapshot_raises(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": []}))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError, match="not in network"):
+                await client.snapshots.wait_until_processed("9")
+
+    async def test_upload_sends_multipart_and_defaults_to_async(
+        self, recorder: Recorder, tmp_path: Path
+    ) -> None:
+        archive = tmp_path / "snap.zip"
+        archive.write_bytes(b"PK\x03\x04payload")
+        recorder.add("POST", SNAPSHOTS, json_response(snapshot("12", "UNPROCESSED"), status=202))
+
+        async with make_client(recorder) as client:
+            info = await client.snapshots.upload(archive, note="nightly")
+
+        assert info.id == "12"
+        request = recorder.requests[0]
+        assert request.headers["content-type"].startswith("multipart/form-data")
+        body = request.content.decode("latin-1")
+        assert "snap.zip" in body
+        assert "nightly" in body
+        # Forward calls this parameter "async"; true means it returns immediately.
+        assert 'name="async"\r\n\r\ntrue' in body
+        assert 'name="process"\r\n\r\ntrue' in body
+
+    async def test_upload_reports_a_missing_file_before_sending(
+        self, recorder: Recorder, tmp_path: Path
+    ) -> None:
+        async with make_client(recorder) as client:
+            with pytest.raises(FileNotFoundError, match="not found"):
+                await client.snapshots.upload(tmp_path / "absent.zip")
+
+        assert recorder.requests == []
+
+    async def test_latest_collected_skips_empty_snapshots(self, recorder: Recorder) -> None:
+        """A processed snapshot can still hold no collected devices."""
+        recorder.add(
+            "GET",
+            SNAPSHOTS,
+            json_response({"snapshots": [snapshot("9"), snapshot("8")]}),
+        )
+        recorder.add(
+            "POST",
+            "/api/nqe",
+            json_response({"items": [], "totalNumItems": 0}),
+            json_response({"items": [{"name": "sw1"}], "totalNumItems": 1}),
+        )
+        async with make_client(recorder) as client:
+            assert await client.snapshots.latest_collected_id() == "8"
+
+        assert recorder.count("POST", "/api/nqe") == 2
+
+    async def test_latest_collected_applies_tag_scope(self, recorder: Recorder) -> None:
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
+        recorder.add("POST", "/api/nqe", json_response({"items": [{"name": "x"}]}))
+        async with make_client(recorder) as client:
+            await client.snapshots.latest_collected_id(include_tags=["core"])
+
+        query = recorder.body_for()["query"]
+        assert 'device.tagNames contains "core"' in query
+
+    async def test_latest_collected_reports_when_nothing_qualifies(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
+        recorder.add("POST", "/api/nqe", json_response({"items": []}))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError, match="devices in scope"):
+                await client.snapshots.latest_collected_id()
+
+    async def test_export_streams_chunks(self, recorder: Recorder) -> None:
+        recorder.add("GET", "/api/snapshots/9", httpx.Response(200, content=b"zipdata"))
+        async with make_client(recorder) as client:
+            chunks = [c async for c in client.snapshots.export("9", only="CONFIG")]
+
+        assert b"".join(chunks) == b"zipdata"
+        assert recorder.query_for()["only"] == ["CONFIG"]
+
+    async def test_download_writes_a_file(self, recorder: Recorder, tmp_path: Path) -> None:
+        recorder.add("GET", "/api/snapshots/9", httpx.Response(200, content=b"zipdata"))
+        target = tmp_path / "snapshot.zip"
+        async with make_client(recorder) as client:
+            written = await client.snapshots.download("9", target)
+
+        assert written.read_bytes() == b"zipdata"
+
+    async def test_reachability_job_polls_to_completion(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add(
+            "POST",
+            "/api/networks/101/snapshots/9/reachability",
+            json_response({"jobKey": "job-1", "status": "RUNNING"}),
+        )
+        recorder.add(
+            "GET",
+            "/api/networks/101/snapshots/9/reachability/job-1",
+            json_response({"status": "RUNNING"}),
+            json_response({"status": "COMPLETED"}),
+        )
+        async with make_client(recorder) as client:
+            job = await client.snapshots.start_reachability_job("9")
+            status = await job.wait()
+
+        assert status["status"] == "COMPLETED"
+
+
+class TestDevices:
+    async def test_list_parses_devices(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            DEVICES,
+            json_response([{"name": "sw1", "vendor": "CISCO", "model": "C9300"}]),
+        )
+        async with make_client(recorder) as client:
+            devices = await client.devices.list()
+
+        assert devices[0].name == "sw1"
+        assert str(devices[0].vendor) == "CISCO"
+
+    async def test_optional_detail_must_be_requested(self, recorder: Recorder) -> None:
+        """Tags and location are absent unless asked for; absence is not emptiness."""
+        recorder.add("GET", DEVICES, json_response([{"name": "sw1"}]))
+        async with make_client(recorder) as client:
+            devices = await client.devices.list(with_=["tags", "locationId"])
+
+        assert devices[0].tags is None
+        assert recorder.query_for()["with"] == ["tags", "locationId"]
+
+    async def test_filters_are_passed_through(self, recorder: Recorder) -> None:
+        recorder.add("GET", DEVICES, json_response([]))
+        async with make_client(recorder) as client:
+            await client.devices.list(vendor="CISCO", model="C9300")
+
+        query = recorder.query_for()
+        assert query["vendor"] == ["CISCO"]
+        assert query["model"] == ["C9300"]
+
+    async def test_iter_pages_until_short_page(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            DEVICES,
+            json_response([{"name": "a"}, {"name": "b"}]),
+            json_response([{"name": "c"}]),
+        )
+        async with make_client(recorder) as client:
+            names = [d.name async for d in client.devices.iter(page_size=2)]
+
+        assert names == ["a", "b", "c"]
+        assert recorder.query_for()["skip"] == ["2"]
+
+    async def test_device_name_with_slash_is_quoted(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET", "/api/networks/101/devices/nyc%2Ffw01", json_response({"name": "nyc/fw01"})
+        )
+        async with make_client(recorder) as client:
+            device = await client.devices.get("nyc/fw01")
+
+        assert device.name == "nyc/fw01"
+
+    async def test_file_returns_text(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/networks/101/devices/sw1/files/running-config",
+            httpx.Response(200, text="hostname sw1\n"),
+        )
+        async with make_client(recorder) as client:
+            content = await client.devices.file("sw1", "running-config")
+
+        assert content == "hostname sw1\n"
+
+
+class TestDeviceTags:
+    async def test_list_tags(self, recorder: Recorder) -> None:
+        recorder.add("GET", "/api/networks/101/device-tags", json_response([{"name": "core"}]))
+        async with make_client(recorder) as client:
+            tags = await client.device_tags.list()
+
+        assert tags[0]["name"] == "core"
+
+    async def test_list_with_devices_uses_the_dispatch_parameter(self, recorder: Recorder) -> None:
+        recorder.add("GET", "/api/networks/101/device-tags", json_response([]))
+        async with make_client(recorder) as client:
+            await client.device_tags.list(with_devices=True)
+
+        assert recorder.query_for()["with"] == ["devices"]
+
+    async def test_add_tag_to_devices(self, recorder: Recorder) -> None:
+        recorder.add("POST", "/api/networks/101/device-tags/core", json_response({}))
+        async with make_client(recorder) as client:
+            await client.device_tags.add_to_devices("core", ["sw1", "sw2"])
+
+        assert recorder.query_for()["action"] == ["addTo"]
+        assert recorder.body_for() == ["sw1", "sw2"]
+
+    async def test_remove_tag_from_devices(self, recorder: Recorder) -> None:
+        recorder.add("POST", "/api/networks/101/device-tags/core", json_response({}))
+        async with make_client(recorder) as client:
+            await client.device_tags.remove_from_devices("core", ["sw1"])
+
+        assert recorder.query_for()["action"] == ["removeFrom"]

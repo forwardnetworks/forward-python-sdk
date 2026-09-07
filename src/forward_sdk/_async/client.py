@@ -6,7 +6,11 @@ from typing import Any, Literal
 
 import httpx
 
+from forward_sdk._async.services.device_tags import AsyncDeviceTagsService
+from forward_sdk._async.services.devices import AsyncDevicesService
+from forward_sdk._async.services.networks import AsyncNetworksService
 from forward_sdk._async.services.nqe import AsyncNqeService
+from forward_sdk._async.services.snapshots import AsyncSnapshotsService
 from forward_sdk._async.throttle import Throttle
 from forward_sdk._async.transport import AsyncTransport
 from forward_sdk.config import ClientConfig, RetryPolicy, build_config, config_from_env
@@ -87,6 +91,10 @@ class AsyncForwardClient:
         self._transport = AsyncTransport(
             self.config, transport=transport, throttle=throttle, hooks=hooks
         )
+        self.networks = AsyncNetworksService(self._transport)
+        self.snapshots = AsyncSnapshotsService(self._transport)
+        self.devices = AsyncDevicesService(self._transport)
+        self.device_tags = AsyncDeviceTagsService(self._transport)
         self.nqe = AsyncNqeService(self._transport)
 
     @classmethod
@@ -101,6 +109,10 @@ class AsyncForwardClient:
         settings = config_from_env(**overrides)
         base_url = settings.pop("base_url")
         return cls(base_url, **settings)
+
+    async def version(self) -> Any:
+        """The Forward release this instance is running."""
+        return await self.networks.version()
 
     @property
     def counters(self) -> CounterSnapshot:

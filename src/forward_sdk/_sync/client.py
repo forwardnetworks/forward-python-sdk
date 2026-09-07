@@ -9,7 +9,11 @@ from typing import Any, Literal
 
 import httpx
 
+from forward_sdk._sync.services.device_tags import DeviceTagsService
+from forward_sdk._sync.services.devices import DevicesService
+from forward_sdk._sync.services.networks import NetworksService
 from forward_sdk._sync.services.nqe import NqeService
+from forward_sdk._sync.services.snapshots import SnapshotsService
 from forward_sdk._sync.throttle import Throttle
 from forward_sdk._sync.transport import Transport
 from forward_sdk.config import ClientConfig, RetryPolicy, build_config, config_from_env
@@ -90,6 +94,10 @@ class ForwardClient:
         self._transport = Transport(
             self.config, transport=transport, throttle=throttle, hooks=hooks
         )
+        self.networks = NetworksService(self._transport)
+        self.snapshots = SnapshotsService(self._transport)
+        self.devices = DevicesService(self._transport)
+        self.device_tags = DeviceTagsService(self._transport)
         self.nqe = NqeService(self._transport)
 
     @classmethod
@@ -104,6 +112,10 @@ class ForwardClient:
         settings = config_from_env(**overrides)
         base_url = settings.pop("base_url")
         return cls(base_url, **settings)
+
+    def version(self) -> Any:
+        """The Forward release this instance is running."""
+        return self.networks.version()
 
     @property
     def counters(self) -> CounterSnapshot:

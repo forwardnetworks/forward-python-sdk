@@ -1,5 +1,9 @@
 # Contributing
 
+This is a Forward Networks Field Integration, maintained by the field team.
+Issues and pull requests are welcome and handled on a best-effort basis; it is
+not routed through Forward Support.
+
 ## Setup
 
 ```bash

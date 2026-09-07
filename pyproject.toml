@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "forward-sdk"
 dynamic = ["version"]
-description = "Official Python SDK for the Forward Networks REST API"
+description = "Python SDK for the Forward Networks REST API. A Forward Networks Field Integration."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]

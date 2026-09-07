@@ -1,4 +1,8 @@
-"""Official Python SDK for the Forward Networks REST API."""
+"""Python SDK for the Forward Networks REST API.
+
+A Forward Networks Field Integration: built and maintained by the field team,
+not a supported Forward Networks product. See the README for what that means.
+"""
 
 from __future__ import annotations
 

@@ -1,8 +1,12 @@
 # forward-sdk
 
-Official Python SDK for the [Forward Networks](https://www.forwardnetworks.com/)
-REST API.
+Python SDK for the [Forward Networks](https://www.forwardnetworks.com/) REST API.
 
+> **A Forward Networks Field Integration.** Built and maintained by the field
+> team to make integration work easier. It is not a supported Forward Networks
+> product: it carries no SLA, and issues are handled on a best-effort basis
+> rather than through Forward Support.
+>
 > Status: pre-release. The public API is not yet stable.
 
 ```bash

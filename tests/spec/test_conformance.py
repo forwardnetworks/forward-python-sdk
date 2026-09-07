@@ -61,7 +61,7 @@ WITH_BODY = {op_id for op_id, op in OPERATIONS.items() if op.request_media}
 
 @pytest.fixture(scope="module")
 def api() -> OpenAPI:
-    return OpenAPI.from_dict(json.loads(SPEC_PATH.read_text()))
+    return OpenAPI.from_dict(json.loads(SPEC_PATH.read_text(encoding="utf-8")))
 
 
 def sample_for(name: str, annotation: Any) -> Any:

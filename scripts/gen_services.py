@@ -83,7 +83,7 @@ def _model_names() -> frozenset[str]:
     Read from the generated source rather than imported: this script writes part
     of the package, so it must not depend on the package importing cleanly.
     """
-    return frozenset(_CLASS_DECLARATION.findall(MODELS_PATH.read_text()))
+    return frozenset(_CLASS_DECLARATION.findall(MODELS_PATH.read_text(encoding="utf-8")))
 
 
 MODEL_NAMES = _model_names()
@@ -342,7 +342,7 @@ def main(argv: list[str] | None = None) -> int:
     for tag, operations in sorted(by_tag.items()):
         operations.sort(key=lambda op: op.operation_id)
         path = args.output / f"{module_name(tag)}.py"
-        path.write_text(tidy(render_module(tag, operations), str(path)))
+        path.write_text(tidy(render_module(tag, operations), str(path)), encoding="utf-8")
         written.append(path.name)
         exports.append((module_name(tag), class_name(tag), attribute_name(tag)))
         tag_attributes.append((tag, attribute_name(tag)))
@@ -407,7 +407,7 @@ def main(argv: list[str] | None = None) -> int:
     init.append("}")
     init.append("")
     init_path = args.output / "__init__.py"
-    init_path.write_text(tidy("\n".join(init), str(init_path)))
+    init_path.write_text(tidy("\n".join(init), str(init_path)), encoding="utf-8")
 
     print(f"wrote {len(written)} service modules to {args.output}")
     print(f"  {sum(len(ops) for ops in by_tag.values())} methods across {len(by_tag)} groups")

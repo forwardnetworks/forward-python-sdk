@@ -272,9 +272,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, default=Path("spec/forward-openapi-3.1.json"))
     args = parser.parse_args(argv)
 
-    doc = yaml.safe_load(args.input.read_text())
+    doc = yaml.safe_load(args.input.read_text(encoding="utf-8"))
     converted, stats = downconvert(doc)
-    args.output.write_text(json.dumps(converted, indent=2, sort_keys=True) + "\n")
+    args.output.write_text(json.dumps(converted, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     print(f"wrote {args.output}")
     for key, value in stats.items():

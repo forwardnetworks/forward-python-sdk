@@ -130,7 +130,7 @@ def local_import_closure(path: Path, *, root: Path | None = None) -> tuple[Path,
         if base not in resolved.parents and resolved.parent != base:
             raise ValueError(f"imported query file escapes {base}: {resolved}")
 
-        for target in LOCAL_IMPORT_RE.findall(resolved.read_text()):
+        for target in LOCAL_IMPORT_RE.findall(resolved.read_text(encoding="utf-8")):
             visit(_resolve_import(resolved, target, base), (*stack, resolved))
 
         seen.add(resolved)
@@ -158,7 +158,7 @@ def inline_local_imports(path: Path, *, root: Path | None = None) -> str:
     closure = local_import_closure(path, root=root)
     parts: list[str] = []
     for dependency in closure:
-        body = LOCAL_IMPORT_RE.sub("", dependency.read_text()).strip()
+        body = LOCAL_IMPORT_RE.sub("", dependency.read_text(encoding="utf-8")).strip()
         if body:
             header = f"// begin {dependency.name}" if dependency != closure[-1] else ""
             parts.append(f"{header}\n{body}" if header else body)
@@ -182,7 +182,11 @@ def load_query(
         root: Directory imports may not escape. Defaults to the file's own.
     """
     file_path = Path(path)
-    source = inline_local_imports(file_path, root=root) if inline_imports else file_path.read_text()
+    source = (
+        inline_local_imports(file_path, root=root)
+        if inline_imports
+        else file_path.read_text(encoding="utf-8")
+    )
     return strip_primary_key(source) if for_execution else source
 
 

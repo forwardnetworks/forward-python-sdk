@@ -126,16 +126,16 @@ def main(argv: list[str] | None = None) -> int:
 
     previous: dict[str, str] = {}
     if VENDORED.exists():
-        previous = operation_summary(yaml.safe_load(VENDORED.read_text()))
+        previous = operation_summary(yaml.safe_load(VENDORED.read_text(encoding="utf-8")))
 
-    text = source.read_text()
+    text = source.read_text(encoding="utf-8")
     commit = git(args.fwd_root, "rev-parse", "HEAD")
     api_version = args.api_version or _release_version(args.fwd_root)
 
     # The upstream description carries a build-time placeholder; a literal
     # "${apiVersion}" makes the document invalid for strict validators.
     text = text.replace("${apiVersion}", api_version)
-    VENDORED.write_text(text)
+    VENDORED.write_text(text, encoding="utf-8")
 
     doc = yaml.safe_load(text)
     SOURCE_METADATA.write_text(
@@ -150,7 +150,8 @@ def main(argv: list[str] | None = None) -> int:
             },
             indent=2,
         )
-        + "\n"
+        + "\n",
+        encoding="utf-8",
     )
 
     print(f"vendored {source} -> {VENDORED}")

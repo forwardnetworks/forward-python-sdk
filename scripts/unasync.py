@@ -134,9 +134,9 @@ def sync_tree(source_root: Path, target_root: Path) -> list[Path]:
         target = target_root / relative
         expected.add(target)
         target.parent.mkdir(parents=True, exist_ok=True)
-        converted = tidy(convert(source.read_text(), str(source)), str(target))
-        if not target.exists() or target.read_text() != converted:
-            target.write_text(converted)
+        converted = tidy(convert(source.read_text(encoding="utf-8"), str(source)), str(target))
+        if not target.exists() or target.read_text(encoding="utf-8") != converted:
+            target.write_text(converted, encoding="utf-8")
             written.append(target)
 
     # Remove generated files whose async source is gone, so a rename does not
@@ -158,12 +158,12 @@ def main(argv: list[str] | None = None) -> int:
     for source_root, target_root in TREES:
         if args.check:
             before = (
-                {path: path.read_text() for path in target_root.rglob("*.py")}
+                {path: path.read_text(encoding="utf-8") for path in target_root.rglob("*.py")}
                 if target_root.exists()
                 else {}
             )
             sync_tree(source_root, target_root)
-            after = {path: path.read_text() for path in target_root.rglob("*.py")}
+            after = {path: path.read_text(encoding="utf-8") for path in target_root.rglob("*.py")}
             if before != after:
                 changed.extend(sorted(set(after) - set(before)) or list(after))
         else:

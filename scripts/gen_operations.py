@@ -227,15 +227,17 @@ def main(argv: list[str] | None = None) -> int:
 
     gating_by_tag: dict[str, list[str]] = {}
     if args.gating.exists():
-        gating_by_tag = (yaml.safe_load(args.gating.read_text()) or {}).get("tags", {}) or {}
+        gating_by_tag = (yaml.safe_load(args.gating.read_text(encoding="utf-8")) or {}).get(
+            "tags", {}
+        ) or {}
 
-    doc = yaml.safe_load(args.spec.read_text())
+    doc = yaml.safe_load(args.spec.read_text(encoding="utf-8"))
     operations = collect(doc, "published", gating_by_tag)
     published = len(operations)
 
     unpublished = 0
     if args.unpublished.exists():
-        extra = yaml.safe_load(args.unpublished.read_text()) or {}
+        extra = yaml.safe_load(args.unpublished.read_text(encoding="utf-8")) or {}
         if extra.get("paths"):
             found = collect(extra, "unpublished", gating_by_tag)
             operations.extend(found)
@@ -246,7 +248,7 @@ def main(argv: list[str] | None = None) -> int:
     if duplicates:
         raise SystemExit(f"duplicate operationIds: {duplicates}")
 
-    args.output.write_text(render(operations))
+    args.output.write_text(render(operations), encoding="utf-8")
     print(f"wrote {args.output}")
     print(f"  published operations: {published}")
     print(f"  unpublished operations: {unpublished}")

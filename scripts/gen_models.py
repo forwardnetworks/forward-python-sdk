@@ -66,11 +66,11 @@ def retarget_enums(path: Path) -> int:
     ordinary releases. Strict enums would turn that additive server change into
     a client-side validation failure.
     """
-    source = path.read_text()
+    source = path.read_text(encoding="utf-8")
     source, count = ENUM_DECLARATION.subn(r"class \1(OpenEnum):", source)
     if count and "\nfrom enum import Enum\n" in source and "(Enum)" not in source:
         source = source.replace("\nfrom enum import Enum\n", "\n")
-    path.write_text(source)
+    path.write_text(source, encoding="utf-8")
     return count
 
 

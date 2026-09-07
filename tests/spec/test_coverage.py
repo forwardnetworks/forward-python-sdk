@@ -37,7 +37,7 @@ _import_all_builders()
 
 @pytest.fixture(scope="module")
 def allowlist() -> dict[str, Any]:
-    return yaml.safe_load(ALLOWLIST_PATH.read_text()) or {}
+    return yaml.safe_load(ALLOWLIST_PATH.read_text(encoding="utf-8")) or {}
 
 
 @pytest.fixture(scope="module")
@@ -179,7 +179,7 @@ def test_unpublished_operations_are_declared() -> None:
     unpublished = {op_id for op_id, op in OPERATIONS.items() if op.stability == "unpublished"}
     assert "commitDraftChanges" in unpublished
     assert "startReachabilityJob" in unpublished
-    published_spec = yaml.safe_load(Path("spec/forward-openapi.yaml").read_text())
+    published_spec = yaml.safe_load(Path("spec/forward-openapi.yaml").read_text(encoding="utf-8"))
     published_ids = {
         operation["operationId"]
         for item in published_spec["paths"].values()
@@ -193,7 +193,7 @@ def test_unpublished_operations_are_declared() -> None:
 
 def test_gated_tags_exist_in_the_spec() -> None:
     """Gating hints must name real tags, or the documentation drifts silently."""
-    gating = (yaml.safe_load(GATING_PATH.read_text()) or {}).get("tags", {}) or {}
+    gating = (yaml.safe_load(GATING_PATH.read_text(encoding="utf-8")) or {}).get("tags", {}) or {}
     spec_tags = {op.tag for op in OPERATIONS.values()}
     unknown = sorted(set(gating) - spec_tags)
     assert not unknown, f"{GATING_PATH} names tags that do not exist: {unknown}"

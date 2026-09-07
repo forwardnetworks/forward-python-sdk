@@ -240,9 +240,11 @@ class TestQueryFiles:
         assert missing_fields(QUERY_WITH_KEY, ["name", "serial"]) == ("serial",)
 
     def test_inline_local_imports(self, tmp_path: Path) -> None:
-        (tmp_path / "helpers.nqe").write_text("pattern helper() = 1;\n")
+        (tmp_path / "helpers.nqe").write_text("pattern helper() = 1;\n", encoding="utf-8")
         main = tmp_path / "main.nqe"
-        main.write_text('import "helpers";\nforeach d in network.devices select {n: d.name}\n')
+        main.write_text(
+            'import "helpers";\nforeach d in network.devices select {n: d.name}\n', encoding="utf-8"
+        )
 
         combined = inline_local_imports(main)
         assert "pattern helper() = 1;" in combined
@@ -250,43 +252,70 @@ class TestQueryFiles:
         assert combined.index("helper") < combined.index("foreach")
 
     def test_import_closure_is_dependency_ordered_and_deduplicated(self, tmp_path: Path) -> None:
-        (tmp_path / "base.nqe").write_text("// base\n")
-        (tmp_path / "mid.nqe").write_text('import "base";\n// mid\n')
+        (tmp_path / "base.nqe").write_text("// base\n", encoding="utf-8")
+        (tmp_path / "mid.nqe").write_text('import "base";\n// mid\n', encoding="utf-8")
         main = tmp_path / "main.nqe"
-        main.write_text('import "base";\nimport "mid";\n// main\n')
+        main.write_text('import "base";\nimport "mid";\n// main\n', encoding="utf-8")
 
         names = [p.name for p in local_import_closure(main)]
         assert names == ["base.nqe", "mid.nqe", "main.nqe"]
 
     def test_import_cycle_is_reported(self, tmp_path: Path) -> None:
-        (tmp_path / "a.nqe").write_text('import "b";\n')
-        (tmp_path / "b.nqe").write_text('import "a";\n')
+        (tmp_path / "a.nqe").write_text('import "b";\n', encoding="utf-8")
+        (tmp_path / "b.nqe").write_text('import "a";\n', encoding="utf-8")
         with pytest.raises(ValueError, match="circular import"):
             local_import_closure(tmp_path / "a.nqe")
 
     def test_missing_import_is_reported(self, tmp_path: Path) -> None:
         main = tmp_path / "main.nqe"
-        main.write_text('import "nope";\n')
+        main.write_text('import "nope";\n', encoding="utf-8")
         with pytest.raises(ValueError, match="not found"):
             local_import_closure(main)
 
     def test_import_cannot_escape_the_query_directory(self, tmp_path: Path) -> None:
         outside = tmp_path / "outside.nqe"
-        outside.write_text("// secret\n")
+        outside.write_text("// secret\n", encoding="utf-8")
         queries = tmp_path / "queries"
         queries.mkdir()
         main = queries / "main.nqe"
-        main.write_text('import "../outside";\n')
+        main.write_text('import "../outside";\n', encoding="utf-8")
         with pytest.raises(ValueError, match="escapes"):
             local_import_closure(main, root=queries)
 
     def test_library_imports_are_left_alone(self, tmp_path: Path) -> None:
         main = tmp_path / "main.nqe"
-        main.write_text('import "@fwd/library";\nforeach d in x select {}\n')
+        main.write_text('import "@fwd/library";\nforeach d in x select {}\n', encoding="utf-8")
         assert 'import "@fwd/library";' in inline_local_imports(main)
 
     def test_load_query_for_execution_strips_key(self, tmp_path: Path) -> None:
         path = tmp_path / "q.nqe"
-        path.write_text(QUERY_WITH_KEY)
+        path.write_text(QUERY_WITH_KEY, encoding="utf-8")
         assert "@primaryKey" not in load_query(path)
         assert "@primaryKey" in load_query(path, for_execution=False)
+
+
+class TestEncoding:
+    """Query files are UTF-8 wherever they are read.
+
+    On Windows the default text encoding is the locale codepage, which cannot
+    decode UTF-8, so a query containing a non-ASCII character would fail to load
+    there and nowhere else.
+    """
+
+    def test_query_with_non_ascii_content_loads(self, tmp_path: Path) -> None:
+        path = tmp_path / "q.nqe"
+        path.write_text(
+            '// Sites: München, Zürich, São Paulo — "smart quotes" too\n'
+            "foreach device in network.devices\n"
+            "select {\n  name: device.name,\n}\n",
+            encoding="utf-8",
+        )
+        source = load_query(path)
+        assert "München" in source
+        assert select_field_sets(source) == (("name",),)
+
+    def test_non_ascii_survives_import_inlining(self, tmp_path: Path) -> None:
+        (tmp_path / "helpers.nqe").write_text("// Zürich helper\n", encoding="utf-8")
+        main = tmp_path / "main.nqe"
+        main.write_text('import "helpers";\n// São Paulo\n', encoding="utf-8")
+        assert "Zürich" in inline_local_imports(main)

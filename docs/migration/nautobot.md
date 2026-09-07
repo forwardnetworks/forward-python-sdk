@@ -63,8 +63,18 @@ QueryRef.by_id("FQ_...").with_sort("device", "name")
 `ForwardClientError` maps to `ForwardAPIError` and `ForwardTransportError`, and
 `ForwardConfigurationError` keeps its name and meaning.
 
+## The cloud path
+
+The plugin's cloud feature reads everything through its bundled `.nqe` query
+files, so it makes only NQE calls. The SDK has no cloud-account endpoints, but
+nothing the plugin calls needs them.
+
 ## Tests
 
 `tests/test_client.py` injects `httpx.MockTransport` through a `transport=`
-field. The SDK takes the same argument, so those tests port with only the import
-and method names changed.
+field, and the SDK takes the same argument. Do not expect the port to be cheap
+on that basis: it is around 1300 lines of wire-format conformance tests
+asserting exact paths, query parameters, JSON bodies and Accept headers, and it
+monkeypatches `time.sleep`, `time.monotonic` and `httpx.Client` on the client
+module. The transport seam carries the shape across; the assertions get
+rewritten.

@@ -87,6 +87,9 @@ ForwardClientError = (ForwardAPIError, ForwardTransportError)
 
 ## Tests
 
-The plugin's tests patch `httpx.Client`. The SDK accepts `transport=`, so
-`httpx.MockTransport` replaces that patching without changing what the tests
-assert.
+The plugin's tests patch `httpx.Client`, and the SDK accepts `transport=`, so
+`httpx.MockTransport` replaces the patching. That understates the work, though:
+`tests/test_forward_api.py` asserts against the private `_request` seam and on
+the exact `httpx.Client(...)` keyword arguments, including `mounts=`, auth
+tuples and Accept headers. Those assertions do not survive the swap and get
+rewritten against the SDK's own surface.

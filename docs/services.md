@@ -55,6 +55,17 @@ Forward's API documentation: `getLocations` becomes `get_locations`.
 "Notes" says what is known to gate a group. It is a hint for interpreting a
 refusal, not a guarantee; see [availability](gating.md).
 
+### One name that misleads
+
+`network_locations` returns the **organisation's** locations, not the sites
+present in a given network. It is an address book that an org maintains and that
+devices may reference, so it is neither scoped to the network you pass nor
+limited to places that have equipment. On one live org it held 402 locations for
+a 37-device network, 389 of them with no device at all.
+
+If what you want is where a network's devices actually are, derive it from the
+devices rather than from this list.
+
 ## Common conventions
 
 **Network.** Any method taking `network_id` falls back to the client's network,

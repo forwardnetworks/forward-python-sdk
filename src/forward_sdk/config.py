@@ -26,9 +26,17 @@ __all__ = ["ClientConfig", "RetryPolicy"]
 SAAS_HOST_SUFFIX = ".fwd.app"
 SAAS_HOSTS = frozenset({"fwd.app"})
 
-#: Forward's hosted service blocks above 2000 requests/minute, and the ceiling
-#: is account-wide rather than per client, so the default leaves headroom for
-#: anything else using the same credentials.
+#: Forward counts requests per authenticated user per minute, in a sliding
+#: window, and the ceiling is an org setting (``MAX_API_REQ_PER_USER_PER_MIN``)
+#: whose default is 2000 and whose range is 1 to 10,000. Exceeding it does not
+#: delay a request, it blocks the user for a configurable lockout, default one
+#: minute and up to sixty, answered with 429 and a ``Retry-After`` carrying the
+#: remaining block. So the cost of overshooting is not a slow sync but a stalled
+#: one, and it is worth staying well under.
+#:
+#: The budget belongs to the user, not to a client or a host, so every process
+#: authenticating as the same user spends from one allowance. A single client's
+#: pacing cannot protect a fleet; see the ``throttle=`` hook.
 SAAS_HARD_LIMIT_RPM = 2000
 SAAS_DEFAULT_RPM = 1800
 
@@ -166,9 +174,14 @@ def resolve_rate_limit(
 ) -> int | None:
     """Resolve the request rate, defaulting only for Forward's hosted service.
 
-    ``"auto"`` paces requests on ``fwd.app``, which blocks above 2000 per
-    minute, and leaves self-hosted deployments unthrottled, since their limits
-    are a local matter.
+    ``"auto"`` paces requests on ``fwd.app`` below the 2000 per minute per user
+    that Forward's default org setting allows, and leaves self-hosted
+    deployments alone, where the limiter ships disabled and an administrator
+    decides whether to turn it on and at what number.
+
+    The 1800 is a heuristic, not a reading of the server: the limit is an org
+    setting the SDK cannot query, and it is spent by every process using the
+    same credentials. Treat it as headroom, not as a guarantee.
     """
     if rate_limit_rpm == "auto":
         return SAAS_DEFAULT_RPM if is_saas else None

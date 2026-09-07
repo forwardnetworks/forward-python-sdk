@@ -3,6 +3,35 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Changed
+
+- The rate-limiting documentation now describes Forward's actual limiter, read
+  from the server source rather than inferred from a plugin's constant. Three
+  corrections matter. The budget is per authenticated user per minute, not
+  per account, per host or per client, so every process using one set of
+  credentials spends from one allowance. Exceeding it does not slow a request,
+  it blocks the user for a lockout of one to sixty minutes, answered with 429
+  and a `Retry-After` carrying the remaining block. And the ceiling is an org
+  setting defaulting to 2000 and adjustable from 1 to 10,000, disabled entirely
+  by default on self-hosted deployments, none of which the SDK can query. The
+  `"auto"` default of 1800 is unchanged but is now described as headroom
+  against a default rather than as a reading of your ceiling.
+
+### Added
+
+- `.github/workflows/live.yml` runs the live tests weekly against a configured
+  instance and opens an issue on failure. The unpublished endpoints have no
+  generated description to check against, so nothing in CI could notice Forward
+  changing one of their shapes; every such defect so far was reported by a
+  consumer whose sync broke.
+- Six live tests under `TestShapesWithNoCiBackstop`, each pinning a shape that
+  has been wrong at least once: rows surviving unrewritten, one page agreeing
+  with all rows, committed source reaching only from a concrete commit, source
+  without a path being refused before it is sent, a query carrying its commit,
+  and the current user parsing.
+
 ## [0.1.4] - 2026-09-07
 
 ### Added

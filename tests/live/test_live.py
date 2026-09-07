@@ -22,6 +22,7 @@ from collections.abc import Iterator
 import pytest
 
 from forward_sdk import ForwardClient, ForwardNotFoundError, QueryRef
+from forward_sdk.errors import ForwardConfigurationError
 
 pytestmark = pytest.mark.live
 
@@ -111,6 +112,100 @@ def test_unknown_query_path_raises_not_found(client: ForwardClient, network_id: 
             QueryRef.by_path("/forward-sdk-live-tests/definitely-not-here"),
             network_id=network_id,
         )
+
+
+class TestShapesWithNoCiBackstop:
+    """The shapes a green suite cannot vouch for.
+
+    Everything else in this repository is checked against Forward's generated
+    description, so a parser cannot disagree with it for long. These shapes have
+    no such backstop: some belong to unpublished endpoints, and some are wire
+    details the description does not pin down. Every one of them has been wrong
+    at least once, and each was found by a consumer rather than by a test.
+
+    They run on a schedule so that a Forward release changing one of them is
+    reported here rather than discovered in someone's sync.
+    """
+
+    def test_rows_are_never_rewritten(self, client: ForwardClient, network_id: str) -> None:
+        """A row whose single column is named `fields` must survive intact.
+
+        The SDK used to strip a `fields` wrapper that Forward does not send,
+        which silently rewrote exactly this row. The query is chosen so that a
+        wrapper and a legitimate row are indistinguishable: if stripping ever
+        returns, this row comes back as its own inner value.
+        """
+        query = "foreach d in network.devices select {fields: {inner: d.name}}"
+        execution = client.nqe.execute(query, network_id=network_id)
+        execution.wait(timeout=600)
+        rows = list(execution.rows(page_size=1))[:1]
+        if not rows:
+            pytest.skip("network has no devices")
+
+        assert set(rows[0]) == {"fields"}, "a fields-named column was unwrapped"
+        assert set(rows[0]["fields"]) == {"inner"}
+
+    def test_one_page_and_all_rows_agree(self, client: ForwardClient, network_id: str) -> None:
+        """Asking for one page must not change the row shape."""
+        query = "foreach d in network.devices select {fields: {inner: d.name}}"
+        execution = client.nqe.execute(query, network_id=network_id)
+        execution.wait(timeout=600)
+        page = execution.result_page(offset=0, limit=1).items or []
+        rows = list(execution.rows(page_size=1))[:1]
+        if not rows or not page:
+            pytest.skip("network has no devices")
+
+        assert page[0] == rows[0]
+
+    def test_committed_source_is_reachable(self, client: ForwardClient) -> None:
+        """Source comes back only from a concrete commit, never from head.
+
+        Forward accepts `with=sourceCode` at head and silently ignores it, so a
+        caller reading source there sees every query as source-unavailable and
+        an audit passes vacuously. The SDK resolves the commit itself; this
+        checks that it still has to, and still does.
+        """
+        library = client.nqe.repo.queries()
+        if not library:
+            pytest.skip("organisation library is empty")
+        path = next((q.path for q in library if q.path), None)
+        if path is None:
+            pytest.skip("no query in the library has a path")
+
+        at_head = client.nqe.repo.queries(path=path, with_source=True)
+        assert len(at_head) == 1, "path filter was ignored; head was not resolved"
+        assert at_head[0].source, "source was requested and not returned"
+        assert client.nqe.repo.source(path)
+
+    def test_source_without_a_path_is_refused_before_it_is_sent(
+        self, client: ForwardClient
+    ) -> None:
+        """Forward will not serve the whole library's text, so nor do we."""
+        with pytest.raises(ForwardConfigurationError):
+            client.nqe.repo.queries(with_source=True)
+
+    def test_a_query_carries_its_commit(self, client: ForwardClient) -> None:
+        """The commit arrives nested under lastCommit, not as a flat field.
+
+        Reading a flat key Forward does not send made every path-resolved query
+        lose its pin and run against head, silently.
+        """
+        library = client.nqe.repo.queries()
+        pinned = [q for q in library if q.commit_id]
+        if not library:
+            pytest.skip("organisation library is empty")
+
+        assert pinned, "no query reported a commit; the nesting may have changed"
+        assert len(pinned[0].commit_id or "") == 40
+
+    def test_current_user_parses(self, client: ForwardClient) -> None:
+        """The user arrives nested under `user`, which took a live call to learn.
+
+        Parsing it as a flat object returned an empty record rather than
+        failing, so the caller saw a user with no name instead of an error.
+        """
+        user = client.user_accounts.get_current_user()
+        assert user is not None
 
 
 def test_counters_record_the_traffic(client: ForwardClient) -> None:

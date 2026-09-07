@@ -74,15 +74,32 @@ value cannot stall a caller indefinitely.
 ## Rate limiting
 
 `rate_limit_rpm="auto"`, the default, paces requests at 1800 per minute against
-Forward's hosted service, which blocks above 2000 per minute. The gap leaves
-headroom for anything else using the same account, since the ceiling is
-account-wide rather than per client. Self-hosted deployments are left
-unthrottled, because their limits are a local matter. Pass an integer to set a
-rate, or `None` to disable.
+Forward's hosted service and leaves self-hosted deployments alone. Pass an
+integer to set a rate, or `None` to disable.
 
-The limiter is per client. A fleet of workers sharing one Forward account needs
-a shared counter to stay under an account-wide ceiling; pass any object with an
-`acquire()` method as `throttle=` to plug one in.
+Three things about Forward's limiter are worth knowing, because they change how
+much the number matters.
+
+**The budget is per authenticated user.** Forward counts requests per user per
+minute in a sliding window, not per client, per host or per connection. Every
+process authenticating with the same credentials spends from one allowance, so
+a single client's pacing cannot protect a fleet. Pass any object with an
+`acquire()` method as `throttle=` to plug in a shared counter; one integration
+uses a Django cache so its workers share a budget across processes.
+
+**Overshooting stalls you rather than slowing you.** Exceeding the limit does
+not delay the request. It blocks the user for a lockout period and answers with
+`429` and a `Retry-After` carrying the remaining block. The lockout defaults to
+one minute and an administrator can set it as high as sixty. The SDK honours
+`Retry-After`, so a client waits correctly, but it waits: a breach costs a sync
+its remaining runtime, not a few hundred milliseconds.
+
+**The ceiling is a setting, not a constant.** It is an org property defaulting
+to 2000 per minute, adjustable from 1 to 10,000, and on self-hosted deployments
+the whole limiter ships disabled and an administrator decides whether to enable
+it. The SDK cannot query any of this, so 1800 is headroom against the default,
+not a reading of your ceiling. If you run many workers, or your administrator
+has lowered the number, set `rate_limit_rpm` yourself.
 
 ## TLS
 
@@ -138,6 +155,20 @@ snapshot_id = client.snapshots.latest_processed(network_id).id
 
 Read `client.counters` for `cache_hits` and `cache_misses` on the one cache
 that exists, and for the request counts that would reveal this kind of change.
+
+### Why this matters more than it looks
+
+A redundant request is not free, because the budget above is spent per user
+across every process using those credentials, and exhausting it locks the user
+out rather than slowing them down. So caching is not a latency optimisation
+here. It is how a long sync stays inside an allowance it shares with everything
+else running under the same account.
+
+The integration that went from one snapshot request per sync to one per slice
+did not get slower in any way a test could see. It simply started spending a
+larger share of a budget it did not own alone. Look at `http_attempts` and
+`attempts_per_minute` after a change to how often you resolve something, not
+just at whether the results are still correct.
 
 ## Threads and event loops
 

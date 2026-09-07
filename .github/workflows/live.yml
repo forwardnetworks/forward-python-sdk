@@ -1,0 +1,108 @@
+name: Live
+
+# Runs the live tests against a real Forward instance on a schedule.
+#
+# Why this exists: the published API has a description generated from Forward's
+# server, so CI can prove a parser agrees with it. The unpublished endpoints
+# have no such backstop, and neither do wire details the description leaves
+# open. Every defect of that kind found so far was reported by a consumer whose
+# sync broke, not by a test. This job is the attempt to hear it here first.
+#
+# It needs four repository secrets. Without them every job skips, so a fork or
+# an unconfigured repository stays green rather than failing noisily:
+#
+#   FORWARD_URL        e.g. https://fwd.app
+#   FORWARD_USERNAME   API token access key
+#   FORWARD_PASSWORD   API token secret
+#   FORWARD_NETWORK_ID a network with at least one processed snapshot
+#
+# Use a token belonging to an account that can read the organisation's NQE
+# library. Everything here is read-only: FORWARD_LIVE_WRITES is not set, so the
+# tests that stage a draft stay skipped.
+
+"on":
+  schedule:
+    - cron: "17 6 * * 1"  # Mondays, 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write  # to report a failure where someone will see it
+
+env:
+  UV_FROZEN: "1"
+
+jobs:
+  live:
+    name: Live tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Check for credentials
+        id: creds
+        env:
+          FORWARD_URL: ${{ secrets.FORWARD_URL }}
+          FORWARD_USERNAME: ${{ secrets.FORWARD_USERNAME }}
+          FORWARD_PASSWORD: ${{ secrets.FORWARD_PASSWORD }}
+          FORWARD_NETWORK_ID: ${{ secrets.FORWARD_NETWORK_ID }}
+        run: |
+          if [ -n "$FORWARD_URL" ] && [ -n "$FORWARD_USERNAME" ] \
+             && [ -n "$FORWARD_PASSWORD" ] && [ -n "$FORWARD_NETWORK_ID" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Live tests skipped: repository secrets are not set."
+          fi
+
+      - if: steps.creds.outputs.present == 'true'
+        run: uv sync --all-groups
+
+      - name: Run the live tests
+        if: steps.creds.outputs.present == 'true'
+        env:
+          FORWARD_URL: ${{ secrets.FORWARD_URL }}
+          FORWARD_USERNAME: ${{ secrets.FORWARD_USERNAME }}
+          FORWARD_PASSWORD: ${{ secrets.FORWARD_PASSWORD }}
+          FORWARD_NETWORK_ID: ${{ secrets.FORWARD_NETWORK_ID }}
+        run: uv run pytest -m live -q --tb=short
+
+      - name: Report a failure as an issue
+        if: failure() && steps.creds.outputs.present == 'true' && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'Live tests failed against the Forward instance';
+            const url = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}` +
+              `/actions/runs/${context.runId}`;
+            const body = [
+              'The scheduled live run failed. This usually means one of two things:',
+              '',
+              '- Forward changed a shape the SDK reads. The unpublished endpoints have',
+              '  no description to check against, so this job is the only thing watching',
+              '  them. Treat a shape assertion failure as a real defect until shown',
+              '  otherwise.',
+              '- The credentials or the configured network stopped working. Check the',
+              '  repository secrets and that FORWARD_NETWORK_ID still has a processed',
+              '  snapshot.',
+              '',
+              `Run: ${url}`,
+            ].join('\n');
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'live-failure',
+            });
+            if (existing.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.data[0].number, body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['live-failure'],
+              });
+            }

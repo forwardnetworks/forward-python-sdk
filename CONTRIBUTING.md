@@ -48,6 +48,29 @@ for a changelog entry.
 Then run the checks. `tests/spec/test_coverage.py` names any operation that
 gained or lost an implementation, so nothing slips through silently.
 
+### Knowing when to do it
+
+Nothing tells you. CI cannot: the Forward monorepo is not available to it, so
+`scripts/check_generated.py` only proves the committed spec and the committed
+code agree, never that the spec is current. A description that is a year stale
+passes every check in this repository.
+
+So check by hand when you touch this, and before a release:
+
+```bash
+jq -r .fwd_commit spec/SPEC_SOURCE.json
+git -C ~/src/fwd rev-parse HEAD
+```
+
+Different hashes mean the vendored description may be behind. Re-running the
+sync is cheap and idempotent against an unchanged checkout, so run it rather
+than reason about whether anything relevant changed.
+
+`spec/unpublished.yaml` has no upstream to sync from at all. Those shapes are
+observed rather than generated, so a Forward release can change one without
+anything here noticing. The scheduled live workflow exists for that; see
+[running the live tests](#running-the-live-tests).
+
 ## Writing async, getting sync
 
 Anything that performs I/O is written once, as async, under
@@ -149,6 +172,18 @@ uv run pytest -m live
 They are skipped without credentials, so they never block an ordinary run. If
 you change a predicate builder, a response parser, or anything under
 `spec/unpublished.yaml`, run them before you believe the unit tests.
+
+`.github/workflows/live.yml` runs them weekly against a configured instance and
+opens an issue when they fail, so a Forward release changing an unpublished
+shape is reported here rather than discovered in someone's sync. It needs four
+repository secrets, `FORWARD_URL`, `FORWARD_USERNAME`, `FORWARD_PASSWORD` and
+`FORWARD_NETWORK_ID`, and skips cleanly without them.
+
+The class `TestShapesWithNoCiBackstop` is the point of that schedule. Each test
+in it pins a shape that has been wrong at least once and that no other check in
+this repository can catch. Add to it whenever a defect turns out to have been a
+wrong assumption about what Forward sends, and say in the docstring what the
+wrong assumption cost.
 
 Be careful what you write on a shared instance. Verification should be
 read-only where it can be, anything created should be removed in a `finally`,

@@ -9,12 +9,17 @@ every value goes through :func:`literal`.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable, Sequence
 from typing import Any, Literal
 
-__all__ = ["literal", "membership", "one_of", "tag_scope", "where"]
+__all__ = ["enum_one_of", "literal", "membership", "one_of", "tag_scope", "where"]
 
 MatchMode = Literal["any", "all"]
+
+#: An NQE identifier: an enum member or type name. Used to validate rather than
+#: escape, since neither can be quoted without changing its meaning to a string.
+IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 def literal(value: object) -> str:
@@ -78,11 +83,16 @@ def membership(
 
 
 def one_of(field: str, values: Sequence[Any]) -> str | None:
-    """Test whether a **scalar** field equals any of ``values``.
+    """Test whether a **string-valued** field equals any of ``values``.
 
     Emits ``field in ["a", "b"]``, the other direction from :func:`membership`:
-    here the field is on the left and the collection is the literal. This is
-    the form to use for scalar fields such as a vendor, model or platform.
+    here the field is on the left and the collection is the literal.
+
+    The field must hold a string. NQE compares by type, so applying this to an
+    enum field such as ``device.platform.vendor`` fails at run time with *the
+    type of lookup value Vendor is not equal to list element type String*. Use
+    :func:`enum_one_of` for those; ``model`` and ``osVersion`` are strings and
+    belong here.
 
     Returns:
         The clause, or ``None`` when ``values`` is empty.
@@ -92,6 +102,47 @@ def one_of(field: str, values: Sequence[Any]) -> str | None:
         return None
     rendered = ", ".join(literal(value) for value in items)
     return f"{field} in [{rendered}]"
+
+
+def enum_one_of(field: str, enum_type: str, values: Sequence[Any]) -> str | None:
+    """Test whether an **enum** field equals any of ``values``.
+
+    Emits ``(f == Vendor.ARISTA || f == Vendor.CISCO)``. NQE enum values are
+    named constants rather than strings, so they are compared directly and are
+    deliberately *not* quoted:
+
+        >>> enum_one_of("device.platform.vendor", "Vendor", ["ARISTA", "CISCO"])
+        '(device.platform.vendor == Vendor.ARISTA || device.platform.vendor == Vendor.CISCO)'
+
+    Args:
+        field: The enum-valued field.
+        enum_type: The NQE type name, such as ``Vendor`` or ``DeviceType``.
+        values: Member names. A name is validated as an identifier rather than
+            quoted, since a quoted value would be a string and fail the
+            comparison.
+
+    Returns:
+        The clause, or ``None`` when ``values`` is empty.
+
+    Raises:
+        ValueError: If a member name could not be an NQE identifier. Enum
+            members cannot be escaped the way a string can, so anything
+            unexpected is refused rather than interpolated.
+    """
+    members = [str(value).strip() for value in values if str(value).strip()]
+    if not members:
+        return None
+    for member in members:
+        if not IDENTIFIER.fullmatch(member):
+            raise ValueError(
+                f"{member!r} is not a valid enum member name. Enum values are "
+                "compared as identifiers and cannot be quoted or escaped."
+            )
+    if not IDENTIFIER.fullmatch(enum_type):
+        raise ValueError(f"{enum_type!r} is not a valid NQE type name")
+
+    tests = [f"{field} == {enum_type}.{member}" for member in members]
+    return tests[0] if len(tests) == 1 else f"({' || '.join(tests)})"
 
 
 def where(*clauses: str | None) -> str:

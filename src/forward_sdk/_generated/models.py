@@ -90,7 +90,7 @@ class AiChatPage(ForwardModel):
 
 class AiMessageAnswer(ForwardModel):
     """
-    The answer to one question. Absent while the chat is PROCESSING. Deployments before 26.6 sent `finalAnswer` and `outOfScopeReason` instead, so consumers should read both.
+    The answer to one question. Absent while the chat is PROCESSING.
     """
 
     model_config = ConfigDict(
@@ -881,6 +881,23 @@ class CreateWorkspaceNetworkRequest(ForwardModel):
     [vCenters](https://docs.fwd.app/latest/application/sources/configure-collection/vmware-account/#adding-a-vcenter-source)
     to include. Can be omitted or empty if `devices` or `cloudAccounts` is nonempty.
     """
+
+
+class CurrentUserAccount(ForwardModel):
+    """
+    The account itself, nested under `user`.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    auth_source: Annotated[str | None, Field(alias="authSource")] = None
+    email: str | None = None
+    enabled: bool | None = None
+    id: str | None = None
+    last_active: Annotated[str | None, Field(alias="lastActive")] = None
+    username: str | None = None
 
 
 class CurrentUserRoles(ForwardModel):
@@ -3527,7 +3544,7 @@ class Repository1(OpenEnum):
 
 class RepositoryQuery(ForwardModel):
     """
-    A query in the library. Note that the commit is nested under `lastCommit`; Forward does not send a flat `lastCommitId`. Reading the flat key loses the pin on every query resolved by path, which runs the query against whatever is at head without anything failing.
+    A query in the library. The commit arrives under one of two names depending on what was asked for, and both are real: listing at `head` returns a flat `lastCommitId`, while asking for a specific commit returns a nested `lastCommit` object. Reading only one of them loses the pin, and a query resolved by path then runs against whatever is at head without anything failing. `path` and `with=sourceCode` are honoured only against a specific commit; at `head` Forward ignores both.
     """
 
     model_config = ConfigDict(
@@ -3536,6 +3553,10 @@ class RepositoryQuery(ForwardModel):
     )
     intent: str | None = None
     last_commit: Annotated[RepositoryCommit | None, Field(alias="lastCommit")] = None
+    last_commit_id: Annotated[str | None, Field(alias="lastCommitId")] = None
+    """
+    The flat form, returned when listing at `head`.
+    """
     path: Annotated[str | None, Field(examples=["/NetBox/Devices"])] = None
     query_id: Annotated[
         str | None, Field(alias="queryId", examples=["FQ_ac651cb2901b067fe7dbfb511613ab44776d8029"])
@@ -3545,6 +3566,7 @@ class RepositoryQuery(ForwardModel):
     """
     Present only when the query was fetched with `with=sourceCode`.
     """
+    source_code_sha: Annotated[str | None, Field(alias="sourceCodeSha")] = None
 
 
 class RepositoryQueryPage(ForwardModel):
@@ -4730,15 +4752,18 @@ class AiMessage(ForwardModel):
         populate_by_name=True,
     )
     answer: AiMessageAnswer | None = None
-    created_at: Annotated[str | None, Field(alias="createdAt")] = None
-    final_answer: Annotated[str | None, Field(alias="finalAnswer")] = None
     """
-    Pre-26.6 form of the answer summary.
+    An alternative spelling of the same thing. Read both through `forward_sdk.answer_of`, which returns whichever is present.
+    """
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    final_answer: Annotated[AiMessageAnswer | None, Field(alias="finalAnswer")] = None
+    """
+    The answer, as sent on the wire. Verified against 26.8: this is an object, not a string, and it is the field Forward populates. Null while the chat is still PROCESSING.
     """
     id: str | None = None
     out_of_scope_reason: Annotated[str | None, Field(alias="outOfScopeReason")] = None
     """
-    Pre-26.6 form of an out-of-scope answer.
+    Older form of an out-of-scope answer, as a bare string.
     """
     prompt: str | None = None
     tasks: list[dict[str, Any]] | None = None
@@ -5765,14 +5790,17 @@ class ColumnFilter1(DefaultColumnFilter):
 
 
 class CurrentUser(ForwardModel):
+    """
+    The calling user. Note the account is nested under `user`; the roles sit beside it rather than inside it.
+    """
+
     model_config = ConfigDict(
         extra="allow",
         populate_by_name=True,
     )
-    email: str | None = None
-    id: str | None = None
+    password_set_at: Annotated[str | None, Field(alias="passwordSetAt")] = None
     roles: CurrentUserRoles | None = None
-    username: str | None = None
+    user: CurrentUserAccount | None = None
 
 
 class CveAnalysis(Attribution):

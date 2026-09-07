@@ -181,12 +181,27 @@ Never interpolate a raw value into query text.
 
 Two shapes, and picking the wrong one fails quietly:
 
-| Field | Helper | Emits |
+| Field holds | Helper | Emits |
 | --- | --- | --- |
-| A collection, such as `device.tagNames` | `membership()` | `"core" in device.tagNames` |
-| A scalar, such as `device.platform.vendor` | `one_of()` | `device.platform.vendor in ["cisco"]` |
+| A collection, e.g. `device.tagNames` | `membership()` | `"core" in device.tagNames` |
+| A string, e.g. `device.platform.model` | `one_of()` | `device.platform.model in ["C9300"]` |
+| An enum, e.g. `device.platform.vendor` | `enum_one_of()` | `device.platform.vendor == Vendor.CISCO` |
 
-Using `membership()` on a scalar asks whether a string is a member of a single
-value, which matches nothing. A probe built that way reports an empty scope on a
-perfectly healthy network, and reads like a data problem rather than a predicate
-one.
+All three verified against a live instance. The distinctions are not stylistic:
+
+- `membership()` on a scalar matches nothing, so a probe built that way reports
+  an empty scope on a healthy network and reads like a data problem.
+- `one_of()` on an enum fails at run time with *the type of lookup value Vendor
+  is not equal to list element type String*, because NQE compares by type and an
+  enum member is not a string.
+
+```python
+from forward_sdk.nqe.where import enum_one_of, membership, one_of
+
+enum_one_of("device.platform.vendor", "Vendor", ["CISCO", "ARISTA"])
+one_of("device.platform.osVersion", ["17.9.4"])
+membership("device.tagNames", ["production"])
+```
+
+Enum members are validated as identifiers rather than quoted, since quoting one
+would make it a string and reintroduce the type error.

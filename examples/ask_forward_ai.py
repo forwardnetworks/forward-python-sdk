@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import sys
 
-from forward_sdk import ForwardClient, ForwardPermissionError
+from forward_sdk import ForwardClient, ForwardPermissionError, answer_of
 
 QUESTION = "Which devices have interfaces that are down but not administratively disabled?"
 
@@ -25,7 +25,7 @@ def main(question: str = QUESTION) -> None:
         chat.wait()
 
         for message in chat.messages():
-            answer = message.answer
+            answer = answer_of(message)
             print(f"\nQ: {message.prompt}")
             if answer is None:
                 print("   (no answer)")

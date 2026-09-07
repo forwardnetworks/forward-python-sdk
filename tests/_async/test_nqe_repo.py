@@ -99,13 +99,21 @@ class TestReading:
             with pytest.raises(ForwardNotFoundError, match="no query at"):
                 await client.nqe.repo.find("/Nope")
 
-    async def test_source_fetches_with_the_flag_the_caller_would_forget(
-        self, recorder: Recorder
-    ) -> None:
-        """queries() omits source unless asked, and reads as None when it does."""
+    async def test_source_pins_the_commit_before_asking(self, recorder: Recorder) -> None:
+        """Forward honours path and with=sourceCode only against a real commit.
+
+        Asked at head it ignores both, returns the whole library without source,
+        and a caller filtering by path would think the filter had applied.
+        """
+        commit = "c" * 40
         recorder.add(
             "GET",
             QUERIES,
+            json_response({"queries": [{"queryId": "FQ_1", "path": "/A", "lastCommitId": commit}]}),
+        )
+        recorder.add(
+            "GET",
+            f"/api/nqe/repos/org/commits/{commit}/queries",
             json_response(
                 {"queries": [{"queryId": "FQ_1", "path": "/A", "sourceCode": "foreach x"}]}
             ),
@@ -113,37 +121,55 @@ class TestReading:
         async with make_client(recorder) as client:
             assert await client.nqe.repo.source("/A") == "foreach x"
 
-        assert recorder.query_for()["with"] == ["sourceCode"]
-        assert recorder.query_for()["path"] == ["/A"]
+        pinned = recorder.requests[-1]
+        assert commit in pinned.url.path, "the source lookup must pin the commit"
+        assert pinned.url.params["with"] == "sourceCode"
+        assert pinned.url.params["path"] == "/A"
 
     async def test_source_accepts_a_path_without_a_leading_slash(self, recorder: Recorder) -> None:
+        commit = "c" * 40
         recorder.add(
             "GET",
             QUERIES,
+            json_response({"queries": [{"queryId": "FQ_1", "path": "/A", "lastCommitId": commit}]}),
+        )
+        recorder.add(
+            "GET",
+            f"/api/nqe/repos/org/commits/{commit}/queries",
             json_response({"queries": [{"queryId": "FQ_1", "path": "/A", "sourceCode": "q"}]}),
         )
         async with make_client(recorder) as client:
             assert await client.nqe.repo.source("A") == "q"
 
-    async def test_source_is_loud_when_forward_returns_none(self, recorder: Recorder) -> None:
+    async def test_source_is_loud_when_the_commit_carries_none(self, recorder: Recorder) -> None:
         """Silently returning None would surface later as an empty comparison."""
+        commit = "c" * 40
         recorder.add(
-            "GET", QUERIES, json_response({"queries": [{"queryId": "FQ_1", "path": "/A"}]})
+            "GET",
+            QUERIES,
+            json_response({"queries": [{"queryId": "FQ_1", "path": "/A", "lastCommitId": commit}]}),
+        )
+        recorder.add(
+            "GET",
+            f"/api/nqe/repos/org/commits/{commit}/queries",
+            json_response({"queries": [{"queryId": "FQ_1", "path": "/A"}]}),
         )
         async with make_client(recorder) as client:
             with pytest.raises(ForwardNotFoundError, match="no source"):
                 await client.nqe.repo.source("/A")
 
+    async def test_source_of_an_uncommitted_query(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET", QUERIES, json_response({"queries": [{"queryId": "FQ_1", "path": "/A"}]})
+        )
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError, match="no committed version"):
+                await client.nqe.repo.source("/A")
+
     async def test_a_failed_lookup_is_not_reported_as_a_missing_query(
         self, recorder: Recorder, no_sleep: list[float]
     ) -> None:
-        """Failing to ask is not evidence about what is published.
-
-        A consumer auditing a library against what it ships distinguishes "not
-        published" from "could not check". Collapsing a server error into
-        ForwardNotFoundError would let one gateway timeout read as every query
-        having disappeared, and prompt a republish that was never needed.
-        """
+        """Failing to ask is not evidence about what is published."""
         recorder.add("GET", QUERIES, error_response(502, "gateway"))
         async with make_client(recorder, retries=0) as client:
             with pytest.raises(ForwardServerError):
@@ -154,6 +180,70 @@ class TestReading:
         async with make_client(recorder) as client:
             with pytest.raises(ForwardNotFoundError, match="no query at"):
                 await client.nqe.repo.source("/Nope")
+
+    async def test_directory_is_created_with_the_trailing_slash_forward_wants(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add("POST", CHANGES, json_response({}))
+        async with make_client(recorder) as client:
+            await client.nqe.repo.stage_directory("/MyOrg")
+
+        assert recorder.query_for()["path"] == ["/MyOrg/"]
+        assert recorder.query_for()["action"] == ["addDir"]
+
+    async def test_discard_strips_the_trailing_slash(self, recorder: Recorder) -> None:
+        """Forward wants the slash to create a directory and not to discard one.
+
+        Passing the path back as the draft listing reports it fails with a
+        message about access settings, which strands every directory a failed
+        publish created.
+        """
+        recorder.add("DELETE", CHANGES, json_response({}))
+        async with make_client(recorder) as client:
+            await client.nqe.repo.discard("/MyOrg/")
+
+        assert recorder.query_for()["path"] == ["/MyOrg"]
+
+    async def test_publish_creates_missing_directories_first(self, recorder: Recorder) -> None:
+        """Forward refuses to stage a query whose directory does not exist."""
+        recorder.add("GET", CHANGES, json_response(NO_DRAFTS))
+        recorder.add(
+            "GET",
+            QUERIES,
+            json_response({"queries": [{"queryId": "FQ_1", "path": "/Existing/q"}]}),
+        )
+        recorder.add("POST", CHANGES, json_response({}))
+        recorder.add("POST", COMMITS, json_response({}))
+        recorder.add("GET", HEAD, json_response({"id": "c"}))
+
+        async with make_client(recorder) as client:
+            await client.nqe.repo.publish({"/BrandNew/Deep/q": "src"}, title="t")
+
+        staged = [r for r in recorder.requests if r.method == "POST" and r.url.path == CHANGES]
+        actions = [(r.url.params.get("action"), r.url.params.get("path")) for r in staged]
+        # Parents before children, then the query itself.
+        assert actions == [
+            ("addDir", "/BrandNew/"),
+            ("addDir", "/BrandNew/Deep/"),
+            ("addQuery", "/BrandNew/Deep/q"),
+        ]
+
+    async def test_publish_does_not_recreate_existing_directories(self, recorder: Recorder) -> None:
+        recorder.add("GET", CHANGES, json_response(NO_DRAFTS))
+        recorder.add(
+            "GET",
+            QUERIES,
+            json_response({"queries": [{"queryId": "FQ_1", "path": "/Existing/q"}]}),
+        )
+        recorder.add("POST", CHANGES, json_response({}))
+        recorder.add("POST", COMMITS, json_response({}))
+        recorder.add("GET", HEAD, json_response({"id": "c"}))
+
+        async with make_client(recorder) as client:
+            await client.nqe.repo.publish({"/Existing/another": "src"}, title="t")
+
+        staged = [r for r in recorder.requests if r.method == "POST" and r.url.path == CHANGES]
+        assert [r.url.params.get("action") for r in staged] == ["addQuery"]
 
     async def test_drafts_listing(self, recorder: Recorder) -> None:
         recorder.add(

@@ -27,12 +27,12 @@ import time
 from collections.abc import Mapping
 from typing import Any
 
-from forward_sdk._generated.models import AiChat, AiMessage
+from forward_sdk._generated.models import AiChat, AiMessage, AiMessageAnswer
 from forward_sdk._ops import ai as ops
 from forward_sdk._sync.services._base import Service
 from forward_sdk.errors import ForwardTimeoutError
 
-__all__ = ["AiConversation", "AiService"]
+__all__ = ["AiConversation", "AiService", "answer_of"]
 
 DONE = "DONE"
 PROCESSING = "PROCESSING"
@@ -41,6 +41,25 @@ PROCESSING = "PROCESSING"
 POLL_INTERVAL = 3.0
 INITIAL_POLL_INTERVAL = 1.0
 DEFAULT_TIMEOUT = 600.0
+
+
+def answer_of(message: AiMessage) -> AiMessageAnswer | None:
+    """The answer on a message, whichever field Forward used for it.
+
+    Forward sends it as ``finalAnswer``; some versions use ``answer``, and older
+    ones sent a bare ``outOfScopeReason`` string instead. Reading it through
+    here means a caller does not have to know which, and does not silently see
+    ``None`` on a deployment that spells it differently.
+
+    Returns ``None`` while the chat is still PROCESSING, which is not an error.
+    """
+    for candidate in (message.final_answer, message.answer):
+        if candidate is not None:
+            return candidate
+    reason = getattr(message, "out_of_scope_reason", None)
+    if reason:
+        return AiMessageAnswer(summary=str(reason), outOfScope=True)
+    return None
 
 
 def _status_of(chat: AiChat | Mapping[str, Any]) -> str:
@@ -136,6 +155,11 @@ class AiConversation:
         """
         self._service._send_json(ops.add_message(chat_id=self.id, prompt=prompt))
         self._chat = self._chat.model_copy(update={"status": PROCESSING})
+
+    def latest_answer(self) -> AiMessageAnswer | None:
+        """The answer to the most recent question, if there is one yet."""
+        messages = self.messages()
+        return answer_of(messages[-1]) if messages else None
 
     def ask_and_wait(
         self, prompt: str, *, timeout: float | None = DEFAULT_TIMEOUT

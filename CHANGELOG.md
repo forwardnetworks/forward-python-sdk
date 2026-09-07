@@ -3,6 +3,46 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [0.1.2] - 2026-09-07
+
+Everything here came from running the SDK against a real Forward instance
+(26.8.4) for the first time. Seven defects, none of which any test suite in this
+repository could have caught, because they were all wrong assumptions about what
+Forward actually sends.
+
+### Fixed
+
+- `one_of()` produced invalid NQE for enum fields such as
+  `device.platform.vendor`, failing at run time with *the type of lookup value
+  Vendor is not equal to list element type String*. Added `enum_one_of()`, which
+  emits `field == Vendor.CISCO`; `one_of()` is now documented as string-only.
+- `nqe.repo.source()` always failed. Forward honours `path` and
+  `with=sourceCode` only against a specific commit; asked at `head` it ignores
+  both and returns the whole library without source. It now pins the commit.
+- `publish()` could not create a query in a directory that did not exist yet,
+  which Forward refuses. Missing enclosing directories are now created first.
+- `discard()` could not remove a directory. Forward requires a trailing slash to
+  create one and rejects it to discard one, so every directory a failed publish
+  created was stranded.
+- The `CurrentUser` shape was wrong: the account is nested under `user`, not
+  spread at the top level.
+- The Forward AI answer arrives as `finalAnswer` and is an object, not a string,
+  so every message failed to parse. Added `answer_of()`, which reads whichever
+  field a given deployment uses.
+- Recorded that a repository listing returns a flat `lastCommitId` at `head` and
+  a nested `lastCommit` against a pinned commit. Both are real; reading only one
+  loses the commit pin.
+
+### Confirmed against a live instance
+
+- `contains` is rejected by Forward, so the predicate fix in 0.1.0 was necessary
+  rather than cosmetic.
+- The snapshot listing is genuinely unordered, in neither direction. Taking the
+  first row of a one-row request, as the SDK once did, would have pinned a sync
+  to an arbitrary snapshot.
+- A resolved query path sends a full 40-character commit id to Forward.
+- The dry-run report carries exactly the four fields modelled for it.
+
 ## [0.1.1] - 2026-09-07
 
 ### Added

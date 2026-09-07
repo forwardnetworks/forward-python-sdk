@@ -42,10 +42,17 @@ report.skipped_paths  # unchanged, so nothing to commit
 ```
 
 Each path is staged as an addition or an edit depending on whether it already
-exists. `dry_run_snapshot_id` validates the queries against a real snapshot
-first, which catches a query that no longer compiles before anyone else sees it.
-If anything fails, staged drafts are discarded so a failed run does not leave
+exists. Missing enclosing directories are created first, because Forward refuses
+to stage a query whose directory does not exist. `dry_run_snapshot_id` validates
+the queries against a real snapshot first, which catches a query that no longer
+compiles before anyone else sees it. If anything fails, staged drafts and any
+directories created for them are discarded, so a failed run does not leave
 half-staged changes behind.
+
+`publish()` also refuses when one of the paths already carries an uncommitted
+draft, since a commit names paths rather than changes and would publish
+someone else's half-finished edit alongside yours. Pass `overwrite_drafts=True`
+to do it anyway.
 
 Paths whose source is unchanged are reported as skipped rather than failing the
 commit: publishing a directory where some files are identical is the normal case.

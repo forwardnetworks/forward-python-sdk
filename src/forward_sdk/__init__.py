@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from forward_sdk._async.client import AsyncForwardClient
 from forward_sdk._sync.client import ForwardClient
+from forward_sdk._sync.services.ai import answer_of
 from forward_sdk._version import __version__
 from forward_sdk.errors import (
     ForwardAPIError,
@@ -50,4 +51,5 @@ __all__ = [
     "PageGuards",
     "QueryRef",
     "__version__",
+    "answer_of",
 ]

@@ -16,11 +16,20 @@ run against, rather than in a general recollection of how networks behave.
 ## Asking one question
 
 ```python
-answer = client.ai.ask("Why can nyc-fw01 not reach the database subnet?")
-print(answer.answer.summary)
-for insight in answer.answer.key_insights or []:
+from forward_sdk import answer_of
+
+message = client.ai.ask("Why can nyc-fw01 not reach the database subnet?")
+answer = answer_of(message)
+print(answer.summary)
+for insight in answer.key_insights or []:
     print(" -", insight)
 ```
+
+Read the answer through `answer_of()`. Forward sends it as `finalAnswer`, some
+versions use `answer`, and older ones sent a bare `outOfScopeReason` string;
+`answer_of` returns whichever is present, and `None` while the chat is still
+working. Reading one field directly means seeing `None` on a deployment that
+spells it differently.
 
 `ask()` starts a chat, waits for the answer and returns it. Answers take tens of
 seconds, because Forward is running real queries against the snapshot.
@@ -52,7 +61,8 @@ chat = client.ai.start("Why can nyc-fw01 not reach the database subnet?")
 chat.wait()
 
 for msg in chat.messages():
-    print(msg.prompt, "->", msg.answer.summary if msg.answer else "(pending)")
+    answer = answer_of(msg)
+    print(msg.prompt, "->", answer.summary if answer else "(pending)")
 
 follow_up = chat.ask_and_wait("And what about the return path?")
 print(chat.snapshot_id)  # the same snapshot as the first question
@@ -68,9 +78,8 @@ for call in answer.tool_calls or []:
     print(call.type)  # GET_PATHS, NQE, device lookups, and so on
 ```
 
-An answer may also decline: `answer.answer.out_of_scope` is set when the
-question was outside what Forward AI will address. That is an answer, not an
-error.
+An answer may also decline: `out_of_scope` is set when the question was outside
+what Forward AI will address. That is an answer, not an error.
 
 ## Managing chats
 

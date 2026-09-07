@@ -56,7 +56,14 @@ class NqeRepository(Service):
         path: str | None = None,
         with_source: bool = False,
     ) -> list[RepositoryQuery]:
-        """List queries, optionally under one path and including source."""
+        """List queries in a repository.
+
+        ``path`` and ``with_source`` are honoured only against a specific
+        ``commit_id``. At ``head`` Forward ignores both and returns the whole
+        library without source, so filtering there will appear to do nothing.
+        Use :meth:`source` to read one query's text, which pins the commit for
+        you.
+        """
         payload = self._send_json(
             ops.list_queries(
                 repository=repository,
@@ -118,10 +125,11 @@ class NqeRepository(Service):
     def source(self, path: str, *, repository: str = "org") -> str:
         """The committed source of one query.
 
-        Fetches with the source included, so a caller auditing what is published
-        does not have to know that :meth:`queries` omits it unless asked. That
-        omission is easy to miss: ``RepositoryQuery.source`` is simply ``None``,
-        which reads like an empty query rather than a forgotten flag.
+        Forward honours ``path`` and ``with=sourceCode`` only against a specific
+        commit. Asking at ``head`` silently ignores both: it returns the whole
+        library, without source, and a caller filtering by path would think the
+        filter had applied. So this resolves the query's commit first and then
+        fetches that version.
 
         A failure to ask is never reported as an absent query. A timeout or a
         server error propagates as itself, because it is not evidence about what
@@ -129,25 +137,32 @@ class NqeRepository(Service):
         otherwise read one gateway timeout as every query having disappeared.
 
         Raises:
-            ForwardNotFoundError: If no query exists at that path, or Forward
-                returned it without source, which would otherwise surface later
-                as a confusing empty comparison.
+            ForwardNotFoundError: If no query exists at that path, or the
+                committed version carries no source.
             ForwardAPIError: If the lookup itself failed. Distinct from the
                 above on purpose; see above.
         """
         normalized = path if path.startswith("/") else "/" + path
-        found = self.queries(repository=repository, path=normalized, with_source=True)
-        for entry in found:
-            if entry.path == normalized or len(found) == 1:
-                if entry.source is None:
-                    raise ForwardNotFoundError(
-                        f"query {normalized!r} exists but Forward returned no source "
-                        "for it; it may be an empty or uncommitted query",
-                        status=404,
-                    )
-                return entry.source
+        entry = self.find(normalized, repository=repository)
+        if not entry.commit_id:
+            raise ForwardNotFoundError(
+                f"query {normalized!r} has no committed version to read source from",
+                status=404,
+            )
+
+        found = self.queries(
+            repository=repository,
+            commit_id=entry.commit_id,
+            path=normalized,
+            with_source=True,
+        )
+        for candidate in found:
+            if candidate.source is not None:
+                return candidate.source
         raise ForwardNotFoundError(
-            f"no query at {normalized!r} in the {repository} repository", status=404
+            f"query {normalized!r} exists at commit {entry.commit_id} but Forward "
+            "returned no source for it",
+            status=404,
         )
 
     def head_commit_id(self) -> str | None:
@@ -191,13 +206,26 @@ class NqeRepository(Service):
         self._invalidate()
 
     def stage_directory(self, path: str) -> None:
-        """Create a directory in the library."""
-        self._send_json(ops.stage_change(action="addDir", path=path))
+        """Create a directory in the library.
+
+        Forward expects a trailing slash here and rejects the path without one,
+        so it is added if missing.
+        """
+        normalized = path if path.startswith("/") else "/" + path
+        self._send_json(ops.stage_change(action="addDir", path=normalized.rstrip("/") + "/"))
         self._invalidate()
 
     def discard(self, path: str) -> None:
-        """Discard one staged change."""
-        self._send_json(ops.discard_change(path=path))
+        """Discard one staged change, whether a query or a directory.
+
+        A trailing slash is removed. Forward is asymmetric here: creating a
+        directory requires the slash and discarding it requires its absence, and
+        passing the path back exactly as the draft listing reports it fails with
+        an unhelpful message about access settings. Left alone, that asymmetry
+        strands every directory a failed publish created.
+        """
+        normalized = path if path.startswith("/") else "/" + path
+        self._send_json(ops.discard_change(path=normalized.rstrip("/") or "/"))
         self._invalidate()
 
     def dry_run(self, paths: Sequence[str], *, snapshot_id: str | None = None) -> dict[str, Any]:
@@ -276,6 +304,7 @@ class NqeRepository(Service):
         dry_run_snapshot_id: str | None = None,
         discard_on_failure: bool = True,
         overwrite_drafts: bool = False,
+        ensure_directories: bool = True,
     ) -> CommitReport:
         """Publish a set of queries to the library in one commit.
 
@@ -294,6 +323,10 @@ class NqeRepository(Service):
                 changes, so someone's half-finished edit sitting on a path you
                 are publishing would be committed along with yours, and neither
                 of you would be told.
+            ensure_directories: Create any enclosing directories that do not
+                exist yet. Forward refuses to stage a query whose directory is
+                missing, so a first publish into a new directory fails without
+                this.
 
         Raises:
             ForwardConflictError: If a path already has a draft and
@@ -306,6 +339,8 @@ class NqeRepository(Service):
 
         if not overwrite_drafts:
             self._refuse_existing_drafts(normalized)
+
+        created = self._ensure_directories(normalized, index) if ensure_directories else []
 
         staged: list[str] = []
         try:
@@ -335,8 +370,36 @@ class NqeRepository(Service):
             return self.commit(staged, title=title, body=body)
         except Exception:
             if discard_on_failure:
-                self._discard_quietly(staged)
+                self._discard_quietly([*staged, *created])
             raise
+
+    def _ensure_directories(
+        self, paths: Mapping[str, str], index: Mapping[str, RepositoryQuery]
+    ) -> list[str]:
+        """Create the enclosing directories these paths need.
+
+        Forward refuses to stage a query whose directory does not exist, with
+        ENCLOSING_DIR_DOES_NOT_EXIST, so a first publish into a new directory
+        fails unless the directory is made first. Which directories exist is
+        inferred from where the library's queries already live.
+        """
+        existing: set[str] = set()
+        for query_path in index:
+            parts = query_path.strip("/").split("/")[:-1]
+            for depth in range(1, len(parts) + 1):
+                existing.add("/" + "/".join(parts[:depth]))
+
+        needed: set[str] = set()
+        for query_path in paths:
+            parts = query_path.strip("/").split("/")[:-1]
+            for depth in range(1, len(parts) + 1):
+                needed.add("/" + "/".join(parts[:depth]))
+
+        # Parents before children, so each is created inside one that exists.
+        missing = sorted(needed - existing, key=lambda p: p.count("/"))
+        for directory in missing:
+            self.stage_directory(directory)
+        return missing
 
     def _refuse_existing_drafts(self, paths: Mapping[str, str]) -> None:
         """Stop if any path already carries an uncommitted change.

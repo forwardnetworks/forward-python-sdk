@@ -240,14 +240,20 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/CurrentUser" }
               example:
-                id: "1234"
-                username: mary
+                user:
+                  id: "1234"
+                  username: mary
+                  email: mary@example.com
+                  authSource: LOCAL
+                  enabled: true
+                  lastActive: "2026-09-07T09:00:00.000Z"
                 roles:
                   # Applies across the organization.
                   org: [ADMIN]
                   # Keyed by network id, for roles held on one network.
                   network:
                     "101": OPERATOR
+                passwordSetAt: "2026-01-01T00:00:00.000Z"
 
   /networks/{networkId}/data-files:
     get:
@@ -276,9 +282,10 @@ paths:
           content:
             application/json:
               example:
-                dataFiles:
-                  - dataFileName: netbox_device_type_aliases.json
-                    contentMd5Hex: 9f86d081884c7d659a2feaa0c55ad015
+                # Observed as a bare list on 26.8; also reported wrapped under
+                # dataFiles, items or results. Consumers normalize this.
+                - dataFileName: netbox_device_type_aliases.json
+                  contentMd5Hex: 9f86d081884c7d659a2feaa0c55ad015
 
   /ai-chats:
     get:
@@ -566,10 +573,13 @@ components:
     RepositoryQuery:
       type: object
       description: >-
-        A query in the library. Note that the commit is nested under
-        `lastCommit`; Forward does not send a flat `lastCommitId`. Reading the
-        flat key loses the pin on every query resolved by path, which runs the
-        query against whatever is at head without anything failing.
+        A query in the library. The commit arrives under one of two names
+        depending on what was asked for, and both are real: listing at `head`
+        returns a flat `lastCommitId`, while asking for a specific commit
+        returns a nested `lastCommit` object. Reading only one of them loses the
+        pin, and a query resolved by path then runs against whatever is at head
+        without anything failing. `path` and `with=sourceCode` are honoured only
+        against a specific commit; at `head` Forward ignores both.
       properties:
         queryId:
           type: string
@@ -584,6 +594,13 @@ components:
           enum: [org, fwd, ORG, FWD]
         lastCommit:
           $ref: "#/components/schemas/RepositoryCommit"
+        lastCommitId:
+          type: string
+          description: The flat form, returned when listing at `head`.
+        sourceCodeSha:
+          type: string
+        intent:
+          type: string
         sourceCode:
           type: string
           description: Present only when the query was fetched with `with=sourceCode`.
@@ -707,8 +724,6 @@ components:
       type: object
       description: >-
         The answer to one question. Absent while the chat is PROCESSING.
-        Deployments before 26.6 sent `finalAnswer` and `outOfScopeReason`
-        instead, so consumers should read both.
       properties:
         summary: { type: string }
         outOfScope:
@@ -729,13 +744,20 @@ components:
         tasks:
           type: array
           items: { type: object, additionalProperties: true }
-        answer: { $ref: "#/components/schemas/AiMessageAnswer" }
         finalAnswer:
-          type: string
-          description: Pre-26.6 form of the answer summary.
+          allOf: [{ $ref: "#/components/schemas/AiMessageAnswer" }]
+          description: >-
+            The answer, as sent on the wire. Verified against 26.8: this is an
+            object, not a string, and it is the field Forward populates. Null
+            while the chat is still PROCESSING.
+        answer:
+          allOf: [{ $ref: "#/components/schemas/AiMessageAnswer" }]
+          description: >-
+            An alternative spelling of the same thing. Read both through
+            `forward_sdk.answer_of`, which returns whichever is present.
         outOfScopeReason:
           type: string
-          description: Pre-26.6 form of an out-of-scope answer.
+          description: Older form of an out-of-scope answer, as a bare string.
         createdAt: { type: string }
         updatedAt: { type: string }
 
@@ -746,14 +768,25 @@ components:
           type: array
           items: { $ref: "#/components/schemas/AiMessage" }
 
+    CurrentUserAccount:
+      type: object
+      description: The account itself, nested under `user`.
+      properties:
+        id: { type: string }
+        username: { type: string }
+        email: { type: string }
+        authSource: { type: string }
+        enabled: { type: boolean }
+        lastActive: { type: string }
+
     CurrentUser:
       type: object
+      description: >-
+        The calling user. Note the account is nested under `user`; the roles sit
+        beside it rather than inside it.
       properties:
-        id:
-          type: string
-        username:
-          type: string
-        email:
-          type: string
+        user:
+          $ref: "#/components/schemas/CurrentUserAccount"
         roles:
           $ref: "#/components/schemas/CurrentUserRoles"
+        passwordSetAt: { type: string }

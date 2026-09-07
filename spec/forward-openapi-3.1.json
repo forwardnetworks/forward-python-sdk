@@ -102,20 +102,29 @@
       "AiMessage": {
         "properties": {
           "answer": {
-            "$ref": "#/components/schemas/AiMessageAnswer"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AiMessageAnswer"
+              }
+            ],
+            "description": "An alternative spelling of the same thing. Read both through `forward_sdk.answer_of`, which returns whichever is present."
           },
           "createdAt": {
             "type": "string"
           },
           "finalAnswer": {
-            "description": "Pre-26.6 form of the answer summary.",
-            "type": "string"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AiMessageAnswer"
+              }
+            ],
+            "description": "The answer, as sent on the wire. Verified against 26.8: this is an object, not a string, and it is the field Forward populates. Null while the chat is still PROCESSING."
           },
           "id": {
             "type": "string"
           },
           "outOfScopeReason": {
-            "description": "Pre-26.6 form of an out-of-scope answer.",
+            "description": "Older form of an out-of-scope answer, as a bare string.",
             "type": "string"
           },
           "prompt": {
@@ -141,7 +150,7 @@
         "type": "object"
       },
       "AiMessageAnswer": {
-        "description": "The answer to one question. Absent while the chat is PROCESSING. Deployments before 26.6 sent `finalAnswer` and `outOfScopeReason` instead, so consumers should read both.",
+        "description": "The answer to one question. Absent while the chat is PROCESSING.",
         "properties": {
           "keyInsights": {
             "items": {
@@ -2463,15 +2472,37 @@
         "type": "object"
       },
       "CurrentUser": {
+        "description": "The calling user. Note the account is nested under `user`; the roles sit beside it rather than inside it.",
         "properties": {
-          "email": {
-            "type": "string"
-          },
-          "id": {
+          "passwordSetAt": {
             "type": "string"
           },
           "roles": {
             "$ref": "#/components/schemas/CurrentUserRoles"
+          },
+          "user": {
+            "$ref": "#/components/schemas/CurrentUserAccount"
+          }
+        },
+        "type": "object"
+      },
+      "CurrentUserAccount": {
+        "description": "The account itself, nested under `user`.",
+        "properties": {
+          "authSource": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastActive": {
+            "type": "string"
           },
           "username": {
             "type": "string"
@@ -9091,13 +9122,17 @@
         "type": "object"
       },
       "RepositoryQuery": {
-        "description": "A query in the library. Note that the commit is nested under `lastCommit`; Forward does not send a flat `lastCommitId`. Reading the flat key loses the pin on every query resolved by path, which runs the query against whatever is at head without anything failing.",
+        "description": "A query in the library. The commit arrives under one of two names depending on what was asked for, and both are real: listing at `head` returns a flat `lastCommitId`, while asking for a specific commit returns a nested `lastCommit` object. Reading only one of them loses the pin, and a query resolved by path then runs against whatever is at head without anything failing. `path` and `with=sourceCode` are honoured only against a specific commit; at `head` Forward ignores both.",
         "properties": {
           "intent": {
             "type": "string"
           },
           "lastCommit": {
             "$ref": "#/components/schemas/RepositoryCommit"
+          },
+          "lastCommitId": {
+            "description": "The flat form, returned when listing at `head`.",
+            "type": "string"
           },
           "path": {
             "examples": [
@@ -9122,6 +9157,9 @@
           },
           "sourceCode": {
             "description": "Present only when the query was fetched with `with=sourceCode`.",
+            "type": "string"
+          },
+          "sourceCodeSha": {
             "type": "string"
           }
         },
@@ -13499,14 +13537,12 @@
           "200": {
             "content": {
               "application/json": {
-                "example": {
-                  "dataFiles": [
-                    {
-                      "contentMd5Hex": "9f86d081884c7d659a2feaa0c55ad015",
-                      "dataFileName": "netbox_device_type_aliases.json"
-                    }
-                  ]
-                }
+                "example": [
+                  {
+                    "contentMd5Hex": "9f86d081884c7d659a2feaa0c55ad015",
+                    "dataFileName": "netbox_device_type_aliases.json"
+                  }
+                ]
               }
             },
             "description": "The data files. Observed both as a bare list and wrapped under dataFiles, items or results, with names and hashes under several key spellings, so consumers normalize this themselves."
@@ -20983,7 +21019,7 @@
             "content": {
               "application/json": {
                 "example": {
-                  "id": "1234",
+                  "passwordSetAt": "2026-01-01T00:00:00.000Z",
                   "roles": {
                     "network": {
                       "101": "OPERATOR"
@@ -20992,7 +21028,14 @@
                       "ADMIN"
                     ]
                   },
-                  "username": "mary"
+                  "user": {
+                    "authSource": "LOCAL",
+                    "email": "mary@example.com",
+                    "enabled": true,
+                    "id": "1234",
+                    "lastActive": "2026-09-07T09:00:00.000Z",
+                    "username": "mary"
+                  }
                 },
                 "schema": {
                   "$ref": "#/components/schemas/CurrentUser"

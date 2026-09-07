@@ -95,6 +95,47 @@ class TestReading:
             with pytest.raises(ForwardNotFoundError, match="no query at"):
                 await client.nqe.repo.find("/Nope")
 
+    async def test_source_fetches_with_the_flag_the_caller_would_forget(
+        self, recorder: Recorder
+    ) -> None:
+        """queries() omits source unless asked, and reads as None when it does."""
+        recorder.add(
+            "GET",
+            QUERIES,
+            json_response(
+                {"queries": [{"queryId": "FQ_1", "path": "/A", "sourceCode": "foreach x"}]}
+            ),
+        )
+        async with make_client(recorder) as client:
+            assert await client.nqe.repo.source("/A") == "foreach x"
+
+        assert recorder.query_for()["with"] == ["sourceCode"]
+        assert recorder.query_for()["path"] == ["/A"]
+
+    async def test_source_accepts_a_path_without_a_leading_slash(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            QUERIES,
+            json_response({"queries": [{"queryId": "FQ_1", "path": "/A", "sourceCode": "q"}]}),
+        )
+        async with make_client(recorder) as client:
+            assert await client.nqe.repo.source("A") == "q"
+
+    async def test_source_is_loud_when_forward_returns_none(self, recorder: Recorder) -> None:
+        """Silently returning None would surface later as an empty comparison."""
+        recorder.add(
+            "GET", QUERIES, json_response({"queries": [{"queryId": "FQ_1", "path": "/A"}]})
+        )
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError, match="no source"):
+                await client.nqe.repo.source("/A")
+
+    async def test_source_of_a_missing_query(self, recorder: Recorder) -> None:
+        recorder.add("GET", QUERIES, json_response({"queries": []}))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError, match="no query at"):
+                await client.nqe.repo.source("/Nope")
+
     async def test_drafts_listing(self, recorder: Recorder) -> None:
         recorder.add(
             "GET", CHANGES, json_response({"changes": [{"path": "/A", "action": "addQuery"}]})

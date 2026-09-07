@@ -7,6 +7,7 @@ from typing import Any, Literal
 import httpx
 
 from forward_sdk._async.services._generated import AsyncGeneratedServices
+from forward_sdk._async.services.ai import AsyncAiService
 from forward_sdk._async.services.device_tags import AsyncDeviceTagsService
 from forward_sdk._async.services.devices import AsyncDevicesService
 from forward_sdk._async.services.networks import AsyncNetworksService
@@ -104,6 +105,7 @@ class AsyncForwardClient(AsyncGeneratedServices):
         self.devices = AsyncDevicesService(self._transport)
         self.device_tags = AsyncDeviceTagsService(self._transport)
         self.nqe = AsyncNqeService(self._transport)
+        self.ai = AsyncAiService(self._transport)
 
         # The rest of the API, one attribute per group; see scripts/gen_services.py.
         self._attach_generated_services(self._transport)

@@ -54,6 +54,69 @@ class AdvancedReachabilityState(OpenEnum):
     timed_out = "TIMED_OUT"
 
 
+class Status(OpenEnum):
+    processing = "PROCESSING"
+    done = "DONE"
+
+
+class AiChat(ForwardModel):
+    """
+    One conversation, grounded in a single snapshot.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    id: str | None = None
+    name: str | None = None
+    """
+    Absent until Forward has titled the chat.
+    """
+    network_id: Annotated[str | None, Field(alias="networkId")] = None
+    snapshot_id: Annotated[str | None, Field(alias="snapshotId")] = None
+    status: Status | None = None
+    updated_at: Annotated[str | None, Field(alias="updatedAt")] = None
+
+
+class AiChatPage(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    chats: list[AiChat] | None = None
+
+
+class AiMessageAnswer(ForwardModel):
+    """
+    The answer to one question. Absent while the chat is PROCESSING. Deployments before 26.6 sent `finalAnswer` and `outOfScopeReason` instead, so consumers should read both.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    key_insights: Annotated[list[str] | None, Field(alias="keyInsights")] = None
+    out_of_scope: Annotated[bool | None, Field(alias="outOfScope")] = None
+    """
+    The question was outside what Forward AI can answer.
+    """
+    summary: str | None = None
+
+
+class AiToolCall(ForwardModel):
+    """
+    A tool Forward used while answering, such as an NQE query.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    type: str | None = None
+
+
 class Type(OpenEnum):
     hosts = "HOSTS"
     devices = "DEVICES"
@@ -558,7 +621,7 @@ class CollectorStatus(OpenEnum):
     updating = "UPDATING"
 
 
-class Status(OpenEnum):
+class Status1(OpenEnum):
     """
     The current status of the task.
     """
@@ -631,7 +694,7 @@ class CollectorTask(ForwardModel):
     """
     When this task started. Absent if the task hasn’t started yet.
     """
-    status: Annotated[Status | None, Field(examples=["SUCCEEDED"])] = None
+    status: Annotated[Status1 | None, Field(examples=["SUCCEEDED"])] = None
     """
     The current status of the task.
     """
@@ -2393,6 +2456,17 @@ class NetworkUpdate(ForwardModel):
     retention_days: Annotated[int | None, Field(alias="retentionDays")] = None
 
 
+class NewAiMessage(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    prompt: str
+    """
+    The question to ask.
+    """
+
+
 class NewCliCredential(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -2856,7 +2930,7 @@ class Outcome(OpenEnum):
     user_error = "USER_ERROR"
 
 
-class Status2(OpenEnum):
+class Status3(OpenEnum):
     """
     The current state of the query execution:
     - `SUBMITTED`: the query has been accepted and is queued, but execution has not yet begun.
@@ -4480,7 +4554,7 @@ class VulnerabilityDevice(ForwardModel):
     """
 
 
-class Status3(OpenEnum):
+class Status4(OpenEnum):
     """
     The device’s vulnerability status for the CVE.
     """
@@ -4512,7 +4586,7 @@ class VulnerabilityDeviceWithResult(VulnerabilityDevice):
     The device’s [detection result](https://docs.fwd.app/latest/application/security/vulnerability/#detection-results)
     for the CVE.
     """
-    status: Annotated[Status3 | None, Field(examples=["VULNERABLE"])] = None
+    status: Annotated[Status4 | None, Field(examples=["VULNERABLE"])] = None
     """
     The device’s vulnerability status for the CVE.
     """
@@ -4648,6 +4722,36 @@ class WanCircuitPatch(ForwardModel):
     connection1: WanCircuitConnection | None = None
     connection2: WanCircuitConnection | None = None
     name: Annotated[str | None, Field(examples=["wan-circuit-01"])] = None
+
+
+class AiMessage(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    answer: AiMessageAnswer | None = None
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    final_answer: Annotated[str | None, Field(alias="finalAnswer")] = None
+    """
+    Pre-26.6 form of the answer summary.
+    """
+    id: str | None = None
+    out_of_scope_reason: Annotated[str | None, Field(alias="outOfScopeReason")] = None
+    """
+    Pre-26.6 form of an out-of-scope answer.
+    """
+    prompt: str | None = None
+    tasks: list[dict[str, Any]] | None = None
+    tool_calls: Annotated[list[AiToolCall] | None, Field(alias="toolCalls")] = None
+    updated_at: Annotated[str | None, Field(alias="updatedAt")] = None
+
+
+class AiMessagePage(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    messages: list[AiMessage] | None = None
 
 
 class Alias(ForwardModel):
@@ -5833,7 +5937,7 @@ class CveOsInfoWithDevices(CveOsInfo):
     """
 
 
-class Status1(ForwardModel):
+class Status2(ForwardModel):
     """
     How the most recent collection from this connector went. Absent unless `?with=status` is used, and absent then
     too if the network has no processed Snapshot or that Snapshot didn’t collect this connector.
@@ -8034,7 +8138,7 @@ class NqeExecutionStatus(ForwardModel):
     The number of rows produced by the query so far. This count may increase as execution progresses. Absent when
     `status` is `SUBMITTED`.
     """
-    status: Status2
+    status: Status3
     """
     The current state of the query execution:
     - `SUBMITTED`: the query has been accepted and is queued, but execution has not yet begun.
@@ -8272,7 +8376,7 @@ class DataConnector(Attribution):
     The `id` of a proxy server to route requests through. Absent if the Collector reaches the service
     directly.
     """
-    status: Status1 | None = None
+    status: Status2 | None = None
     """
     How the most recent collection from this connector went. Absent unless `?with=status` is used, and absent then
     too if the network has no processed Snapshot or that Snapshot didn’t collect this connector.

@@ -98,6 +98,45 @@ class TestReading:
             with pytest.raises(ForwardNotFoundError, match="no query at"):
                 client.nqe.repo.find("/Nope")
 
+    def test_source_fetches_with_the_flag_the_caller_would_forget(self, recorder: Recorder) -> None:
+        """queries() omits source unless asked, and reads as None when it does."""
+        recorder.add(
+            "GET",
+            QUERIES,
+            json_response(
+                {"queries": [{"queryId": "FQ_1", "path": "/A", "sourceCode": "foreach x"}]}
+            ),
+        )
+        with make_client(recorder) as client:
+            assert client.nqe.repo.source("/A") == "foreach x"
+
+        assert recorder.query_for()["with"] == ["sourceCode"]
+        assert recorder.query_for()["path"] == ["/A"]
+
+    def test_source_accepts_a_path_without_a_leading_slash(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            QUERIES,
+            json_response({"queries": [{"queryId": "FQ_1", "path": "/A", "sourceCode": "q"}]}),
+        )
+        with make_client(recorder) as client:
+            assert client.nqe.repo.source("A") == "q"
+
+    def test_source_is_loud_when_forward_returns_none(self, recorder: Recorder) -> None:
+        """Silently returning None would surface later as an empty comparison."""
+        recorder.add(
+            "GET", QUERIES, json_response({"queries": [{"queryId": "FQ_1", "path": "/A"}]})
+        )
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError, match="no source"):
+                client.nqe.repo.source("/A")
+
+    def test_source_of_a_missing_query(self, recorder: Recorder) -> None:
+        recorder.add("GET", QUERIES, json_response({"queries": []}))
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError, match="no query at"):
+                client.nqe.repo.source("/Nope")
+
     def test_drafts_listing(self, recorder: Recorder) -> None:
         recorder.add(
             "GET", CHANGES, json_response({"changes": [{"path": "/A", "action": "addQuery"}]})

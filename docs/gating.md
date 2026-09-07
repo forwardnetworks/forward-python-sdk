@@ -6,8 +6,11 @@ Forward refuse a request:
 - **Licensing.** Some capabilities are licensed separately, and vulnerability
   analysis is the clearest example.
 - **Deployment.** Forward runs both as a hosted service and self-hosted, and
-  some features exist in only one. Forward AI and the MCP server are deployment
-  and configuration dependent, and are not part of the published REST API at all.
+  some features exist in only one. Forward AI is the clearest example: it is a
+  hosted-service and bring-your-own-model capability, gated on an organization
+  property, and absent from the published REST API. The SDK supports it as an
+  [unpublished surface](unpublished.md); an organization without it is refused
+  with a 403 carrying Forward's own explanation.
 - **Role-based access control.** A user may not see a network, or may not hold
   the administrative role that user accounts, credentials and system settings
   require.
@@ -47,6 +50,7 @@ the user's role.
 | Group | Licence | Deployment | Admin role |
 | --- | :---: | :---: | :---: |
 | Vulnerability analysis | ✅ | | |
+| Forward AI | ✅ | ✅ | |
 | System administration (CVE index) | ✅ | ✅ | ✅ |
 | User accounts | | | ✅ |
 | Credentials | | | ✅ |

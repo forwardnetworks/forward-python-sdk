@@ -10,6 +10,7 @@ from typing import Any, Literal
 import httpx
 
 from forward_sdk._sync.services._generated import GeneratedServices
+from forward_sdk._sync.services.ai import AiService
 from forward_sdk._sync.services.device_tags import DeviceTagsService
 from forward_sdk._sync.services.devices import DevicesService
 from forward_sdk._sync.services.networks import NetworksService
@@ -107,6 +108,7 @@ class ForwardClient(GeneratedServices):
         self.devices = DevicesService(self._transport)
         self.device_tags = DeviceTagsService(self._transport)
         self.nqe = NqeService(self._transport)
+        self.ai = AiService(self._transport)
 
         # The rest of the API, one attribute per group; see scripts/gen_services.py.
         self._attach_generated_services(self._transport)

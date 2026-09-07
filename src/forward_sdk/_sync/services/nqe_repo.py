@@ -115,6 +115,34 @@ class NqeRepository(Service):
             )
         return entry
 
+    def source(self, path: str, *, repository: str = "org") -> str:
+        """The committed source of one query.
+
+        Fetches with the source included, so a caller auditing what is published
+        does not have to know that :meth:`queries` omits it unless asked. That
+        omission is easy to miss: ``RepositoryQuery.source`` is simply ``None``,
+        which reads like an empty query rather than a forgotten flag.
+
+        Raises:
+            ForwardNotFoundError: If no query exists at that path, or Forward
+                returned it without source, which would otherwise surface later
+                as a confusing empty comparison.
+        """
+        normalized = path if path.startswith("/") else "/" + path
+        found = self.queries(repository=repository, path=normalized, with_source=True)
+        for entry in found:
+            if entry.path == normalized or len(found) == 1:
+                if entry.source is None:
+                    raise ForwardNotFoundError(
+                        f"query {normalized!r} exists but Forward returned no source "
+                        "for it; it may be an empty or uncommitted query",
+                        status=404,
+                    )
+                return entry.source
+        raise ForwardNotFoundError(
+            f"no query at {normalized!r} in the {repository} repository", status=404
+        )
+
     def head_commit_id(self) -> str | None:
         """The organization repository's current commit."""
         payload = self._send_json(ops.head_commit())

@@ -62,8 +62,15 @@ def test_every_unpublished_operation_records_its_shape(examples: dict[str, Any])
         for operation in item.values()
         if isinstance(operation, dict) and "operationId" in operation
     }
-    # Write operations return no body worth parsing.
-    no_body = {"addDraftChange", "discardDraftChange"}
+    # Operations that return no body worth parsing: a 202, a 204, or a
+    # non-JSON document.
+    no_body = {
+        "addDraftChange",
+        "discardDraftChange",
+        "addAiChatMessage",
+        "deleteAiChat",
+        "getAiChatTranscript",
+    }
     missing = sorted(described - set(examples) - no_body)
     assert not missing, (
         f"unpublished operations with no recorded response shape: {missing}. "
@@ -125,6 +132,21 @@ def test_nested_commit_wins_over_a_stale_flat_one() -> None:
     """A payload carrying both is trusted on the shape Forward itself sends."""
     payload = {"lastCommit": {"id": "nested"}, "lastCommitId": "stale"}
     assert commit_id_of(payload) == "nested"
+
+
+def test_ai_chat_shape_carries_what_the_sdk_reads(examples: dict[str, Any]) -> None:
+    chat = examples["getAiChat"]
+    assert chat["status"] in {"PROCESSING", "DONE"}
+    assert chat["snapshotId"], "a chat is pinned to one snapshot; the SDK reads it"
+
+
+def test_ai_message_shape_carries_the_answer_and_the_tools(
+    examples: dict[str, Any],
+) -> None:
+    """Both matter: the answer, and what Forward did to reach it."""
+    first = examples["getAiChatMessages"]["messages"][0]
+    assert first["answer"]["summary"]
+    assert [call["type"] for call in first["toolCalls"]]
 
 
 def test_a_query_without_a_commit_parses_rather_than_failing() -> None:

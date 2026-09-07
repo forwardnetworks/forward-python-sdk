@@ -11,6 +11,18 @@ __all__ = ["OPERATIONS"]
 
 
 OPERATIONS: dict[str, OpDef] = {
+    "addAiChatMessage": OpDef(
+        operation_id="addAiChatMessage",
+        method="post",
+        path="/ai-chats/{chatId}/messages",
+        tag="Forward AI",
+        parameters=(
+            ParamDef(name="chatId", location="path", required=True, schema_type="string"),
+        ),
+        request_media=('application/json',),
+        stability="unpublished",
+        summary="Ask a follow-up question in an existing chat",
+    ),
     "addCheck": OpDef(
         operation_id="addCheck",
         method="post",
@@ -662,6 +674,17 @@ OPERATIONS: dict[str, OpDef] = {
         response_media=('application/json',),
         summary="Deactivate all checks",
     ),
+    "deleteAiChat": OpDef(
+        operation_id="deleteAiChat",
+        method="delete",
+        path="/ai-chats/{chatId}",
+        tag="Forward AI",
+        parameters=(
+            ParamDef(name="chatId", location="path", required=True, schema_type="string"),
+        ),
+        stability="unpublished",
+        summary="Delete a chat",
+    ),
     "deleteAllClassicDevices": OpDef(
         operation_id="deleteAllClassicDevices",
         method="post",
@@ -1086,6 +1109,57 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Networks",
         request_media=('application/json',),
         summary="Export a Snapshot subset",
+    ),
+    "getAiChat": OpDef(
+        operation_id="getAiChat",
+        method="get",
+        path="/ai-chats/{chatId}",
+        tag="Forward AI",
+        parameters=(
+            ParamDef(name="chatId", location="path", required=True, schema_type="string"),
+        ),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="AiChat",
+        summary="Get one chat",
+    ),
+    "getAiChatMessages": OpDef(
+        operation_id="getAiChatMessages",
+        method="get",
+        path="/ai-chats/{chatId}/messages",
+        tag="Forward AI",
+        parameters=(
+            ParamDef(name="chatId", location="path", required=True, schema_type="string"),
+            ParamDef(name="since", location="query", schema_type="string"),
+        ),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="AiMessagePage",
+        summary="List a chat's messages",
+    ),
+    "getAiChatTranscript": OpDef(
+        operation_id="getAiChatTranscript",
+        method="get",
+        path="/ai-chats/{chatId}/transcript",
+        tag="Forward AI",
+        parameters=(
+            ParamDef(name="chatId", location="path", required=True, schema_type="string"),
+            ParamDef(name="format", location="query", schema_type="string", enum=('MARKDOWN', 'HTML', 'JSON')),
+        ),
+        response_media=('text/markdown',),
+        stability="unpublished",
+        stream=True,
+        summary="Export a chat as a transcript",
+    ),
+    "getAiChats": OpDef(
+        operation_id="getAiChats",
+        method="get",
+        path="/ai-chats",
+        tag="Forward AI",
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="AiChatPage",
+        summary="List the calling user's chats",
     ),
     "getAllAliases": OpDef(
         operation_id="getAllAliases",
@@ -2871,6 +2945,21 @@ OPERATIONS: dict[str, OpDef] = {
         response_model="NqeRunResult",
         summary="Run an NQE query",
     ),
+    "startAiChat": OpDef(
+        operation_id="startAiChat",
+        method="post",
+        path="/ai-chats",
+        tag="Forward AI",
+        parameters=(
+            ParamDef(name="networkId", location="query", required=True, schema_type="string"),
+            ParamDef(name="snapshotId", location="query", schema_type="string"),
+        ),
+        request_media=('application/json',),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="AiChat",
+        summary="Start a chat",
+    ),
     "startReachabilityJob": OpDef(
         operation_id="startReachabilityJob",
         method="post",
@@ -2914,6 +3003,20 @@ OPERATIONS: dict[str, OpDef] = {
         gating=('admin',),
         response_model="DataConnectorTestResult",
         summary="Test a data connector",
+    ),
+    "updateAiChat": OpDef(
+        operation_id="updateAiChat",
+        method="patch",
+        path="/ai-chats/{chatId}",
+        tag="Forward AI",
+        parameters=(
+            ParamDef(name="chatId", location="path", required=True, schema_type="string"),
+        ),
+        request_media=('application/json',),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="AiChat",
+        summary="Rename a chat",
     ),
     "updateAtlas": OpDef(
         operation_id="updateAtlas",

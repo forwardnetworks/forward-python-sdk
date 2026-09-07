@@ -101,6 +101,7 @@ def test_client_exposes_every_api_group() -> None:
         "Current Version": "networks",
         "NQE Repository": "nqe",
         "Snapshot Reachability": "snapshots",
+        "Forward AI": "ai",
     }
     client = ForwardClient("https://forward.test")
     try:
@@ -145,6 +146,7 @@ def test_every_operation_has_a_service_method() -> None:
             "Current Version",
             "NQE Repository",
             "Snapshot Reachability",
+            "Forward AI",
         }
     }
     missing = sorted(

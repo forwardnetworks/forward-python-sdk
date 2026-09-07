@@ -16,6 +16,7 @@ endpoints do not, such as waiting for a snapshot to finish processing.
 | `client.devices` | Devices and their collected files |
 | `client.device_tags` | Tags and their device membership |
 | `client.nqe` | Running queries, and `client.nqe.repo` for the query library |
+| `client.ai` | Forward AI, asking questions about a network in plain language |
 
 See [snapshots](snapshots.md) and [the NQE guide](nqe/index.md).
 

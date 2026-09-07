@@ -37,6 +37,12 @@ tags:
     description: Advanced reachability computation as a pollable job.
   - name: Data Files
     description: Files collected alongside a snapshot.
+  - name: Forward AI
+    description: >-
+      A snapshot-grounded assistant that answers questions about a network by
+      calling Forward's own tools. Requires the AI_ALLOWED organization
+      property, so an organization without it answers 403 to every operation
+      here.
 paths:
   /nqe/repos/{repository}/commits/{commitId}/queries:
     get:
@@ -274,6 +280,213 @@ paths:
                   - dataFileName: netbox_device_type_aliases.json
                     contentMd5Hex: 9f86d081884c7d659a2feaa0c55ad015
 
+  /ai-chats:
+    get:
+      operationId: getAiChats
+      summary: List the calling user's chats
+      x-forward-stability: unpublished
+      tags: [Forward AI]
+      responses:
+        "200":
+          description: The chats.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiChatPage" }
+              example:
+                chats:
+                  - id: "42"
+                    networkId: "101"
+                    snapshotId: "12345"
+                    name: Why can nyc-fw01 not reach the database subnet?
+                    status: DONE
+                    createdAt: "2026-09-07T09:00:00.000Z"
+                    updatedAt: "2026-09-07T09:00:31.000Z"
+    post:
+      operationId: startAiChat
+      summary: Start a chat
+      description: >-
+        Creates a chat and asks its first question. The answer is produced
+        asynchronously: the chat comes back with status PROCESSING and the
+        message appears once it is DONE.
+      x-forward-stability: unpublished
+      tags: [Forward AI]
+      parameters:
+        - name: networkId
+          in: query
+          required: true
+          schema: { type: string }
+        - name: snapshotId
+          in: query
+          description: Defaults to the network's latest processed snapshot.
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewAiMessage" }
+      responses:
+        "201":
+          description: The new chat. The Location header names it too.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiChat" }
+              example:
+                id: "42"
+                networkId: "101"
+                snapshotId: "12345"
+                status: PROCESSING
+                createdAt: "2026-09-07T09:00:00.000Z"
+                updatedAt: "2026-09-07T09:00:00.000Z"
+
+  /ai-chats/{chatId}:
+    get:
+      operationId: getAiChat
+      summary: Get one chat
+      x-forward-stability: unpublished
+      tags: [Forward AI]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The chat.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiChat" }
+              example:
+                id: "42"
+                networkId: "101"
+                snapshotId: "12345"
+                name: Why can nyc-fw01 not reach the database subnet?
+                status: DONE
+                createdAt: "2026-09-07T09:00:00.000Z"
+                updatedAt: "2026-09-07T09:00:31.000Z"
+    patch:
+      operationId: updateAiChat
+      summary: Rename a chat
+      x-forward-stability: unpublished
+      tags: [Forward AI]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+      responses:
+        "200":
+          description: The updated chat.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiChat" }
+              example:
+                id: "42"
+                networkId: "101"
+                snapshotId: "12345"
+                name: Renamed
+                status: DONE
+                createdAt: "2026-09-07T09:00:00.000Z"
+                updatedAt: "2026-09-07T09:05:00.000Z"
+    delete:
+      operationId: deleteAiChat
+      summary: Delete a chat
+      x-forward-stability: unpublished
+      tags: [Forward AI]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Deleted. }
+
+  /ai-chats/{chatId}/messages:
+    get:
+      operationId: getAiChatMessages
+      summary: List a chat's messages
+      x-forward-stability: unpublished
+      tags: [Forward AI]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: since
+          in: query
+          description: Only messages updated after this instant.
+          schema: { type: string }
+      responses:
+        "200":
+          description: The messages.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiMessagePage" }
+              example:
+                messages:
+                  - id: "7"
+                    prompt: Why can nyc-fw01 not reach the database subnet?
+                    toolCalls:
+                      - type: GET_PATHS
+                    answer:
+                      summary: >-
+                        Traffic is dropped by ACL inbound-filter on nyc-fw01.
+                      keyInsights:
+                        - The ACL denies 10.2.0.0/16 on ingress.
+                    createdAt: "2026-09-07T09:00:00.000Z"
+                    updatedAt: "2026-09-07T09:00:31.000Z"
+    post:
+      operationId: addAiChatMessage
+      summary: Ask a follow-up question in an existing chat
+      description: >-
+        Accepted immediately and answered asynchronously; poll the chat's status
+        or its messages for the answer.
+      x-forward-stability: unpublished
+      tags: [Forward AI]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewAiMessage" }
+      responses:
+        "202": { description: The question was accepted. }
+
+  /ai-chats/{chatId}/transcript:
+    get:
+      operationId: getAiChatTranscript
+      summary: Export a chat as a transcript
+      x-forward-stability: unpublished
+      tags: [Forward AI]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [MARKDOWN, HTML, JSON]
+            default: MARKDOWN
+      responses:
+        "200":
+          description: The rendered transcript.
+          content:
+            text/markdown:
+              schema: { type: string }
+
   /networks/{networkId}/snapshots/{snapshotId}/reachability:
     post:
       operationId: startReachabilityJob
@@ -452,6 +665,86 @@ components:
         network:
           type: object
           additionalProperties: { type: string }
+
+    NewAiMessage:
+      type: object
+      required: [prompt]
+      properties:
+        prompt:
+          type: string
+          description: The question to ask.
+
+    AiChat:
+      type: object
+      description: One conversation, grounded in a single snapshot.
+      properties:
+        id: { type: string }
+        networkId: { type: string }
+        snapshotId: { type: string }
+        name:
+          type: string
+          description: Absent until Forward has titled the chat.
+        status:
+          type: string
+          enum: [PROCESSING, DONE]
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    AiChatPage:
+      type: object
+      properties:
+        chats:
+          type: array
+          items: { $ref: "#/components/schemas/AiChat" }
+
+    AiToolCall:
+      type: object
+      description: A tool Forward used while answering, such as an NQE query.
+      properties:
+        type: { type: string }
+
+    AiMessageAnswer:
+      type: object
+      description: >-
+        The answer to one question. Absent while the chat is PROCESSING.
+        Deployments before 26.6 sent `finalAnswer` and `outOfScopeReason`
+        instead, so consumers should read both.
+      properties:
+        summary: { type: string }
+        outOfScope:
+          type: boolean
+          description: The question was outside what Forward AI can answer.
+        keyInsights:
+          type: array
+          items: { type: string }
+
+    AiMessage:
+      type: object
+      properties:
+        id: { type: string }
+        prompt: { type: string }
+        toolCalls:
+          type: array
+          items: { $ref: "#/components/schemas/AiToolCall" }
+        tasks:
+          type: array
+          items: { type: object, additionalProperties: true }
+        answer: { $ref: "#/components/schemas/AiMessageAnswer" }
+        finalAnswer:
+          type: string
+          description: Pre-26.6 form of the answer summary.
+        outOfScopeReason:
+          type: string
+          description: Pre-26.6 form of an out-of-scope answer.
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    AiMessagePage:
+      type: object
+      properties:
+        messages:
+          type: array
+          items: { $ref: "#/components/schemas/AiMessage" }
 
     CurrentUser:
       type: object

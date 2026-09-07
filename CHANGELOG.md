@@ -3,6 +3,28 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [0.1.1] - 2026-09-07
+
+### Added
+
+- **Forward AI** (`client.ai`). Ask a question about a network in plain language
+  and get an answer grounded in one snapshot, with the tools Forward used to
+  reach it. A conversation stays pinned to its snapshot, so follow-up questions
+  are answered against the same model as the first.
+
+  This reverses an earlier decision to leave Forward AI out of scope. It is
+  unpublished and gated twice over: absent from Forward's published API, and
+  requiring the `AI_ALLOWED` organization property, so most organizations are
+  refused with a 403. That refusal arrives as an ordinary
+  `ForwardPermissionError` carrying Forward's own sentence rather than a status
+  invented here.
+
+- `client.nqe.repo.source(path)` returns a query's committed source, fetching
+  with the flag a caller would otherwise have to remember, and failing loudly
+  when Forward returns none. Previously `RepositoryQuery.source` was simply
+  `None` when `with_source=True` had been forgotten, which reads like an empty
+  query rather than a missing argument.
+
 ## [0.1.0] - 2026-09-07
 
 First release.

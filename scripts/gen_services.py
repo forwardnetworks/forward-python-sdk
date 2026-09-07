@@ -100,6 +100,9 @@ HAND_WRITTEN_TAGS = {
     "Current Version",
     "NQE Repository",
     "Snapshot Reachability",
+    # Hand-written: answers arrive asynchronously, so this needs a chat handle
+    # with a poll loop rather than a method per endpoint.
+    "Forward AI",
 }
 
 HEADER = '''"""{title}.

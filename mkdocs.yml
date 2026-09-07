@@ -59,6 +59,7 @@ nav:
       - Overview: nqe/index.md
       - Query library: nqe/library.md
   - Snapshots: snapshots.md
+  - Forward AI: ai.md
   - API groups: services.md
   - Async: async.md
   - Unpublished endpoints: unpublished.md
@@ -68,5 +69,6 @@ nav:
   - Reference:
       - Client: reference/client.md
       - NQE: reference/nqe.md
+      - Forward AI: reference/ai.md
       - API groups: reference/services.md
       - Errors: reference/errors.md

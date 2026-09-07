@@ -78,6 +78,7 @@ SUBSTITUTIONS: tuple[tuple[str, str], ...] = (
     (r"\bAsyncRateLimiter\b", "RateLimiter"),
     (r"\bAsyncService\b", "Service"),
     (r"\bAsyncNqeExecution\b", "NqeExecution"),
+    (r"\bAsyncAiConversation\b", "AiConversation"),
     (r"\bAsyncSnapshotJob\b", "SnapshotJob"),
     (r"\bAsyncReachabilityJob\b", "ReachabilityJob"),
     # Generated service classes follow one naming rule, so one substitution

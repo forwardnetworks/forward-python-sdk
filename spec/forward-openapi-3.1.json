@@ -56,6 +56,129 @@
         ],
         "type": "string"
       },
+      "AiChat": {
+        "description": "One conversation, grounded in a single snapshot.",
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "description": "Absent until Forward has titled the chat.",
+            "type": "string"
+          },
+          "networkId": {
+            "type": "string"
+          },
+          "snapshotId": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PROCESSING",
+              "DONE"
+            ],
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AiChatPage": {
+        "properties": {
+          "chats": {
+            "items": {
+              "$ref": "#/components/schemas/AiChat"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AiMessage": {
+        "properties": {
+          "answer": {
+            "$ref": "#/components/schemas/AiMessageAnswer"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "finalAnswer": {
+            "description": "Pre-26.6 form of the answer summary.",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "outOfScopeReason": {
+            "description": "Pre-26.6 form of an out-of-scope answer.",
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "tasks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "toolCalls": {
+            "items": {
+              "$ref": "#/components/schemas/AiToolCall"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AiMessageAnswer": {
+        "description": "The answer to one question. Absent while the chat is PROCESSING. Deployments before 26.6 sent `finalAnswer` and `outOfScopeReason` instead, so consumers should read both.",
+        "properties": {
+          "keyInsights": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "outOfScope": {
+            "description": "The question was outside what Forward AI can answer.",
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AiMessagePage": {
+        "properties": {
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/AiMessage"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AiToolCall": {
+        "description": "A tool Forward used while answering, such as an NQE query.",
+        "properties": {
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "Alias": {
         "properties": {
           "createdAt": {
@@ -6344,6 +6467,18 @@
         },
         "type": "object"
       },
+      "NewAiMessage": {
+        "properties": {
+          "prompt": {
+            "description": "The question to ask.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      },
       "NewClassicDevice": {
         "properties": {
           "bgpAndBmpFailureHandling": {
@@ -10900,6 +11035,356 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/ai-chats": {
+      "get": {
+        "operationId": "getAiChats",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "chats": [
+                    {
+                      "createdAt": "2026-09-07T09:00:00.000Z",
+                      "id": "42",
+                      "name": "Why can nyc-fw01 not reach the database subnet?",
+                      "networkId": "101",
+                      "snapshotId": "12345",
+                      "status": "DONE",
+                      "updatedAt": "2026-09-07T09:00:31.000Z"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AiChatPage"
+                }
+              }
+            },
+            "description": "The chats."
+          }
+        },
+        "summary": "List the calling user's chats",
+        "tags": [
+          "Forward AI"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Creates a chat and asks its first question. The answer is produced asynchronously: the chat comes back with status PROCESSING and the message appears once it is DONE.",
+        "operationId": "startAiChat",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Defaults to the network's latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewAiMessage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-09-07T09:00:00.000Z",
+                  "id": "42",
+                  "networkId": "101",
+                  "snapshotId": "12345",
+                  "status": "PROCESSING",
+                  "updatedAt": "2026-09-07T09:00:00.000Z"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AiChat"
+                }
+              }
+            },
+            "description": "The new chat. The Location header names it too."
+          }
+        },
+        "summary": "Start a chat",
+        "tags": [
+          "Forward AI"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/ai-chats/{chatId}": {
+      "delete": {
+        "operationId": "deleteAiChat",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chatId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a chat",
+        "tags": [
+          "Forward AI"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "operationId": "getAiChat",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chatId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-09-07T09:00:00.000Z",
+                  "id": "42",
+                  "name": "Why can nyc-fw01 not reach the database subnet?",
+                  "networkId": "101",
+                  "snapshotId": "12345",
+                  "status": "DONE",
+                  "updatedAt": "2026-09-07T09:00:31.000Z"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AiChat"
+                }
+              }
+            },
+            "description": "The chat."
+          }
+        },
+        "summary": "Get one chat",
+        "tags": [
+          "Forward AI"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "operationId": "updateAiChat",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chatId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-09-07T09:00:00.000Z",
+                  "id": "42",
+                  "name": "Renamed",
+                  "networkId": "101",
+                  "snapshotId": "12345",
+                  "status": "DONE",
+                  "updatedAt": "2026-09-07T09:05:00.000Z"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AiChat"
+                }
+              }
+            },
+            "description": "The updated chat."
+          }
+        },
+        "summary": "Rename a chat",
+        "tags": [
+          "Forward AI"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/ai-chats/{chatId}/messages": {
+      "get": {
+        "operationId": "getAiChatMessages",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chatId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only messages updated after this instant.",
+            "in": "query",
+            "name": "since",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "messages": [
+                    {
+                      "answer": {
+                        "keyInsights": [
+                          "The ACL denies 10.2.0.0/16 on ingress."
+                        ],
+                        "summary": "Traffic is dropped by ACL inbound-filter on nyc-fw01."
+                      },
+                      "createdAt": "2026-09-07T09:00:00.000Z",
+                      "id": "7",
+                      "prompt": "Why can nyc-fw01 not reach the database subnet?",
+                      "toolCalls": [
+                        {
+                          "type": "GET_PATHS"
+                        }
+                      ],
+                      "updatedAt": "2026-09-07T09:00:31.000Z"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AiMessagePage"
+                }
+              }
+            },
+            "description": "The messages."
+          }
+        },
+        "summary": "List a chat's messages",
+        "tags": [
+          "Forward AI"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Accepted immediately and answered asynchronously; poll the chat's status or its messages for the answer.",
+        "operationId": "addAiChatMessage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chatId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewAiMessage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "The question was accepted."
+          }
+        },
+        "summary": "Ask a follow-up question in an existing chat",
+        "tags": [
+          "Forward AI"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/ai-chats/{chatId}/transcript": {
+      "get": {
+        "operationId": "getAiChatTranscript",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chatId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "default": "MARKDOWN",
+              "enum": [
+                "MARKDOWN",
+                "HTML",
+                "JSON"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The rendered transcript."
+          }
+        },
+        "summary": "Export a chat as a transcript",
+        "tags": [
+          "Forward AI"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/collector-tasks": {
       "get": {
         "description": "Retrieves information about recent Collector tasks, optionally filtered by task status. Tasks are ordered by\ncreation time, newest first.",
@@ -21007,6 +21492,10 @@
     {
       "description": "Files collected alongside a snapshot.",
       "name": "Data Files"
+    },
+    {
+      "description": "A snapshot-grounded assistant that answers questions about a network by calling Forward's own tools. Requires the AI_ALLOWED organization property, so an organization without it answers 403 to every operation here.",
+      "name": "Forward AI"
     }
   ]
 }

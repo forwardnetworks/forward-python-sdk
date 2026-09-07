@@ -1,0 +1,111 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "forward-sdk"
+dynamic = ["version"]
+description = "Official Python SDK for the Forward Networks REST API"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "Forward Networks", email = "support@forwardnetworks.com" }]
+keywords = ["forward", "forward-networks", "network", "nqe", "sdk", "api"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: System Administrators",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: System :: Networking",
+  "Typing :: Typed",
+]
+dependencies = [
+  "httpx>=0.27,<1",
+  "pydantic>=2.6,<3",
+  "typing_extensions>=4.8; python_version < '3.11'",
+]
+
+[project.urls]
+Homepage = "https://github.com/forwardnetworks/forward-python-sdk"
+Documentation = "https://forwardnetworks.github.io/forward-python-sdk/"
+Repository = "https://github.com/forwardnetworks/forward-python-sdk"
+Changelog = "https://github.com/forwardnetworks/forward-python-sdk/blob/main/CHANGELOG.md"
+Issues = "https://github.com/forwardnetworks/forward-python-sdk/issues"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-cov>=5",
+  "anyio>=4",
+  "ruff>=0.9",
+  "mypy>=1.13",
+  "pyyaml>=6",
+  "types-PyYAML",
+  "openapi-core>=0.19",
+  "openapi-spec-validator>=0.7",
+  "pre-commit>=4",
+]
+codegen = [
+  "datamodel-code-generator[http]>=0.28",
+  "pyyaml>=6",
+]
+docs = [
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.5",
+  "mkdocstrings[python]>=0.27",
+  "pymdown-extensions>=10",
+]
+
+[tool.hatch.version]
+path = "src/forward_sdk/_version.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["src/forward_sdk", "spec", "scripts", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/forward_sdk"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests", "scripts"]
+extend-exclude = ["src/forward_sdk/_generated", "src/forward_sdk/_sync", "tests/_sync"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "PL"]
+ignore = ["PLR0913", "PLR2004", "PLR0912", "PLR0915", "PLR0911", "RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLR", "B011"]
+"scripts/**" = ["PLR"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+files = ["src", "tests", "scripts"]
+exclude = ["src/forward_sdk/_generated/models.py"]
+
+[[tool.mypy.overrides]]
+module = ["forward_sdk._generated.models"]
+ignore_errors = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "live: tests that hit a real Forward instance (need FORWARD_URL/USERNAME/PASSWORD/NETWORK_ID)",
+]
+addopts = "-m 'not live' -ra"
+filterwarnings = ["error::DeprecationWarning:forward_sdk"]
+
+[tool.coverage.run]
+source = ["forward_sdk"]
+omit = ["src/forward_sdk/_generated/*"]

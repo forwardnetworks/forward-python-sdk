@@ -1,0 +1,13 @@
+# operationIds that intentionally have no SDK method.
+#
+# Every other operationId in spec/forward-openapi.yaml must be implemented by
+# exactly one method on both the sync and async clients; tests/spec/test_coverage.py
+# enforces that. Entries here need a reason, and `pending` shrinks to empty as
+# the phased delivery completes.
+skip: {}
+
+pending:
+  reason: >-
+    Not yet implemented. Phase 1 covers the operations the NetBox and Nautobot
+    plugins depend on; Phase 2 covers the rest of the published API.
+  operation_ids: []

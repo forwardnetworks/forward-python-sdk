@@ -1,0 +1,27 @@
+# Documentation hints about what can make an operation unavailable to a caller.
+#
+# These are NOT detected at runtime and never change SDK behaviour. Forward
+# reports a missing licence, a feature that is not deployed, and an RBAC denial
+# using the same ordinary status codes (401/403/404) with an ErrorInfo body, so
+# an SDK cannot reliably tell them apart. The values here drive documentation
+# badges and the `gating` hint carried on raised exceptions, to help a caller
+# interpret a denial. See docs/gating.md.
+#
+# Values: license | deployment | admin
+tags:
+  Vulnerability Analysis:
+    - license
+  System Administration:
+    - license
+    - deployment
+    - admin
+  User Accounts:
+    - admin
+  Credentials:
+    - admin
+  Jump Servers:
+    - admin
+  Endpoint Profiles:
+    - admin
+  Data Connectors:
+    - admin

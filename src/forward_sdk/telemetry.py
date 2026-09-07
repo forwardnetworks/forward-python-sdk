@@ -66,11 +66,18 @@ class CounterSnapshot:
 
         Zero until at least two requests have been sent far enough apart to
         span a measurable window.
+
+        The window is measured from the first attempt to the most recent, so it
+        spans one fewer interval than there are attempts. Dividing by attempts
+        rather than intervals overstates the rate by ``n / (n - 1)``, which is
+        100% at two attempts and 5% at twenty. That matters when the result is
+        compared against a published ceiling, because the error is pessimistic
+        and can condemn a rate that is actually within the limit.
         """
         elapsed = self.elapsed_seconds
-        if elapsed <= 0:
+        if self.http_attempts < 2 or elapsed <= 0:
             return 0.0
-        return self.http_attempts * 60.0 / elapsed
+        return (self.http_attempts - 1) * 60.0 / elapsed
 
     def as_dict(self) -> dict[str, float]:
         return {f.name: getattr(self, f.name) for f in fields(self)}

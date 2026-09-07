@@ -322,15 +322,22 @@ def test_timeouts_are_counted_apart_from_other_transport_errors(
 
 
 def test_observed_request_rate_needs_a_window(recorder: Recorder, no_sleep: list[float]) -> None:
-    """A rate is uncomputable without the elapsed window, which is the point."""
+    """A rate is uncomputable without the elapsed window, which is the point.
+
+    One request stamps both ends of the window with the same instant, so the
+    transport reports the timestamps and no rate. The arithmetic that turns
+    them into a rate is exercised in tests/unit/test_telemetry.py, where the
+    window can be chosen instead of measured.
+    """
     recorder.add("GET", "/api/networks", json_response([]))
     with make_transport(recorder) as transport:
         transport.send(NETWORKS)
         counters = transport.counters.snapshot()
 
+    assert counters.http_attempts == 1
     assert counters.first_attempt_at > 0
     assert counters.last_attempt_at >= counters.first_attempt_at
-    assert counters.attempts_per_minute >= 0
+    assert counters.attempts_per_minute == 0.0
 
 
 def test_saas_default_rate_limit_applied() -> None:

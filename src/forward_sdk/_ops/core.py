@@ -25,11 +25,13 @@ def list_networks() -> RequestSpec:
 
 
 @op("createNetwork")
-def create_network(*, name: str, note: str | None = None) -> RequestSpec:
-    body: dict[str, Any] = {"name": name}
-    if note is not None:
-        body["note"] = note
-    return spec_for("createNetwork", json=body, idempotent=False)
+def create_network(*, name: str) -> RequestSpec:
+    """Create a network.
+
+    Forward takes the name as a query parameter here and accepts no body; set a
+    note afterwards with :func:`update_network`.
+    """
+    return spec_for("createNetwork", query={"name": name}, idempotent=False)
 
 
 @op("updateNetwork")

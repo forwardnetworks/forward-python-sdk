@@ -70,15 +70,33 @@ class TestNetworks:
             with pytest.raises(ForwardNotFoundError, match="no network with id"):
                 await client.networks.get("999")
 
-    async def test_create_sends_name_and_note(self, recorder: Recorder) -> None:
+    async def test_create_sends_the_name_as_a_query_parameter(self, recorder: Recorder) -> None:
+        """Forward's create endpoint takes a name in the query and no body."""
         recorder.add(
             "POST", "/api/networks", json_response({"id": "5", "name": "New", "orgId": "7"})
         )
         async with make_client(recorder) as client:
-            network = await client.networks.create("New", note="from the SDK")
+            network = await client.networks.create("New")
 
         assert network.id == "5"
-        assert recorder.body_for() == {"name": "New", "note": "from the SDK"}
+        assert recorder.query_for()["name"] == ["New"]
+        assert recorder.body_for() is None
+
+    async def test_create_applies_a_note_as_a_follow_up_update(self, recorder: Recorder) -> None:
+        """The create endpoint accepts no note, so it is set with a second call."""
+        recorder.add(
+            "POST", "/api/networks", json_response({"id": "5", "name": "New", "orgId": "7"})
+        )
+        recorder.add(
+            "PATCH",
+            "/api/networks/5",
+            json_response({"id": "5", "name": "New", "orgId": "7", "note": "from the SDK"}),
+        )
+        async with make_client(recorder) as client:
+            network = await client.networks.create("New", note="from the SDK")
+
+        assert network.note == "from the SDK"
+        assert recorder.body_for() == {"note": "from the SDK"}
 
     async def test_version(self, recorder: Recorder) -> None:
         recorder.add("GET", "/api/version", json_response({"version": "26.4.1", "build": "abc"}))

@@ -35,8 +35,16 @@ class NetworksService(Service):
         raise ForwardNotFoundError(f"no network with id {network_id!r}", status=404)
 
     def create(self, name: str, *, note: str | None = None) -> Network:
-        payload = self._send_json(ops.create_network(name=name, note=note))
-        return Network.model_validate(payload or {})
+        """Create a network.
+
+        Forward's create endpoint takes only a name, so a note is applied as a
+        follow-up update.
+        """
+        payload = self._send_json(ops.create_network(name=name))
+        network = Network.model_validate(payload or {})
+        if note is not None and network.id:
+            return self.update(network.id, note=note)
+        return network
 
     def update(self, network_id: str, **changes: Any) -> Network:
         """Change a network's name, note or retention."""

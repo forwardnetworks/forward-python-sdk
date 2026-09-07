@@ -90,7 +90,7 @@ def test_runs_a_query_synchronously(client: ForwardClient, network_id: str) -> N
 def test_runs_a_query_in_the_background(client: ForwardClient, network_id: str) -> None:
     execution = client.nqe.execute(TRIVIAL_QUERY, network_id=network_id)
     status = execution.wait(timeout=600)
-    assert status.get("outcome") == "OK"
+    assert str(status.outcome) == "OK"
 
     paged = list(execution.rows(page_size=100))
     streamed = list(execution.stream())

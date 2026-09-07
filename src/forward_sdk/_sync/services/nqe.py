@@ -22,7 +22,12 @@ import time
 from collections.abc import Iterator, Mapping, Sequence
 from typing import Any
 
-from forward_sdk._generated.models import NqeQuery, NqeRunResult
+from forward_sdk._generated.models import (
+    NqeDiffEntry,
+    NqeExecutionStatus,
+    NqeQuery,
+    NqeRunResult,
+)
 from forward_sdk._http import parse_retry_after
 from forward_sdk._ops import nqe as ops
 from forward_sdk._sync.services._base import Service
@@ -41,6 +46,7 @@ from forward_sdk.nqe.pagination import (
     PageTracker,
 )
 from forward_sdk.nqe.query_ref import QueryRef
+from forward_sdk.nqe.telemetry import ExecutionReport, ExecutionReports
 
 __all__ = ["NqeExecution", "NqeService"]
 
@@ -91,6 +97,8 @@ class NqeExecution:
         key: str,
         network_id: str,
         status: Mapping[str, Any] | None = None,
+        query_label: str | None = None,
+        reports: ExecutionReports | None = None,
     ) -> None:
         self._service = service
         self.key = key
@@ -98,6 +106,11 @@ class NqeExecution:
         self._status: dict[str, Any] = dict(status or {})
         self._started = time.monotonic()
         self._retry_after: float | None = None
+        self._polls = 0
+        self._poll_sleep = 0.0
+        self._terminal_reason: str | None = None
+        self._query_label = query_label
+        self._reports = reports
 
     def __repr__(self) -> str:
         return f"<NqeExecution key={self.key!r} status={self.last_status!r}>"
@@ -138,7 +151,7 @@ class NqeExecution:
         except (TypeError, ValueError):
             return None
 
-    def status(self) -> dict[str, Any]:
+    def status(self) -> NqeExecutionStatus:
         """Fetch the execution's current status."""
         response = self._service._transport.send(
             ops.execution_status(network_id=self.network_id, execution_key=self.key)
@@ -149,15 +162,16 @@ class NqeExecution:
         self._retry_after = parse_retry_after(response.headers.get("retry-after"))
         payload = response.json() if response.content else {}
         self._status = dict(payload or {})
+        self._polls += 1
         self._service._transport.counters.increment("nqe_polls")
-        return self._status
+        return NqeExecutionStatus.model_validate(self._status)
 
     def wait(
         self,
         *,
         poll_interval: float = POLL_INTERVAL,
         timeout: float | None = 1800.0,
-    ) -> dict[str, Any]:
+    ) -> NqeExecutionStatus:
         """Poll until the execution finishes.
 
         Returns:
@@ -174,12 +188,15 @@ class NqeExecution:
 
         # A short query can already be finished in the response that started it,
         # in which case there is nothing to poll for.
-        status = self._status if self.is_finished else self.status()
+        if not self.is_finished:
+            self.status()
+        status = self._status
 
         while True:
             if status.get("status") == TERMINAL_STATUS:
                 outcome = status.get("outcome")
                 if outcome and outcome != SUCCESS_OUTCOME:
+                    self._record(str(outcome))
                     raise ForwardExecutionError(
                         f"NQE execution finished with outcome {outcome}: "
                         f"{_execution_error_detail(status)}",
@@ -187,14 +204,18 @@ class NqeExecution:
                         status=str(status.get("status")),
                         outcome=str(outcome),
                     )
-                return status
+                self._record(str(outcome or SUCCESS_OUTCOME))
+                return NqeExecutionStatus.model_validate(status)
 
             self._check_deadlines(local_deadline, timeout, status)
 
             # Forward's own pacing request wins over the local schedule.
-            time.sleep(self._retry_after or interval)
+            delay = self._retry_after or interval
+            self._poll_sleep += delay
+            time.sleep(delay)
             interval = min(poll_interval, interval * 2)
-            status = self.status()
+            self.status()
+            status = self._status
 
     def _check_deadlines(
         self,
@@ -213,6 +234,7 @@ class NqeExecution:
         last = status.get("status")
 
         if local_deadline is not None and now >= local_deadline:
+            self._record("CLIENT_TIMEOUT")
             raise ForwardTimeoutError(
                 f"NQE execution {self.key} did not finish within {timeout}s "
                 f"(last status {last!r}); it is still running on Forward"
@@ -221,10 +243,39 @@ class NqeExecution:
         server_deadline = self.server_deadline
         if server_deadline is not None and now >= server_deadline:
             budget = status.get("timeoutMinutes")
+            self._record("SERVER_BUDGET_EXPIRED")
             raise ForwardTimeoutError(
                 f"NQE execution {self.key} passed the {budget}-minute budget Forward "
                 f"allows it (last status {last!r}); the query needs to do less work"
             )
+
+    @property
+    def report(self) -> ExecutionReport:
+        """What happened to this execution, so far."""
+        return ExecutionReport(
+            execution_key=self.key,
+            network_id=self.network_id,
+            snapshot_id=_optional_str(self._status.get("snapshotId")),
+            query=self._query_label,
+            millis_executing=self.millis_executing,
+            rows_produced=self.rows_produced,
+            poll_count=self._polls,
+            poll_sleep_seconds=round(self._poll_sleep, 3),
+            terminal_reason=self._terminal_reason,
+            wall_seconds=round(time.monotonic() - self._started, 3),
+        )
+
+    def _record(self, reason: str) -> None:
+        """Retain this execution's record on the client.
+
+        Called once, on whichever path ends the wait, so a caller using the
+        convenience wrapper still gets telemetry without holding the handle.
+        """
+        if self._terminal_reason is not None:
+            return
+        self._terminal_reason = reason
+        if self._reports is not None:
+            self._reports.record(self.report)
 
     def result_page(self, *, offset: int = 0, limit: int | None = None) -> NqeRunResult:
         """Fetch one page of results as the API returns it."""
@@ -299,6 +350,10 @@ def _is_ndjson(response: Any) -> bool:
     return "ndjson" in content_type or "jsonl" in content_type
 
 
+def _optional_str(value: Any) -> str | None:
+    return str(value) if value not in (None, "") else None
+
+
 def _execution_error_detail(status: Mapping[str, Any]) -> str:
     error = status.get("error")
     if isinstance(error, Mapping):
@@ -312,6 +367,7 @@ class NqeService(Service):
     def __init__(self, transport: Transport) -> None:
         super().__init__(transport)
         self.repo = NqeRepository(transport)
+        self._reports = ExecutionReports()
 
     def run(
         self,
@@ -374,7 +430,14 @@ class NqeService(Service):
         if not key:
             raise ForwardExecutionError(f"Forward accepted {ref} but returned no execution key")
         self._transport.counters.increment("nqe_executions")
-        return NqeExecution(self, key=str(key), network_id=resolved_network, status=data)
+        return NqeExecution(
+            self,
+            key=str(key),
+            network_id=resolved_network,
+            status=data,
+            query_label=str(ref),
+            reports=self._reports,
+        )
 
     def query(
         self,
@@ -404,17 +467,31 @@ class NqeService(Service):
 
     def diff(
         self,
-        before_snapshot_id: str,
-        after_snapshot_id: str,
         query: QueryRef | str,
         *,
+        before: str,
+        after: str,
         page_size: int = DEFAULT_PAGE_SIZE,
         guards: PageGuards | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[NqeDiffEntry]:
         """Compare a query's results between two snapshots.
+
+        The query comes first, matching :meth:`run` and :meth:`execute`, and the
+        snapshots are keyword-only because nothing in a pair of ids says which
+        is which.
 
         Only a committed query can be diffed; Forward has no way to diff query
         source it has never seen.
+
+        Args:
+            query: A committed query, by id or library path.
+            before: The snapshot to compare from.
+            after: The snapshot to compare to.
+
+        Returns:
+            One entry per changed row. ``before`` and ``after`` are independent
+            and either may be absent: a row added between the snapshots has no
+            ``before``, a removed one has no ``after``.
         """
         ref = _as_ref(query)
         if ref.mode == "text":
@@ -428,12 +505,12 @@ class NqeService(Service):
         query_id = ref.effective_query_id
         assert query_id is not None  # guaranteed by is_runnable for non-text refs
         tracker = PageTracker(guards, page_size=page_size)
-        entries: list[dict[str, Any]] = []
+        entries: list[NqeDiffEntry] = []
         while True:
             payload = self._send_json(
                 ops.diff(
-                    before_snapshot_id=before_snapshot_id,
-                    after_snapshot_id=after_snapshot_id,
+                    before_snapshot_id=before,
+                    after_snapshot_id=after,
                     query_id=query_id,
                     commit_id=ref.effective_commit_id,
                     offset=tracker.offset,
@@ -443,9 +520,21 @@ class NqeService(Service):
             )
             data = payload or {}
             page = list(data.get("rows") or [])
-            entries.extend(page)
+            entries.extend(NqeDiffEntry.model_validate(row) for row in page)
             if tracker.observe(page, data.get("totalNumRows")) is Decision.DONE:
                 return entries
+
+    def execution_reports(self) -> list[ExecutionReport]:
+        """What happened to each execution this client has run.
+
+        Retained on the client rather than only on the handle, because the
+        convenience wrapper :meth:`query` does not hand the handle back, and a
+        sync fanning many queries across threads asks once at the end rather
+        than holding each one.
+
+        Bounded and thread-safe; reading it never raises.
+        """
+        return self._reports.all()
 
     def queries(self, directory: str | None = None) -> list[NqeQuery]:
         """List queries in the library."""

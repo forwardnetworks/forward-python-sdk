@@ -38,6 +38,30 @@ class CounterSnapshot:
     nqe_rows: int = 0
     cache_hits: int = 0
     cache_misses: int = 0
+    #: When the first and most recent requests were sent, as Unix timestamps.
+    #: Without the window they span, a request rate cannot be computed, which
+    #: is what a release gate against a rate limit needs.
+    first_attempt_at: float = 0.0
+    last_attempt_at: float = 0.0
+
+    @property
+    def elapsed_seconds(self) -> float:
+        """Time between the first and most recent request."""
+        if not self.first_attempt_at or not self.last_attempt_at:
+            return 0.0
+        return max(0.0, self.last_attempt_at - self.first_attempt_at)
+
+    @property
+    def attempts_per_minute(self) -> float:
+        """Observed request rate, for comparison against a server-side limit.
+
+        Zero until at least two requests have been sent far enough apart to
+        span a measurable window.
+        """
+        elapsed = self.elapsed_seconds
+        if elapsed <= 0:
+            return 0.0
+        return self.http_attempts * 60.0 / elapsed
 
     def as_dict(self) -> dict[str, float]:
         return {f.name: getattr(self, f.name) for f in fields(self)}
@@ -62,12 +86,20 @@ class Counters:
                 raise KeyError(f"unknown counter {name!r}")
             self._values[name] += amount
 
+    def mark_attempt(self, when: float) -> None:
+        """Record when a request was sent, for the observed-rate window."""
+        with self._lock:
+            self._values["http_attempts"] += 1
+            if not self._values["first_attempt_at"]:
+                self._values["first_attempt_at"] = when
+            self._values["last_attempt_at"] = when
+
     def snapshot(self) -> CounterSnapshot:
         with self._lock:
             values = dict(self._values)
         # Durations stay floats; every other counter is a whole number of events.
         coerced: dict[str, Any] = {
-            key: (float(value) if key.endswith("_seconds") else int(value))
+            key: (float(value) if key.endswith(("_seconds", "_at")) else int(value))
             for key, value in values.items()
         }
         return CounterSnapshot(**coerced)

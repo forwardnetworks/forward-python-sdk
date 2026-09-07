@@ -108,6 +108,7 @@ class SnapshotsService(Service):
         include_tags: Sequence[str] = (),
         exclude_tags: Sequence[str] = (),
         include_match: str = "any",
+        where: str = "",
     ) -> str:
         """Find the newest snapshot that actually contains collected devices.
 
@@ -116,14 +117,32 @@ class SnapshotsService(Service):
         data (a sync job, say) want this rather than simply the latest processed
         snapshot. Each candidate is probed with a one-row query.
 
+        Args:
+            scan_limit: How many recent snapshots to probe before giving up.
+            include_tags: Only count devices carrying one of these tags.
+            exclude_tags: Ignore devices carrying any of these tags.
+            include_match: Whether one included tag is enough, or all are needed.
+            where: Extra NQE ``where`` lines narrowing the probe. Use this when
+                your scope is not expressible as tags -- a vendor or model
+                allowlist, say -- so the probe asks about the devices you
+                actually sync rather than the whole network. Build clauses with
+                :mod:`forward_sdk.nqe.where` so values are escaped.
+
         Raises:
             ForwardNotFoundError: If no scanned snapshot has devices in scope.
         """
         resolved = self._network(network_id)
-        scope = tag_scope(
-            include=include_tags,
-            exclude=exclude_tags,
-            include_match=include_match,  # type: ignore[arg-type]
+        scope = "\n".join(
+            part
+            for part in (
+                tag_scope(
+                    include=include_tags,
+                    exclude=exclude_tags,
+                    include_match=include_match,  # type: ignore[arg-type]
+                ),
+                where.strip(),
+            )
+            if part
         )
         probe = COLLECTED_PROBE.format(scope=scope)
 

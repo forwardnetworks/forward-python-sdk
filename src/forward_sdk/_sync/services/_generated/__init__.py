@@ -19,6 +19,7 @@ from forward_sdk._sync.services._generated.collection_schedules import (
 from forward_sdk._sync.services._generated.collector_tasks import CollectorTasksService
 from forward_sdk._sync.services._generated.credentials import CredentialsService
 from forward_sdk._sync.services._generated.data_connectors import DataConnectorsService
+from forward_sdk._sync.services._generated.data_files import DataFilesService
 from forward_sdk._sync.services._generated.encryptors import EncryptorsService
 from forward_sdk._sync.services._generated.endpoint_profiles import EndpointProfilesService
 from forward_sdk._sync.services._generated.internet_node import InternetNodeService
@@ -51,6 +52,7 @@ __all__ = [
     "CollectorTasksService",
     "CredentialsService",
     "DataConnectorsService",
+    "DataFilesService",
     "EncryptorsService",
     "EndpointProfilesService",
     "GeneratedServices",
@@ -85,6 +87,7 @@ class GeneratedServices:
     collector_tasks: CollectorTasksService
     credentials: CredentialsService
     data_connectors: DataConnectorsService
+    data_files: DataFilesService
     encryptors: EncryptorsService
     endpoint_profiles: EndpointProfilesService
     internet_node: InternetNodeService
@@ -110,6 +113,7 @@ class GeneratedServices:
         self.collector_tasks = CollectorTasksService(transport)
         self.credentials = CredentialsService(transport)
         self.data_connectors = DataConnectorsService(transport)
+        self.data_files = DataFilesService(transport)
         self.encryptors = EncryptorsService(transport)
         self.endpoint_profiles = EndpointProfilesService(transport)
         self.internet_node = InternetNodeService(transport)
@@ -137,6 +141,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Collector Tasks": "collector_tasks",
     "Credentials": "credentials",
     "Data Connectors": "data_connectors",
+    "Data Files": "data_files",
     "Encryptors": "encryptors",
     "Endpoint Profiles": "endpoint_profiles",
     "Internet Node": "internet_node",

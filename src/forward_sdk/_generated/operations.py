@@ -1287,6 +1287,15 @@ OPERATIONS: dict[str, OpDef] = {
         response_media=('application/json',),
         summary="Get collector tasks",
     ),
+    "getCurrentUser": OpDef(
+        operation_id="getCurrentUser",
+        method="get",
+        path="/users/current",
+        tag="User Accounts",
+        stability="unpublished",
+        gating=('admin',),
+        summary="Get the authenticated user",
+    ),
     "getCveAnalyses": OpDef(
         operation_id="getCveAnalyses",
         method="get",
@@ -1359,6 +1368,19 @@ OPERATIONS: dict[str, OpDef] = {
         gating=('admin',),
         response_model="DataConnectors",
         summary="Get a network’s data connectors",
+    ),
+    "getDataFiles": OpDef(
+        operation_id="getDataFiles",
+        method="get",
+        path="/networks/{networkId}/data-files",
+        tag="Data Files",
+        parameters=(
+            ParamDef(name="networkId", location="path", required=True, schema_type="string"),
+            ParamDef(name="view", location="query", schema_type="string"),
+            ParamDef(name="snapshotId", location="query", schema_type="string"),
+        ),
+        stability="unpublished",
+        summary="List the data files collected for a network",
     ),
     "getDevice": OpDef(
         operation_id="getDevice",

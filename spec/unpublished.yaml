@@ -19,6 +19,8 @@ tags:
     description: Reading and writing the NQE query library.
   - name: Snapshot Reachability
     description: Advanced reachability computation as a pollable job.
+  - name: Data Files
+    description: Files collected alongside a snapshot.
 paths:
   /nqe/repos/{repository}/commits/{commitId}/queries:
     get:
@@ -154,6 +156,41 @@ paths:
                     body: { type: string }
       responses:
         "200": { description: The commit result, or the dry-run report. }
+
+  /users/current:
+    get:
+      operationId: getCurrentUser
+      summary: Get the authenticated user
+      description: >-
+        Returns the calling user, including the roles it holds. `roles.org`
+        applies across the organization; `roles.network` maps a network id to
+        the role held on that network. Integrations use these to decide whether
+        a login may write to the shared NQE query library before attempting it.
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      responses:
+        "200": { description: The authenticated user. }
+
+  /networks/{networkId}/data-files:
+    get:
+      operationId: getDataFiles
+      summary: List the data files collected for a network
+      x-forward-stability: unpublished
+      tags: [Data Files]
+      parameters:
+        - name: networkId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: view
+          in: query
+          description: Set to "snapshot" to list the files of one snapshot.
+          schema: { type: string }
+        - name: snapshotId
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: The data files. }
 
   /networks/{networkId}/snapshots/{snapshotId}/reachability:
     post:

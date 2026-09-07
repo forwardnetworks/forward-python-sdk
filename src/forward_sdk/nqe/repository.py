@@ -33,7 +33,20 @@ INVALID_CHANGE_PATH = "INVALID_CHANGE_PATH"
 
 @dataclass(frozen=True, slots=True)
 class RepositoryQuery:
-    """A query in the library."""
+    """A query in the library.
+
+    Attributes:
+        query_id: Forward's identifier for the query.
+        path: Its path in the library.
+        commit_id: The commit this entry came from, when Forward reported one.
+        intent: The query's declared intent.
+        repository: ``org`` for your organization's library, ``fwd`` for the
+            one Forward ships.
+        source: The committed query text. This is the only place the source
+            appears, and it is populated only when the query was fetched with
+            ``with_source=True``; otherwise it is ``None``. Forward returns it
+            as ``sourceCode`` on the wire.
+    """
 
     query_id: str
     path: str

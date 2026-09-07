@@ -16,6 +16,7 @@ from forward_sdk._async.services._generated.collection_schedules import (
 from forward_sdk._async.services._generated.collector_tasks import AsyncCollectorTasksService
 from forward_sdk._async.services._generated.credentials import AsyncCredentialsService
 from forward_sdk._async.services._generated.data_connectors import AsyncDataConnectorsService
+from forward_sdk._async.services._generated.data_files import AsyncDataFilesService
 from forward_sdk._async.services._generated.encryptors import AsyncEncryptorsService
 from forward_sdk._async.services._generated.endpoint_profiles import AsyncEndpointProfilesService
 from forward_sdk._async.services._generated.internet_node import AsyncInternetNodeService
@@ -48,6 +49,7 @@ __all__ = [
     "AsyncCollectorTasksService",
     "AsyncCredentialsService",
     "AsyncDataConnectorsService",
+    "AsyncDataFilesService",
     "AsyncEncryptorsService",
     "AsyncEndpointProfilesService",
     "AsyncGeneratedServices",
@@ -82,6 +84,7 @@ class AsyncGeneratedServices:
     collector_tasks: AsyncCollectorTasksService
     credentials: AsyncCredentialsService
     data_connectors: AsyncDataConnectorsService
+    data_files: AsyncDataFilesService
     encryptors: AsyncEncryptorsService
     endpoint_profiles: AsyncEndpointProfilesService
     internet_node: AsyncInternetNodeService
@@ -107,6 +110,7 @@ class AsyncGeneratedServices:
         self.collector_tasks = AsyncCollectorTasksService(transport)
         self.credentials = AsyncCredentialsService(transport)
         self.data_connectors = AsyncDataConnectorsService(transport)
+        self.data_files = AsyncDataFilesService(transport)
         self.encryptors = AsyncEncryptorsService(transport)
         self.endpoint_profiles = AsyncEndpointProfilesService(transport)
         self.internet_node = AsyncInternetNodeService(transport)
@@ -134,6 +138,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Collector Tasks": "collector_tasks",
     "Credentials": "credentials",
     "Data Connectors": "data_connectors",
+    "Data Files": "data_files",
     "Encryptors": "encryptors",
     "Endpoint Profiles": "endpoint_profiles",
     "Internet Node": "internet_node",

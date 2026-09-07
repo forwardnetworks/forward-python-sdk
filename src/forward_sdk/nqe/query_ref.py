@@ -27,6 +27,8 @@ QUERY_ID_PREFIX = "FQ_"
 #: Length of a full commit hash. Forward rejects abbreviated ones.
 COMMIT_ID_LENGTH = 40
 
+HEX_DIGITS = frozenset("0123456789abcdefABCDEF")
+
 Repository = Literal["org", "fwd"]
 
 
@@ -42,19 +44,31 @@ class SortKey:
 
 
 def sanitize_commit_id(commit_id: str | None) -> str | None:
-    """Drop commit identifiers Forward will not accept.
+    """Normalize a commit identifier, or reject one Forward cannot honour.
 
-    Forward rejects an abbreviated hash and does not understand the symbolic
-    name ``head`` in a run request; in both cases omitting the field is what
-    the caller meant, so it is dropped rather than raising.
+    ``head`` is dropped: Forward does not understand the symbolic name in a run
+    request, and omitting the field means the same thing, so the caller gets
+    what they asked for.
+
+    An abbreviated hash is refused rather than dropped. Pinning a commit is an
+    assertion about one specific version of a query; silently discarding the pin
+    would answer a different question -- whatever is at head now -- and report
+    success. That is exactly what pinning exists to prevent.
+
+    Raises:
+        ForwardConfigurationError: If the value looks like an abbreviated hash.
     """
     if not commit_id:
         return None
     value = commit_id.strip()
     if not value or value.lower() == "head":
         return None
-    if len(value) < COMMIT_ID_LENGTH and all(c in "0123456789abcdefABCDEF" for c in value):
-        return None
+    if len(value) < COMMIT_ID_LENGTH and all(c in HEX_DIGITS for c in value):
+        raise ForwardConfigurationError(
+            f"commit id {value!r} is abbreviated; Forward needs the full "
+            f"{COMMIT_ID_LENGTH}-character hash. Dropping it would silently run "
+            "against the latest version instead of the one you pinned."
+        )
     return value
 
 

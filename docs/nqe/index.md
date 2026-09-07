@@ -100,16 +100,46 @@ returning the same full page without advancing.
 Every query takes an optional `snapshot_id`. Omitting it, or passing `None`,
 runs against the network's latest processed snapshot without an extra lookup.
 
+## Telemetry
+
+Each execution leaves a record on the client, so a job that runs many queries
+across threads can report what happened without holding on to the handles:
+
+```python
+for report in client.nqe.execution_reports():
+    print(report.query, report.rows_produced, report.millis_executing,
+          report.poll_count, report.terminal_reason)
+```
+
+`terminal_reason` is Forward's outcome when it finished, or the client-side
+reason waiting stopped. Retention is bounded and thread-safe, and reading it
+never raises, since the place it is usually read is a failure path.
+
 ## Diffing across snapshots
 
 ```python
-changes = client.nqe.diff("100", "101", QueryRef.by_id("FQ_..."))
+changes = client.nqe.diff(QueryRef.by_id("FQ_..."), before="100", after="101")
 for entry in changes:
-    print(entry["type"], entry["before"], entry["after"])
+    print(entry.type, entry.before, entry.after)
 ```
+
+The snapshots are keyword-only because nothing in a pair of ids says which is
+which. `before` and `after` are independent and either may be absent: a row
+added between the snapshots has no `before`, a removed one has no `after`.
 
 Only a committed query can be diffed, since Forward cannot diff source it has
 never seen. Passing inline source raises `ForwardConfigurationError`.
+
+## Pinning a query version
+
+`commit_id` pins a query to one committed version. Two values are treated
+specially:
+
+- `"head"` is dropped, because Forward does not understand the symbolic name
+  and omitting the field means the same thing.
+- An abbreviated hash raises `ForwardConfigurationError`. Forward needs the full
+  40 characters, and silently dropping the pin would run against whatever is at
+  head and report success, which is exactly what pinning exists to prevent.
 
 ## Query files
 

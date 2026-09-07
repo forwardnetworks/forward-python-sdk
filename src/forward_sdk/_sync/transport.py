@@ -150,7 +150,7 @@ class Transport:
             self._pace()
             request = self._build(spec)
             self._notify("on_request", spec.operation, request)
-            self.counters.increment("http_attempts")
+            self.counters.mark_attempt(time.time())
             started = time.monotonic()
 
             try:
@@ -218,7 +218,7 @@ class Transport:
             request = self._build(spec)
             request.extensions["timeout"] = timeout.as_dict()
             self._notify("on_request", spec.operation, request)
-            self.counters.increment("http_attempts")
+            self.counters.mark_attempt(time.time())
 
             response: httpx.Response | None = None
             try:

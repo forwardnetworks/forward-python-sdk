@@ -78,10 +78,20 @@ class TestQueryRef:
 
 
 class TestCommitIdSanitizing:
-    @pytest.mark.parametrize("value", ["", None, "head", "HEAD", "84f84b0", "abc123"])
-    def test_unusable_values_are_dropped(self, value: str | None) -> None:
-        """Forward rejects abbreviated hashes and does not know the name 'head'."""
+    @pytest.mark.parametrize("value", ["", None, "head", "HEAD"])
+    def test_head_and_empty_are_dropped(self, value: str | None) -> None:
+        """Forward does not know the symbolic name, and omitting it means the same."""
         assert sanitize_commit_id(value) is None
+
+    @pytest.mark.parametrize("value", ["84f84b0", "abc123", "0" * 39])
+    def test_abbreviated_hash_is_refused(self, value: str) -> None:
+        """Dropping a pin silently would answer a different question.
+
+        Forward cannot use a short hash. Discarding it would run against
+        whatever is at head and report success, defeating the point of pinning.
+        """
+        with pytest.raises(ForwardConfigurationError, match="abbreviated"):
+            sanitize_commit_id(value)
 
     def test_full_hash_is_kept(self) -> None:
         assert sanitize_commit_id(FULL_COMMIT) == FULL_COMMIT

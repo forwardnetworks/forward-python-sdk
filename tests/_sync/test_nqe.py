@@ -141,7 +141,7 @@ class TestExecute:
             execution = client.nqe.execute("q")
             status = execution.wait()
 
-        assert status["outcome"] == "OK"
+        assert str(status.outcome) == "OK"
         assert recorder.count("GET", STATUS) == 3
         assert execution.rows_produced == 2
 
@@ -195,7 +195,7 @@ class TestExecute:
             execution = client.nqe.execute("q")
             status = execution.wait()
 
-        assert status["outcome"] == "OK"
+        assert str(status.outcome) == "OK"
         assert recorder.count("GET", STATUS) == 0
         assert no_sleep == []
 
@@ -377,6 +377,60 @@ class TestResults:
         assert rows == [{"n": 1}]
 
 
+class TestTelemetry:
+    def test_client_retains_a_record_of_each_execution(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        """A sync collects telemetry at the end, long after the handles are gone."""
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        recorder.add(
+            "GET",
+            STATUS,
+            json_response({"status": "EXECUTING"}),
+            json_response({**COMPLETED, "millisExecuting": 250}),
+        )
+        recorder.add("GET", RESULT, page([{"n": 1}], total=1))
+
+        with make_client(recorder) as client:
+            client.nqe.query("foreach d in network.devices select {n: d.name}")
+            reports = client.nqe.execution_reports()
+
+        assert len(reports) == 1
+        report = reports[0]
+        assert report.execution_key == "exec-1"
+        assert report.network_id == "101"
+        assert report.terminal_reason == "OK"
+        assert report.rows_produced == 2
+        assert report.millis_executing == 250
+        assert report.poll_count == 2
+        assert report.poll_sleep_seconds > 0
+        assert "inline query" in (report.query or "")
+        assert set(report.as_dict()) >= {"execution_key", "terminal_reason"}
+
+    def test_a_failed_execution_is_recorded_with_its_reason(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        """Telemetry is most wanted on the failure path, so it must be there."""
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        recorder.add("GET", STATUS, json_response({"status": "COMPLETED", "outcome": "TIMED_OUT"}))
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardExecutionError):
+                client.nqe.query("q")
+            reports = client.nqe.execution_reports()
+
+        assert [r.terminal_reason for r in reports] == ["TIMED_OUT"]
+
+    def test_client_timeout_is_recorded(self, recorder: Recorder, no_sleep: list[float]) -> None:
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        recorder.add("GET", STATUS, json_response({"status": "EXECUTING"}))
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardTimeoutError):
+                (client.nqe.execute("q")).wait(timeout=0)
+            reports = client.nqe.execution_reports()
+
+        assert [r.terminal_reason for r in reports] == ["CLIENT_TIMEOUT"]
+
+
 class TestDiff:
     def test_diff_pages_entries(self, recorder: Recorder) -> None:
         recorder.add(
@@ -385,16 +439,17 @@ class TestDiff:
             json_response({"rows": [{"type": "ADDED"}], "totalNumRows": 1}),
         )
         with make_client(recorder) as client:
-            entries = client.nqe.diff("100", "101", QueryRef.by_id("FQ_abc"))
+            entries = client.nqe.diff(QueryRef.by_id("FQ_abc"), before="100", after="101")
 
-        assert entries == [{"type": "ADDED"}]
+        assert len(entries) == 1
+        assert str(entries[0].type) == "ADDED"
         assert recorder.body_for()["queryId"] == "FQ_abc"
 
     def test_diff_rejects_inline_source(self, recorder: Recorder) -> None:
         """Forward cannot diff query source it has never seen."""
         with make_client(recorder) as client:
             with pytest.raises(ForwardConfigurationError, match="committed query"):
-                client.nqe.diff("100", "101", "foreach d in x select {}")
+                client.nqe.diff("foreach d in x select {}", before="100", after="101")
 
 
 class TestLibrary:
@@ -446,10 +501,22 @@ class TestLibrary:
         assert recorder.count("GET", "/api/nqe/repos/org/commits/head/queries") == 1
         assert client.counters.cache_hits == 1
 
-    def test_abbreviated_commit_id_is_dropped(self, recorder: Recorder) -> None:
-        """Forward rejects an abbreviated hash, so sending it would fail the run."""
+    def test_abbreviated_commit_id_is_refused(self, recorder: Recorder) -> None:
+        """Pinning to a short hash must fail loudly, not quietly run at head.
+
+        Silently dropping the pin would answer a different question and report
+        success, which is what pinning exists to prevent.
+        """
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardConfigurationError, match="abbreviated"):
+                client.nqe.execute(QueryRef.by_id("FQ_abc", commit_id="84f84b0"))
+
+        assert recorder.requests == []
+
+    def test_head_commit_id_is_dropped_silently(self, recorder: Recorder) -> None:
+        """`head` is not a hash; omitting the field means the same thing."""
         recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
         with make_client(recorder) as client:
-            client.nqe.execute(QueryRef.by_id("FQ_abc", commit_id="84f84b0"))
+            client.nqe.execute(QueryRef.by_id("FQ_abc", commit_id="head"))
 
         assert "commitId" not in recorder.body_for()

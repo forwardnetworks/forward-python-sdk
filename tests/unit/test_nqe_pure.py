@@ -24,7 +24,14 @@ from forward_sdk.nqe.files import (
 )
 from forward_sdk.nqe.pagination import Decision
 from forward_sdk.nqe.query_ref import SortKey
-from forward_sdk.nqe.where import literal, membership, one_of, tag_scope, where
+from forward_sdk.nqe.where import (
+    enum_one_of,
+    literal,
+    membership,
+    one_of,
+    tag_scope,
+    where,
+)
 
 FULL_COMMIT = "84f84b0c0a0a1805ddff0ca5451c2c55c58605e5"
 
@@ -214,6 +221,25 @@ class TestWhereBuilders:
 
     def test_one_of_escapes_its_values(self) -> None:
         assert one_of("f", ['a"b']) == 'f in ["a\\"b"]'
+
+    def test_enum_one_of_accepts_the_shipped_enum(self) -> None:
+        """Passing the enum removes any guessing about member spelling."""
+        from forward_sdk.models import Vendor
+
+        assert enum_one_of("d.platform.vendor", Vendor, [Vendor.cisco]) == (
+            "d.platform.vendor == Vendor.CISCO"
+        )
+
+    def test_enum_one_of_emits_equality_not_membership(self) -> None:
+        """An enum member is not a string, so `in [..]` fails at run time."""
+        assert enum_one_of("f", "Vendor", ["A", "B"]) == ("(f == Vendor.A || f == Vendor.B)")
+
+    def test_enum_one_of_refuses_an_unquotable_member(self) -> None:
+        with pytest.raises(ValueError, match="not a valid enum member"):
+            enum_one_of("f", "Vendor", ['X" || true'])
+
+    def test_enum_one_of_with_no_values(self) -> None:
+        assert enum_one_of("f", "Vendor", []) is None
 
     def test_where_skips_empty_clauses(self) -> None:
         assert where("a == 1", None, "b == 2") == "where a == 1\nwhere b == 2"

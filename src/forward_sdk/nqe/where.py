@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Iterable, Sequence
+from enum import Enum
 from typing import Any, Literal
 
 __all__ = ["enum_one_of", "literal", "membership", "one_of", "tag_scope", "where"]
@@ -104,7 +105,7 @@ def one_of(field: str, values: Sequence[Any]) -> str | None:
     return f"{field} in [{rendered}]"
 
 
-def enum_one_of(field: str, enum_type: str, values: Sequence[Any]) -> str | None:
+def enum_one_of(field: str, enum_type: str | type[Enum], values: Sequence[Any]) -> str | None:
     """Test whether an **enum** field equals any of ``values``.
 
     Emits ``(f == Vendor.ARISTA || f == Vendor.CISCO)``. NQE enum values are
@@ -114,12 +115,19 @@ def enum_one_of(field: str, enum_type: str, values: Sequence[Any]) -> str | None
         >>> enum_one_of("device.platform.vendor", "Vendor", ["ARISTA", "CISCO"])
         '(device.platform.vendor == Vendor.ARISTA || device.platform.vendor == Vendor.CISCO)'
 
+    Prefer passing the shipped enum rather than typing names, which removes any
+    question of whether a member is spelled the way you expect::
+
+        from forward_sdk.models import Vendor
+        enum_one_of("device.platform.vendor", Vendor, [Vendor.cisco, Vendor.arista])
+
     Args:
         field: The enum-valued field.
-        enum_type: The NQE type name, such as ``Vendor`` or ``DeviceType``.
-        values: Member names. A name is validated as an identifier rather than
-            quoted, since a quoted value would be a string and fail the
-            comparison.
+        enum_type: The NQE type name, such as ``Vendor``, or the shipped enum
+            class itself, whose name is the same.
+        values: Members, either as :class:`~enum.Enum` values or as names. A
+            name is validated as an identifier rather than quoted, since a
+            quoted value would be a string and fail the comparison.
 
     Returns:
         The clause, or ``None`` when ``values`` is empty.
@@ -129,6 +137,7 @@ def enum_one_of(field: str, enum_type: str, values: Sequence[Any]) -> str | None
             members cannot be escaped the way a string can, so anything
             unexpected is refused rather than interpolated.
     """
+    type_name = enum_type.__name__ if isinstance(enum_type, type) else str(enum_type)
     members = [str(value).strip() for value in values if str(value).strip()]
     if not members:
         return None
@@ -138,10 +147,10 @@ def enum_one_of(field: str, enum_type: str, values: Sequence[Any]) -> str | None
                 f"{member!r} is not a valid enum member name. Enum values are "
                 "compared as identifiers and cannot be quoted or escaped."
             )
-    if not IDENTIFIER.fullmatch(enum_type):
-        raise ValueError(f"{enum_type!r} is not a valid NQE type name")
+    if not IDENTIFIER.fullmatch(type_name):
+        raise ValueError(f"{type_name!r} is not a valid NQE type name")
 
-    tests = [f"{field} == {enum_type}.{member}" for member in members]
+    tests = [f"{field} == {type_name}.{member}" for member in members]
     return tests[0] if len(tests) == 1 else f"({' || '.join(tests)})"
 
 

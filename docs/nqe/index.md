@@ -196,12 +196,20 @@ All three verified against a live instance. The distinctions are not stylistic:
   enum member is not a string.
 
 ```python
+from forward_sdk.models import Vendor
 from forward_sdk.nqe.where import enum_one_of, membership, one_of
 
-enum_one_of("device.platform.vendor", "Vendor", ["CISCO", "ARISTA"])
+# Pass the shipped enum rather than typing member names.
+enum_one_of("device.platform.vendor", Vendor, [Vendor.cisco, Vendor.arista])
 one_of("device.platform.osVersion", ["17.9.4"])
 membership("device.tagNames", ["production"])
 ```
+
+`enum_one_of` takes the enum class or its name, and members as enum values or
+strings. Passing the shipped enum is worth preferring: every member name is
+then exactly what Forward uses, with nothing to normalise or guess. Names are
+validated as identifiers rather than quoted, since quoting one turns it into a
+string and reintroduces the type error.
 
 Enum members are validated as identifiers rather than quoted, since quoting one
 would make it a string and reintroduce the type error.

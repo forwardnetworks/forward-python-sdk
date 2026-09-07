@@ -199,17 +199,33 @@ All three verified against a live instance. The distinctions are not stylistic:
 from forward_sdk.models import Vendor
 from forward_sdk.nqe.where import enum_one_of, membership, one_of
 
-# Pass the shipped enum rather than typing member names.
-enum_one_of("device.platform.vendor", Vendor, [Vendor.cisco, Vendor.arista])
+enum_one_of("device.platform.vendor", "Vendor", [Vendor.cisco, Vendor.arista])
 one_of("device.platform.osVersion", ["17.9.4"])
 membership("device.tagNames", ["production"])
 ```
 
-`enum_one_of` takes the enum class or its name, and members as enum values or
-strings. Passing the shipped enum is worth preferring: every member name is
-then exactly what Forward uses, with nothing to normalise or guess. Names are
-validated as identifiers rather than quoted, since quoting one turns it into a
-string and reintroduces the type error.
+Members may be shipped enum values, which removes any question of how a member
+is spelled. Names are validated as identifiers rather than quoted, since quoting
+one turns it into a string and reintroduces the type error.
+
+!!! warning "The NQE type name is not the SDK class name"
+
+    NQE's data model is its own namespace and the two disagree. Verified
+    against a live instance:
+
+    | Field | NQE type | SDK model class |
+    | --- | --- | --- |
+    | `device.platform.vendor` | `Vendor` | `Vendor` |
+    | `device.platform.deviceType` | `DeviceType` | `DeviceType` |
+    | `device.platform.os` | `OS` | `VendorOs` |
+
+    Passing `VendorOs` fails with *Variable VendorOs not in scope*. Read the
+    type name off a `toString()` rendering of the field, which prefixes it:
+    `toString(device.platform.os)` gives `"OS.PAN_OS"`.
+
+    The same prefix matters when reading values back. A query selecting
+    `toString(device.platform.os)` yields `OS.PAN_OS`, not `PAN_OS`, so strip
+    the prefix if you want the bare member.
 
 Enum members are validated as identifiers rather than quoted, since quoting one
 would make it a string and reintroduce the type error.

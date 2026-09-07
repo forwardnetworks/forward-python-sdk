@@ -11,7 +11,6 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Iterable, Sequence
-from enum import Enum
 from typing import Any, Literal
 
 __all__ = ["enum_one_of", "literal", "membership", "one_of", "tag_scope", "where"]
@@ -105,7 +104,7 @@ def one_of(field: str, values: Sequence[Any]) -> str | None:
     return f"{field} in [{rendered}]"
 
 
-def enum_one_of(field: str, enum_type: str | type[Enum], values: Sequence[Any]) -> str | None:
+def enum_one_of(field: str, enum_type: str, values: Sequence[Any]) -> str | None:
     """Test whether an **enum** field equals any of ``values``.
 
     Emits ``(f == Vendor.ARISTA || f == Vendor.CISCO)``. NQE enum values are
@@ -115,16 +114,26 @@ def enum_one_of(field: str, enum_type: str | type[Enum], values: Sequence[Any]) 
         >>> enum_one_of("device.platform.vendor", "Vendor", ["ARISTA", "CISCO"])
         '(device.platform.vendor == Vendor.ARISTA || device.platform.vendor == Vendor.CISCO)'
 
-    Prefer passing the shipped enum rather than typing names, which removes any
-    question of whether a member is spelled the way you expect::
+    ``enum_type`` is the name of the type **in NQE**, which is not always the
+    name of the corresponding SDK model class. NQE's data model is its own
+    namespace, and the two disagree at least once: ``device.platform.os`` has
+    NQE type ``OS`` while the SDK model class is ``VendorOs``, and passing
+    ``VendorOs`` fails with *Variable VendorOs not in scope*. Take the name from
+    a ``toString()`` rendering of the field, which prefixes it::
+
+        toString(device.platform.os)      -> "OS.PAN_OS"          so "OS"
+        toString(device.platform.vendor)  -> "Vendor.CISCO"       so "Vendor"
+
+    Members may be given as shipped enum values, which removes any question of
+    how a member is spelled::
 
         from forward_sdk.models import Vendor
-        enum_one_of("device.platform.vendor", Vendor, [Vendor.cisco, Vendor.arista])
+        enum_one_of("device.platform.vendor", "Vendor", [Vendor.cisco])
 
     Args:
         field: The enum-valued field.
-        enum_type: The NQE type name, such as ``Vendor``, or the shipped enum
-            class itself, whose name is the same.
+        enum_type: The NQE type name. See above: not necessarily the SDK class
+            name.
         values: Members, either as :class:`~enum.Enum` values or as names. A
             name is validated as an identifier rather than quoted, since a
             quoted value would be a string and fail the comparison.
@@ -137,7 +146,7 @@ def enum_one_of(field: str, enum_type: str | type[Enum], values: Sequence[Any]) 
             members cannot be escaped the way a string can, so anything
             unexpected is refused rather than interpolated.
     """
-    type_name = enum_type.__name__ if isinstance(enum_type, type) else str(enum_type)
+    type_name = str(enum_type)
     members = [str(value).strip() for value in values if str(value).strip()]
     if not members:
         return None

@@ -223,11 +223,17 @@ class TestWhereBuilders:
     def test_one_of_escapes_its_values(self) -> None:
         assert one_of("f", ['a"b']) == 'f in ["a\\"b"]'
 
-    def test_enum_one_of_accepts_the_shipped_enum(self) -> None:
-        """Passing the enum removes any guessing about member spelling."""
-        assert enum_one_of("d.platform.vendor", Vendor, [Vendor.cisco]) == (
+    def test_enum_one_of_accepts_shipped_enum_members(self) -> None:
+        """Members may be enum values; the type name is still given explicitly.
+
+        The NQE type name is not always the SDK class name, so it cannot be
+        inferred: device.platform.os has NQE type OS while the model class is
+        VendorOs, and NQE rejects VendorOs as not in scope.
+        """
+        assert enum_one_of("d.platform.vendor", "Vendor", [Vendor.cisco]) == (
             "d.platform.vendor == Vendor.CISCO"
         )
+        assert enum_one_of("d.platform.os", "OS", ["PAN_OS"]) == ("d.platform.os == OS.PAN_OS")
 
     def test_enum_one_of_emits_equality_not_membership(self) -> None:
         """An enum member is not a string, so `in [..]` fails at run time."""

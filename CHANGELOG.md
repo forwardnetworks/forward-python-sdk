@@ -21,6 +21,18 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `to_api()` on `RepositoryQuery` and `DraftChange`. These are frozen
+  dataclasses rather than pydantic models, so they never had `model_dump`, and a
+  consumer calling it saw their query index come back empty instead of failing:
+  their normalisation swallowed the `AttributeError`, and an empty library is a
+  plausible answer, so the symptom surfaced two calls later. The method is named
+  to match `ForwardModel.to_api` so serializing something the SDK returned does
+  not require knowing which of the two kinds it is.
+
+  Note also that `forward_sdk._generated.models` declares its own
+  `RepositoryQuery`, the wire schema these are built from. That one is a
+  pydantic model and is not what the library methods return. The docstrings now
+  say so.
 - `ForwardResponseError`, so a response the SDK cannot parse stays inside the
   exception tree. A body that failed validation previously raised pydantic's
   `ValidationError`, which is not a `ForwardError` and therefore travelled

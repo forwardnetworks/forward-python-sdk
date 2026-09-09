@@ -135,6 +135,24 @@ green suite, including a predicate helper that could never have worked, a
 repository method that failed on every call, and a Forward AI response that
 failed to parse at all. None was subtle. All were assumptions.
 
+### A return type is part of the contract
+
+Field names are the part everyone diffs. The rest of a returned object is just
+as load-bearing and does not show up in that diff: whether it is a pydantic
+model or a dataclass, which methods it answers to, whether it is frozen.
+
+A consumer called `model_dump(by_alias=True)` on a library row, which is a
+dataclass and has never had that method. Their normalisation swallowed the
+`AttributeError`, so the query index came back empty rather than failing. An
+empty library is a plausible answer, so nothing looked wrong until a lookup two
+calls later failed somewhere else entirely. An hour to find, one line to fix.
+
+Two rules follow. Anything a public method returns gets a `to_api()`, whether it
+is a model or a dataclass, so a caller never has to know which kind they hold.
+And if you change the kind of a returned object, say so in the changelog even
+though no field moved, because pre-1.0 lets you make the change without letting
+anyone see it coming.
+
 ### Another client agreeing with you is not evidence
 
 The advice above has a hole, and one defect went through it. Both plugins this

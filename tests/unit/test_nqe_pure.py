@@ -12,7 +12,7 @@ from forward_sdk.errors import (
     ForwardPaginationError,
     ForwardTimeoutError,
 )
-from forward_sdk.models import Vendor
+from forward_sdk.models import Network, Vendor
 from forward_sdk.nqe import PageGuards, PageTracker, QueryRef, sanitize_commit_id
 from forward_sdk.nqe.enums import NQE_ENUMS
 from forward_sdk.nqe.enums import members as nqe_members
@@ -27,6 +27,7 @@ from forward_sdk.nqe.files import (
 )
 from forward_sdk.nqe.pagination import Decision
 from forward_sdk.nqe.query_ref import SortKey
+from forward_sdk.nqe.repository import DraftChange, RepositoryQuery
 from forward_sdk.nqe.where import (
     enum_one_of,
     literal,
@@ -312,6 +313,47 @@ class TestWhereBuilders:
 
     def test_enum_one_of_with_no_values(self) -> None:
         assert enum_one_of("f", "Vendor", []) is None
+
+
+class TestLibraryTypesSerialize:
+    """These are dataclasses, not models, so `model_dump` was never available.
+
+    A consumer called `model_dump(by_alias=True)` on a library row, got an
+    AttributeError swallowed by their own normalisation, and saw an empty query
+    index rather than a failure. An empty index is a plausible answer, so the
+    symptom appeared two calls later at commit resolution.
+
+    `to_api` is named to match `ForwardModel.to_api`, so serializing something
+    the SDK returned does not require knowing which of the two kinds it is.
+    """
+
+    def test_repository_query_uses_forward_field_names(self) -> None:
+        row = RepositoryQuery(query_id="FQ_1", path="/A", commit_id="b" * 40, source="x")
+        assert row.to_api() == {
+            "queryId": "FQ_1",
+            "path": "/A",
+            "repository": "org",
+            "lastCommitId": "b" * 40,
+            "sourceCode": "x",
+        }
+
+    def test_unset_fields_are_omitted_as_the_models_do(self) -> None:
+        assert RepositoryQuery(query_id="FQ_1", path="/A").to_api() == {
+            "queryId": "FQ_1",
+            "path": "/A",
+            "repository": "org",
+        }
+
+    def test_draft_change_serializes(self) -> None:
+        assert DraftChange(path="/A", action="EDIT").to_api() == {
+            "path": "/A",
+            "action": "EDIT",
+        }
+
+    def test_both_kinds_answer_to_the_same_method_name(self) -> None:
+        """The point of the name: a caller should not have to know the kind."""
+        assert hasattr(RepositoryQuery(query_id="q", path="/A"), "to_api")
+        assert hasattr(Network(id="n", name="p", org_id="7"), "to_api")
 
 
 class TestNoBuilderEmitsAnEmptyListLiteral:

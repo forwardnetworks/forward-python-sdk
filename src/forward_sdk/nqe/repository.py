@@ -40,6 +40,16 @@ INVALID_CHANGE_PATH = "INVALID_CHANGE_PATH"
 class RepositoryQuery:
     """A query in the library.
 
+    A plain frozen dataclass, not a pydantic model, so it has no
+    ``model_dump``. Use :meth:`to_api` to serialize it with Forward's own field
+    names. The type exists because Forward describes this entry in more than one
+    shape, nesting the commit under ``lastCommit`` while integrations that
+    normalize synthesize a flat ``lastCommitId``; reconciling that once here
+    keeps every caller from doing it. Note that
+    ``forward_sdk._generated.models`` also declares a ``RepositoryQuery``, the
+    wire schema this is built from. That one is a pydantic model and is not what
+    the library methods return.
+
     Attributes:
         query_id: Forward's identifier for the query.
         path: Its path in the library.
@@ -59,6 +69,26 @@ class RepositoryQuery:
     intent: str | None = None
     repository: str = "org"
     source: str | None = None
+
+    def to_api(self) -> dict[str, Any]:
+        """Serialize with Forward's field names, matching the generated models.
+
+        Named to match :meth:`ForwardModel.to_api`, so serializing an object the
+        SDK returned does not depend on knowing which of the two kinds it is.
+        Fields that are unset are omitted, as they are there.
+        """
+        data: dict[str, Any] = {
+            "queryId": self.query_id,
+            "path": self.path,
+            "repository": self.repository,
+        }
+        if self.commit_id is not None:
+            data["lastCommitId"] = self.commit_id
+        if self.intent is not None:
+            data["intent"] = self.intent
+        if self.source is not None:
+            data["sourceCode"] = self.source
+        return data
 
     @classmethod
     def from_payload(
@@ -85,10 +115,21 @@ class RepositoryQuery:
 
 @dataclass(frozen=True, slots=True)
 class DraftChange:
-    """One staged, uncommitted change."""
+    """One staged, uncommitted change.
+
+    A frozen dataclass rather than a pydantic model, like
+    :class:`RepositoryQuery`, so serialize it with :meth:`to_api`.
+    """
 
     path: str
     action: str | None = None
+
+    def to_api(self) -> dict[str, Any]:
+        """Serialize with Forward's field names."""
+        data: dict[str, Any] = {"path": self.path}
+        if self.action is not None:
+            data["action"] = self.action
+        return data
 
     @classmethod
     def from_payload(cls, payload: Mapping[str, Any]) -> DraftChange:

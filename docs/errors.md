@@ -99,9 +99,9 @@ from forward_sdk.errors import ForwardResponseError
 try:
     networks = client.networks.list()
 except ForwardResponseError as error:
-    error.payload      # what Forward actually sent
-    error.model_name   # what the SDK tried to build
-    error.__cause__    # the pydantic ValidationError, with per-field detail
+    error.payload  # what Forward actually sent
+    error.model_name  # what the SDK tried to build
+    error.__cause__  # the pydantic ValidationError, with per-field detail
 ```
 
 The models are lenient in one direction and strict in the other, on purpose.

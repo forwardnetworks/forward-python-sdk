@@ -52,6 +52,10 @@ select {{ name: device.name }}
 """
 
 
+#: Reuse a resolved snapshot for as long as the client lives.
+LIFETIME = "lifetime"
+
+
 class _Miss:
     """Sentinel for "not cached", distinct from a cached ``None``."""
 
@@ -86,6 +90,10 @@ class AsyncSnapshotsService(AsyncService):
         """
         self._resolved.clear()
 
+    def _caching(self) -> bool:
+        ttl = self._config.snapshot_cache_ttl
+        return bool(ttl == LIFETIME or ttl > 0)
+
     def _cached(self, key: tuple[Any, ...]) -> Any:
         """A previously resolved answer to exactly this question, or a miss.
 
@@ -93,25 +101,30 @@ class AsyncSnapshotsService(AsyncService):
         answer: a network with no processed snapshot resolves to nothing, and
         re-asking every time would spend the budget the cache exists to save.
 
+        ``"lifetime"`` never expires. That is the point of it: a run holding one
+        point in time must not have the answer change underneath it, and a TTL
+        expiring mid-run would let the next resolution return a different
+        snapshot, straddling two moments with nothing raising.
+
         A race between two threads costs a duplicate resolution, never a wrong
         answer, since both compute the same thing from the same server state.
         """
         ttl = self._config.snapshot_cache_ttl
-        if ttl <= 0:
+        if not self._caching():
             return _MISS
         entry = self._resolved.get(key)
         if entry is None:
             self._transport.counters.increment("cache_misses")
             return _MISS
         fetched, value = entry
-        if (time.monotonic() - fetched) >= ttl:
+        if ttl != LIFETIME and (time.monotonic() - fetched) >= ttl:
             self._transport.counters.increment("cache_misses")
             return _MISS
         self._transport.counters.increment("cache_hits")
         return value
 
     def _remember(self, key: tuple[Any, ...], value: Any) -> Any:
-        if self._config.snapshot_cache_ttl > 0:
+        if self._caching():
             self._resolved[key] = (time.monotonic(), value)
         return value
 

@@ -145,13 +145,31 @@ that itself. Nothing failed and no test noticed. It showed up only as request
 volume against a live account.
 
 If you know an invariant the SDK cannot assume, tell it, with
-`snapshot_cache_ttl`. It is off by default and takes a number of seconds:
+`snapshot_cache_ttl`. It is off by default and takes two shapes, and which one
+you want follows from what your run is doing.
+
+**A run that holds one point in time wants `"lifetime"`.** It resolves once and
+keeps that answer for as long as the client lives:
 
 ```python
-# This sync pins one point in time for its whole run, so resolving "latest"
-# once is right here even though it would not be in general.
-client = ForwardClient.from_env(snapshot_cache_ttl=600)
+# This sync pins one snapshot for its whole run, and snapshots are immutable,
+# so the answer must not change underneath it.
+client = ForwardClient.from_env(snapshot_cache_ttl="lifetime")
 ```
+
+**Repeated independent reads want a number of seconds.** A dashboard, a
+long-lived service answering unrelated questions, anything where "latest" should
+eventually mean something newer:
+
+```python
+client = ForwardClient.from_env(snapshot_cache_ttl=60)
+```
+
+Do not reach for the number when you meant the first thing. A TTL that expires
+mid-run lets the next resolution return a different snapshot, so the run
+straddles two moments. Nothing raises, and the data is real on both sides of the
+expiry; it is simply from two different times. That is the same failure this
+whole area keeps producing, an answer that looks entirely plausible.
 
 That covers `latest_processed` and `latest_collected_id`, keyed by the exact
 question asked, so two different tag scopes stay two different answers. A
@@ -159,7 +177,8 @@ network with no processed snapshot is cached as an answer too, since re-asking
 would spend the budget the setting exists to save.
 
 Uploading a snapshot through the same client clears it, because that is the
-event that makes a cached answer wrong. For anything the SDK cannot see, such
+event that makes a cached answer wrong. `"lifetime"` means "until something
+makes it wrong", not "forever", so it yields to an upload too. For anything the SDK cannot see, such
 as an upload from another process or a snapshot that finished while you were
 running, call `client.snapshots.clear_cache()`.
 

@@ -99,12 +99,13 @@ class ClientConfig:
             Forward uses the network's latest processed snapshot.
         user_agent: Extra token identifying the calling application.
         cache_ttl: Seconds to reuse cached reads, or ``0`` to disable.
-        snapshot_cache_ttl: Seconds to reuse a resolved snapshot, or ``0``, the
-            default, to resolve every time. Off by default because only the
-            caller knows how long "latest" should stay true, and a stale
-            snapshot fails silently: it returns real data from the wrong moment.
-            Set it when a run pins one point in time, which is the usual case
-            for a sync.
+        snapshot_cache_ttl: How long to reuse a resolved snapshot. ``0``, the
+            default, resolves every time. ``"lifetime"`` resolves once and
+            keeps that answer for as long as the client lives, which is what a
+            run holding one point in time wants. A number of seconds suits
+            repeated independent reads, and is the wrong shape for a pinned
+            run: expiring mid-run lets the next resolution return a different
+            snapshot, so the run straddles two moments with nothing raising.
     """
 
     base_url: str
@@ -128,7 +129,7 @@ class ClientConfig:
     snapshot_id: str | None = None
     user_agent: str | None = None
     cache_ttl: float = 60.0
-    snapshot_cache_ttl: float = 0.0
+    snapshot_cache_ttl: float | Literal["lifetime"] = 0.0
     proxy: str | None = None
     trust_env: bool = True
 
@@ -248,7 +249,9 @@ def config_from_env(environ: dict[str, str] | None = None, **overrides: Any) -> 
         settings["retries"] = int(retries)
     snapshot_ttl = _env("SNAPSHOT_CACHE_TTL", environ)
     if snapshot_ttl:
-        settings["snapshot_cache_ttl"] = float(snapshot_ttl)
+        settings["snapshot_cache_ttl"] = (
+            "lifetime" if snapshot_ttl.lower() == "lifetime" else float(snapshot_ttl)
+        )
 
     settings.update(overrides)
     return settings
@@ -267,7 +270,7 @@ def build_config(
     snapshot_id: str | None = None,
     user_agent: str | None = None,
     cache_ttl: float = 60.0,
-    snapshot_cache_ttl: float = 0.0,
+    snapshot_cache_ttl: float | Literal["lifetime"] = 0.0,
     proxy: str | None = None,
     trust_env: bool = True,
     stream_read_timeout: float = DEFAULT_STREAM_READ_TIMEOUT,
@@ -297,7 +300,9 @@ def build_config(
         snapshot_id=snapshot_id,
         user_agent=user_agent,
         cache_ttl=max(0.0, cache_ttl),
-        snapshot_cache_ttl=max(0.0, snapshot_cache_ttl),
+        snapshot_cache_ttl=(
+            "lifetime" if snapshot_cache_ttl == "lifetime" else max(0.0, float(snapshot_cache_ttl))
+        ),
         proxy=proxy,
         trust_env=trust_env,
     )

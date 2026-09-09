@@ -79,7 +79,7 @@ class ForwardClient(GeneratedServices):
         snapshot_id: str | None = None,
         user_agent: str | None = None,
         cache_ttl: float = 60.0,
-        snapshot_cache_ttl: float = 0.0,
+        snapshot_cache_ttl: float | Literal["lifetime"] = 0.0,
         proxy: str | None = None,
         trust_env: bool = True,
         transport: httpx.BaseTransport | None = None,

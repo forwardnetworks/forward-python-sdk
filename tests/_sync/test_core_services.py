@@ -385,6 +385,47 @@ class TestSnapshotResolutionCache:
         assert before is not None and before.id == "9"
         assert after is not None and after.id == "10"
 
+    def test_lifetime_never_expires(
+        self, recorder: Recorder, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A run holding one point in time must not have it change underneath.
+
+        A TTL is the wrong shape for that: expiring mid-run lets the next
+        resolution return a newer snapshot, so the run straddles two moments
+        with nothing raising and the data real on both sides. "lifetime" is the
+        shape that matches the invariant a sync actually relies on, which is
+        that it pinned one snapshot and snapshots are immutable.
+        """
+        now = [1000.0]
+        monkeypatch.setattr("forward_sdk._sync.services.snapshots.time.monotonic", lambda: now[0])
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
+        with make_client(recorder, snapshot_cache_ttl="lifetime") as client:
+            first = client.snapshots.latest_processed()
+            now[0] += 86_400
+            second = client.snapshots.latest_processed()
+
+        assert first is not None and second is not None
+        assert first.id == second.id == "9"
+        assert recorder.count("GET", SNAPSHOTS) == 1
+
+    def test_lifetime_still_yields_to_an_upload(self, recorder: Recorder, tmp_path: Path) -> None:
+        """Never expiring is not the same as never being wrong.
+
+        The client that uploaded a snapshot knows the answer changed, so
+        "lifetime" means "until something makes it wrong", not "forever".
+        """
+        archive = tmp_path / "snap.zip"
+        archive.write_bytes(b"zip")
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
+        recorder.add("POST", SNAPSHOTS, json_response(snapshot("10")))
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("10")]}))
+        with make_client(recorder, snapshot_cache_ttl="lifetime") as client:
+            client.snapshots.latest_processed()
+            client.snapshots.upload([str(archive)])
+            after = client.snapshots.latest_processed()
+
+        assert after is not None and after.id == "10"
+
     def test_clear_cache_forces_a_fresh_resolution(self, recorder: Recorder) -> None:
         recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("9")]}))
         recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [snapshot("11")]}))

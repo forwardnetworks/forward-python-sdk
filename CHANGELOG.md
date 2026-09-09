@@ -3,6 +3,23 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Added
+
+- `snapshot_cache_ttl="lifetime"`, which resolves a snapshot once and keeps that
+  answer for the life of the client. A number of seconds was the wrong shape for
+  the case the setting was added for: a run that has pinned one point in time
+  does not want the answer to change underneath it, and a TTL expiring mid-run
+  lets the next resolution return a different snapshot, so the run straddles two
+  moments with nothing raising and the data real on both sides.
+
+  Seconds remain right for repeated independent reads, and the documentation now
+  says which shape suits which caller rather than leaving it to be discovered.
+  `"lifetime"` still yields to an upload through the same client, because that is
+  an event that makes the answer wrong rather than merely old. Suggested by the
+  Nautobot integration, whose own cache is lifetime-scoped for this reason.
+
 ## [0.1.5] - 2026-09-09
 
 ### Changed

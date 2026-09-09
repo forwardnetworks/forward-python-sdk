@@ -156,3 +156,24 @@ def test_user_agent_identifies_the_sdk_and_the_application() -> None:
     assert agent.startswith("forward-sdk/")
     assert "python-httpx/" in agent
     assert agent.endswith("my-app/2.0")
+
+
+class TestSnapshotCacheTtl:
+    def test_off_by_default(self) -> None:
+        assert build_config("https://forward.test").snapshot_cache_ttl == 0.0
+
+    def test_lifetime_survives_config_building(self) -> None:
+        config = build_config("https://forward.test", snapshot_cache_ttl="lifetime")
+        assert config.snapshot_cache_ttl == "lifetime"
+
+    def test_a_negative_ttl_is_off_rather_than_an_error(self) -> None:
+        assert build_config("https://forward.test", snapshot_cache_ttl=-5).snapshot_cache_ttl == 0.0
+
+    def test_read_from_the_environment(self) -> None:
+        environ = {"FORWARD_URL": "https://forward.test", "FORWARD_SNAPSHOT_CACHE_TTL": "120"}
+        assert config_from_env(environ)["snapshot_cache_ttl"] == 120.0
+
+    def test_lifetime_read_from_the_environment(self) -> None:
+        """Spelled as a word, so a deployment can pin a run without a magic number."""
+        environ = {"FORWARD_URL": "https://forward.test", "FORWARD_SNAPSHOT_CACHE_TTL": "lifetime"}
+        assert config_from_env(environ)["snapshot_cache_ttl"] == "lifetime"

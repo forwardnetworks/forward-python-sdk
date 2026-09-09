@@ -6,16 +6,22 @@ any 4xx or 5xx, so callers can read the server's own explanation rather than
 guess from a status code.
 
 **On denials.** Forward reports a missing licence, a feature that is not part of
-this deployment, and an RBAC denial with the same ordinary status codes. The SDK
-therefore does not claim to distinguish them: 401 raises
+this deployment, and an RBAC denial with the same ordinary status codes, and
+with ``reason`` set to ``null``, so no code separates them: 401 raises
 :class:`ForwardAuthError`, 403 raises :class:`ForwardPermissionError` and 404
-raises :class:`ForwardNotFoundError` whatever the underlying cause. Read
-``error.error_info.message`` for the server's reason, and ``error.gating`` for a
-documented hint about what can gate that operation.
+raises :class:`ForwardNotFoundError` whatever the underlying cause.
+
+Its wording does separate them. :attr:`ForwardAPIError.denial` reads Forward's
+own message and reports which kind of refusal it is, well enough to tell an
+operator what to fix. It is prose rather than a contract, so branch on the
+status code and treat the kind as the explanation. ``error.gating`` remains the
+documented hint about what can gate an operation at all.
 """
 
 from __future__ import annotations
 
+import re
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:  # pragma: no cover - imported for typing only
@@ -25,6 +31,7 @@ if TYPE_CHECKING:  # pragma: no cover - imported for typing only
     from forward_sdk._generated.models import ErrorInfo, NqeErrorInfo, NqeQueryError
 
 __all__ = [
+    "Denial",
     "ForwardAPIError",
     "ForwardAuthError",
     "ForwardBadRequestError",
@@ -41,6 +48,7 @@ __all__ = [
     "ForwardServerError",
     "ForwardTimeoutError",
     "ForwardTransportError",
+    "classify_denial",
     "status_error_class",
 ]
 
@@ -144,6 +152,66 @@ class ForwardExecutionError(ForwardError):
         self.outcome = outcome
 
 
+#: How Forward words each kind of refusal, read from its own access enforcer
+#: rather than guessed. ``reason`` is explicitly ``null`` on a 403, so the
+#: message is the only signal there is.
+#:
+#: The licence-expiry pattern deliberately matches only the tail of Forward's
+#: sentence. The full text contains a typographic apostrophe (U+2019), and
+#: matching across it is how a check like this quietly stops working.
+_DENIAL_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("license", re.compile(r"^Unlicensed operation:\s*(?P<detail>\S+)")),
+    ("rbac", re.compile(r"^Missing permission:\s*(?P<detail>\S+)")),
+    ("license_expired", re.compile(r"license has expired")),
+    ("org_setting", re.compile(r"^(?P<detail>[A-Z0-9_]+) is (?:on|off) for your organization")),
+    (
+        "deployment_setting",
+        re.compile(r"^(?P<detail>[A-Z0-9_]+) is (?:on|off) for your deployment"),
+    ),
+    ("authority", re.compile(r"^(?P<detail>.+?) authority required")),
+)
+
+
+@dataclass(frozen=True, slots=True)
+class Denial:
+    """Why Forward refused, as far as its wording can tell you.
+
+    Attributes:
+        kind: One of ``rbac``, ``license``, ``license_expired``,
+            ``org_setting``, ``deployment_setting`` or ``authority``.
+        detail: The operation, setting or authority Forward named, when it
+            named one.
+    """
+
+    kind: str
+    detail: str | None = None
+
+
+def classify_denial(message: str | None) -> Denial | None:
+    """Work out what kind of refusal a message describes, or ``None``.
+
+    Forward sends no machine-readable code for a refusal: its access enforcer
+    builds an ``ErrorInfo`` with ``reason`` set to ``null``, so the message is
+    the only thing that distinguishes a permission the account lacks from a
+    feature its licence does not cover from a setting that is switched off.
+
+    The wordings this reads are the enforcer's own format strings, so they are
+    as stable as anything undocumented gets, but they are still prose and this
+    is still a guess. Treat a result as a hint for an operator, never as a
+    branch that changes what your code does. ``None`` means the wording was not
+    recognised, which is not the same as the refusal having no cause.
+    """
+    if not message:
+        return None
+    text = message.strip()
+    for kind, pattern in _DENIAL_PATTERNS:
+        match = pattern.search(text)
+        if match:
+            detail = match.groupdict().get("detail")
+            return Denial(kind=kind, detail=detail.strip() if detail else None)
+    return None
+
+
 class ForwardAPIError(ForwardError):
     """Forward returned an error response.
 
@@ -183,8 +251,25 @@ class ForwardAPIError(ForwardError):
 
     @property
     def reason(self) -> str | None:
-        """Forward's machine-readable reason code, when it sent one."""
+        """Forward's machine-readable reason code, when it sent one.
+
+        Endpoint-specific and often absent. Forward's ``ErrorInfo`` documents
+        it as "a reason code whose possible values can vary by API endpoint",
+        and a refusal always sets it to ``null``. For those, see
+        :attr:`denial`.
+        """
         return getattr(self.error_info, "reason", None)
+
+    @property
+    def denial(self) -> Denial | None:
+        """What kind of refusal this is, read from Forward's wording.
+
+        Populated for a refusal, ``None`` otherwise or when the wording was not
+        recognised. Best-effort: see :func:`classify_denial` for why this reads
+        prose, and why it is a hint rather than something to branch on.
+        """
+        detail = getattr(self.error_info, "message", None) or self.text
+        return classify_denial(detail)
 
     @property
     def gating(self) -> tuple[str, ...]:
@@ -228,9 +313,14 @@ class ForwardAuthError(ForwardAPIError):
 class ForwardPermissionError(ForwardAPIError):
     """403: Forward refused the request.
 
-    The cause may be RBAC, a licence that does not cover the feature, or a
-    feature absent from this deployment. These are not distinguishable from the
-    response; see the module docstring.
+    The cause may be a permission the account lacks, a licence that does not
+    cover the feature, or a setting switched off for the organisation or the
+    deployment. No status code or reason code separates them: Forward sets
+    ``reason`` to ``null`` on every refusal.
+
+    Its wording does separate them, and :attr:`denial` reads it. That is prose
+    rather than a contract, so use it to tell an operator what to fix, not to
+    decide what your code does next.
     """
 
 

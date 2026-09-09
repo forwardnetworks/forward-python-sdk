@@ -427,12 +427,20 @@ class AsyncNqeService(AsyncService):
         column_filters: Sequence[Mapping[str, Any]] | None = None,
         parameters: Mapping[str, Any] | None = None,
         sort_keys: Sequence[SortKey | str] | None = None,
+        use_latest_data_files: bool | None = None,
     ) -> AsyncNqeExecution:
         """Start a query in the background and return a handle to it.
 
         ``parameters`` and ``sort_keys`` are conveniences for the common case;
         :class:`QueryRef` carries the same things when a reference is built once
         and reused.
+
+        Args:
+            use_latest_data_files: Evaluate against the most recently uploaded
+                data files instead of the versions the snapshot captured.
+                Forward defaults this to false, which keeps a query reproducible
+                against a snapshot; setting it means two runs of the same query
+                against the same snapshot can differ.
         """
         ref = _as_ref(query)
         if parameters:
@@ -448,6 +456,7 @@ class AsyncNqeService(AsyncService):
                 network_id=resolved_network,
                 snapshot_id=self._snapshot(snapshot_id),
                 column_filters=column_filters,
+                use_latest_data_files=use_latest_data_files,
             )
         )
         data = dict(payload or {})

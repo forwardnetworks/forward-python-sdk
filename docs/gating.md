@@ -72,3 +72,37 @@ collected. After the grace period, only an organization administrator can sign
 in, and everyone else fails authentication. In the SDK that surfaces as
 `ForwardAuthError` on requests that worked the day before, which is worth
 distinguishing from a bad credential when you are diagnosing a sudden failure.
+
+## Telling one refusal from another
+
+A refusal carries no machine-readable code. Forward's access enforcer builds its
+error body with `reason` set to `null`, so a status code cannot separate a
+permission the account lacks from a feature its licence does not cover from a
+setting that is switched off.
+
+Its wording does separate them, and `error.denial` reads it:
+
+```python
+from forward_sdk import ForwardPermissionError
+
+try:
+    client.vulnerability_analysis.get_vulnerabilities(network_id="101")
+except ForwardPermissionError as error:
+    if error.denial:
+        print(error.denial.kind, error.denial.detail)
+```
+
+| `kind` | What Forward said | What to tell an operator |
+| --- | --- | --- |
+| `rbac` | `Missing permission: X.Y` | The account lacks permission `X.Y` |
+| `license` | `Unlicensed operation: X.Y` | The licence does not cover `X.Y` |
+| `license_expired` | the licence has expired | Renew, or grant licence management |
+| `org_setting` | `NAME is off for your organization` | An org admin controls `NAME` |
+| `deployment_setting` | `NAME is off for your deployment` | A deployment admin controls `NAME` |
+| `authority` | `... authority required` | A Forward-side role is needed |
+
+These are the enforcer's own format strings, so they are as stable as anything
+undocumented gets. They are still prose. Use `denial` to tell someone what to
+fix, and not to decide what your code does next: `None` means the wording was
+not recognised, which is not the same as the refusal having no cause. Branch on
+the status code, and treat the kind as the explanation you show a human.

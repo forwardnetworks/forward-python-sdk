@@ -215,6 +215,34 @@ def test_error_body_parses_without_a_json_content_type(recorder: Recorder) -> No
     assert caught.value.error_info.message == "denied"
 
 
+def test_a_denial_says_which_kind_it_is(recorder: Recorder) -> None:
+    """403 carries no reason code, so the kind is read from Forward's wording."""
+    recorder.add(
+        "GET",
+        "/api/networks",
+        error_response(403, "Unlicensed operation: NetworkOperation.USE_NQE"),
+    )
+    with make_transport(recorder) as transport:
+        with pytest.raises(ForwardPermissionError) as caught:
+            transport.send(NETWORKS)
+
+    error = caught.value
+    assert error.reason is None, "Forward sets reason to null on a refusal"
+    assert error.denial is not None
+    assert error.denial.kind == "license"
+    assert error.denial.detail == "NetworkOperation.USE_NQE"
+
+
+def test_an_unrecognised_denial_classifies_as_nothing(recorder: Recorder) -> None:
+    """Not recognised is not the same as having no cause."""
+    recorder.add("GET", "/api/networks", error_response(403, "nope"))
+    with make_transport(recorder) as transport:
+        with pytest.raises(ForwardPermissionError) as caught:
+            transport.send(NETWORKS)
+
+    assert caught.value.denial is None
+
+
 def test_gating_hint_surfaces_on_denial(recorder: Recorder) -> None:
     """A denial on a licence-gated group carries the documented hint."""
     spec = spec_for("getVulnerabilities", path_params={"networkId": "101"})

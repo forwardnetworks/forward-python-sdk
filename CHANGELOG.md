@@ -7,6 +7,20 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `error.denial` on an API error, which says what kind of refusal it is. Read
+  from Forward's server source rather than inferred: its access enforcer sets
+  `reason` to `null` on every refusal, so no code distinguishes a missing
+  permission from an unlicensed feature from a setting switched off, but its
+  wording does. Six kinds are recognised, each from the enforcer's own format
+  string. This is prose rather than a contract, so it is documented as something
+  to show an operator rather than something to branch on.
+
+  This narrows a question the SDK previously called unanswerable. Denials remain
+  indistinguishable by status code; they are not indistinguishable in practice.
+- `use_latest_data_files` on `nqe.execute()`. A published field on the execution
+  request that the SDK never sent, so a caller could not evaluate a query
+  against the most recently uploaded data files instead of the versions the
+  snapshot captured.
 - `snapshot_cache_ttl="lifetime"`, which resolves a snapshot once and keeps that
   answer for the life of the client. A number of seconds was the wrong shape for
   the case the setting was added for: a run that has pinned one point in time

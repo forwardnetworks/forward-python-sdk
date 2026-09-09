@@ -57,11 +57,14 @@ def start_execution(
     network_id: str,
     snapshot_id: str | None = None,
     column_filters: Sequence[Mapping[str, Any]] | None = None,
+    use_latest_data_files: bool | None = None,
 ) -> RequestSpec:
     """Ask Forward to start running a query in the background."""
     body = ref.to_payload()
     if column_filters:
         body["columnFilters"] = [dict(f) for f in column_filters]
+    if use_latest_data_files is not None:
+        body["useLatestDataFiles"] = bool(use_latest_data_files)
     return spec_for(
         "addNqeQueryExecution",
         path_params={"networkId": network_id},

@@ -23,6 +23,7 @@ from forward_sdk.errors import (
     ForwardAPIError,
     ForwardNqeQueryError,
     ForwardRateLimitError,
+    ForwardResponseError,
     status_error_class,
 )
 
@@ -180,8 +181,11 @@ def parse_error_body(response: httpx.Response) -> Any:
     model = NqeErrorInfo if ("errors" in payload or "completionType" in payload) else ErrorInfo
     try:
         return model.model_validate(payload)
-    except ValidationError:
+    except (ValidationError, ForwardResponseError):
         # A malformed error body must never mask the HTTP failure it describes.
+        # Both are caught because ForwardModel turns the first into the second;
+        # naming only one would make an unreadable error body raise while the
+        # SDK was building the exception for the failure it belongs to.
         return None
 
 

@@ -21,6 +21,27 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `ForwardResponseError`, so a response the SDK cannot parse stays inside the
+  exception tree. A body that failed validation previously raised pydantic's
+  `ValidationError`, which is not a `ForwardError` and therefore travelled
+  straight through every consumer's error handling: a sync died with a
+  validation traceback in a job log rather than a failure it could classify and
+  report. Reported by the NetBox integration, which hit it on a `Network`
+  missing `orgId`.
+
+  It carries the unparsed `payload` and the `model_name` the SDK tried to build,
+  and keeps the original `ValidationError` as `__cause__` for per-field detail.
+  The wrapping is done once on the model base rather than at the 118 call sites
+  that parse a response, because a caller's `except ForwardError` has to cover
+  every one of them or it covers none.
+
+  Required fields are unchanged and stay strict. They come from Forward's own
+  generated description, and a model with a hole in it would carry a wrong
+  response silently into whatever the caller writes next. The exposure is also
+  smaller than it looks: 170 of 276 models require at least one field, 379 in
+  total, and `SnapshotInfo`, `Device`, `NqeRunResult` and `ApiVersion` require
+  none. The live suite passes unchanged against fwd.app, so real traffic carries
+  what the description promises on every path it covers.
 - `snapshot_cache_ttl`, an opt-in cache for snapshot resolution, off by default.
   Covers `latest_processed` and `latest_collected_id`, keyed by the exact
   question so two tag scopes stay two answers, and cleared when an upload

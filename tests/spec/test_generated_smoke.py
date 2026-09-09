@@ -6,9 +6,13 @@ request against the operation table.
 
 Responses are not asserted here: a canned body cannot satisfy every model's
 required fields, and inventing one per operation would test the fixtures rather
-than the code. Parsing is covered by the targeted service tests. A validation
-error therefore still counts as a pass, because the request had already been
-sent and recorded by the time it was raised.
+than the code. Parsing is covered by the targeted service tests. A parse failure
+therefore still counts as a pass, because the request had already been sent and
+recorded by the time it was raised.
+
+That it is caught as ``ForwardResponseError`` rather than pydantic's
+``ValidationError`` is itself the point: a parse failure has to be catchable as
+a Forward error, or a caller's error handling never sees it.
 """
 
 from __future__ import annotations
@@ -20,13 +24,13 @@ from typing import Any
 
 import httpx
 import pytest
-from pydantic import ValidationError
 
 from forward_sdk import ForwardClient
 from forward_sdk._generated._defs import OpDef
 from forward_sdk._generated.operations import OPERATIONS
 from forward_sdk._ops._generic import snake
 from forward_sdk._sync.services._generated import SERVICE_TAGS
+from forward_sdk.errors import ForwardResponseError
 
 _UPLOADS = tempfile.TemporaryDirectory()
 SAMPLE_FILE = Path(_UPLOADS.name) / "sample.zip"
@@ -93,7 +97,7 @@ def test_method_reaches_its_endpoint(operation: OpDef) -> None:
         result = method(**call_arguments(method, operation))
         if operation.stream:
             list(result)
-    except ValidationError:
+    except ForwardResponseError:
         pass  # See the module docstring: the request is what matters here.
     finally:
         client.close()

@@ -13,8 +13,10 @@ import pytest
 
 from forward_sdk._sync.client import ForwardClient
 from forward_sdk.errors import (
+    ForwardError,
     ForwardExecutionError,
     ForwardNotFoundError,
+    ForwardResponseError,
     ForwardTimeoutError,
 )
 from tests.conftest import Recorder, json_response
@@ -267,6 +269,23 @@ class TestSnapshots:
             assert client.snapshots.latest_collected_id() == "8"
 
         assert recorder.count("POST", "/api/nqe") == 2
+
+
+class TestUnparseableResponses:
+    def test_a_bad_payload_raises_a_catchable_error(self, recorder: Recorder) -> None:
+        """The path an integration actually hit, end to end through the client.
+
+        A caller wrapping SDK calls in `except ForwardError` has to see this, or
+        a sync dies with a pydantic traceback in a job log instead of a failure
+        its own handling could classify.
+        """
+        recorder.add("GET", "/api/networks", json_response([{"id": "n1", "name": "Prod"}]))
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardError) as caught:
+                client.networks.list()
+
+        assert isinstance(caught.value, ForwardResponseError)
+        assert caught.value.payload == {"id": "n1", "name": "Prod"}
 
 
 class TestSnapshotResolutionCache:

@@ -37,6 +37,7 @@ __all__ = [
     "ForwardPaginationError",
     "ForwardPermissionError",
     "ForwardRateLimitError",
+    "ForwardResponseError",
     "ForwardServerError",
     "ForwardTimeoutError",
     "ForwardTransportError",
@@ -54,6 +55,37 @@ class ForwardConfigurationError(ForwardError):
     Raised before any request is sent: a missing base URL, mutually exclusive
     query references, an NQE diff given an inline query.
     """
+
+
+class ForwardResponseError(ForwardError):
+    """Forward answered, but the body was not the shape the SDK expects.
+
+    Raised where a response would otherwise fail with pydantic's
+    ``ValidationError``, which is not a :class:`ForwardError` and so escapes
+    every ``except ForwardError`` a caller has written. A sync would die with a
+    validation traceback in a job log instead of a failure its own error
+    handling could classify and report.
+
+    The models are deliberately lenient in the other direction: unknown fields
+    are kept and unknown enum values are tolerated, so a newer Forward does not
+    break an older SDK. Required fields are the one strict place, and they are
+    strict on purpose. They come from Forward's own generated description, so a
+    missing one means the response is not the thing it claims to be, and a
+    model with a hole in it would carry that silently into whatever the caller
+    writes next.
+
+    The originating ``ValidationError`` is kept as ``__cause__``, and the body
+    that failed is on :attr:`payload`.
+
+    Attributes:
+        payload: What Forward actually sent, unparsed.
+        model_name: The model the SDK tried to build from it.
+    """
+
+    def __init__(self, message: str, *, payload: Any = None, model_name: str = "") -> None:
+        super().__init__(message)
+        self.payload = payload
+        self.model_name = model_name
 
 
 class ForwardTransportError(ForwardError):

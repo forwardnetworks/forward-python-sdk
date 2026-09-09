@@ -9,6 +9,7 @@ ForwardError
 ├── ForwardTimeoutError         a client-side deadline expired
 ├── ForwardPaginationError      paging could not continue safely
 ├── ForwardExecutionError       background work finished without results
+├── ForwardResponseError        Forward answered, but not in a shape we can read
 └── ForwardAPIError             Forward returned an error response
     ├── ForwardBadRequestError       400
     │   └── ForwardNqeQueryError     400 with query diagnostics
@@ -81,3 +82,46 @@ streaming.
 `ForwardAuthError`, `ForwardPermissionError` and `ForwardNotFoundError` can each
 mean several different things, including a missing licence or an
 undeployed feature. See [availability](gating.md).
+
+## When the response cannot be read
+
+A successful call whose body does not fit the model raises
+`ForwardResponseError`. It is under `ForwardError` deliberately: pydantic's
+`ValidationError` is not, so before this a parse failure travelled straight
+through every `except ForwardError` a caller had written and surfaced as an
+unhandled crash. A sync would die with a validation traceback in a job log
+instead of a failure its own handling could classify.
+
+```python
+from forward_sdk import ForwardError
+from forward_sdk.errors import ForwardResponseError
+
+try:
+    networks = client.networks.list()
+except ForwardResponseError as error:
+    error.payload      # what Forward actually sent
+    error.model_name   # what the SDK tried to build
+    error.__cause__    # the pydantic ValidationError, with per-field detail
+```
+
+The models are lenient in one direction and strict in the other, on purpose.
+Unknown fields are kept and unknown enum values are tolerated, so a newer
+Forward cannot break an older SDK. Required fields are the exception, and they
+come from Forward's own generated description rather than from a guess here: a
+missing one means the response is not the thing it claims to be, and a model
+with a hole in it would carry that silently into whatever you write next.
+
+That strictness is narrower than it sounds. Of 276 generated models, 170 require
+at least one field, 379 fields in total, and the models on the busiest paths
+require nothing at all:
+
+| Model | Required fields |
+| --- | --- |
+| `SnapshotInfo` | none |
+| `Device` | none |
+| `NqeRunResult` | none |
+| `ApiVersion` | none |
+| `Network` | `id`, `name`, `orgId` |
+
+If you do hit one, `payload` is what tells you whether Forward changed or the
+model is wrong. Report it either way.

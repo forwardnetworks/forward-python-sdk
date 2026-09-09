@@ -9,7 +9,10 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationError
+from typing_extensions import Self
+
+from forward_sdk.errors import ForwardResponseError
 
 
 class ForwardModel(BaseModel):
@@ -26,6 +29,37 @@ class ForwardModel(BaseModel):
         validate_assignment=False,
         arbitrary_types_allowed=True,
     )
+
+    @classmethod
+    def model_validate(cls, obj: Any, **kwargs: Any) -> Self:
+        """Build the model, raising a Forward error rather than a pydantic one.
+
+        Overridden here rather than at each of the call sites that parse a
+        response, because a caller's ``except ForwardError`` has to cover every
+        one of them or it covers none. ``ValidationError`` is not a
+        :class:`~forward_sdk.errors.ForwardError`, so before this it travelled
+        straight through a consumer's error handling and surfaced as an
+        unhandled crash.
+
+        Only explicit parsing goes through here. Pydantic validates nested
+        fields through its own core, so this does not intercept a model built
+        as part of a larger one; the outer parse is what raises.
+        """
+        try:
+            return super().model_validate(obj, **kwargs)
+        except ValidationError as exc:
+            count = exc.error_count()
+            fields = ", ".join(
+                ".".join(str(part) for part in error["loc"]) for error in exc.errors()[:5]
+            )
+            raise ForwardResponseError(
+                f"Forward's response could not be read as {cls.__name__}: "
+                f"{count} field {'problem' if count == 1 else 'problems'}"
+                f"{f' ({fields})' if fields else ''}. "
+                "The body is on .payload and the validation detail on __cause__.",
+                payload=obj,
+                model_name=cls.__name__,
+            ) from exc
 
     def to_api(self) -> dict[str, Any]:
         """Serialize for a request body, using the API's own field names."""

@@ -95,6 +95,18 @@ guards also catch two server-side faults that would otherwise be invisible: a
 result set that ends before the total Forward promised, and a server that keeps
 returning the same full page without advancing.
 
+The stalled-pager check compares each page's first and last row. A page whose
+first and last rows are identical is skipped, because it proves nothing: a query
+selecting a constant, `select {n: 1}`, gives every page the same first and last
+row whether the offset advanced or not. Counting those reported a stall at
+`repeat_limit * page_size` rows on a query that was paging correctly, which is
+easily mistaken for a server-side row cap. There is no such cap: a 545,464-row
+result pages to completion, and offset is honoured to the final row.
+
+The trade is that a genuinely stalled server returning uniform rows is not
+diagnosed here. It still terminates, bounded by `max_rows`, `max_pages` and the
+total Forward reports.
+
 ## Snapshots
 
 Every query takes an optional `snapshot_id`. Omitting it, or passing `None`,

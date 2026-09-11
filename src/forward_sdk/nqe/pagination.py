@@ -174,19 +174,39 @@ class PageTracker:
         Only full pages are compared: a repeated short page is normal at the end
         of a result set, whereas a full page that never advances means the offset
         is being ignored, and looping would never terminate.
+
+        A page whose first and last rows are identical is skipped, because it
+        carries no evidence either way. ``select {n: 1}`` gives every row the
+        same value, so every page looks the same whether the offset advanced or
+        not, and counting those produced a false stall: the guard fired at
+        ``repeat_limit * page_size`` rows on a query that was paging perfectly
+        well, and reported it as the server not advancing. An integration read
+        that as a server-side row cap, which it is not.
+
+        The cost is that a genuinely stalled server returning uniform rows is not
+        caught here. ``max_rows``, ``max_pages`` and the reported total still
+        bound it, so it terminates; it is simply not diagnosed.
         """
         if len(page) < self._page_size:
             self._last_signature = None
             self._repeats = 0
             return
 
-        signature = (len(page), _fingerprint(page[0]), _fingerprint(page[-1]))
+        first, last = _fingerprint(page[0]), _fingerprint(page[-1])
+        if first == last:
+            self._last_signature = None
+            self._repeats = 0
+            return
+
+        signature = (len(page), first, last)
         if signature == self._last_signature:
             self._repeats += 1
             if self._repeats >= self._guards.repeat_limit:
                 raise ForwardPaginationError(
                     f"paging is not advancing: {self._repeats} identical pages of "
-                    f"{self._page_size} rows at offset {self._rows}",
+                    f"{self._page_size} rows at offset {self._rows}. Forward appears to "
+                    "be ignoring the offset. If the query selects a constant, so that "
+                    "rows are genuinely identical, raise repeat_limit instead.",
                     rows=self._rows,
                     pages=self._pages,
                 )

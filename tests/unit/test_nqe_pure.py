@@ -315,6 +315,63 @@ class TestWhereBuilders:
         assert enum_one_of("f", "Vendor", []) is None
 
 
+class TestRepeatGuardAndIdenticalRows:
+    """The guard must not mistake identical rows for a stalled server.
+
+    An integration ran `foreach d in network.devices foreach i in d.interfaces
+    select {n: 1}` over a 545,464-row result and got "25 identical pages of
+    10000 rows at offset 250000" after 260,000 rows. It read that as a
+    server-side cap at 250,000.
+
+    It is not. 250,000 is repeat_limit times page_size. Every row that query
+    selects is the literal value 1, so every page has the same first and last
+    row whether or not the offset advanced, and the guard counted normal paging
+    as a stall. Verified live: the same query on the same instance returns 3
+    rows at offset 545,461 and 0 at 545,464, so the offset is honoured to the
+    end and no cap exists.
+    """
+
+    def _uniform(self, size: int) -> list[dict[str, int]]:
+        return [{"n": 1} for _ in range(size)]
+
+    def _distinct(self, start: int, size: int) -> list[dict[str, int]]:
+        return [{"n": start + i} for i in range(size)]
+
+    def test_identical_rows_page_to_completion(self) -> None:
+        """The reported bug: this used to raise at repeat_limit * page_size."""
+        tracker = PageTracker(PageGuards(repeat_limit=3), page_size=10)
+        for _ in range(9):
+            assert tracker.observe(self._uniform(10), 100) is Decision.CONTINUE
+        assert tracker.observe(self._uniform(10), 100) is Decision.DONE
+        assert tracker.rows == 100
+
+    def test_a_genuinely_stalled_server_is_still_caught(self) -> None:
+        """The guard's real purpose, unaffected: distinct rows that never move."""
+        tracker = PageTracker(PageGuards(repeat_limit=3), page_size=10)
+        page = self._distinct(0, 10)
+        tracker.observe(page, 10_000)
+        with pytest.raises(ForwardPaginationError, match="not advancing"):
+            for _ in range(5):
+                tracker.observe(page, 10_000)
+
+    def test_the_message_names_the_other_possibility(self) -> None:
+        """So the next person does not diagnose a server cap that is not there."""
+        tracker = PageTracker(PageGuards(repeat_limit=2), page_size=10)
+        page = self._distinct(0, 10)
+        tracker.observe(page, 10_000)
+        with pytest.raises(ForwardPaginationError) as caught:
+            for _ in range(4):
+                tracker.observe(page, 10_000)
+
+        assert "repeat_limit" in str(caught.value)
+
+    def test_advancing_distinct_pages_never_trip_it(self) -> None:
+        tracker = PageTracker(PageGuards(repeat_limit=2), page_size=10)
+        for start in range(0, 90, 10):
+            assert tracker.observe(self._distinct(start, 10), 100) is Decision.CONTINUE
+        assert tracker.observe(self._distinct(90, 10), 100) is Decision.DONE
+
+
 class TestLibraryTypesSerialize:
     """These are dataclasses, not models, so `model_dump` was never available.
 

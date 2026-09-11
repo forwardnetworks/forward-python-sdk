@@ -7,6 +7,22 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Paging no longer reports a stall on a query whose rows are identical. The
+  guard compared each page's first and last row, so `select {n: 1}` produced the
+  same signature on every page whether the offset advanced or not, and raised
+  "paging is not advancing" at `repeat_limit * page_size` rows on a query that
+  was paging correctly. A page whose first and last rows match is now skipped as
+  carrying no evidence, and the message names the other possibility.
+
+  Reported as a Forward-side cap at 250,000 rows. It is not one: 250,000 is the
+  default `repeat_limit` of 25 times a 10,000-row page. Verified against a
+  545,464-row result, which now pages to completion in 55 pages, and where
+  Forward returns 3 rows at offset 545,461 and 0 at 545,464, so the offset is
+  honoured to the last row.
+
+  A genuinely stalled server returning uniform rows is no longer diagnosed by
+  this guard. It still terminates, bounded by `max_rows`, `max_pages` and the
+  reported total.
 - A failed NQE query now says what was wrong with it. Forward's message is the
   fixed string "Error encountered while executing the NQE query" for every
   failure, whatever went wrong; the detail lives in a separate `errors` list

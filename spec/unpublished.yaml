@@ -1836,6 +1836,904 @@ paths:
               schema: { $ref: "#/components/schemas/SummaryAssistResponse" }
               example: { summary: "Seven locations lose connectivity to the data centre." }
 
+  # ------------------------------------------------- BGP advertisements ---
+  # Route announcements a change set injects or withdraws at a device, as a
+  # Predict input. Actions select the operation; bulk variants take arrays.
+  /networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/bgp-advertisements?action=add:
+    post:
+      operationId: addBgpAdvertisement
+      summary: Inject one BGP advertisement at a device
+      x-forward-stability: unpublished
+      tags: [BGP Advertisements]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BgpAdvertisement" }
+            example: { externalPeer: "10.0.0.2", prefix: "192.0.2.0/24", vrf: default, nextHop: "10.0.0.1", origin: IGP, asPath: [65001] }
+      responses:
+        "200":
+          description: The draft after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSetDraft" }
+              example: { id: CHG-101, name: x, networkId: "115", snapshotId: "656", savedAt: 1757584800000 }
+  /networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/bgp-advertisements?action=bulkAdd:
+    post:
+      operationId: addBgpAdvertisements
+      summary: Inject several BGP advertisements
+      x-forward-stability: unpublished
+      tags: [BGP Advertisements]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BgpAdvertisementList" }
+            example: [ { externalPeer: "10.0.0.2", prefix: "192.0.2.0/24", vrf: default, nextHop: "10.0.0.1", origin: IGP, asPath: [65001] } ]
+      responses:
+        "200":
+          description: The draft after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSetDraft" }
+              example: { id: CHG-101, name: x, networkId: "115", snapshotId: "656", savedAt: 1757584800000 }
+  /networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/bgp-advertisements?action=remove:
+    post:
+      operationId: withdrawBgpAdvertisement
+      summary: Withdraw one BGP advertisement
+      x-forward-stability: unpublished
+      tags: [BGP Advertisements]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BgpAdvertisementKey" }
+            example: { externalPeer: "10.0.0.2", prefix: "192.0.2.0/24", vrf: default }
+      responses:
+        "200":
+          description: The draft after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSetDraft" }
+              example: { id: CHG-101, name: x, networkId: "115", snapshotId: "656", savedAt: 1757584800000 }
+  /networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/bgp-advertisements?action=bulkRemove:
+    post:
+      operationId: withdrawBgpAdvertisements
+      summary: Withdraw several BGP advertisements
+      x-forward-stability: unpublished
+      tags: [BGP Advertisements]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BgpAdvertisementKeyList" }
+            example: [ { externalPeer: "10.0.0.2", prefix: "192.0.2.0/24", vrf: default } ]
+      responses:
+        "200":
+          description: The draft after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSetDraft" }
+              example: { id: CHG-101, name: x, networkId: "115", snapshotId: "656", savedAt: 1757584800000 }
+  /networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/bgp-advertisements?action=restore:
+    post:
+      operationId: restoreBgpAdvertisement
+      summary: Undo the change set's change to one advertisement
+      x-forward-stability: unpublished
+      tags: [BGP Advertisements]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BgpAdvertisementKey" }
+            example: { externalPeer: "10.0.0.2", prefix: "192.0.2.0/24", vrf: default }
+      responses:
+        "204": { description: Restored. }
+  /networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/bgp-advertisements?action=bulkRestore:
+    post:
+      operationId: restoreBgpAdvertisements
+      summary: Undo the change set's changes to several advertisements
+      x-forward-stability: unpublished
+      tags: [BGP Advertisements]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BgpAdvertisementKeyList" }
+            example: [ { externalPeer: "10.0.0.2", prefix: "192.0.2.0/24", vrf: default } ]
+      responses:
+        "204": { description: Restored. }
+  /networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/bgp-advertisements?view=diffs:
+    get:
+      operationId: getDraftBgpAdvertisementDiffs
+      summary: How the draft changes a device's BGP advertisements
+      x-forward-stability: unpublished
+      tags: [BGP Advertisements]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: 
+                type: array
+                items: { $ref: "#/components/schemas/BgpAdvertisementDiff" }
+              example: [ { change: INJECTED, updateAdded: { externalPeer: "10.0.0.2", prefix: "192.0.2.0/24", vrf: default, nextHop: "10.0.0.1", origin: IGP, type: EBGP, asPath: [65001] } } ]
+  /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}/devices/{deviceName}/bgp-advertisements?view=diffs:
+    get:
+      operationId: getCommitBgpAdvertisementDiffs
+      summary: How a commit changed a device's BGP advertisements
+      x-forward-stability: unpublished
+      tags: [BGP Advertisements]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: commitId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: 
+                type: array
+                items: { $ref: "#/components/schemas/BgpAdvertisementDiff" }
+              example: [ { change: INJECTED, updateAdded: { externalPeer: "10.0.0.2", prefix: "192.0.2.0/24", vrf: default, nextHop: "10.0.0.1", origin: IGP, type: EBGP, asPath: [65001] } } ]
+  # ------------------------------------------------ change-set directories ---
+  # The folder tree change sets are organised in. A directory path contains
+  # slashes and travels percent-encoded in the URL, which the SDK does for you.
+  /networks/{networkId}/change-set-directories:
+    get:
+      operationId: listChangeSetDirectories
+      summary: Every directory and the change sets in it
+      description: >-
+        An object keyed by directory path, each value the ids of the change
+        sets directly inside it. Empty directories appear with an empty list;
+        the root itself does not appear as a key.
+      x-forward-stability: unpublished
+      tags: [Change Set Directories]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The tree.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSetDirectories" }
+              example: { "/team": [CHG-101, CHG-102], "/team/archive": [] }
+  /networks/{networkId}/change-set-directories/{dirPath}?action=addDir:
+    post:
+      operationId: createChangeSetDirectory
+      summary: Create a directory inside another
+      x-forward-stability: unpublished
+      tags: [Change Set Directories]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: dirPath, in: path, required: true, schema: { type: string }, description: "The directory path, starting with a slash. Sent percent-encoded." }
+        - { name: name, in: query, required: true, schema: { type: string }, description: "The new directory's name." }
+      responses:
+        "204": { description: Done. }
+  /networks/{networkId}/change-set-directories/{dirPath}?action=rename:
+    post:
+      operationId: renameChangeSetDirectory
+      summary: Rename a directory
+      x-forward-stability: unpublished
+      tags: [Change Set Directories]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: dirPath, in: path, required: true, schema: { type: string }, description: "The directory path, starting with a slash. Sent percent-encoded." }
+        - { name: name, in: query, required: true, schema: { type: string }, description: "The new name." }
+      responses:
+        "204": { description: Done. }
+  /networks/{networkId}/change-set-directories/{dirPath}?action=move:
+    post:
+      operationId: moveChangeSetDirectory
+      summary: Move a directory under another
+      x-forward-stability: unpublished
+      tags: [Change Set Directories]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: dirPath, in: path, required: true, schema: { type: string }, description: "The directory path, starting with a slash. Sent percent-encoded." }
+        - { name: to, in: query, required: true, schema: { type: string }, description: "The destination directory path." }
+      responses:
+        "204": { description: Done. }
+  /networks/{networkId}/change-set-directories/{dirPath}?action=moveChangeSetTo:
+    post:
+      operationId: moveChangeSetToDirectory
+      summary: Move one change set into a directory
+      x-forward-stability: unpublished
+      tags: [Change Set Directories]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: dirPath, in: path, required: true, schema: { type: string }, description: "The directory path, starting with a slash. Sent percent-encoded." }
+        - { name: changeSetId, in: query, required: true, schema: { type: string }, description: "The change set to move." }
+      responses:
+        "204": { description: Done. }
+  /networks/{networkId}/change-set-directories/{dirPath}?action=moveChangeSetsTo:
+    post:
+      operationId: moveChangeSetsToDirectory
+      summary: Move several change sets into a directory
+      x-forward-stability: unpublished
+      tags: [Change Set Directories]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: dirPath, in: path, required: true, schema: { type: string }, description: "The directory path, starting with a slash. Sent percent-encoded." }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangeSetIds" }
+            example: { changeSetIds: [CHG-101] }
+      responses:
+        "204": { description: Done. }
+  /networks/{networkId}/change-set-directories/{dirPath}:
+    delete:
+      operationId: deleteChangeSetDirectory
+      summary: Delete a directory
+      description: >-
+        By default the change sets inside are kept. Passing retainChangeSets
+        as false deletes them too; only the literal false does.
+      x-forward-stability: unpublished
+      tags: [Change Set Directories]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: dirPath, in: path, required: true, schema: { type: string } }
+        - { name: retainChangeSets, in: query, required: false, schema: { type: boolean } }
+      responses:
+        "204": { description: Deleted. }
+  # ------------------------------------------------- snapshot diff details ---
+  # Everything else the diff service serves: per-area statistics, per-device
+  # entries, files, devices, checks and the connectivity views. Each entry is
+  # a before value `a` and an after value `b` with a diffType.
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/checks?counts:
+    get:
+      operationId: getCheckDiffCounts
+      summary: How many checks changed, by check type
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckDiffCounts" }
+              example: { Predefined: { count: 2, complete: true }, NQE: { count: 1, complete: false } }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/checks:
+    get:
+      operationId: getCheckDiffs
+      summary: Check results that changed, for the given check types
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: type, in: query, required: true, schema: { type: array, items: { type: string, enum: [Isolation, Reachability, Existential, QueryStringBased, Predefined, NQE] } }, description: "One or more check types. Blocks until computed." }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChecksDiff" }
+              example: { checks: [ { diffType: MODIFIED, a: { id: c1, status: PASS }, b: { id: c1, status: FAIL } } ] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/checks?type=NQE:
+    get:
+      operationId: getNqeCheckDiffs
+      summary: NQE check results that changed, without blocking
+      description: >-
+        Entries still computing carry diffType PROCESSING.
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChecksDiff" }
+              example: { checks: [ { diffType: PROCESSING, a: { id: c1, status: PASS }, b: null } ] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/checks/{checkId}:
+    get:
+      operationId: getCheckDiffDetails
+      summary: How one predefined check's findings changed
+      description: >-
+        Predefined checks only; other types are refused.
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: checkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckDiffDetails" }
+              example: { check: { id: c1 }, details: [] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/checks?stats:
+    get:
+      operationId: getCheckDiffStats
+      summary: Added, deleted, modified and unchanged findings per check
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: type, in: query, required: true, schema: { type: string, enum: [Predefined] }, description: "Only Predefined is accepted here." }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckDiffStats" }
+              example: { c1: { ADDED: 1, DELETED: 0, MODIFIED: 0, UNCHANGED: 5 } }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/checks?stats&type=NQE:
+    get:
+      operationId: getNqeCheckDiffStats
+      summary: Per-check statistics for NQE checks, with processing state
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NqeCheckDiffStats" }
+              example: { checks: [ { queryId: FQ_1, processing: false, outdated: false, stats: { ADDED: 1, DELETED: 0, MODIFIED: 0, UNCHANGED: 5 } } ] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/checks?action=compute&type=NQE:
+    post:
+      operationId: computeNqeCheckDiffs
+      summary: Start computing diffs for the given NQE checks
+      description: Only active NQE checks are accepted. Returns nothing; read the statistics afterwards.
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NqeCheckDefinitions" }
+            example: { definitions: [ { checkType: NQE, queryId: FQ_1 } ] }
+      responses:
+        "200": { description: Accepted. }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/files?count:
+    get:
+      operationId: getFileDiffCount
+      summary: How many devices have changed files, by file type
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FileDiffCount" }
+              example: { count: 3, complete: true, types: { CONFIG: 2, STATE: 1 } }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/files:
+    get:
+      operationId: getFileDiffs
+      summary: Which collected files changed, per device
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: type, in: query, required: false, schema: { type: string, enum: [CONFIG, STATE, CUSTOM] }, description: "Restrict to one file type; absent means all." }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CollectedFilesDiff" }
+              example: { deviceInfos: [ { name: dc-core, deviceName: dc-core, files: [ { name: "dc-core,configuration.txt" } ], hasConfigChange: true } ] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/devices:
+    get:
+      operationId: getDeviceDiffs
+      summary: Devices added or removed
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: 
+                type: array
+                items: { $ref: "#/components/schemas/DeviceDiffEntry" }
+              example: [ { diffType: ADDED, a: null, b: { name: new-sw, vendor: ARISTA, deviceType: SWITCH } } ]
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/cloud-objects?count:
+    get:
+      operationId: getCloudObjectDiffCount
+      summary: How many cloud objects changed
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiffCount" }
+              example: { count: 0, complete: true }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/cloud-objects:
+    get:
+      operationId: getCloudObjectDiffs
+      summary: Cloud objects added, removed or modified
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: 
+                type: array
+                items: { $ref: "#/components/schemas/CloudObjectDiffEntry" }
+              example: [ { diffType: MODIFIED, a: { id: vpc-1, cloudType: AWS }, b: { id: vpc-1, cloudType: AWS } } ]
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/interfaces:
+    get:
+      operationId: getInterfaceDiffStats
+      summary: Per-device interface change statistics
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceDiffStats" }
+              example: { deviceInfos: [ { name: dc-core, hasConfigChange: true, stats: { ADDED: 1, DELETED: 0, MODIFIED: 2, UNCHANGED: 40 } } ] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/interfaces/devices/{deviceName}:
+    get:
+      operationId: getDeviceInterfaceDiffs
+      summary: One device's interface changes
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceInterfaceDiff" }
+              example: { diffs: [ { diffType: MODIFIED, a: { name: Ethernet1, isDown: false }, b: { name: Ethernet1, isDown: true } } ], stats: { ADDED: 0, DELETED: 0, MODIFIED: 1, UNCHANGED: 47 } }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/topology:
+    get:
+      operationId: getTopologyDiffs
+      summary: Links added and deleted
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TopologyDiff" }
+              example: { ADDED: [], DELETED: [ { sourcePort: "dc-core Ethernet1", targetPort: "br-1 Ethernet49" } ] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/l2:
+    get:
+      operationId: getL2Diffs
+      summary: VLAN membership changes, per VLAN
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/L2Diff" }
+              example: { vlanToDiffs: { "100": [ { diffType: MODIFIED, a: { device: dc-core, interfaces: [], l3Interfaces: [] }, b: { device: dc-core, interfaces: [], l3Interfaces: [] } } ] } }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/acl:
+    get:
+      operationId: getAclDiffStats
+      summary: Per-device ACL change statistics
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceDiffStats" }
+              example: { deviceInfos: [ { name: dc-core, hasConfigChange: true, stats: { ADDED: 1, DELETED: 0, MODIFIED: 2, UNCHANGED: 40 } } ] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/acl/devices/{deviceName}:
+    get:
+      operationId: getDeviceAclDiffs
+      summary: One device's ACL entry changes
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceAclDiff" }
+              example: { diffs: [ { diffType: ADDED, a: null, b: { name: outbound, action: DENY, matches: [] } } ], stats: { ADDED: 1, DELETED: 0, MODIFIED: 0, UNCHANGED: 12 } }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/cloud-acl?count:
+    get:
+      operationId: getCloudAclDiffCount
+      summary: How many cloud objects have ACL changes
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiffCount" }
+              example: { count: 0, complete: true }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/cloud-acl:
+    get:
+      operationId: getCloudAclDiffStats
+      summary: Per-cloud-object ACL change statistics
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CloudObjectDiffStats" }
+              example: { cloudObjects: [ { objectId: sg-1, type: AWS_SECURITY_GROUP, cloudType: AWS, fileStats: {} } ] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/cloud-acl/objects/{objectId}:
+    get:
+      operationId: getCloudObjectAclDiffs
+      summary: One cloud object's ACL changes
+      description: >-
+        Forward serialises this itself; the shape is not declared and is passed through.
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: objectId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+              example: {}
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/nat:
+    get:
+      operationId: getNatDiffStats
+      summary: Per-device NAT change statistics
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceDiffStats" }
+              example: { deviceInfos: [ { name: dc-core, hasConfigChange: true, stats: { ADDED: 1, DELETED: 0, MODIFIED: 2, UNCHANGED: 40 } } ] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/nat/devices/{deviceName}:
+    get:
+      operationId: getDeviceNatDiffs
+      summary: One device's NAT entry changes
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceNatDiff" }
+              example: { diffs: [], stats: { ADDED: 0, DELETED: 0, MODIFIED: 0, UNCHANGED: 3 } }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/l3/summary:
+    get:
+      operationId: getRoutingDiffSummary
+      summary: A summary of routing changes
+      description: >-
+        Forward serialises this itself; the shape is not declared and is passed through.
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+              example: {}
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/l3?view=devices:
+    get:
+      operationId: getRoutingDiffStats
+      summary: Per-device routing change statistics
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceDiffStats" }
+              example: { deviceInfos: [] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/l3/devices/{deviceName}:
+    get:
+      operationId: getDeviceRoutingDiffs
+      summary: One device's routing table changes
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoutingDiffDetails" }
+              example: { diffs: [], stats: { ADDED: 0, DELETED: 0, MODIFIED: 0, UNCHANGED: 120 } }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/l3?view=prefixes:
+    get:
+      operationId: getRoutingDiffPrefixes
+      summary: Routing changes by prefix, paged
+      description: >-
+        Forward serialises this itself; the shape is not declared and is passed through.
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: offset, in: query, required: false, schema: { type: integer } }
+        - { name: limit, in: query, required: false, schema: { type: integer } }
+        - { name: prefixFilter, in: query, required: false, schema: { type: string }, description: "A CIDR to restrict to." }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+              example: {}
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/l3/prefixes/{prefix}:
+    get:
+      operationId: getRoutingDiffForPrefix
+      summary: Routing changes for one prefix
+      description: >-
+        Forward serialises this itself; the shape is not declared and is passed through.
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: prefix, in: path, required: true, schema: { type: string }, description: "A CIDR. Sent percent-encoded." }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+              example: {}
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/arp:
+    get:
+      operationId: getArpDiffStats
+      summary: Per-device ARP change statistics
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceDiffStats" }
+              example: { deviceInfos: [ { name: dc-core, hasConfigChange: true, stats: { ADDED: 1, DELETED: 0, MODIFIED: 2, UNCHANGED: 40 } } ] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/arp/devices/{deviceName}:
+    get:
+      operationId: getDeviceArpDiffs
+      summary: One device's ARP table changes
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceArpDiff" }
+              example: { diffs: [ { diffType: ADDED, a: null, b: { ipAddress: "10.0.0.9", vrfName: default, macAddress: "00:10:00:17:2c:d3" } } ], stats: { ADDED: 1, DELETED: 0, MODIFIED: 0, UNCHANGED: 30 } }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/mac:
+    get:
+      operationId: getMacDiffStats
+      summary: Per-device MAC table change statistics
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceDiffStats" }
+              example: { deviceInfos: [ { name: dc-core, hasConfigChange: true, stats: { ADDED: 1, DELETED: 0, MODIFIED: 2, UNCHANGED: 40 } } ] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/mac/devices/{deviceName}:
+    get:
+      operationId: getDeviceMacDiffs
+      summary: One device's MAC table changes
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceMacDiff" }
+              example: { diffs: [ { diffType: DELETED, a: { macAddress: "00:10:00:17:2c:d3", vlan: "100", ports: [Ethernet3] }, b: null } ], stats: { ADDED: 0, DELETED: 1, MODIFIED: 0, UNCHANGED: 200 } }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/subnet-connectivity?view=locationPairs:
+    get:
+      operationId: getConnectivityDiffLocationPairs
+      summary: Changed subnet pairs counted per location pair
+      description: >-
+        Empty while the comparison is still partial.
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: type, in: query, required: true, schema: { type: string, enum: [ADDED, DELETED, MODIFIED] }, description: "Which kind of change to count. UNCHANGED is refused." }
+        - { name: loc, in: query, required: false, schema: { type: string }, description: "Restrict to one location." }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocationConnChangeCounts" }
+              example: { counts: [ { src: "1", dst: "3", count: 4 } ] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/subnet-connectivity?view=locations:
+    get:
+      operationId: getConnectivityDiffLocations
+      summary: Incoming and outgoing connectivity changes per location
+      description: >-
+        Empty while the comparison is still partial.
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocationsConnDiffStats" }
+              example: { stats: [ { locationId: "1", incoming: { newlyConnected: 0, newlyIsolated: 2, modified: 0 }, outgoing: { newlyConnected: 0, newlyIsolated: 1, modified: 0 } } ] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/subnet-connectivity?view=locationPair:
+    get:
+      operationId: getConnectivityDiffLocationPair
+      summary: Subnet pairs that changed between two locations
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: loc1, in: query, required: true, schema: { type: string }, description: "Source location." }
+        - { name: loc2, in: query, required: true, schema: { type: string }, description: "Destination location." }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocationPairConnDiffStats" }
+              example: { stats: [ { src: "10.1.0.0/24", dst: "10.3.0.0/24", stats: { newlyConnected: 0, newlyIsolated: 1, modified: 0 } } ] }
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/subnet-connectivity?view=subnetPair:
+    get:
+      operationId: getConnectivityDiffSubnetPair
+      summary: How connectivity changed between two subnets
+      x-forward-stability: unpublished
+      tags: [Snapshot Diff Details]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: loc1, in: query, required: true, schema: { type: string } }
+        - { name: loc2, in: query, required: true, schema: { type: string } }
+        - { name: src, in: query, required: true, schema: { type: string }, description: "Source subnet, CIDR." }
+        - { name: dst, in: query, required: true, schema: { type: string }, description: "Destination subnet, CIDR." }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SubnetConnDiffDetails" }
+              example: { diffs: [ { diffType: DELETED, value: {} } ] }
+
 components:
   schemas:
     RepositoryCommit:
@@ -2769,3 +3667,525 @@ components:
       type: object
       properties:
         summary: { type: string }
+
+    BgpAdvertisementKey:
+      type: object
+      required: [externalPeer, prefix, vrf]
+      properties:
+        externalPeer: { type: string, description: The peer's IP address. }
+        prefix: { type: string, description: CIDR. }
+        vrf: { type: string }
+
+    BgpAdvertisement:
+      type: object
+      description: The key fields sit flat beside the attributes. asPath must be non-empty for EBGP.
+      required: [externalPeer, prefix, vrf, nextHop, origin]
+      properties:
+        externalPeer: { type: string }
+        prefix: { type: string }
+        vrf: { type: string }
+        type: { type: string, enum: [EBGP, IBGP], description: Defaults to EBGP. }
+        nextHop: { type: string }
+        origin: { type: string, enum: [EGP, IGP, INCOMPLETE, DEFAULT_ORIGINATE] }
+        localPref: { type: integer }
+        asPath: { type: array, items: { type: integer } }
+        med: { type: integer }
+        communities: { type: array, items: { type: string } }
+
+    BgpAdvertisementList:
+      type: array
+      items: { $ref: "#/components/schemas/BgpAdvertisement" }
+
+    BgpAdvertisementKeyList:
+      type: array
+      items: { $ref: "#/components/schemas/BgpAdvertisementKey" }
+
+    BgpAdvertisementDiff:
+      type: object
+      properties:
+        change: { type: string, enum: [INJECTED, MODIFIED, DUPLICATED, WITHDRAWN, ABSENT] }
+        original: { $ref: "#/components/schemas/BgpAdvertisement" }
+        updateAdded: { $ref: "#/components/schemas/BgpAdvertisement" }
+        updateRemoved: { $ref: "#/components/schemas/BgpAdvertisementKey" }
+
+    ChangeSetDirectories:
+      type: object
+      description: Directory path to the ids of the change sets directly inside it.
+      additionalProperties:
+        type: array
+        items: { type: string }
+
+    DiffStats:
+      type: object
+      description: Counts by kind of change. All four keys are always present.
+      properties:
+        ADDED: { type: integer }
+        DELETED: { type: integer }
+        MODIFIED: { type: integer }
+        UNCHANGED: { type: integer }
+
+    CheckDiffCounts:
+      type: object
+      description: Check type to its count. NQE appears only when non-zero or incomplete.
+      additionalProperties: { $ref: "#/components/schemas/DiffCount" }
+
+    CheckDiffStats:
+      type: object
+      description: Check id to its statistics.
+      additionalProperties: { $ref: "#/components/schemas/DiffStats" }
+
+    NqeCheckDiffStat:
+      type: object
+      properties:
+        queryId: { type: string }
+        params: { type: object, additionalProperties: true }
+        stats: { $ref: "#/components/schemas/DiffStats" }
+        diffResultKeyHash: { type: string }
+        processing: { type: boolean }
+        outdated: { type: boolean }
+
+    NqeCheckDiffStats:
+      type: object
+      properties:
+        checks:
+          type: array
+          items: { $ref: "#/components/schemas/NqeCheckDiffStat" }
+
+    NqeCheckDefinitions:
+      type: object
+      required: [definitions]
+      properties:
+        definitions:
+          type: array
+          items: { type: object, additionalProperties: true }
+
+    CheckResultDiffEntry:
+      type: object
+      properties:
+        diffType: { type: string, enum: [ADDED, DELETED, MODIFIED, UNCHANGED, PROCESSING] }
+        a: { $ref: "#/components/schemas/NetworkCheckResult" }
+        b: { $ref: "#/components/schemas/NetworkCheckResult" }
+
+    ChecksDiff:
+      type: object
+      properties:
+        checks:
+          type: array
+          items: { $ref: "#/components/schemas/CheckResultDiffEntry" }
+
+    CheckDiffDetails:
+      type: object
+      properties:
+        check: { type: object, additionalProperties: true }
+        details:
+          type: array
+          items: { type: object, additionalProperties: true }
+
+    FileDiffCount:
+      type: object
+      properties:
+        count: { type: integer }
+        complete: { type: boolean }
+        types:
+          type: object
+          additionalProperties: { type: integer }
+
+    StoredFileInfo:
+      type: object
+      properties:
+        name: { type: string }
+        nameA: { type: string, description: Present only when the file's name differs in the before snapshot. }
+        command: { type: string, description: Present only for custom CLI files. }
+
+    DeviceFilesDiff:
+      type: object
+      description: The device's inventory fields sit flat beside files.
+      properties:
+        name: { type: string }
+        deviceName: { type: string }
+        vendor: { type: string }
+        os: { type: string }
+        osVersion: { type: string }
+        model: { type: string }
+        deviceType: { type: string }
+        tags: { type: array, items: { type: string } }
+        managementIps: { type: array, items: { type: string } }
+        files:
+          type: array
+          items: { $ref: "#/components/schemas/StoredFileInfo" }
+        hasConfigChange: { type: boolean }
+      additionalProperties: true
+
+    CollectedFilesDiff:
+      type: object
+      properties:
+        deviceInfos:
+          type: array
+          items: { $ref: "#/components/schemas/DeviceFilesDiff" }
+
+    InventoryDeviceInfo:
+      type: object
+      properties:
+        name: { type: string }
+        displayName: { type: string }
+        requestedName: { type: string }
+        vendor: { type: string }
+        os: { type: string }
+        osVersion: { type: string }
+        model: { type: string }
+        deviceType: { type: string }
+        tags: { type: array, items: { type: string } }
+        managementIps: { type: array, items: { type: string } }
+        configFile: { type: string }
+        collectedAt: { type: string }
+        processingError: { type: string }
+        collectionError: { type: string }
+        predictAffected: { type: boolean }
+      additionalProperties: true
+
+    DeviceDiffEntry:
+      type: object
+      properties:
+        diffType: { type: string, enum: [ADDED, DELETED, MODIFIED, UNCHANGED] }
+        a: { $ref: "#/components/schemas/InventoryDeviceInfo" }
+        b: { $ref: "#/components/schemas/InventoryDeviceInfo" }
+
+    CloudObjectMetadata:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        accountName: { type: string }
+        type: { type: string }
+        cloudType: { type: string, enum: [AWS, GCP, AZURE, IBM_CLOUD, ALKIRA] }
+        locationIds: { type: array, items: { type: string } }
+        vpcs: { type: array, items: { type: string } }
+        processingError: { type: string }
+        collectionError: { type: string }
+      additionalProperties: true
+
+    CloudObjectDiffEntry:
+      type: object
+      properties:
+        diffType: { type: string, enum: [ADDED, DELETED, MODIFIED, UNCHANGED] }
+        a: { $ref: "#/components/schemas/CloudObjectMetadata" }
+        b: { $ref: "#/components/schemas/CloudObjectMetadata" }
+
+    DeviceDiffStat:
+      type: object
+      description: A device's inventory fields sit flat beside its statistics.
+      properties:
+        name: { type: string }
+        deviceName: { type: string }
+        vendor: { type: string }
+        os: { type: string }
+        model: { type: string }
+        deviceType: { type: string }
+        hasConfigChange: { type: boolean }
+        stats: { $ref: "#/components/schemas/DiffStats" }
+      additionalProperties: true
+
+    DeviceDiffStats:
+      type: object
+      properties:
+        deviceInfos:
+          type: array
+          items: { $ref: "#/components/schemas/DeviceDiffStat" }
+
+    FileLines:
+      type: object
+      description: Stored file name to the line ranges the entry came from.
+      additionalProperties:
+        type: array
+        items: { $ref: "#/components/schemas/LineRange" }
+
+    FieldAndValues:
+      type: object
+      properties:
+        field: { type: string }
+        index: { type: integer }
+        values: { type: array, items: {} }
+        negated: { type: boolean }
+
+    InterfaceInfo:
+      type: object
+      description: Empty and null fields are omitted; booleans are always present.
+      properties:
+        type: { type: string }
+        name: { type: string }
+        description: { type: string }
+        mtu: { type: integer }
+        speedMbps: { type: integer }
+        fullDuplex: { type: boolean }
+        isDown: { type: boolean }
+        aliases: { type: array, items: { type: string } }
+        macAddress: { type: string }
+        ipAddresses: { type: array, items: { type: string } }
+        fhrpIpAddresses: { type: array, items: { type: string } }
+        vrfName: { type: string }
+        defaultVlan: { type: string }
+        accessVlan: { type: string }
+        voiceVlan: { type: string }
+        nativeVlan: { type: string }
+        vlan: { type: string }
+        innerVlan: { type: string }
+        trunkVlans: { type: array, items: { type: string } }
+        parentIface: { type: string }
+        memberPorts: { type: array, items: { type: string } }
+        configuredMemberPorts: { type: array, items: { type: string } }
+        inAclNames: { type: array, items: { type: string } }
+        outAclNames: { type: array, items: { type: string } }
+        srcAddresses: { type: array, items: { type: string } }
+        dstAddresses: { type: array, items: { type: string } }
+        securityZone: { type: string }
+        fileLines: { $ref: "#/components/schemas/FileLines" }
+      additionalProperties: true
+
+    InterfaceDiffEntry:
+      type: object
+      properties:
+        diffType: { type: string, enum: [ADDED, DELETED, MODIFIED, UNCHANGED] }
+        a: { $ref: "#/components/schemas/InterfaceInfo" }
+        b: { $ref: "#/components/schemas/InterfaceInfo" }
+
+    DeviceInterfaceDiff:
+      type: object
+      properties:
+        diffs:
+          type: array
+          items: { $ref: "#/components/schemas/InterfaceDiffEntry" }
+        stats: { $ref: "#/components/schemas/DiffStats" }
+
+    AclDiffEntryInfo:
+      type: object
+      properties:
+        name: { type: string }
+        action: { type: string }
+        aclContext: { type: string }
+        inputInterfaces: { type: array, items: { type: string } }
+        outputInterfaces: { type: array, items: { type: string } }
+        matches: { type: array, items: { $ref: "#/components/schemas/FieldAndValues" } }
+        negatedMatches: { type: array, items: { $ref: "#/components/schemas/FieldAndValues" } }
+        fileLines: { $ref: "#/components/schemas/FileLines" }
+
+    AclDiffEntry:
+      type: object
+      properties:
+        diffType: { type: string, enum: [ADDED, DELETED, MODIFIED, UNCHANGED] }
+        a: { $ref: "#/components/schemas/AclDiffEntryInfo" }
+        b: { $ref: "#/components/schemas/AclDiffEntryInfo" }
+
+    DeviceAclDiff:
+      type: object
+      properties:
+        diffs:
+          type: array
+          items: { $ref: "#/components/schemas/AclDiffEntry" }
+        stats: { $ref: "#/components/schemas/DiffStats" }
+
+    NatTransformation:
+      type: object
+      properties:
+        values: { type: array, items: { $ref: "#/components/schemas/FieldAndValues" } }
+        autoMap: { type: boolean }
+
+    NatEntryInfo:
+      type: object
+      properties:
+        natType: { type: string, enum: [SOURCE_NAT, PRE_FWD_SOURCE_NAT, DESTINATION_NAT, POST_FWD_DESTINATION_NAT, VSERVER, PROXY] }
+        match: { type: array, items: { $ref: "#/components/schemas/FieldAndValues" } }
+        action: { type: string }
+        outputTransformations: { type: array, items: { $ref: "#/components/schemas/NatTransformation" } }
+        fileLines: { $ref: "#/components/schemas/FileLines" }
+
+    NatDiffEntry:
+      type: object
+      properties:
+        diffType: { type: string, enum: [ADDED, DELETED, MODIFIED, UNCHANGED] }
+        a: { $ref: "#/components/schemas/NatEntryInfo" }
+        b: { $ref: "#/components/schemas/NatEntryInfo" }
+
+    DeviceNatDiff:
+      type: object
+      properties:
+        diffs:
+          type: array
+          items: { $ref: "#/components/schemas/NatDiffEntry" }
+        stats: { $ref: "#/components/schemas/DiffStats" }
+
+    ArpEntryInfo:
+      type: object
+      properties:
+        ipAddress: { type: string }
+        vrfName: { type: string }
+        macAddress: { type: string }
+        port: { type: string }
+        fileLines: { $ref: "#/components/schemas/FileLines" }
+
+    ArpDiffEntry:
+      type: object
+      properties:
+        diffType: { type: string, enum: [ADDED, DELETED, MODIFIED, UNCHANGED] }
+        a: { $ref: "#/components/schemas/ArpEntryInfo" }
+        b: { $ref: "#/components/schemas/ArpEntryInfo" }
+
+    DeviceArpDiff:
+      type: object
+      properties:
+        diffs:
+          type: array
+          items: { $ref: "#/components/schemas/ArpDiffEntry" }
+        stats: { $ref: "#/components/schemas/DiffStats" }
+
+    MacEntryInfo:
+      type: object
+      properties:
+        macAddress: { type: string }
+        vlan: { type: string }
+        ports: { type: array, items: { type: string } }
+        fileLines: { $ref: "#/components/schemas/FileLines" }
+
+    MacDiffEntry:
+      type: object
+      properties:
+        diffType: { type: string, enum: [ADDED, DELETED, MODIFIED, UNCHANGED] }
+        a: { $ref: "#/components/schemas/MacEntryInfo" }
+        b: { $ref: "#/components/schemas/MacEntryInfo" }
+
+    DeviceMacDiff:
+      type: object
+      properties:
+        diffs:
+          type: array
+          items: { $ref: "#/components/schemas/MacDiffEntry" }
+        stats: { $ref: "#/components/schemas/DiffStats" }
+
+    RoutingDiffDetails:
+      type: object
+      description: Route entries as Forward serialises them; the entry shape is not declared.
+      properties:
+        diffs:
+          type: array
+          items: { type: object, additionalProperties: true }
+        stats: { $ref: "#/components/schemas/DiffStats" }
+
+    TopologyDiff:
+      type: object
+      description: Only the kinds of change present appear as keys.
+      properties:
+        ADDED: { type: array, items: { $ref: "#/components/schemas/TopologyLink" } }
+        DELETED: { type: array, items: { $ref: "#/components/schemas/TopologyLink" } }
+
+    VlanInterfaceStatus:
+      type: object
+      properties:
+        intfName: { type: string }
+        forwardingStatus: { type: string, enum: [UP_FORWARDING, UP_NON_FORWARDING, DOWN] }
+
+    VlanL3Interface:
+      type: object
+      properties:
+        intfName: { type: string }
+        ipAddresses: { type: array, items: { type: string } }
+
+    DeviceVlanInfo:
+      type: object
+      properties:
+        device: { type: string }
+        interfaces: { type: array, items: { $ref: "#/components/schemas/VlanInterfaceStatus" } }
+        l3Interfaces: { type: array, items: { $ref: "#/components/schemas/VlanL3Interface" } }
+
+    VlanDiffEntry:
+      type: object
+      properties:
+        diffType: { type: string, enum: [ADDED, DELETED, MODIFIED, UNCHANGED] }
+        a: { $ref: "#/components/schemas/DeviceVlanInfo" }
+        b: { $ref: "#/components/schemas/DeviceVlanInfo" }
+
+    L2Diff:
+      type: object
+      properties:
+        vlanToDiffs:
+          type: object
+          additionalProperties:
+            type: array
+            items: { $ref: "#/components/schemas/VlanDiffEntry" }
+
+    CloudObjectDiffStat:
+      type: object
+      properties:
+        objectId: { type: string }
+        type: { type: string }
+        cloudType: { type: string }
+        fileStats:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/DiffStats" }
+
+    CloudObjectDiffStats:
+      type: object
+      properties:
+        cloudObjects:
+          type: array
+          items: { $ref: "#/components/schemas/CloudObjectDiffStat" }
+
+    ConnChangeStats:
+      type: object
+      properties:
+        newlyConnected: { type: integer }
+        newlyIsolated: { type: integer }
+        modified: { type: integer }
+
+    LocationConnChangeCount:
+      type: object
+      properties:
+        src: { type: string }
+        dst: { type: string }
+        count: { type: integer }
+
+    LocationConnChangeCounts:
+      type: object
+      properties:
+        counts:
+          type: array
+          items: { $ref: "#/components/schemas/LocationConnChangeCount" }
+
+    LocationConnDiffStat:
+      type: object
+      properties:
+        locationId: { type: string }
+        incoming: { $ref: "#/components/schemas/ConnChangeStats" }
+        outgoing: { $ref: "#/components/schemas/ConnChangeStats" }
+
+    LocationsConnDiffStats:
+      type: object
+      properties:
+        stats:
+          type: array
+          items: { $ref: "#/components/schemas/LocationConnDiffStat" }
+
+    SubnetPairConnDiffStat:
+      type: object
+      properties:
+        src: { type: string }
+        dst: { type: string }
+        stats: { $ref: "#/components/schemas/ConnChangeStats" }
+
+    LocationPairConnDiffStats:
+      type: object
+      properties:
+        stats:
+          type: array
+          items: { $ref: "#/components/schemas/SubnetPairConnDiffStat" }
+
+    SubnetConnDiffDetail:
+      type: object
+      properties:
+        diffType: { type: string, enum: [ADDED, DELETED, MODIFIED, UNCHANGED] }
+        value: { type: object, additionalProperties: true }
+
+    SubnetConnDiffDetails:
+      type: object
+      properties:
+        diffs:
+          type: array
+          items: { $ref: "#/components/schemas/SubnetConnDiffDetail" }

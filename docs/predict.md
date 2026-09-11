@@ -167,6 +167,20 @@ means every network in the org; omitting the key is refused with a 400 that
 carries no message, so it looks like a mystery. Creating a webhook needs the
 `OUTBOUND_CONNECTIONS` deployment property.
 
+## BGP advertisements and directories
+
+A change set can also inject or withdraw BGP routes at a device, as a Predict
+input, through `client.bgp_advertisements`. The key of an advertisement is the
+peer address, the prefix and the VRF; an injected route needs a next hop, an
+origin and, for EBGP, a non-empty AS path. The draft's `?view=diffs` reports
+each advertisement as `INJECTED`, `MODIFIED`, `DUPLICATED`, `WITHDRAWN` or
+`ABSENT`.
+
+Change sets live in a directory tree, through `client.change_set_directories`.
+A directory path contains slashes and travels percent-encoded in the URL, which
+the SDK does for you. Deleting a directory keeps the change sets inside it
+unless `retain_change_sets` is passed as false.
+
 ## Cleaning up
 
 `handle.delete()` removes a change set. `client.change_sets.delete([...])`

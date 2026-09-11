@@ -60,7 +60,12 @@ operation table, so nothing lands here by accident.
 | Predicted snapshots | `GET .../predicted-snapshots` | `handle.predicted_snapshots()` |
 | Checks: add, list, delete | `.../checks`, `.../checks/{id}` | `handle.add_check()`, `checks()`, `delete_check()` |
 | Firewall rules diff and edits | `.../devices/{name}/security-rules-diff`, `.../scopes/{s}/rulebases/{r}/security-rules` | `client.firewall_predict` |
-| Snapshot diffs | `/diffs/{a}/{b}/...` (connectivity, vulnerabilities, routing loops, per-area counts, file summary) | `client.snapshot_diffs` |
+| Snapshot diffs, curated | `/diffs/{a}/{b}/...` (connectivity with a wait, vulnerabilities, routing loops, per-area counts, file summary) | `client.snapshot_diffs` |
+| Snapshot diffs, everything else | `/diffs/{a}/{b}/...` (checks, files, devices, cloud objects, per-device interface, ACL, NAT, routing, ARP and MAC entries, topology, VLANs, connectivity views) | `client.snapshot_diff_details` |
+| Firewall object listings | `.../devices/{name}/{address-objects,zones,...}` | `client.firewall_predict.list_firewall_*()` |
+| BGP advertisements | `.../draft/devices/{name}/bgp-advertisements?action=...` and `?view=diffs` | `client.bgp_advertisements` |
+| Change-set directories | `/networks/{id}/change-set-directories[/{path}?action=...]` | `client.change_set_directories` |
+| Predict AI assists | `.../cli-assists`, `.../overview-assists`, `/diffs/{a}/{b}/{config,impact}-summary-assists` | `client.predict_assist` |
 | Webhooks | `/webhooks`, `/webhooks/{name}`, `?action=test`, `/webhook-types/{type}?view=default-templates` | `client.webhooks` |
 | Org and global configuration | `/config/{p}`, `/global-config/{p}`, `/orgs/{org}/config/{p}` | `client.configuration`, `config_value()` |
 

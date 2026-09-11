@@ -26,11 +26,27 @@ OUTPUT = Path("src/forward_sdk/models/__init__.py")
 
 CLASS_DECLARATION = re.compile(r"^class (\w+)\(", re.MULTILINE)
 
-#: Readable names for enums the generator names positionally. A caller who
-#: needs to name one of these should not have to import "Type32".
+#: Readable names for enums the generator names positionally, as
+#: alias -> (model, field). A caller who needs to name one of these should not
+#: have to import "Type32", and this file should not have to know the number:
+#: it shifts whenever an inline enum is added earlier in the description, and a
+#: literal here broke on exactly that. The generated name is resolved from the
+#: field that uses it each time.
 ALIASES = {
-    "DiffEntryType": "Type32",
+    "DiffEntryType": ("NqeDiffEntry", "type"),
 }
+
+
+def resolve_alias(model: str, field: str, source: str) -> str:
+    """The generated name of the enum ``model.field`` is annotated with."""
+    block = re.search(rf"^class {model}\(.*?(?=^class |\Z)", source, re.MULTILINE | re.DOTALL)
+    if block is None:
+        raise SystemExit(f"cannot resolve alias: no generated model named {model}")
+    match = re.search(rf"^    {field}: (Type\d+)", block.group(0), re.MULTILINE)
+    if match is None:
+        raise SystemExit(f"cannot resolve alias: {model}.{field} is not a positional enum")
+    return match.group(1)
+
 
 #: Generated names the SDK supersedes with a friendlier type of its own. The
 #: generated ones mirror the wire shape (a nested commit object, for instance);
@@ -83,7 +99,9 @@ def render(names: list[str]) -> str:
     lines.append("from forward_sdk._generated.models import (")
     lines.extend(f"    {name}," for name in names)
     lines.append(")")
-    for alias, generated in sorted(ALIASES.items()):
+    source = MODELS_PATH.read_text(encoding="utf-8")
+    for alias, (model, field) in sorted(ALIASES.items()):
+        generated = resolve_alias(model, field, source)
         lines.append(f"from forward_sdk._generated.models import {generated} as {alias}")
     for module, exports in HAND_WRITTEN:
         lines.append(f"from {module} import (")

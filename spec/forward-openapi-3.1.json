@@ -20,6 +20,67 @@
       }
     },
     "schemas": {
+      "AclDiffEntry": {
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/AclDiffEntryInfo"
+          },
+          "b": {
+            "$ref": "#/components/schemas/AclDiffEntryInfo"
+          },
+          "diffType": {
+            "enum": [
+              "ADDED",
+              "DELETED",
+              "MODIFIED",
+              "UNCHANGED"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AclDiffEntryInfo": {
+        "properties": {
+          "aclContext": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "fileLines": {
+            "$ref": "#/components/schemas/FileLines"
+          },
+          "inputInterfaces": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "matches": {
+            "items": {
+              "$ref": "#/components/schemas/FieldAndValues"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "negatedMatches": {
+            "items": {
+              "$ref": "#/components/schemas/FieldAndValues"
+            },
+            "type": "array"
+          },
+          "outputInterfaces": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "AclFunction": {
         "properties": {
           "action": {
@@ -361,6 +422,46 @@
         },
         "type": "object"
       },
+      "ArpDiffEntry": {
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/ArpEntryInfo"
+          },
+          "b": {
+            "$ref": "#/components/schemas/ArpEntryInfo"
+          },
+          "diffType": {
+            "enum": [
+              "ADDED",
+              "DELETED",
+              "MODIFIED",
+              "UNCHANGED"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ArpEntryInfo": {
+        "properties": {
+          "fileLines": {
+            "$ref": "#/components/schemas/FileLines"
+          },
+          "ipAddress": {
+            "type": "string"
+          },
+          "macAddress": {
+            "type": "string"
+          },
+          "port": {
+            "type": "string"
+          },
+          "vrfName": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "Attribution": {
         "properties": {
           "createdAt": {
@@ -464,6 +565,123 @@
           "operator"
         ],
         "type": "object"
+      },
+      "BgpAdvertisement": {
+        "description": "The key fields sit flat beside the attributes. asPath must be non-empty for EBGP.",
+        "properties": {
+          "asPath": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "communities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "externalPeer": {
+            "type": "string"
+          },
+          "localPref": {
+            "type": "integer"
+          },
+          "med": {
+            "type": "integer"
+          },
+          "nextHop": {
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "EGP",
+              "IGP",
+              "INCOMPLETE",
+              "DEFAULT_ORIGINATE"
+            ],
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "type": {
+            "description": "Defaults to EBGP.",
+            "enum": [
+              "EBGP",
+              "IBGP"
+            ],
+            "type": "string"
+          },
+          "vrf": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "externalPeer",
+          "prefix",
+          "vrf",
+          "nextHop",
+          "origin"
+        ],
+        "type": "object"
+      },
+      "BgpAdvertisementDiff": {
+        "properties": {
+          "change": {
+            "enum": [
+              "INJECTED",
+              "MODIFIED",
+              "DUPLICATED",
+              "WITHDRAWN",
+              "ABSENT"
+            ],
+            "type": "string"
+          },
+          "original": {
+            "$ref": "#/components/schemas/BgpAdvertisement"
+          },
+          "updateAdded": {
+            "$ref": "#/components/schemas/BgpAdvertisement"
+          },
+          "updateRemoved": {
+            "$ref": "#/components/schemas/BgpAdvertisementKey"
+          }
+        },
+        "type": "object"
+      },
+      "BgpAdvertisementKey": {
+        "properties": {
+          "externalPeer": {
+            "description": "The peer's IP address.",
+            "type": "string"
+          },
+          "prefix": {
+            "description": "CIDR.",
+            "type": "string"
+          },
+          "vrf": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "externalPeer",
+          "prefix",
+          "vrf"
+        ],
+        "type": "object"
+      },
+      "BgpAdvertisementKeyList": {
+        "items": {
+          "$ref": "#/components/schemas/BgpAdvertisementKey"
+        },
+        "type": "array"
+      },
+      "BgpAdvertisementList": {
+        "items": {
+          "$ref": "#/components/schemas/BgpAdvertisement"
+        },
+        "type": "array"
       },
       "BidirectionalDiffCount": {
         "properties": {
@@ -633,6 +851,16 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ChangeSetDirectories": {
+        "additionalProperties": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": "Directory path to the ids of the change sets directly inside it.",
         "type": "object"
       },
       "ChangeSetDraft": {
@@ -899,6 +1127,36 @@
         },
         "type": "object"
       },
+      "CheckDiffCounts": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/DiffCount"
+        },
+        "description": "Check type to its count. NQE appears only when non-zero or incomplete.",
+        "type": "object"
+      },
+      "CheckDiffDetails": {
+        "properties": {
+          "check": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "details": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CheckDiffStats": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/DiffStats"
+        },
+        "description": "Check id to its statistics.",
+        "type": "object"
+      },
       "CheckPriority": {
         "enum": [
           "NOT_SET",
@@ -907,6 +1165,27 @@
           "HIGH"
         ],
         "type": "string"
+      },
+      "CheckResultDiffEntry": {
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/NetworkCheckResult"
+          },
+          "b": {
+            "$ref": "#/components/schemas/NetworkCheckResult"
+          },
+          "diffType": {
+            "enum": [
+              "ADDED",
+              "DELETED",
+              "MODIFIED",
+              "UNCHANGED",
+              "PROCESSING"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
       },
       "CheckStatus": {
         "enum": [
@@ -930,6 +1209,17 @@
           "NQE"
         ],
         "type": "string"
+      },
+      "ChecksDiff": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CheckResultDiffEntry"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
       },
       "ClassicDevice": {
         "allOf": [
@@ -2388,6 +2678,114 @@
         },
         "type": "object"
       },
+      "CloudObjectDiffEntry": {
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/CloudObjectMetadata"
+          },
+          "b": {
+            "$ref": "#/components/schemas/CloudObjectMetadata"
+          },
+          "diffType": {
+            "enum": [
+              "ADDED",
+              "DELETED",
+              "MODIFIED",
+              "UNCHANGED"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CloudObjectDiffStat": {
+        "properties": {
+          "cloudType": {
+            "type": "string"
+          },
+          "fileStats": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DiffStats"
+            },
+            "type": "object"
+          },
+          "objectId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CloudObjectDiffStats": {
+        "properties": {
+          "cloudObjects": {
+            "items": {
+              "$ref": "#/components/schemas/CloudObjectDiffStat"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CloudObjectMetadata": {
+        "additionalProperties": true,
+        "properties": {
+          "accountName": {
+            "type": "string"
+          },
+          "cloudType": {
+            "enum": [
+              "AWS",
+              "GCP",
+              "AZURE",
+              "IBM_CLOUD",
+              "ALKIRA"
+            ],
+            "type": "string"
+          },
+          "collectionError": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "locationIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "processingError": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "vpcs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CollectedFilesDiff": {
+        "properties": {
+          "deviceInfos": {
+            "items": {
+              "$ref": "#/components/schemas/DeviceFilesDiff"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "CollectionSchedule": {
         "allOf": [
           {
@@ -2823,6 +3221,20 @@
       "ConfigValue": {
         "additionalProperties": true,
         "description": "A single property and its value, keyed by the property name in lower case. Read it with `forward_sdk.config_value`, which returns the value whatever the key.",
+        "type": "object"
+      },
+      "ConnChangeStats": {
+        "properties": {
+          "modified": {
+            "type": "integer"
+          },
+          "newlyConnected": {
+            "type": "integer"
+          },
+          "newlyIsolated": {
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "ConnectionType": {
@@ -3795,6 +4207,20 @@
         },
         "type": "object"
       },
+      "DeviceAclDiff": {
+        "properties": {
+          "diffs": {
+            "items": {
+              "$ref": "#/components/schemas/AclDiffEntry"
+            },
+            "type": "array"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/DiffStats"
+          }
+        },
+        "type": "object"
+      },
       "DeviceAliasFilter": {
         "description": "A filter that matches any device in a Device Group",
         "properties": {
@@ -3811,6 +4237,20 @@
           "type",
           "value"
         ],
+        "type": "object"
+      },
+      "DeviceArpDiff": {
+        "properties": {
+          "diffs": {
+            "items": {
+              "$ref": "#/components/schemas/ArpDiffEntry"
+            },
+            "type": "array"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/DiffStats"
+          }
+        },
         "type": "object"
       },
       "DeviceChanges": {
@@ -3982,6 +4422,68 @@
         ],
         "type": "object"
       },
+      "DeviceDiffEntry": {
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/InventoryDeviceInfo"
+          },
+          "b": {
+            "$ref": "#/components/schemas/InventoryDeviceInfo"
+          },
+          "diffType": {
+            "enum": [
+              "ADDED",
+              "DELETED",
+              "MODIFIED",
+              "UNCHANGED"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DeviceDiffStat": {
+        "additionalProperties": true,
+        "description": "A device's inventory fields sit flat beside its statistics.",
+        "properties": {
+          "deviceName": {
+            "type": "string"
+          },
+          "deviceType": {
+            "type": "string"
+          },
+          "hasConfigChange": {
+            "type": "boolean"
+          },
+          "model": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "os": {
+            "type": "string"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/DiffStats"
+          },
+          "vendor": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DeviceDiffStats": {
+        "properties": {
+          "deviceInfos": {
+            "items": {
+              "$ref": "#/components/schemas/DeviceDiffStat"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "DeviceFile": {
         "properties": {
           "bytes": {
@@ -4018,6 +4520,55 @@
         },
         "type": "object"
       },
+      "DeviceFilesDiff": {
+        "additionalProperties": true,
+        "description": "The device's inventory fields sit flat beside files.",
+        "properties": {
+          "deviceName": {
+            "type": "string"
+          },
+          "deviceType": {
+            "type": "string"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/StoredFileInfo"
+            },
+            "type": "array"
+          },
+          "hasConfigChange": {
+            "type": "boolean"
+          },
+          "managementIps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "model": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "os": {
+            "type": "string"
+          },
+          "osVersion": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "vendor": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "DeviceFilter": {
         "description": "A filter that matches one device by name or all devices (using value \"*\")",
         "properties": {
@@ -4038,6 +4589,34 @@
         ],
         "type": "object"
       },
+      "DeviceInterfaceDiff": {
+        "properties": {
+          "diffs": {
+            "items": {
+              "$ref": "#/components/schemas/InterfaceDiffEntry"
+            },
+            "type": "array"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/DiffStats"
+          }
+        },
+        "type": "object"
+      },
+      "DeviceMacDiff": {
+        "properties": {
+          "diffs": {
+            "items": {
+              "$ref": "#/components/schemas/MacDiffEntry"
+            },
+            "type": "array"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/DiffStats"
+          }
+        },
+        "type": "object"
+      },
       "DeviceNames": {
         "properties": {
           "names": {
@@ -4045,6 +4624,20 @@
               "type": "string"
             },
             "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeviceNatDiff": {
+        "properties": {
+          "diffs": {
+            "items": {
+              "$ref": "#/components/schemas/NatDiffEntry"
+            },
+            "type": "array"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/DiffStats"
           }
         },
         "type": "object"
@@ -4258,6 +4851,26 @@
         ],
         "type": "string"
       },
+      "DeviceVlanInfo": {
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "interfaces": {
+            "items": {
+              "$ref": "#/components/schemas/VlanInterfaceStatus"
+            },
+            "type": "array"
+          },
+          "l3Interfaces": {
+            "items": {
+              "$ref": "#/components/schemas/VlanL3Interface"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "DeviceVrfFilter": {
         "description": "A filter that matches a device\u2019s interfaces by VRF name",
         "properties": {
@@ -4399,6 +5012,24 @@
             "type": "boolean"
           },
           "count": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "DiffStats": {
+        "description": "Counts by kind of change. All four keys are always present.",
+        "properties": {
+          "ADDED": {
+            "type": "integer"
+          },
+          "DELETED": {
+            "type": "integer"
+          },
+          "MODIFIED": {
+            "type": "integer"
+          },
+          "UNCHANGED": {
             "type": "integer"
           }
         },
@@ -4719,6 +5350,41 @@
         ],
         "type": "object"
       },
+      "FieldAndValues": {
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "index": {
+            "type": "integer"
+          },
+          "negated": {
+            "type": "boolean"
+          },
+          "values": {
+            "items": {},
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "FileDiffCount": {
+        "properties": {
+          "complete": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "types": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
       "FileDiffSummary": {
         "properties": {
           "directChanges": {
@@ -4756,6 +5422,16 @@
             "type": "object"
           }
         },
+        "type": "object"
+      },
+      "FileLines": {
+        "additionalProperties": {
+          "items": {
+            "$ref": "#/components/schemas/LineRange"
+          },
+          "type": "array"
+        },
+        "description": "Stored file name to the line ranges the entry came from.",
         "type": "object"
       },
       "HopFilter": {
@@ -5519,6 +6195,26 @@
         ],
         "type": "object"
       },
+      "InterfaceDiffEntry": {
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/InterfaceInfo"
+          },
+          "b": {
+            "$ref": "#/components/schemas/InterfaceInfo"
+          },
+          "diffType": {
+            "enum": [
+              "ADDED",
+              "DELETED",
+              "MODIFIED",
+              "UNCHANGED"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "InterfaceFilter": {
         "description": "A filter that matches one device interface by name",
         "properties": {
@@ -5568,6 +6264,127 @@
           },
           "vrf": {
             "description": "Null if the interface does not belong to any VRF",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "InterfaceInfo": {
+        "additionalProperties": true,
+        "description": "Empty and null fields are omitted; booleans are always present.",
+        "properties": {
+          "accessVlan": {
+            "type": "string"
+          },
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "configuredMemberPorts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "defaultVlan": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "dstAddresses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "fhrpIpAddresses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "fileLines": {
+            "$ref": "#/components/schemas/FileLines"
+          },
+          "fullDuplex": {
+            "type": "boolean"
+          },
+          "inAclNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "innerVlan": {
+            "type": "string"
+          },
+          "ipAddresses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "isDown": {
+            "type": "boolean"
+          },
+          "macAddress": {
+            "type": "string"
+          },
+          "memberPorts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "mtu": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nativeVlan": {
+            "type": "string"
+          },
+          "outAclNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "parentIface": {
+            "type": "string"
+          },
+          "securityZone": {
+            "type": "string"
+          },
+          "speedMbps": {
+            "type": "integer"
+          },
+          "srcAddresses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "trunkVlans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "type": "string"
+          },
+          "vlan": {
+            "type": "string"
+          },
+          "voiceVlan": {
+            "type": "string"
+          },
+          "vrfName": {
             "type": "string"
           }
         },
@@ -5721,6 +6538,63 @@
             "type": "array"
           },
           "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "InventoryDeviceInfo": {
+        "additionalProperties": true,
+        "properties": {
+          "collectedAt": {
+            "type": "string"
+          },
+          "collectionError": {
+            "type": "string"
+          },
+          "configFile": {
+            "type": "string"
+          },
+          "deviceType": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "managementIps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "model": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "os": {
+            "type": "string"
+          },
+          "osVersion": {
+            "type": "string"
+          },
+          "predictAffected": {
+            "type": "boolean"
+          },
+          "processingError": {
+            "type": "string"
+          },
+          "requestedName": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "vendor": {
             "type": "string"
           }
         },
@@ -5947,6 +6821,20 @@
               "Management-vrf"
             ],
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "L2Diff": {
+        "properties": {
+          "vlanToDiffs": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/VlanDiffEntry"
+              },
+              "type": "array"
+            },
+            "type": "object"
           }
         },
         "type": "object"
@@ -6419,6 +7307,45 @@
         },
         "type": "object"
       },
+      "LocationConnChangeCount": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "dst": {
+            "type": "string"
+          },
+          "src": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LocationConnChangeCounts": {
+        "properties": {
+          "counts": {
+            "items": {
+              "$ref": "#/components/schemas/LocationConnChangeCount"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "LocationConnDiffStat": {
+        "properties": {
+          "incoming": {
+            "$ref": "#/components/schemas/ConnChangeStats"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "outgoing": {
+            "$ref": "#/components/schemas/ConnChangeStats"
+          }
+        },
+        "type": "object"
+      },
       "LocationFilter": {
         "discriminator": {
           "mapping": {
@@ -6499,6 +7426,17 @@
         ],
         "type": "object"
       },
+      "LocationPairConnDiffStats": {
+        "properties": {
+          "stats": {
+            "items": {
+              "$ref": "#/components/schemas/SubnetPairConnDiffStat"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "LocationPatch": {
         "properties": {
           "adminDivision": {
@@ -6553,6 +7491,17 @@
         },
         "type": "object"
       },
+      "LocationsConnDiffStats": {
+        "properties": {
+          "stats": {
+            "items": {
+              "$ref": "#/components/schemas/LocationConnDiffStat"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "LogicalNetworkAliasBuilder": {
         "properties": {
           "devices": {
@@ -6590,6 +7539,46 @@
           "SAML"
         ],
         "type": "string"
+      },
+      "MacDiffEntry": {
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/MacEntryInfo"
+          },
+          "b": {
+            "$ref": "#/components/schemas/MacEntryInfo"
+          },
+          "diffType": {
+            "enum": [
+              "ADDED",
+              "DELETED",
+              "MODIFIED",
+              "UNCHANGED"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "MacEntryInfo": {
+        "properties": {
+          "fileLines": {
+            "$ref": "#/components/schemas/FileLines"
+          },
+          "macAddress": {
+            "type": "string"
+          },
+          "ports": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "vlan": {
+            "type": "string"
+          }
+        },
+        "type": "object"
       },
       "MissingDevice": {
         "properties": {
@@ -6716,6 +7705,74 @@
           "devices": {
             "items": {
               "$ref": "#/components/schemas/MissingDevice"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "NatDiffEntry": {
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/NatEntryInfo"
+          },
+          "b": {
+            "$ref": "#/components/schemas/NatEntryInfo"
+          },
+          "diffType": {
+            "enum": [
+              "ADDED",
+              "DELETED",
+              "MODIFIED",
+              "UNCHANGED"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "NatEntryInfo": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "fileLines": {
+            "$ref": "#/components/schemas/FileLines"
+          },
+          "match": {
+            "items": {
+              "$ref": "#/components/schemas/FieldAndValues"
+            },
+            "type": "array"
+          },
+          "natType": {
+            "enum": [
+              "SOURCE_NAT",
+              "PRE_FWD_SOURCE_NAT",
+              "DESTINATION_NAT",
+              "POST_FWD_DESTINATION_NAT",
+              "VSERVER",
+              "PROXY"
+            ],
+            "type": "string"
+          },
+          "outputTransformations": {
+            "items": {
+              "$ref": "#/components/schemas/NatTransformation"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "NatTransformation": {
+        "properties": {
+          "autoMap": {
+            "type": "boolean"
+          },
+          "values": {
+            "items": {
+              "$ref": "#/components/schemas/FieldAndValues"
             },
             "type": "array"
           }
@@ -8219,6 +9276,56 @@
           "checkType",
           "queryId"
         ],
+        "type": "object"
+      },
+      "NqeCheckDefinitions": {
+        "properties": {
+          "definitions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "definitions"
+        ],
+        "type": "object"
+      },
+      "NqeCheckDiffStat": {
+        "properties": {
+          "diffResultKeyHash": {
+            "type": "string"
+          },
+          "outdated": {
+            "type": "boolean"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "processing": {
+            "type": "boolean"
+          },
+          "queryId": {
+            "type": "string"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/DiffStats"
+          }
+        },
+        "type": "object"
+      },
+      "NqeCheckDiffStats": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/NqeCheckDiffStat"
+            },
+            "type": "array"
+          }
+        },
         "type": "object"
       },
       "NqeDiffEntry": {
@@ -9896,6 +11003,22 @@
         },
         "type": "object"
       },
+      "RoutingDiffDetails": {
+        "description": "Route entries as Forward serialises them; the entry shape is not declared.",
+        "properties": {
+          "diffs": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/DiffStats"
+          }
+        },
+        "type": "object"
+      },
       "RoutingLoopDiffCount": {
         "properties": {
           "complete": {
@@ -11160,6 +12283,22 @@
           }
         ]
       },
+      "StoredFileInfo": {
+        "properties": {
+          "command": {
+            "description": "Present only for custom CLI files.",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nameA": {
+            "description": "Present only when the file's name differs in the before snapshot.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "StoredHttpCredential": {
         "allOf": [
           {
@@ -11179,6 +12318,35 @@
             "$ref": "#/components/schemas/Attribution"
           }
         ]
+      },
+      "SubnetConnDiffDetail": {
+        "properties": {
+          "diffType": {
+            "enum": [
+              "ADDED",
+              "DELETED",
+              "MODIFIED",
+              "UNCHANGED"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "additionalProperties": true,
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "SubnetConnDiffDetails": {
+        "properties": {
+          "diffs": {
+            "items": {
+              "$ref": "#/components/schemas/SubnetConnDiffDetail"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
       },
       "SubnetConnectivityDiff": {
         "description": "How connectivity between subnets changed. Computed asynchronously, so an early request can return counts of zero with `isPartialResult` true; those zeros mean \"not finished\", not \"nothing changed\".",
@@ -11256,6 +12424,20 @@
           "type",
           "value"
         ],
+        "type": "object"
+      },
+      "SubnetPairConnDiffStat": {
+        "properties": {
+          "dst": {
+            "type": "string"
+          },
+          "src": {
+            "type": "string"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ConnChangeStats"
+          }
+        },
         "type": "object"
       },
       "SummaryAssistResponse": {
@@ -11376,6 +12558,24 @@
           "Europe/Rome"
         ],
         "type": "string"
+      },
+      "TopologyDiff": {
+        "description": "Only the kinds of change present appear as keys.",
+        "properties": {
+          "ADDED": {
+            "items": {
+              "$ref": "#/components/schemas/TopologyLink"
+            },
+            "type": "array"
+          },
+          "DELETED": {
+            "items": {
+              "$ref": "#/components/schemas/TopologyLink"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
       },
       "TopologyLink": {
         "properties": {
@@ -11845,6 +13045,56 @@
           "zscaler_app_connector"
         ],
         "type": "string"
+      },
+      "VlanDiffEntry": {
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/DeviceVlanInfo"
+          },
+          "b": {
+            "$ref": "#/components/schemas/DeviceVlanInfo"
+          },
+          "diffType": {
+            "enum": [
+              "ADDED",
+              "DELETED",
+              "MODIFIED",
+              "UNCHANGED"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "VlanInterfaceStatus": {
+        "properties": {
+          "forwardingStatus": {
+            "enum": [
+              "UP_FORWARDING",
+              "UP_NON_FORWARDING",
+              "DOWN"
+            ],
+            "type": "string"
+          },
+          "intfName": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "VlanL3Interface": {
+        "properties": {
+          "intfName": {
+            "type": "string"
+          },
+          "ipAddresses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
       },
       "VrfFilter": {
         "description": "A filter that matches device interfaces by VRF name",
@@ -13251,6 +14501,80 @@
             ""
           ]
         ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getAclDiffStats",
+            "summary": "Per-device ACL change statistics",
+            "x-forward-fixed-query": []
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/acl/devices/{deviceName}": {
+      "get": {
+        "operationId": "getDeviceAclDiffs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "diffs": [
+                    {
+                      "a": null,
+                      "b": {
+                        "action": "DENY",
+                        "matches": [],
+                        "name": "outbound"
+                      },
+                      "diffType": "ADDED"
+                    }
+                  ],
+                  "stats": {
+                    "ADDED": 1,
+                    "DELETED": 0,
+                    "MODIFIED": 0,
+                    "UNCHANGED": 12
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceAclDiff"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "One device's ACL entry changes",
+        "tags": [
+          "Snapshot Diff Details"
+        ],
         "x-forward-stability": "unpublished"
       }
     },
@@ -13300,6 +14624,457 @@
             "count",
             ""
           ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getArpDiffStats",
+            "summary": "Per-device ARP change statistics",
+            "x-forward-fixed-query": []
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/arp/devices/{deviceName}": {
+      "get": {
+        "operationId": "getDeviceArpDiffs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "diffs": [
+                    {
+                      "a": null,
+                      "b": {
+                        "ipAddress": "10.0.0.9",
+                        "macAddress": "00:10:00:17:2c:d3",
+                        "vrfName": "default"
+                      },
+                      "diffType": "ADDED"
+                    }
+                  ],
+                  "stats": {
+                    "ADDED": 1,
+                    "DELETED": 0,
+                    "MODIFIED": 0,
+                    "UNCHANGED": 30
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceArpDiff"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "One device's ARP table changes",
+        "tags": [
+          "Snapshot Diff Details"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/checks": {
+      "get": {
+        "operationId": "getCheckDiffCounts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "NQE": {
+                    "complete": false,
+                    "count": 1
+                  },
+                  "Predefined": {
+                    "complete": true,
+                    "count": 2
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CheckDiffCounts"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "How many checks changed, by check type",
+        "tags": [
+          "Snapshot Diff Details"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "counts",
+            ""
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getCheckDiffs",
+            "summary": "Check results that changed, for the given check types",
+            "x-forward-fixed-query": []
+          },
+          {
+            "operationId": "getNqeCheckDiffs",
+            "summary": "NQE check results that changed, without blocking",
+            "x-forward-fixed-query": [
+              [
+                "type",
+                "NQE"
+              ]
+            ]
+          },
+          {
+            "operationId": "getCheckDiffStats",
+            "summary": "Added, deleted, modified and unchanged findings per check",
+            "x-forward-fixed-query": [
+              [
+                "stats",
+                ""
+              ]
+            ]
+          },
+          {
+            "operationId": "getNqeCheckDiffStats",
+            "summary": "Per-check statistics for NQE checks, with processing state",
+            "x-forward-fixed-query": [
+              [
+                "stats",
+                ""
+              ],
+              [
+                "type",
+                "NQE"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Only active NQE checks are accepted. Returns nothing; read the statistics afterwards.",
+        "operationId": "computeNqeCheckDiffs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "definitions": [
+                  {
+                    "checkType": "NQE",
+                    "queryId": "FQ_1"
+                  }
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NqeCheckDefinitions"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted."
+          }
+        },
+        "summary": "Start computing diffs for the given NQE checks",
+        "tags": [
+          "Snapshot Diff Details"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "compute"
+          ],
+          [
+            "type",
+            "NQE"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/checks/{checkId}": {
+      "get": {
+        "description": "Predefined checks only; other types are refused.",
+        "operationId": "getCheckDiffDetails",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "checkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "check": {
+                    "id": "c1"
+                  },
+                  "details": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CheckDiffDetails"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "How one predefined check's findings changed",
+        "tags": [
+          "Snapshot Diff Details"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/cloud-acl": {
+      "get": {
+        "operationId": "getCloudAclDiffCount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "complete": true,
+                  "count": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DiffCount"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "How many cloud objects have ACL changes",
+        "tags": [
+          "Snapshot Diff Details"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "count",
+            ""
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getCloudAclDiffStats",
+            "summary": "Per-cloud-object ACL change statistics",
+            "x-forward-fixed-query": []
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/cloud-acl/objects/{objectId}": {
+      "get": {
+        "description": "Forward serialises this itself; the shape is not declared and is passed through.",
+        "operationId": "getCloudObjectAclDiffs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "objectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {},
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "One cloud object's ACL changes",
+        "tags": [
+          "Snapshot Diff Details"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/cloud-objects": {
+      "get": {
+        "operationId": "getCloudObjectDiffCount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "complete": true,
+                  "count": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DiffCount"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "How many cloud objects changed",
+        "tags": [
+          "Snapshot Diff Details"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "count",
+            ""
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getCloudObjectDiffs",
+            "summary": "Cloud objects added, removed or modified",
+            "x-forward-fixed-query": []
+          }
         ],
         "x-forward-stability": "unpublished"
       }
@@ -13394,6 +15169,13 @@
             ""
           ]
         ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getDeviceDiffs",
+            "summary": "Devices added or removed",
+            "x-forward-fixed-query": []
+          }
+        ],
         "x-forward-stability": "unpublished"
       }
     },
@@ -13456,6 +15238,23 @@
             "view",
             "deviceSummary"
           ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getFileDiffCount",
+            "summary": "How many devices have changed files, by file type",
+            "x-forward-fixed-query": [
+              [
+                "count",
+                ""
+              ]
+            ]
+          },
+          {
+            "operationId": "getFileDiffs",
+            "summary": "Which collected files changed, per device",
+            "x-forward-fixed-query": []
+          }
         ],
         "x-forward-stability": "unpublished"
       }
@@ -13550,6 +15349,82 @@
             ""
           ]
         ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getInterfaceDiffStats",
+            "summary": "Per-device interface change statistics",
+            "x-forward-fixed-query": []
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/interfaces/devices/{deviceName}": {
+      "get": {
+        "operationId": "getDeviceInterfaceDiffs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "diffs": [
+                    {
+                      "a": {
+                        "isDown": false,
+                        "name": "Ethernet1"
+                      },
+                      "b": {
+                        "isDown": true,
+                        "name": "Ethernet1"
+                      },
+                      "diffType": "MODIFIED"
+                    }
+                  ],
+                  "stats": {
+                    "ADDED": 0,
+                    "DELETED": 0,
+                    "MODIFIED": 1,
+                    "UNCHANGED": 47
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceInterfaceDiff"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "One device's interface changes",
+        "tags": [
+          "Snapshot Diff Details"
+        ],
         "x-forward-stability": "unpublished"
       }
     },
@@ -13599,6 +15474,226 @@
             "count",
             ""
           ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getL2Diffs",
+            "summary": "VLAN membership changes, per VLAN",
+            "x-forward-fixed-query": []
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/l3": {
+      "get": {
+        "operationId": "getRoutingDiffStats",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "deviceInfos": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceDiffStats"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "Per-device routing change statistics",
+        "tags": [
+          "Snapshot Diff Details"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "devices"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getRoutingDiffPrefixes",
+            "summary": "Routing changes by prefix, paged",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "prefixes"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/l3/devices/{deviceName}": {
+      "get": {
+        "operationId": "getDeviceRoutingDiffs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "diffs": [],
+                  "stats": {
+                    "ADDED": 0,
+                    "DELETED": 0,
+                    "MODIFIED": 0,
+                    "UNCHANGED": 120
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingDiffDetails"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "One device's routing table changes",
+        "tags": [
+          "Snapshot Diff Details"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/l3/prefixes/{prefix}": {
+      "get": {
+        "description": "Forward serialises this itself; the shape is not declared and is passed through.",
+        "operationId": "getRoutingDiffForPrefix",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A CIDR. Sent percent-encoded.",
+            "in": "path",
+            "name": "prefix",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {},
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "Routing changes for one prefix",
+        "tags": [
+          "Snapshot Diff Details"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/l3/summary": {
+      "get": {
+        "description": "Forward serialises this itself; the shape is not declared and is passed through.",
+        "operationId": "getRoutingDiffSummary",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {},
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "A summary of routing changes",
+        "tags": [
+          "Snapshot Diff Details"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -13650,6 +15745,82 @@
             ""
           ]
         ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getMacDiffStats",
+            "summary": "Per-device MAC table change statistics",
+            "x-forward-fixed-query": []
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/mac/devices/{deviceName}": {
+      "get": {
+        "operationId": "getDeviceMacDiffs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "diffs": [
+                    {
+                      "a": {
+                        "macAddress": "00:10:00:17:2c:d3",
+                        "ports": [
+                          "Ethernet3"
+                        ],
+                        "vlan": "100"
+                      },
+                      "b": null,
+                      "diffType": "DELETED"
+                    }
+                  ],
+                  "stats": {
+                    "ADDED": 0,
+                    "DELETED": 1,
+                    "MODIFIED": 0,
+                    "UNCHANGED": 200
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceMacDiff"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "One device's MAC table changes",
+        "tags": [
+          "Snapshot Diff Details"
+        ],
         "x-forward-stability": "unpublished"
       }
     },
@@ -13699,6 +15870,70 @@
             "count",
             ""
           ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getNatDiffStats",
+            "summary": "Per-device NAT change statistics",
+            "x-forward-fixed-query": []
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/nat/devices/{deviceName}": {
+      "get": {
+        "operationId": "getDeviceNatDiffs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "diffs": [],
+                  "stats": {
+                    "ADDED": 0,
+                    "DELETED": 0,
+                    "MODIFIED": 0,
+                    "UNCHANGED": 3
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceNatDiff"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "One device's NAT entry changes",
+        "tags": [
+          "Snapshot Diff Details"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -13810,6 +16045,48 @@
         "tags": [
           "Snapshot Diffs"
         ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getConnectivityDiffLocationPairs",
+            "summary": "Changed subnet pairs counted per location pair",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "locationPairs"
+              ]
+            ]
+          },
+          {
+            "operationId": "getConnectivityDiffLocations",
+            "summary": "Incoming and outgoing connectivity changes per location",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "locations"
+              ]
+            ]
+          },
+          {
+            "operationId": "getConnectivityDiffLocationPair",
+            "summary": "Subnet pairs that changed between two locations",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "locationPair"
+              ]
+            ]
+          },
+          {
+            "operationId": "getConnectivityDiffSubnetPair",
+            "summary": "How connectivity changed between two subnets",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "subnetPair"
+              ]
+            ]
+          }
+        ],
         "x-forward-stability": "unpublished"
       }
     },
@@ -13859,6 +16136,13 @@
             "count",
             ""
           ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getTopologyDiffs",
+            "summary": "Links added and deleted",
+            "x-forward-fixed-query": []
+          }
         ],
         "x-forward-stability": "unpublished"
       }
@@ -14590,6 +16874,177 @@
         "x-position": 3
       }
     },
+    "/networks/{networkId}/change-set-directories": {
+      "get": {
+        "description": "An object keyed by directory path, each value the ids of the change sets directly inside it. Empty directories appear with an empty list; the root itself does not appear as a key.",
+        "operationId": "listChangeSetDirectories",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "/team": [
+                    "CHG-101",
+                    "CHG-102"
+                  ],
+                  "/team/archive": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeSetDirectories"
+                }
+              }
+            },
+            "description": "The tree."
+          }
+        },
+        "summary": "Every directory and the change sets in it",
+        "tags": [
+          "Change Set Directories"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-set-directories/{dirPath}": {
+      "delete": {
+        "description": "By default the change sets inside are kept. Passing retainChangeSets as false deletes them too; only the literal false does.",
+        "operationId": "deleteChangeSetDirectory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dirPath",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "retainChangeSets",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a directory",
+        "tags": [
+          "Change Set Directories"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "operationId": "createChangeSetDirectory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The directory path, starting with a slash. Sent percent-encoded.",
+            "in": "path",
+            "name": "dirPath",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The new directory's name.",
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Done."
+          }
+        },
+        "summary": "Create a directory inside another",
+        "tags": [
+          "Change Set Directories"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "addDir"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "renameChangeSetDirectory",
+            "summary": "Rename a directory",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "rename"
+              ]
+            ]
+          },
+          {
+            "operationId": "moveChangeSetDirectory",
+            "summary": "Move a directory under another",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "move"
+              ]
+            ]
+          },
+          {
+            "operationId": "moveChangeSetToDirectory",
+            "summary": "Move one change set into a directory",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "moveChangeSetTo"
+              ]
+            ]
+          },
+          {
+            "operationId": "moveChangeSetsToDirectory",
+            "summary": "Move several change sets into a directory",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "moveChangeSetsTo"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/change-sets": {
       "get": {
         "operationId": "listChangeSets",
@@ -15297,6 +17752,87 @@
         "summary": "The most recent commit, with its device changes",
         "tags": [
           "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}/devices/{deviceName}/bgp-advertisements": {
+      "get": {
+        "operationId": "getCommitBgpAdvertisementDiffs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "commitId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "change": "INJECTED",
+                    "updateAdded": {
+                      "asPath": [
+                        65001
+                      ],
+                      "externalPeer": "10.0.0.2",
+                      "nextHop": "10.0.0.1",
+                      "origin": "IGP",
+                      "prefix": "192.0.2.0/24",
+                      "type": "EBGP",
+                      "vrf": "default"
+                    }
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BgpAdvertisementDiff"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "How a commit changed a device's BGP advertisements",
+        "tags": [
+          "BGP Advertisements"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "diffs"
+          ]
         ],
         "x-forward-stability": "unpublished"
       }
@@ -16410,6 +18946,210 @@
         "summary": "Discard one device's uncommitted changes",
         "tags": [
           "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/bgp-advertisements": {
+      "get": {
+        "operationId": "getDraftBgpAdvertisementDiffs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "change": "INJECTED",
+                    "updateAdded": {
+                      "asPath": [
+                        65001
+                      ],
+                      "externalPeer": "10.0.0.2",
+                      "nextHop": "10.0.0.1",
+                      "origin": "IGP",
+                      "prefix": "192.0.2.0/24",
+                      "type": "EBGP",
+                      "vrf": "default"
+                    }
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BgpAdvertisementDiff"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "How the draft changes a device's BGP advertisements",
+        "tags": [
+          "BGP Advertisements"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "diffs"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "operationId": "addBgpAdvertisement",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "asPath": [
+                  65001
+                ],
+                "externalPeer": "10.0.0.2",
+                "nextHop": "10.0.0.1",
+                "origin": "IGP",
+                "prefix": "192.0.2.0/24",
+                "vrf": "default"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/BgpAdvertisement"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "CHG-101",
+                  "name": "x",
+                  "networkId": "115",
+                  "savedAt": 1757584800000,
+                  "snapshotId": "656"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeSetDraft"
+                }
+              }
+            },
+            "description": "The draft after the change."
+          }
+        },
+        "summary": "Inject one BGP advertisement at a device",
+        "tags": [
+          "BGP Advertisements"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "add"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "addBgpAdvertisements",
+            "summary": "Inject several BGP advertisements",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "bulkAdd"
+              ]
+            ]
+          },
+          {
+            "operationId": "withdrawBgpAdvertisement",
+            "summary": "Withdraw one BGP advertisement",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "remove"
+              ]
+            ]
+          },
+          {
+            "operationId": "withdrawBgpAdvertisements",
+            "summary": "Withdraw several BGP advertisements",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "bulkRemove"
+              ]
+            ]
+          },
+          {
+            "operationId": "restoreBgpAdvertisement",
+            "summary": "Undo the change set's change to one advertisement",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "restore"
+              ]
+            ]
+          },
+          {
+            "operationId": "restoreBgpAdvertisements",
+            "summary": "Undo the change set's changes to several advertisements",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "bulkRestore"
+              ]
+            ]
+          }
         ],
         "x-forward-stability": "unpublished"
       }

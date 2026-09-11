@@ -56,6 +56,10 @@ Forward's API documentation: `getLocations` becomes `get_locations`.
 | `client.firewall_predict` | Firewall Predict | Unpublished; `FIREWALL_PREDICT` org property |
 | `client.webhooks` | Webhooks | Unpublished; writes need `OUTBOUND_CONNECTIONS` |
 | `client.configuration` | Configuration | Unpublished; org admin or Forward support |
+| `client.snapshot_diff_details` | Snapshot Diff Details | Unpublished; per-area RBAC |
+| `client.bgp_advertisements` | BGP Advertisements | Unpublished; `PREDICT_MODELING` org property |
+| `client.change_set_directories` | Change Set Directories | Unpublished; `PREDICT_MODELING` org property |
+| `client.predict_assist` | Predict Assist | Unpublished; `AI_ALLOWED` and `PREDICT_AI_ASSIST` |
 
 "Notes" says what is known to gate a group. It is a hint for interpreting a
 refusal, not a guarantee; see [availability](gating.md).

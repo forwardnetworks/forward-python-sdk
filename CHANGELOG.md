@@ -3,6 +3,34 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Added
+
+- The rest of Forward Predict's surface, 51 more unpublished operations, so
+  everything the diff and change-set controllers serve is reachable. Nine
+  firewall object listings, which return the scoped identifiers the rule
+  writes expect. Four Forward AI assists. BGP advertisement injection,
+  withdrawal, restore and diffs. The change-set directory tree, with directory
+  paths percent-encoded for you. And `client.snapshot_diff_details` for every
+  remaining diff view: check, file, device and cloud-object diffs, per-device
+  interface, ACL, NAT, routing, ARP and MAC entries, topology, VLANs and the
+  four connectivity views. All verified against a live instance of the current
+  build, writes included: a directory created, renamed and deleted; a BGP
+  route injected, reported as `INJECTED`, restored and gone.
+
+  The curated `snapshot_diffs` service keeps the summaries and the connectivity
+  wait; the details service is generated from the description like every
+  published group. An NQE diff over the data model reaches the same per-device
+  differences with columns of your choosing, and the Predict page says when
+  each route is the better one.
+
+### Fixed
+
+- A positional enum alias in the public models is resolved from the field that
+  uses it rather than from a literal number, which shifted the moment an inline
+  enum was added earlier in the description.
+
 ## [0.1.7] - 2026-09-11
 
 ### Added

@@ -279,6 +279,34 @@ class TestPredictFamilies:
             "mac",
         }
 
+    def test_diff_details_and_directories_parse(
+        self, client: ForwardClient, network_id: str
+    ) -> None:
+        tree = client.change_set_directories.list_change_set_directories(network_id=network_id)
+        for ids in tree.model_dump(by_alias=True).values():
+            assert isinstance(ids, list)
+        base = after = None
+        for info in client.change_sets.list(network_id):
+            if not info.predicted_snapshots or not info.id:
+                continue
+            handle = client.change_sets.handle(info.id, network_id=network_id)
+            processed = [
+                snap
+                for snap in handle.predicted_snapshots()
+                if str(snap.state) == "PROCESSED" and snap.id
+            ]
+            if processed:
+                base, after = info.snapshot_id, processed[0].id
+                break
+        if not (base and after):
+            pytest.skip("no change set has a processed predicted snapshot")
+        details = client.snapshot_diff_details
+        stats = details.get_interface_diff_stats(before_snapshot_id=base, after_snapshot_id=after)
+        for device in stats.device_infos or []:
+            assert device.stats is not None
+        files = details.get_file_diff_count(before_snapshot_id=base, after_snapshot_id=after)
+        assert isinstance(files.complete, bool)
+
     def test_webhooks_list_parses(self, client: ForwardClient) -> None:
         listing = client.webhooks.list_webhooks()
         for hook in listing.webhooks or []:

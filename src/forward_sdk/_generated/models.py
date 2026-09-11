@@ -8,6 +8,13 @@ from pydantic import ConfigDict, Field, RootModel
 from typing import Annotated, Any, Literal
 
 
+class DiffType(OpenEnum):
+    added = "ADDED"
+    deleted = "DELETED"
+    modified = "MODIFIED"
+    unchanged = "UNCHANGED"
+
+
 class Action(OpenEnum):
     """
     the action taken by the ACL function
@@ -220,7 +227,79 @@ class BetweenColumnFilter(ForwardModel):
     """
 
 
+class Origin(OpenEnum):
+    egp = "EGP"
+    igp = "IGP"
+    incomplete = "INCOMPLETE"
+    default_originate = "DEFAULT_ORIGINATE"
+
+
 class Type5(OpenEnum):
+    """
+    Defaults to EBGP.
+    """
+
+    ebgp = "EBGP"
+    ibgp = "IBGP"
+
+
+class BgpAdvertisement(ForwardModel):
+    """
+    The key fields sit flat beside the attributes. asPath must be non-empty for EBGP.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    as_path: Annotated[list[int] | None, Field(alias="asPath")] = None
+    communities: list[str] | None = None
+    external_peer: Annotated[str, Field(alias="externalPeer")]
+    local_pref: Annotated[int | None, Field(alias="localPref")] = None
+    med: int | None = None
+    next_hop: Annotated[str, Field(alias="nextHop")]
+    origin: Origin
+    prefix: str
+    type: Type5 | None = None
+    """
+    Defaults to EBGP.
+    """
+    vrf: str
+
+
+class Change(OpenEnum):
+    injected = "INJECTED"
+    modified = "MODIFIED"
+    duplicated = "DUPLICATED"
+    withdrawn = "WITHDRAWN"
+    absent = "ABSENT"
+
+
+class BgpAdvertisementKey(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    external_peer: Annotated[str, Field(alias="externalPeer")]
+    """
+    The peer's IP address.
+    """
+    prefix: str
+    """
+    CIDR.
+    """
+    vrf: str
+
+
+class BgpAdvertisementKeyList(RootModel[list[BgpAdvertisementKey]]):
+    root: list[BgpAdvertisementKey]
+
+
+class BgpAdvertisementList(RootModel[list[BgpAdvertisement]]):
+    root: list[BgpAdvertisement]
+
+
+class Type6(OpenEnum):
     device_filter = "DeviceFilter"
     device_alias_filter = "DeviceAliasFilter"
 
@@ -260,6 +339,14 @@ class ChangeSetCommit(ForwardModel):
     committed_by: Annotated[str | None, Field(alias="committedBy")] = None
     committed_by_id: Annotated[str | None, Field(alias="committedById")] = None
     note: str | None = None
+
+
+class ChangeSetDirectories(RootModel[dict[str, list[str]]]):
+    """
+    Directory path to the ids of the change sets directly inside it.
+    """
+
+    root: dict[str, list[str]]
 
 
 class ChangeSetIds(ForwardModel):
@@ -338,11 +425,28 @@ class CheckType(OpenEnum):
     nqe = "NQE"
 
 
+class CheckDiffDetails(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    check: dict[str, Any] | None = None
+    details: list[dict[str, Any]] | None = None
+
+
 class CheckPriority(OpenEnum):
     not_set = "NOT_SET"
     low = "LOW"
     medium = "MEDIUM"
     high = "HIGH"
+
+
+class DiffType2(OpenEnum):
+    added = "ADDED"
+    deleted = "DELETED"
+    modified = "MODIFIED"
+    unchanged = "UNCHANGED"
+    processing = "PROCESSING"
 
 
 class CheckStatus(OpenEnum):
@@ -738,6 +842,30 @@ class CliNetworkEndpointPatch(ForwardModel):
     """
 
 
+class CloudType(OpenEnum):
+    aws = "AWS"
+    gcp = "GCP"
+    azure = "AZURE"
+    ibm_cloud = "IBM_CLOUD"
+    alkira = "ALKIRA"
+
+
+class CloudObjectMetadata(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    account_name: Annotated[str | None, Field(alias="accountName")] = None
+    cloud_type: Annotated[CloudType | None, Field(alias="cloudType")] = None
+    collection_error: Annotated[str | None, Field(alias="collectionError")] = None
+    id: str | None = None
+    location_ids: Annotated[list[str] | None, Field(alias="locationIds")] = None
+    name: str | None = None
+    processing_error: Annotated[str | None, Field(alias="processingError")] = None
+    type: str | None = None
+    vpcs: list[str] | None = None
+
+
 class CollectorStatus(OpenEnum):
     offline = "OFFLINE"
     idle = "IDLE"
@@ -914,6 +1042,16 @@ class ConfigValue(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
+
+
+class ConnChangeStats(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    modified: int | None = None
+    newly_connected: Annotated[int | None, Field(alias="newlyConnected")] = None
+    newly_isolated: Annotated[int | None, Field(alias="newlyIsolated")] = None
 
 
 class ConnectionType(OpenEnum):
@@ -1660,6 +1798,21 @@ class DiffCount(ForwardModel):
     count: int | None = None
 
 
+class DiffStats(ForwardModel):
+    """
+    Counts by kind of change. All four keys are always present.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    added: Annotated[int | None, Field(alias="ADDED")] = None
+    deleted: Annotated[int | None, Field(alias="DELETED")] = None
+    modified: Annotated[int | None, Field(alias="MODIFIED")] = None
+    unchanged: Annotated[int | None, Field(alias="UNCHANGED")] = None
+
+
 class Action2(OpenEnum):
     add_query = "addQuery"
     edit_query = "editQuery"
@@ -1774,6 +1927,27 @@ class ReturnPath(OpenEnum):
     symmetric = "SYMMETRIC"
 
 
+class FieldAndValues(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    field: str | None = None
+    index: int | None = None
+    negated: bool | None = None
+    values: list[Any] | None = None
+
+
+class FileDiffCount(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    complete: bool | None = None
+    count: int | None = None
+    types: dict[str, int] | None = None
+
+
 class DirectChanges(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -1809,7 +1983,7 @@ class TransitType(OpenEnum):
     egress = "egress"
 
 
-class Type7(OpenEnum):
+class Type8(OpenEnum):
     device_filter = "DeviceFilter"
     interface_filter = "InterfaceFilter"
     tunnel_interface_filter = "TunnelInterfaceFilter"
@@ -2058,6 +2232,28 @@ class InterfacesAliasBuilder(ForwardModel):
     values: list[str] | None = None
     vlan_ids: Annotated[list[str] | None, Field(alias="vlanIds")] = None
     vlan_intf_types: Annotated[list[VlanIntfType] | None, Field(alias="vlanIntfTypes")] = None
+
+
+class InventoryDeviceInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collected_at: Annotated[str | None, Field(alias="collectedAt")] = None
+    collection_error: Annotated[str | None, Field(alias="collectionError")] = None
+    config_file: Annotated[str | None, Field(alias="configFile")] = None
+    device_type: Annotated[str | None, Field(alias="deviceType")] = None
+    display_name: Annotated[str | None, Field(alias="displayName")] = None
+    management_ips: Annotated[list[str] | None, Field(alias="managementIps")] = None
+    model: str | None = None
+    name: str | None = None
+    os: str | None = None
+    os_version: Annotated[str | None, Field(alias="osVersion")] = None
+    predict_affected: Annotated[bool | None, Field(alias="predictAffected")] = None
+    processing_error: Annotated[str | None, Field(alias="processingError")] = None
+    requested_name: Annotated[str | None, Field(alias="requestedName")] = None
+    tags: list[str] | None = None
+    vendor: str | None = None
 
 
 class IpRange(ForwardModel):
@@ -2430,7 +2626,35 @@ class LocationBulkPatch(ForwardModel):
     """
 
 
-class Type16(OpenEnum):
+class LocationConnChangeCount(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    count: int | None = None
+    dst: str | None = None
+    src: str | None = None
+
+
+class LocationConnChangeCounts(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    counts: list[LocationConnChangeCount] | None = None
+
+
+class LocationConnDiffStat(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    incoming: ConnChangeStats | None = None
+    location_id: Annotated[str | None, Field(alias="locationId")] = None
+    outgoing: ConnChangeStats | None = None
+
+
+class Type17(OpenEnum):
     host_filter = "HostFilter"
     device_filter = "DeviceFilter"
     interface_filter = "InterfaceFilter"
@@ -2519,6 +2743,14 @@ class LocationPatch(ForwardModel):
     name: Annotated[str | None, Field(examples=["Dayton DC"])] = None
 
 
+class LocationsConnDiffStats(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    stats: list[LocationConnDiffStat] | None = None
+
+
 class LogicalNetworkAliasBuilder(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -2549,7 +2781,7 @@ class DiscoveryMethod(OpenEnum):
     ospf = "OSPF"
 
 
-class Type28(OpenEnum):
+class Type29(OpenEnum):
     """
     Detected device type. Absent if undetermined. Never `"unknown"`.
     """
@@ -2642,7 +2874,7 @@ class MissingDevice(ForwardModel):
     """
     The names of the modeled devices from which this device was discovered.
     """
-    type: Annotated[Type28 | None, Field(examples=["cisco_ios_ssh"])] = None
+    type: Annotated[Type29 | None, Field(examples=["cisco_ios_ssh"])] = None
     """
     Detected device type. Absent if undetermined. Never `"unknown"`.
     """
@@ -2659,6 +2891,24 @@ class MissingDevices(ForwardModel):
         populate_by_name=True,
     )
     devices: list[MissingDevice] | None = None
+
+
+class NatType(OpenEnum):
+    source_nat = "SOURCE_NAT"
+    pre_fwd_source_nat = "PRE_FWD_SOURCE_NAT"
+    destination_nat = "DESTINATION_NAT"
+    post_fwd_destination_nat = "POST_FWD_DESTINATION_NAT"
+    vserver = "VSERVER"
+    proxy = "PROXY"
+
+
+class NatTransformation(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    auto_map: Annotated[bool | None, Field(alias="autoMap")] = None
+    values: list[FieldAndValues] | None = None
 
 
 class Network(ForwardModel):
@@ -3140,7 +3390,36 @@ class NqeCheck(ForwardModel):
     ]
 
 
-class Type32(OpenEnum):
+class NqeCheckDefinitions(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    definitions: list[dict[str, Any]]
+
+
+class NqeCheckDiffStat(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    diff_result_key_hash: Annotated[str | None, Field(alias="diffResultKeyHash")] = None
+    outdated: bool | None = None
+    params: dict[str, Any] | None = None
+    processing: bool | None = None
+    query_id: Annotated[str | None, Field(alias="queryId")] = None
+    stats: DiffStats | None = None
+
+
+class NqeCheckDiffStats(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    checks: list[NqeCheckDiffStat] | None = None
+
+
+class Type33(OpenEnum):
     """
     Describes the type of difference between `before` and `after`:
     * If `MODIFIED`, then both `before` and `after` will be present, but will differ in at least one property;
@@ -3164,7 +3443,7 @@ class NqeDiffEntry(ForwardModel):
     )
     after: dict[str, Any] | None = None
     before: dict[str, Any] | None = None
-    type: Type32 | None = None
+    type: Type33 | None = None
     """
     Describes the type of difference between `before` and `after`:
     * If `MODIFIED`, then both `before` and `after` will be present, but will differ in at least one property;
@@ -3418,7 +3697,7 @@ class PacketFilter(ForwardModel):
     values: Annotated[dict[str, list[str]], Field(examples=[{"ipv4_dst": ["10.10.10.0/24"]}])]
 
 
-class Type33(OpenEnum):
+class Type34(OpenEnum):
     packet_filter = "PacketFilter"
     packet_alias_filter = "PacketAliasFilter"
     not_filter = "NotFilter"
@@ -3454,7 +3733,7 @@ class PaginationMode(OpenEnum):
     enable_pagination = "ENABLE_PAGINATION"
 
 
-class Type36(OpenEnum):
+class Type37(OpenEnum):
     offset = "OFFSET"
     url_cursor = "URL_CURSOR"
     parameter_cursor = "PARAMETER_CURSOR"
@@ -3890,6 +4169,19 @@ class RepositoryQueryPage(ForwardModel):
     queries: list[RepositoryQuery] | None = None
 
 
+class RoutingDiffDetails(ForwardModel):
+    """
+    Route entries as Forward serialises them; the entry shape is not declared.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    diffs: list[dict[str, Any]] | None = None
+    stats: DiffStats | None = None
+
+
 class RoutingLoopDiffCount(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -3982,13 +4274,6 @@ class SecurityRuleDefinition(ForwardModel):
     id: str | None = None
     name: str
     source_zones: Annotated[list[str] | None, Field(alias="sourceZones")] = None
-
-
-class DiffType(OpenEnum):
-    added = "ADDED"
-    deleted = "DELETED"
-    modified = "MODIFIED"
-    unchanged = "UNCHANGED"
 
 
 class SecurityRulePatch(ForwardModel):
@@ -4461,6 +4746,39 @@ class StartCollectionResponse(ForwardModel):
     """
 
 
+class StoredFileInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    command: str | None = None
+    """
+    Present only for custom CLI files.
+    """
+    name: str | None = None
+    name_a: Annotated[str | None, Field(alias="nameA")] = None
+    """
+    Present only when the file's name differs in the before snapshot.
+    """
+
+
+class SubnetConnDiffDetail(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    diff_type: Annotated[DiffType | None, Field(alias="diffType")] = None
+    value: dict[str, Any] | None = None
+
+
+class SubnetConnDiffDetails(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    diffs: list[SubnetConnDiffDetail] | None = None
+
+
 class SubnetConnectivityDiff(ForwardModel):
     """
     How connectivity between subnets changed. Computed asynchronously, so an early request can return counts of zero with `isPartialResult` true; those zeros mean "not finished", not "nothing changed".
@@ -4525,6 +4843,16 @@ class SubnetLocationFilter(ForwardModel):
     """
     type: Literal["SubnetLocationFilter"]
     value: Annotated[str, Field(examples=["10.10.10.64/30"])]
+
+
+class SubnetPairConnDiffStat(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    dst: str | None = None
+    src: str | None = None
+    stats: ConnChangeStats | None = None
 
 
 class SummaryAssistResponse(ForwardModel):
@@ -4645,7 +4973,7 @@ class TopologyLink(ForwardModel):
     target_port: Annotated[str | None, Field(alias="targetPort")] = None
 
 
-class Type39(OpenEnum):
+class Type40(OpenEnum):
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -4670,7 +4998,7 @@ class TotalHits(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    type: Type39 | None = None
+    type: Type40 | None = None
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -5017,6 +5345,30 @@ class VendorOs(OpenEnum):
     zscaler_app_connector = "zscaler_app_connector"
 
 
+class ForwardingStatus(OpenEnum):
+    up_forwarding = "UP_FORWARDING"
+    up_non_forwarding = "UP_NON_FORWARDING"
+    down = "DOWN"
+
+
+class VlanInterfaceStatus(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    forwarding_status: Annotated[ForwardingStatus | None, Field(alias="forwardingStatus")] = None
+    intf_name: Annotated[str | None, Field(alias="intfName")] = None
+
+
+class VlanL3Interface(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    intf_name: Annotated[str | None, Field(alias="intfName")] = None
+    ip_addresses: Annotated[list[str] | None, Field(alias="ipAddresses")] = None
+
+
 class VrfFilter(ForwardModel):
     """
     A filter that matches device interfaces by VRF name
@@ -5290,7 +5642,7 @@ class WanCircuitPatch(ForwardModel):
     name: Annotated[str | None, Field(examples=["wan-circuit-01"])] = None
 
 
-class Type40(OpenEnum):
+class Type41(OpenEnum):
     basic_auth = "BASIC_AUTH"
 
 
@@ -5304,11 +5656,11 @@ class WebhookCredential(ForwardModel):
         populate_by_name=True,
     )
     password: str | None = None
-    type: Type40 | None = None
+    type: Type41 | None = None
     username: str | None = None
 
 
-class Type41(OpenEnum):
+class Type42(OpenEnum):
     snapshot_ready = "SNAPSHOT_READY"
     nqe_verification_failure = "NQE_VERIFICATION_FAILURE"
     intent_verification_failure = "INTENT_VERIFICATION_FAILURE"
@@ -5324,7 +5676,7 @@ class WebhookEventParams(ForwardModel):
         populate_by_name=True,
     )
     network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
-    type: Type41
+    type: Type42
 
 
 class PayloadFormat(OpenEnum):
@@ -5486,6 +5838,17 @@ class AvailablePredefinedCheck(ForwardModel):
     ] = None
 
 
+class BgpAdvertisementDiff(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    change: Change | None = None
+    original: BgpAdvertisement | None = None
+    update_added: Annotated[BgpAdvertisement | None, Field(alias="updateAdded")] = None
+    update_removed: Annotated[BgpAdvertisementKey | None, Field(alias="updateRemoved")] = None
+
+
 class BidirectionalDiffCount(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -5610,6 +5973,22 @@ class CheckDefinition6(NqeCheck):
         populate_by_name=True,
     )
     check_type: Annotated[Literal["NQE"], Field(alias="checkType")]
+
+
+class CheckDiffCounts(RootModel[dict[str, DiffCount]]):
+    """
+    Check type to its count. NQE appears only when non-zero or incomplete.
+    """
+
+    root: dict[str, DiffCount]
+
+
+class CheckDiffStats(RootModel[dict[str, DiffStats]]):
+    """
+    Check id to its statistics.
+    """
+
+    root: dict[str, DiffStats]
 
 
 class ClassicDevice(Attribution):
@@ -6440,6 +6819,35 @@ class CliEndpointProfilePatch(ForwardModel):
     """
 
 
+class CloudObjectDiffEntry(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    a: CloudObjectMetadata | None = None
+    b: CloudObjectMetadata | None = None
+    diff_type: Annotated[DiffType | None, Field(alias="diffType")] = None
+
+
+class CloudObjectDiffStat(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cloud_type: Annotated[str | None, Field(alias="cloudType")] = None
+    file_stats: Annotated[dict[str, DiffStats] | None, Field(alias="fileStats")] = None
+    object_id: Annotated[str | None, Field(alias="objectId")] = None
+    type: str | None = None
+
+
+class CloudObjectDiffStats(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cloud_objects: Annotated[list[CloudObjectDiffStat] | None, Field(alias="cloudObjects")] = None
+
+
 class CollectionScheduleDefinition(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -6829,6 +7237,75 @@ class Device(ForwardModel):
     vendor: Annotated[Vendor | None, Field(examples=["F5"])] = None
 
 
+class DeviceDiffEntry(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    a: InventoryDeviceInfo | None = None
+    b: InventoryDeviceInfo | None = None
+    diff_type: Annotated[DiffType | None, Field(alias="diffType")] = None
+
+
+class DeviceDiffStat(ForwardModel):
+    """
+    A device's inventory fields sit flat beside its statistics.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_name: Annotated[str | None, Field(alias="deviceName")] = None
+    device_type: Annotated[str | None, Field(alias="deviceType")] = None
+    has_config_change: Annotated[bool | None, Field(alias="hasConfigChange")] = None
+    model: str | None = None
+    name: str | None = None
+    os: str | None = None
+    stats: DiffStats | None = None
+    vendor: str | None = None
+
+
+class DeviceDiffStats(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_infos: Annotated[list[DeviceDiffStat] | None, Field(alias="deviceInfos")] = None
+
+
+class DeviceFilesDiff(ForwardModel):
+    """
+    The device's inventory fields sit flat beside files.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_name: Annotated[str | None, Field(alias="deviceName")] = None
+    device_type: Annotated[str | None, Field(alias="deviceType")] = None
+    files: list[StoredFileInfo] | None = None
+    has_config_change: Annotated[bool | None, Field(alias="hasConfigChange")] = None
+    management_ips: Annotated[list[str] | None, Field(alias="managementIps")] = None
+    model: str | None = None
+    name: str | None = None
+    os: str | None = None
+    os_version: Annotated[str | None, Field(alias="osVersion")] = None
+    tags: list[str] | None = None
+    vendor: str | None = None
+
+
+class DeviceVlanInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device: str | None = None
+    interfaces: list[VlanInterfaceStatus] | None = None
+    l3_interfaces: Annotated[list[VlanL3Interface] | None, Field(alias="l3Interfaces")] = None
+
+
 class DiagnosisReference(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -7012,6 +7489,47 @@ class InterfaceFunction(ForwardModel):
     security_zone: Annotated[str | None, Field(alias="securityZone")] = None
 
 
+class InterfaceInfo(ForwardModel):
+    """
+    Empty and null fields are omitted; booleans are always present.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    access_vlan: Annotated[str | None, Field(alias="accessVlan")] = None
+    aliases: list[str] | None = None
+    configured_member_ports: Annotated[list[str] | None, Field(alias="configuredMemberPorts")] = (
+        None
+    )
+    default_vlan: Annotated[str | None, Field(alias="defaultVlan")] = None
+    description: str | None = None
+    dst_addresses: Annotated[list[str] | None, Field(alias="dstAddresses")] = None
+    fhrp_ip_addresses: Annotated[list[str] | None, Field(alias="fhrpIpAddresses")] = None
+    file_lines: Annotated[dict[str, list[LineRange]] | None, Field(alias="fileLines")] = None
+    full_duplex: Annotated[bool | None, Field(alias="fullDuplex")] = None
+    in_acl_names: Annotated[list[str] | None, Field(alias="inAclNames")] = None
+    inner_vlan: Annotated[str | None, Field(alias="innerVlan")] = None
+    ip_addresses: Annotated[list[str] | None, Field(alias="ipAddresses")] = None
+    is_down: Annotated[bool | None, Field(alias="isDown")] = None
+    mac_address: Annotated[str | None, Field(alias="macAddress")] = None
+    member_ports: Annotated[list[str] | None, Field(alias="memberPorts")] = None
+    mtu: int | None = None
+    name: str | None = None
+    native_vlan: Annotated[str | None, Field(alias="nativeVlan")] = None
+    out_acl_names: Annotated[list[str] | None, Field(alias="outAclNames")] = None
+    parent_iface: Annotated[str | None, Field(alias="parentIface")] = None
+    security_zone: Annotated[str | None, Field(alias="securityZone")] = None
+    speed_mbps: Annotated[int | None, Field(alias="speedMbps")] = None
+    src_addresses: Annotated[list[str] | None, Field(alias="srcAddresses")] = None
+    trunk_vlans: Annotated[list[str] | None, Field(alias="trunkVlans")] = None
+    type: str | None = None
+    vlan: str | None = None
+    voice_vlan: Annotated[str | None, Field(alias="voiceVlan")] = None
+    vrf_name: Annotated[str | None, Field(alias="vrfName")] = None
+
+
 class InternetNode(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -7191,6 +7709,39 @@ class LocationFilter11(HopLocationFilter8):
 
 class LocationFilter12(PacketHeaderFilter3):
     type: Literal["NotFilter"]
+
+
+class LocationPairConnDiffStats(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    stats: list[SubnetPairConnDiffStat] | None = None
+
+
+class MacEntryInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    file_lines: Annotated[dict[str, list[LineRange]] | None, Field(alias="fileLines")] = None
+    mac_address: Annotated[str | None, Field(alias="macAddress")] = None
+    ports: list[str] | None = None
+    vlan: str | None = None
+
+
+class NatEntryInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    action: str | None = None
+    file_lines: Annotated[dict[str, list[LineRange]] | None, Field(alias="fileLines")] = None
+    match: list[FieldAndValues] | None = None
+    nat_type: Annotated[NatType | None, Field(alias="natType")] = None
+    output_transformations: Annotated[
+        list[NatTransformation] | None, Field(alias="outputTransformations")
+    ] = None
 
 
 class NetworkEndpoint1(CliNetworkEndpoint):
@@ -8529,6 +9080,29 @@ class StoredJumpServer(JumpServer, Attribution):
     )
 
 
+class TopologyDiff(ForwardModel):
+    """
+    Only the kinds of change present appear as keys.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    added: Annotated[list[TopologyLink] | None, Field(alias="ADDED")] = None
+    deleted: Annotated[list[TopologyLink] | None, Field(alias="DELETED")] = None
+
+
+class VlanDiffEntry(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    a: DeviceVlanInfo | None = None
+    b: DeviceVlanInfo | None = None
+    diff_type: Annotated[DiffType | None, Field(alias="diffType")] = None
+
+
 class Vulnerability(CveInfo):
     model_config = ConfigDict(
         extra="allow",
@@ -8650,6 +9224,21 @@ class WebhooksAndTestResults(ForwardModel):
     webhooks: list[Webhook] | None = None
 
 
+class AclDiffEntryInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    acl_context: Annotated[str | None, Field(alias="aclContext")] = None
+    action: str | None = None
+    file_lines: Annotated[dict[str, list[LineRange]] | None, Field(alias="fileLines")] = None
+    input_interfaces: Annotated[list[str] | None, Field(alias="inputInterfaces")] = None
+    matches: list[FieldAndValues] | None = None
+    name: str | None = None
+    negated_matches: Annotated[list[FieldAndValues] | None, Field(alias="negatedMatches")] = None
+    output_interfaces: Annotated[list[str] | None, Field(alias="outputInterfaces")] = None
+
+
 class AddressGroupCollection(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -8678,6 +9267,18 @@ class ApplicationObjectCollection(ForwardModel):
     ] = None
 
 
+class ArpEntryInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    file_lines: Annotated[dict[str, list[LineRange]] | None, Field(alias="fileLines")] = None
+    ip_address: Annotated[str | None, Field(alias="ipAddress")] = None
+    mac_address: Annotated[str | None, Field(alias="macAddress")] = None
+    port: str | None = None
+    vrf_name: Annotated[str | None, Field(alias="vrfName")] = None
+
+
 class CheckDefinition5(PredefinedCheck):
     model_config = ConfigDict(
         extra="allow",
@@ -8695,6 +9296,14 @@ class CliEndpointProfile(CliEndpointProfileDef):
     """
     System-assigned identifier of this endpoint profile. Always begins with "CLI-".
     """
+
+
+class CollectedFilesDiff(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_infos: Annotated[list[DeviceFilesDiff] | None, Field(alias="deviceInfos")] = None
 
 
 class CollectionSchedule(CollectionScheduleDefinition):
@@ -8977,6 +9586,46 @@ class HttpEndpointProfilePatch(ForwardModel):
     """
     Name of this profile ("HpPrinter", "SamsungTV", etc.) Omit to leave this property alone.
     """
+
+
+class InterfaceDiffEntry(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    a: InterfaceInfo | None = None
+    b: InterfaceInfo | None = None
+    diff_type: Annotated[DiffType | None, Field(alias="diffType")] = None
+
+
+class L2Diff(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    vlan_to_diffs: Annotated[dict[str, list[VlanDiffEntry]] | None, Field(alias="vlanToDiffs")] = (
+        None
+    )
+
+
+class MacDiffEntry(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    a: MacEntryInfo | None = None
+    b: MacEntryInfo | None = None
+    diff_type: Annotated[DiffType | None, Field(alias="diffType")] = None
+
+
+class NatDiffEntry(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    a: NatEntryInfo | None = None
+    b: NatEntryInfo | None = None
+    diff_type: Annotated[DiffType | None, Field(alias="diffType")] = None
 
 
 class NetworkSnapshots(Network):
@@ -9280,6 +9929,26 @@ class ReachabilityCheck(ForwardModel):
     """
 
 
+class AclDiffEntry(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    a: AclDiffEntryInfo | None = None
+    b: AclDiffEntryInfo | None = None
+    diff_type: Annotated[DiffType | None, Field(alias="diffType")] = None
+
+
+class ArpDiffEntry(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    a: ArpEntryInfo | None = None
+    b: ArpEntryInfo | None = None
+    diff_type: Annotated[DiffType | None, Field(alias="diffType")] = None
+
+
 class CheckDefinition3(ReachabilityCheck):
     model_config = ConfigDict(
         extra="allow",
@@ -9387,6 +10056,51 @@ class DataConnectors(ForwardModel):
     The network’s latest processed Snapshot, which is the one every `status` describes. Absent unless `?with=status`
     is used, and absent then too if the network has no processed Snapshot.
     """
+
+
+class DeviceAclDiff(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    diffs: list[AclDiffEntry] | None = None
+    stats: DiffStats | None = None
+
+
+class DeviceArpDiff(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    diffs: list[ArpDiffEntry] | None = None
+    stats: DiffStats | None = None
+
+
+class DeviceInterfaceDiff(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    diffs: list[InterfaceDiffEntry] | None = None
+    stats: DiffStats | None = None
+
+
+class DeviceMacDiff(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    diffs: list[MacDiffEntry] | None = None
+    stats: DiffStats | None = None
+
+
+class DeviceNatDiff(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    diffs: list[NatDiffEntry] | None = None
+    stats: DiffStats | None = None
 
 
 class ExistsCheck(ForwardModel):
@@ -9647,3 +10361,21 @@ class NewNetworkCheck(ForwardModel):
     """
     priority: CheckPriority | None = None
     tags: list[str] | None = None
+
+
+class CheckResultDiffEntry(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    a: NetworkCheckResult | None = None
+    b: NetworkCheckResult | None = None
+    diff_type: Annotated[DiffType2 | None, Field(alias="diffType")] = None
+
+
+class ChecksDiff(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    checks: list[CheckResultDiffEntry] | None = None

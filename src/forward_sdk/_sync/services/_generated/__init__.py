@@ -11,6 +11,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from forward_sdk._sync.services._generated.aliases import AliasesService
+from forward_sdk._sync.services._generated.bgp_advertisements import BGPAdvertisementsService
+from forward_sdk._sync.services._generated.change_set_directories import (
+    ChangeSetDirectoriesService,
+)
 from forward_sdk._sync.services._generated.checks import ChecksService
 from forward_sdk._sync.services._generated.classic_devices import ClassicDevicesService
 from forward_sdk._sync.services._generated.collection_schedules import (
@@ -35,6 +39,9 @@ from forward_sdk._sync.services._generated.network_locations import NetworkLocat
 from forward_sdk._sync.services._generated.network_topology import NetworkTopologyService
 from forward_sdk._sync.services._generated.path_search import PathSearchService
 from forward_sdk._sync.services._generated.predict_assist import PredictAssistService
+from forward_sdk._sync.services._generated.snapshot_diff_details import (
+    SnapshotDiffDetailsService,
+)
 from forward_sdk._sync.services._generated.system_administration import (
     SystemAdministrationService,
 )
@@ -50,6 +57,8 @@ if TYPE_CHECKING:  # pragma: no cover
 
 __all__ = [
     "AliasesService",
+    "BGPAdvertisementsService",
+    "ChangeSetDirectoriesService",
     "ChecksService",
     "ClassicDevicesService",
     "CollectionSchedulesService",
@@ -73,6 +82,7 @@ __all__ = [
     "NetworkTopologyService",
     "PathSearchService",
     "PredictAssistService",
+    "SnapshotDiffDetailsService",
     "SystemAdministrationService",
     "UserAccountsService",
     "VulnerabilityAnalysisService",
@@ -89,6 +99,8 @@ class GeneratedServices:
     """
 
     aliases: AliasesService
+    bgp_advertisements: BGPAdvertisementsService
+    change_set_directories: ChangeSetDirectoriesService
     checks: ChecksService
     classic_devices: ClassicDevicesService
     collection_schedules: CollectionSchedulesService
@@ -111,6 +123,7 @@ class GeneratedServices:
     network_topology: NetworkTopologyService
     path_search: PathSearchService
     predict_assist: PredictAssistService
+    snapshot_diff_details: SnapshotDiffDetailsService
     system_administration: SystemAdministrationService
     user_accounts: UserAccountsService
     vulnerability_analysis: VulnerabilityAnalysisService
@@ -119,6 +132,8 @@ class GeneratedServices:
 
     def _attach_generated_services(self, transport: Transport) -> None:
         self.aliases = AliasesService(transport)
+        self.bgp_advertisements = BGPAdvertisementsService(transport)
+        self.change_set_directories = ChangeSetDirectoriesService(transport)
         self.checks = ChecksService(transport)
         self.classic_devices = ClassicDevicesService(transport)
         self.collection_schedules = CollectionSchedulesService(transport)
@@ -141,6 +156,7 @@ class GeneratedServices:
         self.network_topology = NetworkTopologyService(transport)
         self.path_search = PathSearchService(transport)
         self.predict_assist = PredictAssistService(transport)
+        self.snapshot_diff_details = SnapshotDiffDetailsService(transport)
         self.system_administration = SystemAdministrationService(transport)
         self.user_accounts = UserAccountsService(transport)
         self.vulnerability_analysis = VulnerabilityAnalysisService(transport)
@@ -151,6 +167,8 @@ class GeneratedServices:
 #: API group name to the client attribute carrying its service.
 SERVICE_TAGS: dict[str, str] = {
     "Aliases": "aliases",
+    "BGP Advertisements": "bgp_advertisements",
+    "Change Set Directories": "change_set_directories",
     "Checks": "checks",
     "Classic Devices": "classic_devices",
     "Collection Schedules": "collection_schedules",
@@ -173,6 +191,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Topology": "network_topology",
     "Path Search": "path_search",
     "Predict Assist": "predict_assist",
+    "Snapshot Diff Details": "snapshot_diff_details",
     "System Administration": "system_administration",
     "User Accounts": "user_accounts",
     "Vulnerability Analysis": "vulnerability_analysis",

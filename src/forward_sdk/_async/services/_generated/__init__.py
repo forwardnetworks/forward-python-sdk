@@ -8,6 +8,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from forward_sdk._async.services._generated.aliases import AsyncAliasesService
+from forward_sdk._async.services._generated.bgp_advertisements import AsyncBGPAdvertisementsService
+from forward_sdk._async.services._generated.change_set_directories import (
+    AsyncChangeSetDirectoriesService,
+)
 from forward_sdk._async.services._generated.checks import AsyncChecksService
 from forward_sdk._async.services._generated.classic_devices import AsyncClassicDevicesService
 from forward_sdk._async.services._generated.collection_schedules import (
@@ -32,6 +36,9 @@ from forward_sdk._async.services._generated.network_locations import AsyncNetwor
 from forward_sdk._async.services._generated.network_topology import AsyncNetworkTopologyService
 from forward_sdk._async.services._generated.path_search import AsyncPathSearchService
 from forward_sdk._async.services._generated.predict_assist import AsyncPredictAssistService
+from forward_sdk._async.services._generated.snapshot_diff_details import (
+    AsyncSnapshotDiffDetailsService,
+)
 from forward_sdk._async.services._generated.system_administration import (
     AsyncSystemAdministrationService,
 )
@@ -47,6 +54,8 @@ if TYPE_CHECKING:  # pragma: no cover
 
 __all__ = [
     "AsyncAliasesService",
+    "AsyncBGPAdvertisementsService",
+    "AsyncChangeSetDirectoriesService",
     "AsyncChecksService",
     "AsyncClassicDevicesService",
     "AsyncCollectionSchedulesService",
@@ -70,6 +79,7 @@ __all__ = [
     "AsyncNetworkTopologyService",
     "AsyncPathSearchService",
     "AsyncPredictAssistService",
+    "AsyncSnapshotDiffDetailsService",
     "AsyncSystemAdministrationService",
     "AsyncUserAccountsService",
     "AsyncVulnerabilityAnalysisService",
@@ -86,6 +96,8 @@ class AsyncGeneratedServices:
     """
 
     aliases: AsyncAliasesService
+    bgp_advertisements: AsyncBGPAdvertisementsService
+    change_set_directories: AsyncChangeSetDirectoriesService
     checks: AsyncChecksService
     classic_devices: AsyncClassicDevicesService
     collection_schedules: AsyncCollectionSchedulesService
@@ -108,6 +120,7 @@ class AsyncGeneratedServices:
     network_topology: AsyncNetworkTopologyService
     path_search: AsyncPathSearchService
     predict_assist: AsyncPredictAssistService
+    snapshot_diff_details: AsyncSnapshotDiffDetailsService
     system_administration: AsyncSystemAdministrationService
     user_accounts: AsyncUserAccountsService
     vulnerability_analysis: AsyncVulnerabilityAnalysisService
@@ -116,6 +129,8 @@ class AsyncGeneratedServices:
 
     def _attach_generated_services(self, transport: AsyncTransport) -> None:
         self.aliases = AsyncAliasesService(transport)
+        self.bgp_advertisements = AsyncBGPAdvertisementsService(transport)
+        self.change_set_directories = AsyncChangeSetDirectoriesService(transport)
         self.checks = AsyncChecksService(transport)
         self.classic_devices = AsyncClassicDevicesService(transport)
         self.collection_schedules = AsyncCollectionSchedulesService(transport)
@@ -138,6 +153,7 @@ class AsyncGeneratedServices:
         self.network_topology = AsyncNetworkTopologyService(transport)
         self.path_search = AsyncPathSearchService(transport)
         self.predict_assist = AsyncPredictAssistService(transport)
+        self.snapshot_diff_details = AsyncSnapshotDiffDetailsService(transport)
         self.system_administration = AsyncSystemAdministrationService(transport)
         self.user_accounts = AsyncUserAccountsService(transport)
         self.vulnerability_analysis = AsyncVulnerabilityAnalysisService(transport)
@@ -148,6 +164,8 @@ class AsyncGeneratedServices:
 #: API group name to the client attribute carrying its service.
 SERVICE_TAGS: dict[str, str] = {
     "Aliases": "aliases",
+    "BGP Advertisements": "bgp_advertisements",
+    "Change Set Directories": "change_set_directories",
     "Checks": "checks",
     "Classic Devices": "classic_devices",
     "Collection Schedules": "collection_schedules",
@@ -170,6 +188,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Topology": "network_topology",
     "Path Search": "path_search",
     "Predict Assist": "predict_assist",
+    "Snapshot Diff Details": "snapshot_diff_details",
     "System Administration": "system_administration",
     "User Accounts": "user_accounts",
     "Vulnerability Analysis": "vulnerability_analysis",

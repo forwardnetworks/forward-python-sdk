@@ -62,7 +62,7 @@ class ChangeSetsService(Service):
         description: str | None = None,
         tags: Sequence[str] = (),
         dir_path: str | None = None,
-    ) -> AsyncChangeSetHandle:
+    ) -> ChangeSetHandle:
         """Create a change set against a base snapshot and return a handle to it.
 
         Pick the base deliberately. ``snapshots.latest_processed`` excludes
@@ -80,16 +80,16 @@ class ChangeSetsService(Service):
             )
         )
         created = ChangeSet.model_validate(payload or {})
-        return AsyncChangeSetHandle(self, network_id=self._network(network_id), created=created)
+        return ChangeSetHandle(self, network_id=self._network(network_id), created=created)
 
     def list(self, network_id: str | None = None) -> list[ChangeSetInfo]:
         """A network's change sets, each with its predicted snapshots newest first."""
         payload = self._send_json(ops.list_change_sets(network_id=self._network(network_id)))
         return [ChangeSetInfo.model_validate(row) for row in (payload or [])]
 
-    def handle(self, change_set_id: str, *, network_id: str | None = None) -> AsyncChangeSetHandle:
+    def handle(self, change_set_id: str, *, network_id: str | None = None) -> ChangeSetHandle:
         """A handle to an existing change set, by id, without a request."""
-        return AsyncChangeSetHandle(
+        return ChangeSetHandle(
             self, network_id=self._network(network_id), change_set_id=change_set_id
         )
 
@@ -142,7 +142,7 @@ class ChangeSetsService(Service):
             )
 
 
-class AsyncChangeSetHandle:
+class ChangeSetHandle:
     """One change set, and the workflow around it.
 
     Obtained from :meth:`ChangeSetsService.create` or

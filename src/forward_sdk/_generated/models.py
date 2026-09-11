@@ -4495,11 +4495,14 @@ class PrivacyProtocol(OpenEnum):
     aes_128 = "AES_128"
     aes_192 = "AES_192"
     aes_256 = "AES_256"
+    tdes = "TDES"
+    aes_192_tdes = "AES_192_TDES"
+    aes_256_tdes = "AES_256_TDES"
 
 
 class SnmpAuthSettings(ForwardModel):
     """
-    SNMPv3 settings. Passwords are accepted on input and returned as stored-secret references.
+    SNMPv3 settings. The security level is implied by what is present: username alone, plus authType and password, plus privacyProtocol and privacyPassword. Passwords must be at least 8 bytes, are accepted on input, and come back as the numeric id of the stored secret.
     """
 
     model_config = ConfigDict(
@@ -4515,7 +4518,7 @@ class SnmpAuthSettings(ForwardModel):
 
 class SnmpCredential(ForwardModel):
     """
-    A stored credential with attribution flat beside it.
+    A stored credential with attribution flat beside it. communityString and the V3 passwords hold the numeric id of the stored secret, never the value.
     """
 
     model_config = ConfigDict(
@@ -4525,6 +4528,9 @@ class SnmpCredential(ForwardModel):
     auth_settings: Annotated[SnmpAuthSettings | None, Field(alias="authSettings")] = None
     auto_associate: Annotated[bool | None, Field(alias="autoAssociate")] = None
     community_string: Annotated[str | None, Field(alias="communityString")] = None
+    """
+    The stored secret's id
+    """
     created_at: Annotated[str | None, Field(alias="createdAt")] = None
     created_by: Annotated[str | None, Field(alias="createdBy")] = None
     created_by_id: Annotated[str | None, Field(alias="createdById")] = None

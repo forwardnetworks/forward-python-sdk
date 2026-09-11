@@ -2743,8 +2743,8 @@ paths:
       operationId: listSnmpCredentials
       summary: A network's SNMP credentials
       description: >-
-        The community string is returned on the wire; it is not masked. Treat
-        the response as sensitive.
+        Secrets are never returned. communityString, and the V3 passwords, come
+        back as the numeric id of the stored secret rather than the value.
       x-forward-stability: unpublished
       tags: [SNMP Credentials]
       parameters:
@@ -2758,7 +2758,7 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/SnmpCredential" }
               example:
-                - { id: "3", name: lab-ro, version: V2C, communityString: public, autoAssociate: true, createdAt: "2026-09-11T10:00:00Z" }
+                - { id: "S-3", name: lab-ro, version: V2C, communityString: "4711", autoAssociate: true, createdAt: "2026-09-11T10:00:00Z" }
     post:
       operationId: createSnmpCredential
       summary: Create an SNMP credential
@@ -2778,7 +2778,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SnmpCredential" }
-              example: { id: "3", name: lab-ro, version: V2C, communityString: public, autoAssociate: true }
+              example: { id: "S-3", name: lab-ro, version: V2C, communityString: "4711", autoAssociate: true }
 
   /networks/{networkId}/snmpCredentials/{credentialId}:
     patch:
@@ -2853,7 +2853,7 @@ paths:
             schema: { $ref: "#/components/schemas/CollectorBinding" }
             example: { username: collector-lab }
       responses:
-        "204": { description: Bound. }
+        "200": { description: Bound. No body. }
     delete:
       operationId: unbindNetworkCollector
       summary: Unbind the network from its collector
@@ -2862,7 +2862,7 @@ paths:
       parameters:
         - { name: networkId, in: path, required: true, schema: { type: string } }
       responses:
-        "204": { description: Unbound. }
+        "200": { description: Unbound. No body. }
 
 components:
   schemas:
@@ -4322,12 +4322,16 @@ components:
 
     SnmpAuthSettings:
       type: object
-      description: SNMPv3 settings. Passwords are accepted on input and returned as stored-secret references.
+      description: >-
+        SNMPv3 settings. The security level is implied by what is present:
+        username alone, plus authType and password, plus privacyProtocol and
+        privacyPassword. Passwords must be at least 8 bytes, are accepted on
+        input, and come back as the numeric id of the stored secret.
       properties:
         username: { type: string }
         password: { type: string }
         authType: { type: string, enum: [MD5, SHA, SHA_256, SHA_384, SHA_512] }
-        privacyProtocol: { type: string, enum: [DES, AES_128, AES_192, AES_256] }
+        privacyProtocol: { type: string, enum: [DES, AES_128, AES_192, AES_256, TDES, AES_192_TDES, AES_256_TDES] }
         privacyPassword: { type: string }
 
     NewSnmpCredential:
@@ -4356,14 +4360,17 @@ components:
 
     SnmpCredential:
       type: object
-      description: A stored credential with attribution flat beside it.
+      description: >-
+        A stored credential with attribution flat beside it. communityString
+        and the V3 passwords hold the numeric id of the stored secret, never
+        the value.
       properties:
         id: { type: string }
         name: { type: string }
         version: { type: string, enum: [V2C, V3] }
         port: { type: integer }
         timeoutSec: { type: integer }
-        communityString: { type: string }
+        communityString: { type: string, description: The stored secret's id, not the value. }
         authSettings: { $ref: "#/components/schemas/SnmpAuthSettings" }
         autoAssociate: { type: boolean }
         createdById: { type: string }

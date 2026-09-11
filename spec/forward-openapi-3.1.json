@@ -11934,7 +11934,7 @@
         "type": "string"
       },
       "SnmpAuthSettings": {
-        "description": "SNMPv3 settings. Passwords are accepted on input and returned as stored-secret references.",
+        "description": "SNMPv3 settings. The security level is implied by what is present: username alone, plus authType and password, plus privacyProtocol and privacyPassword. Passwords must be at least 8 bytes, are accepted on input, and come back as the numeric id of the stored secret.",
         "properties": {
           "authType": {
             "enum": [
@@ -11957,7 +11957,10 @@
               "DES",
               "AES_128",
               "AES_192",
-              "AES_256"
+              "AES_256",
+              "TDES",
+              "AES_192_TDES",
+              "AES_256_TDES"
             ],
             "type": "string"
           },
@@ -11968,7 +11971,7 @@
         "type": "object"
       },
       "SnmpCredential": {
-        "description": "A stored credential with attribution flat beside it.",
+        "description": "A stored credential with attribution flat beside it. communityString and the V3 passwords hold the numeric id of the stored secret, never the value.",
         "properties": {
           "authSettings": {
             "$ref": "#/components/schemas/SnmpAuthSettings"
@@ -11977,6 +11980,8 @@
             "type": "boolean"
           },
           "communityString": {
+            "description": "The stored secret's id",
+            "not the value.": null,
             "type": "string"
           },
           "createdAt": {
@@ -20473,8 +20478,8 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "Unbound."
+          "200": {
+            "description": "Unbound. No body."
           }
         },
         "summary": "Unbind the network from its collector",
@@ -20557,8 +20562,8 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": "Bound."
+          "200": {
+            "description": "Bound. No body."
           }
         },
         "summary": "Bind a network to a collector, by the collector's username",
@@ -26285,7 +26290,7 @@
     },
     "/networks/{networkId}/snmpCredentials": {
       "get": {
-        "description": "The community string is returned on the wire; it is not masked. Treat the response as sensitive.",
+        "description": "Secrets are never returned. communityString, and the V3 passwords, come back as the numeric id of the stored secret rather than the value.",
         "operationId": "listSnmpCredentials",
         "parameters": [
           {
@@ -26304,9 +26309,9 @@
                 "example": [
                   {
                     "autoAssociate": true,
-                    "communityString": "public",
+                    "communityString": "4711",
                     "createdAt": "2026-09-11T10:00:00Z",
-                    "id": "3",
+                    "id": "S-3",
                     "name": "lab-ro",
                     "version": "V2C"
                   }
@@ -26362,8 +26367,8 @@
               "application/json": {
                 "example": {
                   "autoAssociate": true,
-                  "communityString": "public",
-                  "id": "3",
+                  "communityString": "4711",
+                  "id": "S-3",
                   "name": "lab-ro",
                   "version": "V2C"
                 },

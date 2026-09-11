@@ -10,7 +10,8 @@ All notable changes to this project are documented here. The format follows
 - `client.snmp_credentials`: list, create, update and delete a network's SNMP
   credentials, which the published description leaves out although classic
   devices reference them by id. Verified live with a credential created,
-  renamed and deleted. The community string comes back on the wire unmasked.
+  renamed and deleted. Secrets never come back: the community string and V3
+  passwords are returned as the numeric id of the stored secret.
 - `client.collector_binding`: which collector serves a network, its connection
   and health status, its version and update state, plus binding and unbinding.
   The published `/collector/status` is the deprecated busy flag; this is the

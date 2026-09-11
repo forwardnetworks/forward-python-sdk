@@ -18,7 +18,10 @@ All notable changes to this project are documented here. The format follows
 
   A second refusal of the stripped set is now also read as a no-op rather than
   raising, so a message this parser cannot read cannot turn a no-op into an
-  error again. Found by reading Forward's own source, which builds that string.
+  error again. Found by reading Forward's own source, which builds that string,
+  and confirmed on an instance of the current build: re-publishing a committed
+  query's own source returns a report with it skipped, commits nothing and
+  leaves no draft behind.
 
 ### Changed
 

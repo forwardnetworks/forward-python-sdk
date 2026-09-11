@@ -219,12 +219,54 @@ def test_counters_record_the_traffic(client: ForwardClient) -> None:
     reason="writing tests need FORWARD_LIVE_WRITES=1",
 )
 def test_draft_can_be_staged_and_discarded(client: ForwardClient) -> None:
-    """Stage a query draft, confirm it appears, then discard it."""
-    path = "/forward-sdk-live-tests/scratch"
-    client.nqe.repo.stage_add(path, TRIVIAL_QUERY)
-    try:
-        assert any(draft.path == path for draft in client.nqe.repo.drafts())
-    finally:
-        client.nqe.repo.discard(path)
+    """Stage a query draft, confirm it appears, then discard it.
 
-    assert not any(draft.path == path for draft in client.nqe.repo.drafts())
+    The directory is created first. Forward refuses to stage a query whose
+    enclosing directory does not exist, so a first write into a new directory
+    fails without this, which is what `publish(ensure_directories=True)` does
+    for you.
+    """
+    directory = "/forward-sdk-live-tests"
+    path = f"{directory}/scratch"
+    repo = client.nqe.repo
+    repo.stage_directory(directory)
+    try:
+        repo.stage_add(path, TRIVIAL_QUERY)
+        assert any(draft.path == path for draft in repo.drafts())
+        repo.discard(path)
+    finally:
+        repo.discard(directory)
+
+    assert not any(draft.path == path for draft in repo.drafts())
+
+
+def test_publishing_an_unchanged_query_is_a_no_op(client: ForwardClient) -> None:
+    """Re-publishing what is already committed must report, not raise.
+
+    Re-running an idempotent publisher with nothing to publish is the normal
+    case in a pipeline. Forward refuses the commit with INVALID_CHANGE_PATH and
+    lists the paths in a sentence it terminates with a full stop; keeping that
+    stop made the last path match nothing, so the retry asked again for the one
+    path Forward had just refused and the second refusal escaped.
+
+    This reads a query that already exists and publishes its own source back,
+    so it creates nothing and leaves nothing behind. Marked as a write because
+    it stages a draft on the way, even though it commits nothing.
+    """
+    repo = client.nqe.repo
+    committed = [q for q in repo.queries() if q.path and q.commit_id]
+    if not committed:
+        pytest.skip("the organization library has no committed query to re-publish")
+
+    target = committed[0].path
+    before = {draft.path for draft in repo.drafts()}
+    try:
+        report = repo.publish({target: repo.source(target)}, title="forward-sdk no-op check")
+    finally:
+        for draft in repo.drafts():
+            if draft.path not in before:
+                repo.discard(draft.path)
+
+    assert report.committed_paths == ()
+    assert report.skipped_paths == (target,)
+    assert not report.changed

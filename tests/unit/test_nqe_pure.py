@@ -27,7 +27,11 @@ from forward_sdk.nqe.files import (
 )
 from forward_sdk.nqe.pagination import Decision
 from forward_sdk.nqe.query_ref import SortKey
-from forward_sdk.nqe.repository import DraftChange, RepositoryQuery
+from forward_sdk.nqe.repository import (
+    DraftChange,
+    RepositoryQuery,
+    paths_without_changes,
+)
 from forward_sdk.nqe.where import (
     enum_one_of,
     literal,
@@ -370,6 +374,43 @@ class TestRepeatGuardAndIdenticalRows:
         for start in range(0, 90, 10):
             assert tracker.observe(self._distinct(start, 10), 100) is Decision.CONTINUE
         assert tracker.observe(self._distinct(90, 10), 100) is Decision.DONE
+
+
+class TestNoChangesMessage:
+    """Forward writes the path list as a sentence and ends it with a full stop.
+
+    NqeLibException builds it as the prefix plus the comma-joined paths plus
+    '.', and a live instance confirms the terminator is on the wire. Keeping it
+    made the final path parse with a trailing dot, matching nothing in the
+    requested set, so the caller retried a commit for the one path Forward had
+    just refused and the second refusal escaped. Publishing an unchanged corpus
+    reported failure.
+    """
+
+    def test_the_terminator_is_not_taken_for_part_of_a_path(self) -> None:
+        assert paths_without_changes(
+            "User has no changes at the following paths: /a/q1, /a/q2."
+        ) == {"/a/q1", "/a/q2"}
+
+    def test_a_single_path_is_affected_too(self) -> None:
+        """That path is also the last one, so it carried the stop as well."""
+        assert paths_without_changes("User has no changes at the following paths: /a/q1.") == {
+            "/a/q1"
+        }
+
+    def test_a_list_without_a_terminator_still_parses(self) -> None:
+        assert paths_without_changes(
+            "User has no changes at the following paths: /a/q1, /a/q2"
+        ) == {"/a/q1", "/a/q2"}
+
+    def test_only_one_stop_is_removed(self) -> None:
+        """Removed from the end of the list, not from each path."""
+        assert paths_without_changes(
+            "User has no changes at the following paths: /a/q.1, /a/q2."
+        ) == {"/a/q.1", "/a/q2"}
+
+    def test_an_unrelated_message_yields_nothing(self) -> None:
+        assert paths_without_changes("something else entirely") == set()
 
 
 class TestLibraryTypesSerialize:

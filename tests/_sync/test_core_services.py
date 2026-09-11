@@ -271,6 +271,25 @@ class TestSnapshots:
         assert recorder.count("POST", "/api/nqe") == 2
 
 
+class TestUpsertClassicDevices:
+    def test_upserts_then_reads_the_same_names_back(self, recorder: Recorder) -> None:
+        """Forward's upsert answers with nothing worth reading, so this reads back."""
+        recorder.add("POST", "/api/networks/101/classic-devices", httpx.Response(201))
+        recorder.add(
+            "POST",
+            "/api/networks/101/classic-devices",
+            json_response({"devices": [{"name": "sw1", "host": "10.0.0.1"}]}),
+        )
+        with make_client(recorder) as client:
+            devices = client.devices.upsert_classic([{"name": "sw1", "host": "10.0.0.1"}])
+
+        assert [d.name for d in devices] == ["sw1"]
+        assert recorder.query_for(0)["action"] == ["putBatch"]
+        assert recorder.body_for(0) == [{"name": "sw1", "host": "10.0.0.1"}]
+        assert recorder.query_for(1)["action"] == ["getBatch"]
+        assert recorder.body_for(1) == {"names": ["sw1"]}
+
+
 class TestPredictedSnapshots:
     """Forward processes a snapshot for every Predict run, like any other.
 

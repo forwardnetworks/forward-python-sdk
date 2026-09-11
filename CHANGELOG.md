@@ -3,6 +3,16 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Added
+
+- `devices.upsert_classic()`, which runs Forward's batch upsert and then reads
+  the same names back, returning the devices as stored. The upsert itself
+  answers 201 with nothing worth reading, so confirming what was written took a
+  second call every consumer had to write. Verified live; a second run with the
+  same manifest returns the same devices.
+
 ## [0.1.11] - 2026-09-11
 
 ### Fixed

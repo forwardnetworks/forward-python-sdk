@@ -5,11 +5,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from typing import Any
 
-from forward_sdk._generated.models import Device
+from forward_sdk._generated.models import ClassicDevice, ClassicDevices, Device
 from forward_sdk._ops import core as ops
+from forward_sdk._ops import rest
 from forward_sdk._sync.services._base import Service
 
 __all__ = ["DevicesService"]
@@ -144,3 +145,37 @@ class DevicesService(Service):
                 snapshot_id=self._snapshot(snapshot_id),
             )
         )
+
+    def upsert_classic(
+        self,
+        devices: Sequence[Mapping[str, Any]],
+        *,
+        network_id: str | None = None,
+        with_: Sequence[str] = (),
+    ) -> Sequence[ClassicDevice]:
+        """Add or update classic devices by name, and return them as stored.
+
+        Forward's batch upsert, ``classic_devices.put_classic_devices()``,
+        answers 201 with nothing worth reading, so a caller who wants to confirm
+        what was written has to read the devices back by name. This does that
+        in one call: the upsert, then a batch read of exactly the names sent.
+        Applying the same manifest twice is a no-op on Forward's side, and the
+        second call returns the same devices.
+
+        Args:
+            devices: The device definitions, the same bodies the upsert takes.
+                Each needs a ``name``.
+            with_: Extra fields to include on the read back, such as ``tags``
+                or ``testResult``.
+        """
+        resolved = self._network(network_id)
+        names = [str(d["name"]) for d in devices]
+        self._transport.send(
+            rest.BUILDERS["putClassicDevices"](network_id=resolved, body=[dict(d) for d in devices])
+        )
+        payload = self._send_json(
+            rest.BUILDERS["getSpecificClassicDevices"](
+                network_id=resolved, body={"names": names}, with_=list(with_) or None
+            )
+        )
+        return list(ClassicDevices.model_validate(payload or {}).devices or [])

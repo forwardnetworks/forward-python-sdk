@@ -135,6 +135,34 @@ green suite, including a predicate helper that could never have worked, a
 repository method that failed on every call, and a Forward AI response that
 failed to parse at all. None was subtle. All were assumptions.
 
+### A number in a bug report may be your own arithmetic
+
+A consumer reported that Forward caps offset paging at 250,000 rows, with a
+clean reproduction: 260,000 rows read, then a stall, every request past 250,000
+returning the same page. It was specific, reproducible and wrong.
+
+250,000 is `repeat_limit` times `page_size`, both defaults from this repository.
+The stalled-pager guard compares each page's first and last row, and their query
+selected a constant, so every page looked identical whether paging advanced or
+not. The SDK invented the number and then reported it as a server behaviour.
+
+The dangerous part was what happened next. Before testing anything, a
+`PageGuards.offset_ceiling` defaulting to 250,000 was written, with tests,
+documentation and a sharding recipe for working around the cap. It would have
+broken every result set larger than 250,000 rows for every consumer, and it
+would have read as a careful fix, complete with a constant documented as
+"observed against 26.8.4". One run against a large instance showed offset being
+honoured to row 545,464.
+
+So: before encoding a reported limit as a constant, check whether it is a
+product of your own defaults. Multiply the knobs together. If the number falls
+out of them, you are looking at your own behaviour described from outside.
+
+More generally, a reproduction proves a symptom, never a cause. This is the same
+shape as the fields envelope, where consumers agreed with each other and all
+were wrong, except that here the evidence came with numbers attached, which made
+it more convincing rather than more true.
+
 ### A return type is part of the contract
 
 Field names are the part everyone diffs. The rest of a returned object is just

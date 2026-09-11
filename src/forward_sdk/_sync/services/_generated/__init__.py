@@ -34,6 +34,7 @@ from forward_sdk._sync.services._generated.network_endpoints import NetworkEndpo
 from forward_sdk._sync.services._generated.network_locations import NetworkLocationsService
 from forward_sdk._sync.services._generated.network_topology import NetworkTopologyService
 from forward_sdk._sync.services._generated.path_search import PathSearchService
+from forward_sdk._sync.services._generated.predict_assist import PredictAssistService
 from forward_sdk._sync.services._generated.system_administration import (
     SystemAdministrationService,
 )
@@ -71,6 +72,7 @@ __all__ = [
     "NetworkLocationsService",
     "NetworkTopologyService",
     "PathSearchService",
+    "PredictAssistService",
     "SystemAdministrationService",
     "UserAccountsService",
     "VulnerabilityAnalysisService",
@@ -108,6 +110,7 @@ class GeneratedServices:
     network_locations: NetworkLocationsService
     network_topology: NetworkTopologyService
     path_search: PathSearchService
+    predict_assist: PredictAssistService
     system_administration: SystemAdministrationService
     user_accounts: UserAccountsService
     vulnerability_analysis: VulnerabilityAnalysisService
@@ -137,6 +140,7 @@ class GeneratedServices:
         self.network_locations = NetworkLocationsService(transport)
         self.network_topology = NetworkTopologyService(transport)
         self.path_search = PathSearchService(transport)
+        self.predict_assist = PredictAssistService(transport)
         self.system_administration = SystemAdministrationService(transport)
         self.user_accounts = UserAccountsService(transport)
         self.vulnerability_analysis = VulnerabilityAnalysisService(transport)
@@ -168,6 +172,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Locations": "network_locations",
     "Network Topology": "network_topology",
     "Path Search": "path_search",
+    "Predict Assist": "predict_assist",
     "System Administration": "system_administration",
     "User Accounts": "user_accounts",
     "Vulnerability Analysis": "vulnerability_analysis",

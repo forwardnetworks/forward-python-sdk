@@ -1599,6 +1599,243 @@ paths:
               example:
                 - { payloadFormat: JSON, template: "{...}" }
 
+  # ------------------------------------------- firewall object listings ---
+  # What a PAN-OS firewall defines, as the change set's base snapshot has it,
+  # so a rule can reference objects by name. All read-only; empty lists are
+  # omitted from the response.
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/address-objects:
+    get:
+      operationId: listFirewallAddressObjects
+      summary: The address objects a firewall defines
+      x-forward-stability: unpublished
+      tags: [Firewall Predict]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The objects.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AddressObjectCollection" }
+              example: { addressObjects: [ { scopeId: LOCAL, name: example } ] }
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/address-groups:
+    get:
+      operationId: listFirewallAddressGroups
+      summary: The address groups a firewall defines
+      x-forward-stability: unpublished
+      tags: [Firewall Predict]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The objects.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AddressGroupCollection" }
+              example: { addressGroups: [ { scopeId: LOCAL, name: example } ] }
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/application-objects:
+    get:
+      operationId: listFirewallApplicationObjects
+      summary: The application objects a firewall defines
+      x-forward-stability: unpublished
+      tags: [Firewall Predict]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The objects.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationObjectCollection" }
+              example: { applicationObjects: [ { scopeId: LOCAL, name: example } ] }
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/application-groups:
+    get:
+      operationId: listFirewallApplicationGroups
+      summary: The application groups a firewall defines
+      x-forward-stability: unpublished
+      tags: [Firewall Predict]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The objects.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationGroupCollection" }
+              example: { applicationGroups: [ { scopeId: LOCAL, name: example } ] }
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/url-objects:
+    get:
+      operationId: listFirewallUrlObjects
+      summary: The URL objects a firewall defines
+      x-forward-stability: unpublished
+      tags: [Firewall Predict]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The objects.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UrlObjectCollection" }
+              example: { urlObjects: [ { scopeId: LOCAL, name: example } ] }
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/service-objects:
+    get:
+      operationId: listFirewallServiceObjects
+      summary: The service objects a firewall defines
+      x-forward-stability: unpublished
+      tags: [Firewall Predict]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The objects.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceObjectCollection" }
+              example: { serviceObjects: [ { scopeId: LOCAL, name: example } ] }
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/service-groups:
+    get:
+      operationId: listFirewallServiceGroups
+      summary: The service groups a firewall defines
+      x-forward-stability: unpublished
+      tags: [Firewall Predict]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The objects.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceGroupCollection" }
+              example: { serviceGroups: [ { scopeId: LOCAL, name: example } ] }
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/user-objects:
+    get:
+      operationId: listFirewallUserObjects
+      summary: The user objects a firewall defines
+      x-forward-stability: unpublished
+      tags: [Firewall Predict]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The objects.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserObjectCollection" }
+              example: { userObjects: [ { scopeId: LOCAL, name: example } ] }
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/zones:
+    get:
+      operationId: listFirewallZones
+      summary: The security zones a firewall defines
+      x-forward-stability: unpublished
+      tags: [Firewall Predict]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The objects.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SecurityZoneCollection" }
+              example: { zones: [ { scopeId: LOCAL, name: example } ] }
+
+  # ------------------------------------------------------- predict assists ---
+  # Forward AI applied to a change. Gated on AI_ALLOWED and PREDICT_AI_ASSIST,
+  # and the change-set ones on PREDICT_MODELING as well, so most organizations
+  # are refused with a 403 whatever else they are licensed for.
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/cli-assists:
+    post:
+      operationId: assistChangeSetCommands
+      summary: Ask Forward AI to draft CLI commands for a device from a prompt
+      x-forward-stability: unpublished
+      tags: [Predict Assist]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CliAssistRequest" }
+            example: { prompt: "shut down the uplink to the branch" }
+      responses:
+        "200":
+          description: The drafted commands, as one string.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CliAssistResponse" }
+              example: { commands: "interface Ethernet1\n shutdown" }
+
+  /networks/{networkId}/change-sets/{changeSetId}/overview-assists:
+    post:
+      operationId: assistChangeSetOverview
+      summary: Ask Forward AI to name and describe the change set from its contents
+      x-forward-stability: unpublished
+      tags: [Predict Assist]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: A suggested name, description and tags.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OverviewAssistResponse" }
+              example: { name: "Shut branch uplink", description: "Disables Ethernet1 on dc-core", tags: [maintenance] }
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/config-summary-assists:
+    post:
+      operationId: assistConfigDiffSummary
+      summary: Ask Forward AI to summarize the configuration changes between two snapshots
+      x-forward-stability: unpublished
+      tags: [Predict Assist]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The summary.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SummaryAssistResponse" }
+              example: { summary: "One interface was shut down on dc-core." }
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/impact-summary-assists:
+    post:
+      operationId: assistImpactDiffSummary
+      summary: Ask Forward AI to summarize the impact of the changes between two snapshots
+      x-forward-stability: unpublished
+      tags: [Predict Assist]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The summary.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SummaryAssistResponse" }
+              example: { summary: "Seven locations lose connectivity to the data centre." }
+
 components:
   schemas:
     RepositoryCommit:
@@ -2341,3 +2578,194 @@ components:
         testResults:
           type: object
           additionalProperties: { $ref: "#/components/schemas/WebhookTestResult" }
+
+    SecurityObjectId:
+      type: object
+      properties:
+        scopeId: { type: string }
+        name: { type: string }
+
+    IpRange:
+      type: object
+      properties:
+        start: { type: string }
+        end: { type: string }
+
+    PortRange:
+      type: object
+      properties:
+        start: { type: integer }
+        end: { type: integer }
+
+    ServiceDefinition:
+      type: object
+      properties:
+        protocolName: { type: string }
+        sourcePorts:
+          type: array
+          items: { $ref: "#/components/schemas/PortRange" }
+        destinationPorts:
+          type: array
+          items: { $ref: "#/components/schemas/PortRange" }
+
+    ScopedAddressObject:
+      type: object
+      properties:
+        scopeId: { type: string }
+        name: { type: string }
+        description: { type: string }
+        tags: { type: array, items: { type: string } }
+        subnets: { type: array, items: { type: string } }
+        ipRanges: { type: array, items: { $ref: "#/components/schemas/IpRange" } }
+        domains: { type: array, items: { type: string } }
+
+    ScopedAddressGroup:
+      type: object
+      description: description repeats name on the wire; Forward populates it from the name.
+      properties:
+        scopeId: { type: string }
+        name: { type: string }
+        description: { type: string }
+        tags: { type: array, items: { type: string } }
+        memberObjects: { type: array, items: { $ref: "#/components/schemas/SecurityObjectId" } }
+        memberGroups: { type: array, items: { $ref: "#/components/schemas/SecurityObjectId" } }
+
+    ScopedApplicationObject:
+      type: object
+      properties:
+        scopeId: { type: string }
+        name: { type: string }
+        description: { type: string }
+        defaultServiceDefinitions: { type: array, items: { $ref: "#/components/schemas/ServiceDefinition" } }
+
+    ScopedApplicationGroup:
+      type: object
+      properties:
+        scopeId: { type: string }
+        name: { type: string }
+        memberObjects: { type: array, items: { $ref: "#/components/schemas/SecurityObjectId" } }
+        memberDynamicGroups: { type: array, items: { $ref: "#/components/schemas/SecurityObjectId" } }
+        memberGroups: { type: array, items: { $ref: "#/components/schemas/SecurityObjectId" } }
+
+    ScopedUrlObject:
+      type: object
+      properties:
+        scopeId: { type: string }
+        name: { type: string }
+        description: { type: string }
+        members: { type: array, items: { type: string } }
+
+    ScopedServiceObject:
+      type: object
+      properties:
+        scopeId: { type: string }
+        name: { type: string }
+        description: { type: string }
+        definitions: { type: array, items: { $ref: "#/components/schemas/ServiceDefinition" } }
+
+    ScopedServiceGroup:
+      type: object
+      properties:
+        scopeId: { type: string }
+        name: { type: string }
+        memberObjects: { type: array, items: { $ref: "#/components/schemas/SecurityObjectId" } }
+        memberGroups: { type: array, items: { $ref: "#/components/schemas/SecurityObjectId" } }
+
+    ScopedUserObject:
+      type: object
+      properties:
+        scopeId: { type: string }
+        name: { type: string }
+
+    SecurityZone:
+      type: object
+      properties:
+        name: { type: string }
+        interfaces: { type: array, items: { type: string } }
+
+    AddressObjectCollection:
+      type: object
+      properties:
+        addressObjects:
+          type: array
+          items: { $ref: "#/components/schemas/ScopedAddressObject" }
+
+    AddressGroupCollection:
+      type: object
+      properties:
+        addressGroups:
+          type: array
+          items: { $ref: "#/components/schemas/ScopedAddressGroup" }
+
+    ApplicationObjectCollection:
+      type: object
+      properties:
+        applicationObjects:
+          type: array
+          items: { $ref: "#/components/schemas/ScopedApplicationObject" }
+
+    ApplicationGroupCollection:
+      type: object
+      properties:
+        applicationGroups:
+          type: array
+          items: { $ref: "#/components/schemas/ScopedApplicationGroup" }
+
+    UrlObjectCollection:
+      type: object
+      properties:
+        urlObjects:
+          type: array
+          items: { $ref: "#/components/schemas/ScopedUrlObject" }
+
+    ServiceObjectCollection:
+      type: object
+      properties:
+        serviceObjects:
+          type: array
+          items: { $ref: "#/components/schemas/ScopedServiceObject" }
+
+    ServiceGroupCollection:
+      type: object
+      properties:
+        serviceGroups:
+          type: array
+          items: { $ref: "#/components/schemas/ScopedServiceGroup" }
+
+    UserObjectCollection:
+      type: object
+      properties:
+        userObjects:
+          type: array
+          items: { $ref: "#/components/schemas/ScopedUserObject" }
+
+    SecurityZoneCollection:
+      type: object
+      properties:
+        zones:
+          type: array
+          items: { $ref: "#/components/schemas/SecurityZone" }
+
+    CliAssistRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt: { type: string, description: Must not be blank. }
+
+    CliAssistResponse:
+      type: object
+      description: commands is one string despite the plural name.
+      properties:
+        commands: { type: string }
+
+    OverviewAssistResponse:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        tags: { type: array, items: { type: string } }
+
+    SummaryAssistResponse:
+      type: object
+      properties:
+        summary: { type: string }

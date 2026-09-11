@@ -121,6 +121,195 @@ class AsyncFirewallPredictService(AsyncService):
         )
         return models.SecurityRulesDiff.model_validate(payload or {})
 
+    async def list_firewall_address_groups(
+        self,
+        *,
+        change_set_id: str,
+        device_name: str,
+        network_id: str | None = None,
+    ) -> models.AddressGroupCollection:
+        """The address groups a firewall defines.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["listFirewallAddressGroups"](
+                network_id=self._network(network_id),
+                change_set_id=change_set_id,
+                device_name=device_name,
+            )
+        )
+        return models.AddressGroupCollection.model_validate(payload or {})
+
+    async def list_firewall_address_objects(
+        self,
+        *,
+        change_set_id: str,
+        device_name: str,
+        network_id: str | None = None,
+    ) -> models.AddressObjectCollection:
+        """The address objects a firewall defines.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["listFirewallAddressObjects"](
+                network_id=self._network(network_id),
+                change_set_id=change_set_id,
+                device_name=device_name,
+            )
+        )
+        return models.AddressObjectCollection.model_validate(payload or {})
+
+    async def list_firewall_application_groups(
+        self,
+        *,
+        change_set_id: str,
+        device_name: str,
+        network_id: str | None = None,
+    ) -> models.ApplicationGroupCollection:
+        """The application groups a firewall defines.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["listFirewallApplicationGroups"](
+                network_id=self._network(network_id),
+                change_set_id=change_set_id,
+                device_name=device_name,
+            )
+        )
+        return models.ApplicationGroupCollection.model_validate(payload or {})
+
+    async def list_firewall_application_objects(
+        self,
+        *,
+        change_set_id: str,
+        device_name: str,
+        network_id: str | None = None,
+    ) -> models.ApplicationObjectCollection:
+        """The application objects a firewall defines.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["listFirewallApplicationObjects"](
+                network_id=self._network(network_id),
+                change_set_id=change_set_id,
+                device_name=device_name,
+            )
+        )
+        return models.ApplicationObjectCollection.model_validate(payload or {})
+
+    async def list_firewall_service_groups(
+        self,
+        *,
+        change_set_id: str,
+        device_name: str,
+        network_id: str | None = None,
+    ) -> models.ServiceGroupCollection:
+        """The service groups a firewall defines.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["listFirewallServiceGroups"](
+                network_id=self._network(network_id),
+                change_set_id=change_set_id,
+                device_name=device_name,
+            )
+        )
+        return models.ServiceGroupCollection.model_validate(payload or {})
+
+    async def list_firewall_service_objects(
+        self,
+        *,
+        change_set_id: str,
+        device_name: str,
+        network_id: str | None = None,
+    ) -> models.ServiceObjectCollection:
+        """The service objects a firewall defines.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["listFirewallServiceObjects"](
+                network_id=self._network(network_id),
+                change_set_id=change_set_id,
+                device_name=device_name,
+            )
+        )
+        return models.ServiceObjectCollection.model_validate(payload or {})
+
+    async def list_firewall_url_objects(
+        self,
+        *,
+        change_set_id: str,
+        device_name: str,
+        network_id: str | None = None,
+    ) -> models.UrlObjectCollection:
+        """The URL objects a firewall defines.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["listFirewallUrlObjects"](
+                network_id=self._network(network_id),
+                change_set_id=change_set_id,
+                device_name=device_name,
+            )
+        )
+        return models.UrlObjectCollection.model_validate(payload or {})
+
+    async def list_firewall_user_objects(
+        self,
+        *,
+        change_set_id: str,
+        device_name: str,
+        network_id: str | None = None,
+    ) -> models.UserObjectCollection:
+        """The user objects a firewall defines.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["listFirewallUserObjects"](
+                network_id=self._network(network_id),
+                change_set_id=change_set_id,
+                device_name=device_name,
+            )
+        )
+        return models.UserObjectCollection.model_validate(payload or {})
+
+    async def list_firewall_zones(
+        self,
+        *,
+        change_set_id: str,
+        device_name: str,
+        network_id: str | None = None,
+    ) -> models.SecurityZoneCollection:
+        """The security zones a firewall defines.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["listFirewallZones"](
+                network_id=self._network(network_id),
+                change_set_id=change_set_id,
+                device_name=device_name,
+            )
+        )
+        return models.SecurityZoneCollection.model_validate(payload or {})
+
     async def update_security_rule(
         self,
         *,

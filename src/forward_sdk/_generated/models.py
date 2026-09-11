@@ -531,6 +531,29 @@ class ClassicDeviceType(OpenEnum):
     sonic_edge_core_ssh = "sonic_edge_core_ssh"
 
 
+class CliAssistRequest(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    prompt: str
+    """
+    Must not be blank.
+    """
+
+
+class CliAssistResponse(ForwardModel):
+    """
+    commands is one string despite the plural name.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    commands: str | None = None
+
+
 class CliCredentialType(OpenEnum):
     login = "LOGIN"
     privileged_mode = "PRIVILEGED_MODE"
@@ -2037,6 +2060,15 @@ class InterfacesAliasBuilder(ForwardModel):
     vlan_intf_types: Annotated[list[VlanIntfType] | None, Field(alias="vlanIntfTypes")] = None
 
 
+class IpRange(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    end: str | None = None
+    start: str | None = None
+
+
 class JumpServerCommandFormat(OpenEnum):
     unix = "UNIX"
     cisco_ios = "CISCO_IOS"
@@ -3340,6 +3372,16 @@ class Severity1(OpenEnum):
     critical = "CRITICAL"
 
 
+class OverviewAssistResponse(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    description: str | None = None
+    name: str | None = None
+    tags: list[str] | None = None
+
+
 class Direction(OpenEnum):
     src = "src"
     dst = "dst"
@@ -3680,6 +3722,15 @@ class SrcIpLocationType(OpenEnum):
     multicast = "MULTICAST"
 
 
+class PortRange(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    end: int | None = None
+    start: int | None = None
+
+
 class PredefinedCheckType(OpenEnum):
     bgp_neighbor_adjacency = "BGP_NEIGHBOR_ADJACENCY"
     bgp_router_id = "BGP_ROUTER_ID"
@@ -3862,10 +3913,48 @@ class RulebaseDescriptor(ForwardModel):
     scope_id: Annotated[str | None, Field(alias="scopeId")] = None
 
 
+class ScopedAddressObject(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    description: str | None = None
+    domains: list[str] | None = None
+    ip_ranges: Annotated[list[IpRange] | None, Field(alias="ipRanges")] = None
+    name: str | None = None
+    scope_id: Annotated[str | None, Field(alias="scopeId")] = None
+    subnets: list[str] | None = None
+    tags: list[str] | None = None
+
+
+class ScopedUrlObject(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    description: str | None = None
+    members: list[str] | None = None
+    name: str | None = None
+    scope_id: Annotated[str | None, Field(alias="scopeId")] = None
+
+
+class ScopedUserObject(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    name: str | None = None
+    scope_id: Annotated[str | None, Field(alias="scopeId")] = None
+
+
 class SearchIntent(OpenEnum):
     prefer_violations = "PREFER_VIOLATIONS"
     prefer_delivered = "PREFER_DELIVERED"
     violations_only = "VIOLATIONS_ONLY"
+
+
+class SecurityObjectId(ScopedUserObject):
+    pass
 
 
 class Action3(OpenEnum):
@@ -3918,6 +4007,23 @@ class SecurityRulePatch(ForwardModel):
     """
 
 
+class SecurityZone(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    interfaces: list[str] | None = None
+    name: str | None = None
+
+
+class SecurityZoneCollection(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    zones: list[SecurityZone] | None = None
+
+
 class SecurityZoneFilter(ForwardModel):
     """
     A filter that matches one security zone on a firewall by name and can be used in the `from` or `to` property
@@ -3931,6 +4037,16 @@ class SecurityZoneFilter(ForwardModel):
     device: Annotated[str, Field(examples=["nyc-dc01-rtr-01"])]
     type: Literal["SecurityZoneFilter"]
     value: Annotated[str, Field(examples=["corp-trusted"])]
+
+
+class ServiceDefinition(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    destination_ports: Annotated[list[PortRange] | None, Field(alias="destinationPorts")] = None
+    protocol_name: Annotated[str | None, Field(alias="protocolName")] = None
+    source_ports: Annotated[list[PortRange] | None, Field(alias="sourcePorts")] = None
 
 
 class SnapshotExportParams(ForwardModel):
@@ -4411,6 +4527,14 @@ class SubnetLocationFilter(ForwardModel):
     value: Annotated[str, Field(examples=["10.10.10.64/30"])]
 
 
+class SummaryAssistResponse(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    summary: str | None = None
+
+
 class SyntheticNatEntry(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -4614,6 +4738,14 @@ class UrlCursorBasedPagination(ForwardModel):
     """
 
 
+class UrlObjectCollection(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    url_objects: Annotated[list[ScopedUrlObject] | None, Field(alias="urlObjects")] = None
+
+
 class AuthSource(OpenEnum):
     """
     How this user authenticates. `LOCAL` accounts exist only in the Forward Platform.
@@ -4668,6 +4800,14 @@ class User(ForwardModel):
     """
     The identifier used to authenticate (log in) with this account
     """
+
+
+class UserObjectCollection(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    user_objects: Annotated[list[ScopedUserObject] | None, Field(alias="userObjects")] = None
 
 
 class UserPatch(ForwardModel):
@@ -5214,6 +5354,16 @@ class WebhookTestResult(ForwardModel):
     """
     Epoch milliseconds.
     """
+
+
+class AddressObjectCollection(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    address_objects: Annotated[list[ScopedAddressObject] | None, Field(alias="addressObjects")] = (
+        None
+    )
 
 
 class AiMessage(ForwardModel):
@@ -7985,6 +8135,50 @@ class PredefinedCheck(ForwardModel):
     ] = None
 
 
+class ScopedAddressGroup(ForwardModel):
+    """
+    description repeats name on the wire; Forward populates it from the name.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    description: str | None = None
+    member_groups: Annotated[list[SecurityObjectId] | None, Field(alias="memberGroups")] = None
+    member_objects: Annotated[list[SecurityObjectId] | None, Field(alias="memberObjects")] = None
+    name: str | None = None
+    scope_id: Annotated[str | None, Field(alias="scopeId")] = None
+    tags: list[str] | None = None
+
+
+class ScopedApplicationGroup(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    member_dynamic_groups: Annotated[
+        list[SecurityObjectId] | None, Field(alias="memberDynamicGroups")
+    ] = None
+    member_groups: Annotated[list[SecurityObjectId] | None, Field(alias="memberGroups")] = None
+    member_objects: Annotated[list[SecurityObjectId] | None, Field(alias="memberObjects")] = None
+    name: str | None = None
+    scope_id: Annotated[str | None, Field(alias="scopeId")] = None
+
+
+class ScopedApplicationObject(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    default_service_definitions: Annotated[
+        list[ServiceDefinition] | None, Field(alias="defaultServiceDefinitions")
+    ] = None
+    description: str | None = None
+    name: str | None = None
+    scope_id: Annotated[str | None, Field(alias="scopeId")] = None
+
+
 class ScopedSecurityRule(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -7997,6 +8191,28 @@ class ScopedSecurityRule(ForwardModel):
     last_used: Annotated[str | None, Field(alias="lastUsed")] = None
     rank: int | None = None
     rulebase_id: Annotated[str | None, Field(alias="rulebaseId")] = None
+    scope_id: Annotated[str | None, Field(alias="scopeId")] = None
+
+
+class ScopedServiceGroup(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    member_groups: Annotated[list[SecurityObjectId] | None, Field(alias="memberGroups")] = None
+    member_objects: Annotated[list[SecurityObjectId] | None, Field(alias="memberObjects")] = None
+    name: str | None = None
+    scope_id: Annotated[str | None, Field(alias="scopeId")] = None
+
+
+class ScopedServiceObject(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    definitions: list[ServiceDefinition] | None = None
+    description: str | None = None
+    name: str | None = None
     scope_id: Annotated[str | None, Field(alias="scopeId")] = None
 
 
@@ -8023,6 +8239,24 @@ class SecurityRulesDiff(ForwardModel):
     )
     entries: list[SecurityRuleDiffEntry] | None = None
     rulebases: list[RulebaseDescriptor] | None = None
+
+
+class ServiceGroupCollection(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    service_groups: Annotated[list[ScopedServiceGroup] | None, Field(alias="serviceGroups")] = None
+
+
+class ServiceObjectCollection(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    service_objects: Annotated[list[ScopedServiceObject] | None, Field(alias="serviceObjects")] = (
+        None
+    )
 
 
 class SnapshotInfo(ForwardModel):
@@ -8414,6 +8648,34 @@ class WebhooksAndTestResults(ForwardModel):
     )
     test_results: Annotated[dict[str, WebhookTestResult] | None, Field(alias="testResults")] = None
     webhooks: list[Webhook] | None = None
+
+
+class AddressGroupCollection(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    address_groups: Annotated[list[ScopedAddressGroup] | None, Field(alias="addressGroups")] = None
+
+
+class ApplicationGroupCollection(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    application_groups: Annotated[
+        list[ScopedApplicationGroup] | None, Field(alias="applicationGroups")
+    ] = None
+
+
+class ApplicationObjectCollection(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    application_objects: Annotated[
+        list[ScopedApplicationObject] | None, Field(alias="applicationObjects")
+    ] = None
 
 
 class CheckDefinition5(PredefinedCheck):

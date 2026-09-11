@@ -31,6 +31,7 @@ from forward_sdk._async.services._generated.network_endpoints import AsyncNetwor
 from forward_sdk._async.services._generated.network_locations import AsyncNetworkLocationsService
 from forward_sdk._async.services._generated.network_topology import AsyncNetworkTopologyService
 from forward_sdk._async.services._generated.path_search import AsyncPathSearchService
+from forward_sdk._async.services._generated.predict_assist import AsyncPredictAssistService
 from forward_sdk._async.services._generated.system_administration import (
     AsyncSystemAdministrationService,
 )
@@ -68,6 +69,7 @@ __all__ = [
     "AsyncNetworkLocationsService",
     "AsyncNetworkTopologyService",
     "AsyncPathSearchService",
+    "AsyncPredictAssistService",
     "AsyncSystemAdministrationService",
     "AsyncUserAccountsService",
     "AsyncVulnerabilityAnalysisService",
@@ -105,6 +107,7 @@ class AsyncGeneratedServices:
     network_locations: AsyncNetworkLocationsService
     network_topology: AsyncNetworkTopologyService
     path_search: AsyncPathSearchService
+    predict_assist: AsyncPredictAssistService
     system_administration: AsyncSystemAdministrationService
     user_accounts: AsyncUserAccountsService
     vulnerability_analysis: AsyncVulnerabilityAnalysisService
@@ -134,6 +137,7 @@ class AsyncGeneratedServices:
         self.network_locations = AsyncNetworkLocationsService(transport)
         self.network_topology = AsyncNetworkTopologyService(transport)
         self.path_search = AsyncPathSearchService(transport)
+        self.predict_assist = AsyncPredictAssistService(transport)
         self.system_administration = AsyncSystemAdministrationService(transport)
         self.user_accounts = AsyncUserAccountsService(transport)
         self.vulnerability_analysis = AsyncVulnerabilityAnalysisService(transport)
@@ -165,6 +169,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Locations": "network_locations",
     "Network Topology": "network_topology",
     "Path Search": "path_search",
+    "Predict Assist": "predict_assist",
     "System Administration": "system_administration",
     "User Accounts": "user_accounts",
     "Vulnerability Analysis": "vulnerability_analysis",

@@ -109,6 +109,28 @@ one-directional routing-loop and vulnerability counts need neither.
 `counts()` returns every per-area count at once, eight requests, keyed by area.
 `complete` false on any of them means the count is a lower bound so far.
 
+**The detail behind a count** is on the same service: per-device interface,
+ACL, ARP, MAC and NAT differences, VLAN and topology changes, changed files,
+added and removed devices, and check results. Each returns Forward's diff
+entries, `a` before and `b` after with a `diffType`.
+
+The same differences are also one NQE query away, with columns you choose,
+since every one of those areas is in the NQE data model and `nqe.diff()`
+compares any query across two snapshots:
+
+```python
+from forward_sdk import QueryRef
+
+changed = client.nqe.diff(
+    QueryRef.by_path("/Rehearsal/Interfaces"),  # foreach d in network.devices
+    before=base.id,  # foreach i in d.interfaces
+    after=predicted.id,  # select {device: d.name, name: i.name, admin: i.adminStatus}
+)
+```
+
+Use the REST diffs when you want what the Forward UI shows; use an NQE diff
+when you want your own columns or a filter Forward's view does not offer.
+
 ## Checking gating before you start
 
 The properties above are org settings, and reading them has a trap of its own.

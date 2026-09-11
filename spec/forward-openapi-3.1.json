@@ -45,6 +45,28 @@
         },
         "type": "object"
       },
+      "AddressGroupCollection": {
+        "properties": {
+          "addressGroups": {
+            "items": {
+              "$ref": "#/components/schemas/ScopedAddressGroup"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AddressObjectCollection": {
+        "properties": {
+          "addressObjects": {
+            "items": {
+              "$ref": "#/components/schemas/ScopedAddressObject"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "AdvancedReachabilityState": {
         "enum": [
           "UNPROCESSED",
@@ -313,6 +335,28 @@
               "21.50.1"
             ],
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApplicationGroupCollection": {
+        "properties": {
+          "applicationGroups": {
+            "items": {
+              "$ref": "#/components/schemas/ScopedApplicationGroup"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ApplicationObjectCollection": {
+        "properties": {
+          "applicationObjects": {
+            "items": {
+              "$ref": "#/components/schemas/ScopedApplicationObject"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -1688,6 +1732,27 @@
           },
           "update": {
             "$ref": "#/components/schemas/ClassicDevicePatch"
+          }
+        },
+        "type": "object"
+      },
+      "CliAssistRequest": {
+        "properties": {
+          "prompt": {
+            "description": "Must not be blank.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      },
+      "CliAssistResponse": {
+        "description": "commands is one string despite the plural name.",
+        "properties": {
+          "commands": {
+            "type": "string"
           }
         },
         "type": "object"
@@ -5661,6 +5726,17 @@
         },
         "type": "object"
       },
+      "IpRange": {
+        "properties": {
+          "end": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "IsolationCheck": {
         "properties": {
           "checkType": {
@@ -8881,6 +8957,23 @@
         ],
         "type": "object"
       },
+      "OverviewAssistResponse": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "PacketAliasFilter": {
         "description": "A filter that matches any combination of packet header values that satisfy the criteria in a\nHeader Set",
         "properties": {
@@ -9534,6 +9627,17 @@
         },
         "type": "object"
       },
+      "PortRange": {
+        "properties": {
+          "end": {
+            "type": "integer"
+          },
+          "start": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "PredefinedCheck": {
         "properties": {
           "checkType": {
@@ -9821,6 +9925,126 @@
         },
         "type": "object"
       },
+      "ScopedAddressGroup": {
+        "description": "description repeats name on the wire; Forward populates it from the name.",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "memberGroups": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "memberObjects": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ScopedAddressObject": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "ipRanges": {
+            "items": {
+              "$ref": "#/components/schemas/IpRange"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": "string"
+          },
+          "subnets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ScopedApplicationGroup": {
+        "properties": {
+          "memberDynamicGroups": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "memberGroups": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "memberObjects": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ScopedApplicationObject": {
+        "properties": {
+          "defaultServiceDefinitions": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceDefinition"
+            },
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "ScopedSecurityRule": {
         "properties": {
           "createdAt": {
@@ -9850,6 +10074,80 @@
         },
         "type": "object"
       },
+      "ScopedServiceGroup": {
+        "properties": {
+          "memberGroups": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "memberObjects": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ScopedServiceObject": {
+        "properties": {
+          "definitions": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceDefinition"
+            },
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ScopedUrlObject": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "members": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ScopedUserObject": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "SearchIntent": {
         "enum": [
           "PREFER_VIOLATIONS",
@@ -9857,6 +10155,17 @@
           "VIOLATIONS_ONLY"
         ],
         "type": "string"
+      },
+      "SecurityObjectId": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
       },
       "SecurityRuleDefinition": {
         "additionalProperties": true,
@@ -9963,6 +10272,31 @@
         },
         "type": "object"
       },
+      "SecurityZone": {
+        "properties": {
+          "interfaces": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SecurityZoneCollection": {
+        "properties": {
+          "zones": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityZone"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "SecurityZoneFilter": {
         "description": "A filter that matches one security zone on a firewall by name and can be used in the `from` or `to` property\nof a `PathQuery`",
         "properties": {
@@ -9988,6 +10322,48 @@
           "type",
           "value"
         ],
+        "type": "object"
+      },
+      "ServiceDefinition": {
+        "properties": {
+          "destinationPorts": {
+            "items": {
+              "$ref": "#/components/schemas/PortRange"
+            },
+            "type": "array"
+          },
+          "protocolName": {
+            "type": "string"
+          },
+          "sourcePorts": {
+            "items": {
+              "$ref": "#/components/schemas/PortRange"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ServiceGroupCollection": {
+        "properties": {
+          "serviceGroups": {
+            "items": {
+              "$ref": "#/components/schemas/ScopedServiceGroup"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ServiceObjectCollection": {
+        "properties": {
+          "serviceObjects": {
+            "items": {
+              "$ref": "#/components/schemas/ScopedServiceObject"
+            },
+            "type": "array"
+          }
+        },
         "type": "object"
       },
       "SnapshotExportParams": {
@@ -10882,6 +11258,14 @@
         ],
         "type": "object"
       },
+      "SummaryAssistResponse": {
+        "properties": {
+          "summary": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "SyntheticNatEntry": {
         "properties": {
           "insideAddress": {
@@ -11136,6 +11520,17 @@
         ],
         "type": "object"
       },
+      "UrlObjectCollection": {
+        "properties": {
+          "urlObjects": {
+            "items": {
+              "$ref": "#/components/schemas/ScopedUrlObject"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "User": {
         "properties": {
           "authSource": {
@@ -11206,6 +11601,17 @@
           "enabled",
           "authSource"
         ],
+        "type": "object"
+      },
+      "UserObjectCollection": {
+        "properties": {
+          "userObjects": {
+            "items": {
+              "$ref": "#/components/schemas/ScopedUserObject"
+            },
+            "type": "array"
+          }
+        },
         "type": "object"
       },
       "UserPatch": {
@@ -12898,6 +13304,49 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/config-summary-assists": {
+      "post": {
+        "operationId": "assistConfigDiffSummary",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "summary": "One interface was shut down on dc-core."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryAssistResponse"
+                }
+              }
+            },
+            "description": "The summary."
+          }
+        },
+        "summary": "Ask Forward AI to summarize the configuration changes between two snapshots",
+        "tags": [
+          "Predict Assist"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/diffs/{beforeSnapshotId}/{afterSnapshotId}/devices": {
       "get": {
         "operationId": "getDeviceDiffCount",
@@ -13007,6 +13456,49 @@
             "view",
             "deviceSummary"
           ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/impact-summary-assists": {
+      "post": {
+        "operationId": "assistImpactDiffSummary",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "summary": "Seven locations lose connectivity to the data centre."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryAssistResponse"
+                }
+              }
+            },
+            "description": "The summary."
+          }
+        },
+        "summary": "Ask Forward AI to summarize the impact of the changes between two snapshots",
+        "tags": [
+          "Predict Assist"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -14809,6 +15301,294 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/address-groups": {
+      "get": {
+        "operationId": "listFirewallAddressGroups",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "addressGroups": [
+                    {
+                      "name": "example",
+                      "scopeId": "LOCAL"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AddressGroupCollection"
+                }
+              }
+            },
+            "description": "The objects."
+          }
+        },
+        "summary": "The address groups a firewall defines",
+        "tags": [
+          "Firewall Predict"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/address-objects": {
+      "get": {
+        "operationId": "listFirewallAddressObjects",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "addressObjects": [
+                    {
+                      "name": "example",
+                      "scopeId": "LOCAL"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AddressObjectCollection"
+                }
+              }
+            },
+            "description": "The objects."
+          }
+        },
+        "summary": "The address objects a firewall defines",
+        "tags": [
+          "Firewall Predict"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/application-groups": {
+      "get": {
+        "operationId": "listFirewallApplicationGroups",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "applicationGroups": [
+                    {
+                      "name": "example",
+                      "scopeId": "LOCAL"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationGroupCollection"
+                }
+              }
+            },
+            "description": "The objects."
+          }
+        },
+        "summary": "The application groups a firewall defines",
+        "tags": [
+          "Firewall Predict"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/application-objects": {
+      "get": {
+        "operationId": "listFirewallApplicationObjects",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "applicationObjects": [
+                    {
+                      "name": "example",
+                      "scopeId": "LOCAL"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationObjectCollection"
+                }
+              }
+            },
+            "description": "The objects."
+          }
+        },
+        "summary": "The application objects a firewall defines",
+        "tags": [
+          "Firewall Predict"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/cli-assists": {
+      "post": {
+        "operationId": "assistChangeSetCommands",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "prompt": "shut down the uplink to the branch"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CliAssistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "commands": "interface Ethernet1\n shutdown"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CliAssistResponse"
+                }
+              }
+            },
+            "description": "The drafted commands, as one string."
+          }
+        },
+        "summary": "Ask Forward AI to draft CLI commands for a device from a prompt",
+        "tags": [
+          "Predict Assist"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/commands": {
       "post": {
         "operationId": "validateChangeSetDeviceCommands",
@@ -15257,6 +16037,286 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/service-groups": {
+      "get": {
+        "operationId": "listFirewallServiceGroups",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "serviceGroups": [
+                    {
+                      "name": "example",
+                      "scopeId": "LOCAL"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceGroupCollection"
+                }
+              }
+            },
+            "description": "The objects."
+          }
+        },
+        "summary": "The service groups a firewall defines",
+        "tags": [
+          "Firewall Predict"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/service-objects": {
+      "get": {
+        "operationId": "listFirewallServiceObjects",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "serviceObjects": [
+                    {
+                      "name": "example",
+                      "scopeId": "LOCAL"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceObjectCollection"
+                }
+              }
+            },
+            "description": "The objects."
+          }
+        },
+        "summary": "The service objects a firewall defines",
+        "tags": [
+          "Firewall Predict"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/url-objects": {
+      "get": {
+        "operationId": "listFirewallUrlObjects",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "urlObjects": [
+                    {
+                      "name": "example",
+                      "scopeId": "LOCAL"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UrlObjectCollection"
+                }
+              }
+            },
+            "description": "The objects."
+          }
+        },
+        "summary": "The URL objects a firewall defines",
+        "tags": [
+          "Firewall Predict"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/user-objects": {
+      "get": {
+        "operationId": "listFirewallUserObjects",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "userObjects": [
+                    {
+                      "name": "example",
+                      "scopeId": "LOCAL"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UserObjectCollection"
+                }
+              }
+            },
+            "description": "The objects."
+          }
+        },
+        "summary": "The user objects a firewall defines",
+        "tags": [
+          "Firewall Predict"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/zones": {
+      "get": {
+        "operationId": "listFirewallZones",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "zones": [
+                    {
+                      "name": "example",
+                      "scopeId": "LOCAL"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityZoneCollection"
+                }
+              }
+            },
+            "description": "The objects."
+          }
+        },
+        "summary": "The security zones a firewall defines",
+        "tags": [
+          "Firewall Predict"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/change-sets/{changeSetId}/draft": {
       "get": {
         "operationId": "getChangeSetDraft",
@@ -15403,6 +16463,53 @@
         "summary": "Stage CLI commands for one device",
         "tags": [
           "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/overview-assists": {
+      "post": {
+        "operationId": "assistChangeSetOverview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "description": "Disables Ethernet1 on dc-core",
+                  "name": "Shut branch uplink",
+                  "tags": [
+                    "maintenance"
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewAssistResponse"
+                }
+              }
+            },
+            "description": "A suggested name, description and tags."
+          }
+        },
+        "summary": "Ask Forward AI to name and describe the change set from its contents",
+        "tags": [
+          "Predict Assist"
         ],
         "x-forward-stability": "unpublished"
       }

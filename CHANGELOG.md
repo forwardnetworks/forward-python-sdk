@@ -35,6 +35,10 @@ All notable changes to this project are documented here. The format follows
   is the snapshot taken while the change was still applied. Reported by the
   change-demo integration, which had hit exactly that.
 
+  Confirmed against a Predict-enabled instance: on a network there, 4 of 5
+  processed snapshots were predictions, so the previous default picked one four
+  times in five.
+
 ## [0.1.6] - 2026-09-11
 
 ### Added

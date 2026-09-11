@@ -56,22 +56,29 @@ def examples() -> dict[str, Any]:
 def test_every_unpublished_operation_records_its_shape(examples: dict[str, Any]) -> None:
     """Nothing unpublished may go undocumented; that is what let the bug through."""
     document = yaml.safe_load(SPEC_PATH.read_text(encoding="utf-8"))
-    described = {
-        operation["operationId"]
+    operations = {
+        operation["operationId"]: operation
         for item in document["paths"].values()
         for operation in item.values()
         if isinstance(operation, dict) and "operationId" in operation
     }
-    # Operations that return no body worth parsing: a 202, a 204, or a
-    # non-JSON document.
-    no_body = {
-        "addDraftChange",
-        "discardDraftChange",
-        "addAiChatMessage",
-        "deleteAiChat",
-        "getAiChatTranscript",
-    }
-    missing = sorted(described - set(examples) - no_body)
+
+    def has_json_body(operation: dict[str, Any]) -> bool:
+        """Whether any success response carries JSON worth parsing.
+
+        Read from the description rather than listed by hand, so declaring a
+        204 or a text response is enough and the list cannot drift.
+        """
+        for status, response in (operation.get("responses") or {}).items():
+            if not str(status).startswith("2"):
+                continue
+            content = (response or {}).get("content") or {}
+            if any("json" in media for media in content):
+                return True
+        return False
+
+    described = {op_id for op_id, op in operations.items() if has_json_body(op)}
+    missing = sorted(described - set(examples))
     assert not missing, (
         f"unpublished operations with no recorded response shape: {missing}. "
         "Record what Forward sends, so the parser is checked against it."

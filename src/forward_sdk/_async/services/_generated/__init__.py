@@ -14,11 +14,13 @@ from forward_sdk._async.services._generated.collection_schedules import (
     AsyncCollectionSchedulesService,
 )
 from forward_sdk._async.services._generated.collector_tasks import AsyncCollectorTasksService
+from forward_sdk._async.services._generated.configuration import AsyncConfigurationService
 from forward_sdk._async.services._generated.credentials import AsyncCredentialsService
 from forward_sdk._async.services._generated.data_connectors import AsyncDataConnectorsService
 from forward_sdk._async.services._generated.data_files import AsyncDataFilesService
 from forward_sdk._async.services._generated.encryptors import AsyncEncryptorsService
 from forward_sdk._async.services._generated.endpoint_profiles import AsyncEndpointProfilesService
+from forward_sdk._async.services._generated.firewall_predict import AsyncFirewallPredictService
 from forward_sdk._async.services._generated.internet_node import AsyncInternetNodeService
 from forward_sdk._async.services._generated.intranet_nodes import AsyncIntranetNodesService
 from forward_sdk._async.services._generated.jump_servers import AsyncJumpServersService
@@ -37,6 +39,7 @@ from forward_sdk._async.services._generated.vulnerability_analysis import (
     AsyncVulnerabilityAnalysisService,
 )
 from forward_sdk._async.services._generated.wan_circuits import AsyncWANCircuitsService
+from forward_sdk._async.services._generated.webhooks import AsyncWebhooksService
 
 if TYPE_CHECKING:  # pragma: no cover
     from forward_sdk._async.transport import AsyncTransport
@@ -47,11 +50,13 @@ __all__ = [
     "AsyncClassicDevicesService",
     "AsyncCollectionSchedulesService",
     "AsyncCollectorTasksService",
+    "AsyncConfigurationService",
     "AsyncCredentialsService",
     "AsyncDataConnectorsService",
     "AsyncDataFilesService",
     "AsyncEncryptorsService",
     "AsyncEndpointProfilesService",
+    "AsyncFirewallPredictService",
     "AsyncGeneratedServices",
     "AsyncInternetNodeService",
     "AsyncIntranetNodesService",
@@ -67,6 +72,7 @@ __all__ = [
     "AsyncUserAccountsService",
     "AsyncVulnerabilityAnalysisService",
     "AsyncWANCircuitsService",
+    "AsyncWebhooksService",
 ]
 
 
@@ -82,11 +88,13 @@ class AsyncGeneratedServices:
     classic_devices: AsyncClassicDevicesService
     collection_schedules: AsyncCollectionSchedulesService
     collector_tasks: AsyncCollectorTasksService
+    configuration: AsyncConfigurationService
     credentials: AsyncCredentialsService
     data_connectors: AsyncDataConnectorsService
     data_files: AsyncDataFilesService
     encryptors: AsyncEncryptorsService
     endpoint_profiles: AsyncEndpointProfilesService
+    firewall_predict: AsyncFirewallPredictService
     internet_node: AsyncInternetNodeService
     intranet_nodes: AsyncIntranetNodesService
     jump_servers: AsyncJumpServersService
@@ -101,6 +109,7 @@ class AsyncGeneratedServices:
     user_accounts: AsyncUserAccountsService
     vulnerability_analysis: AsyncVulnerabilityAnalysisService
     wan_circuits: AsyncWANCircuitsService
+    webhooks: AsyncWebhooksService
 
     def _attach_generated_services(self, transport: AsyncTransport) -> None:
         self.aliases = AsyncAliasesService(transport)
@@ -108,11 +117,13 @@ class AsyncGeneratedServices:
         self.classic_devices = AsyncClassicDevicesService(transport)
         self.collection_schedules = AsyncCollectionSchedulesService(transport)
         self.collector_tasks = AsyncCollectorTasksService(transport)
+        self.configuration = AsyncConfigurationService(transport)
         self.credentials = AsyncCredentialsService(transport)
         self.data_connectors = AsyncDataConnectorsService(transport)
         self.data_files = AsyncDataFilesService(transport)
         self.encryptors = AsyncEncryptorsService(transport)
         self.endpoint_profiles = AsyncEndpointProfilesService(transport)
+        self.firewall_predict = AsyncFirewallPredictService(transport)
         self.internet_node = AsyncInternetNodeService(transport)
         self.intranet_nodes = AsyncIntranetNodesService(transport)
         self.jump_servers = AsyncJumpServersService(transport)
@@ -127,6 +138,7 @@ class AsyncGeneratedServices:
         self.user_accounts = AsyncUserAccountsService(transport)
         self.vulnerability_analysis = AsyncVulnerabilityAnalysisService(transport)
         self.wan_circuits = AsyncWANCircuitsService(transport)
+        self.webhooks = AsyncWebhooksService(transport)
 
 
 #: API group name to the client attribute carrying its service.
@@ -136,11 +148,13 @@ SERVICE_TAGS: dict[str, str] = {
     "Classic Devices": "classic_devices",
     "Collection Schedules": "collection_schedules",
     "Collector Tasks": "collector_tasks",
+    "Configuration": "configuration",
     "Credentials": "credentials",
     "Data Connectors": "data_connectors",
     "Data Files": "data_files",
     "Encryptors": "encryptors",
     "Endpoint Profiles": "endpoint_profiles",
+    "Firewall Predict": "firewall_predict",
     "Internet Node": "internet_node",
     "Intranet Nodes": "intranet_nodes",
     "Jump Servers": "jump_servers",
@@ -155,4 +169,5 @@ SERVICE_TAGS: dict[str, str] = {
     "User Accounts": "user_accounts",
     "Vulnerability Analysis": "vulnerability_analysis",
     "WAN Circuits": "wan_circuits",
+    "Webhooks": "webhooks",
 }

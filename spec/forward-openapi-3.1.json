@@ -421,6 +421,28 @@
         ],
         "type": "object"
       },
+      "BidirectionalDiffCount": {
+        "properties": {
+          "improvements": {
+            "$ref": "#/components/schemas/DiffCount"
+          },
+          "warnings": {
+            "$ref": "#/components/schemas/DiffCount"
+          }
+        },
+        "type": "object"
+      },
+      "BidirectionalVulnerabilityDiff": {
+        "properties": {
+          "improvements": {
+            "$ref": "#/components/schemas/VulnerabilityDiffCount"
+          },
+          "warnings": {
+            "$ref": "#/components/schemas/VulnerabilityDiffCount"
+          }
+        },
+        "type": "object"
+      },
       "BypassFilter": {
         "discriminator": {
           "mapping": {
@@ -448,6 +470,321 @@
         },
         "required": [
           "type"
+        ],
+        "type": "object"
+      },
+      "ChangeSet": {
+        "description": "A change set with its device changes. Attribution fields sit flat on the object rather than nested.",
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "deviceToChanges": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DeviceChanges"
+            },
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "networkId": {
+            "type": "string"
+          },
+          "snapshotId": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "updatedById": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChangeSetCheckResult": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "definedAt": {
+            "type": "string"
+          },
+          "definition": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "executedAt": {
+            "type": "string"
+          },
+          "executionDurationMillis": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "numViolations": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChangeSetCheckResults": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ChangeSetCheckResult"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ChangeSetCommit": {
+        "properties": {
+          "commitId": {
+            "type": "string"
+          },
+          "committedAt": {
+            "type": "string"
+          },
+          "committedBy": {
+            "type": "string"
+          },
+          "committedById": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChangeSetDraft": {
+        "description": "The staged changes. savedAt is epoch milliseconds, unlike every other timestamp.",
+        "properties": {
+          "deviceToChanges": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DeviceChanges"
+            },
+            "type": "object"
+          },
+          "hiddenDevices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "networkId": {
+            "type": "string"
+          },
+          "savedAt": {
+            "type": "integer"
+          },
+          "snapshotId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChangeSetDraftResponse": {
+        "properties": {
+          "draft": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChangeSetDraft"
+              }
+            ],
+            "description": "Null when nothing is staged."
+          }
+        },
+        "type": "object"
+      },
+      "ChangeSetIds": {
+        "properties": {
+          "changeSetIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "changeSetIds"
+        ],
+        "type": "object"
+      },
+      "ChangeSetInfo": {
+        "description": "A change set as listed, with its predicted snapshots newest first.",
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "modifiedDeviceCount": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "networkId": {
+            "type": "string"
+          },
+          "predictedSnapshots": {
+            "items": {
+              "$ref": "#/components/schemas/PredictedSnapshotRef"
+            },
+            "type": "array"
+          },
+          "snapshotId": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "updatedById": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChangeSetPatch": {
+        "description": "Fields to change. Omit a field to leave it alone.",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "snapshotId": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ChangeSetSummary": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "networkId": {
+            "type": "string"
+          },
+          "snapshotId": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ChangeSetsTagUpdate": {
+        "properties": {
+          "changeSetIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "update": {
+            "properties": {
+              "tags": {
+                "properties": {
+                  "action": {
+                    "enum": [
+                      "ADD",
+                      "REMOVE",
+                      "REMOVE_ALL"
+                    ],
+                    "type": "string"
+                  },
+                  "names": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "changeSetIds",
+          "update"
         ],
         "type": "object"
       },
@@ -2259,6 +2596,54 @@
         "const": "UNIX",
         "type": "string"
       },
+      "CommandValidationRequest": {
+        "properties": {
+          "commands": {
+            "description": "The command text, one command per line.",
+            "type": "string"
+          },
+          "cursorColumnNum": {
+            "description": "1-based.",
+            "type": "integer"
+          },
+          "cursorLineNum": {
+            "description": "1-based.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "commands",
+          "cursorLineNum",
+          "cursorColumnNum"
+        ],
+        "type": "object"
+      },
+      "CommandValidationResponse": {
+        "properties": {
+          "commandErrors": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "suggestions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "textMarks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "CommitResult": {
         "description": "The outcome of a commit, or the report from a dry run.",
         "properties": {
@@ -2295,6 +2680,72 @@
         },
         "type": "object"
       },
+      "CommittedChangeSet": {
+        "description": "A commit with the change set's device changes as of that commit, flattened together.",
+        "properties": {
+          "commitId": {
+            "type": "string"
+          },
+          "committedAt": {
+            "type": "string"
+          },
+          "committedBy": {
+            "type": "string"
+          },
+          "committedById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "deviceToChanges": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DeviceChanges"
+            },
+            "type": "object"
+          },
+          "hiddenDevices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "networkId": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "snapshotId": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "updatedById": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "ComputationStatus": {
         "enum": [
           "UNKNOWN",
@@ -2303,6 +2754,11 @@
           "CANCELED"
         ],
         "type": "string"
+      },
+      "ConfigValue": {
+        "additionalProperties": true,
+        "description": "A single property and its value, keyed by the property name in lower case. Read it with `forward_sdk.config_value`, which returns the value whatever the key.",
+        "type": "object"
       },
       "ConnectionType": {
         "enum": [
@@ -3292,6 +3748,22 @@
         ],
         "type": "object"
       },
+      "DeviceChanges": {
+        "description": "What a change set does to one device.",
+        "properties": {
+          "commands": {
+            "description": "Staged CLI text, when the change is CLI.",
+            "type": "string"
+          },
+          "hasConfig": {
+            "type": "boolean"
+          },
+          "hasSecurityRuleChanges": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "DeviceCluster": {
         "properties": {
           "devices": {
@@ -3854,6 +4326,19 @@
         },
         "type": "object"
       },
+      "DiffCount": {
+        "description": "A count, and whether the computation that produced it finished.",
+        "properties": {
+          "complete": {
+            "description": "False means count is a lower bound so far.",
+            "type": "boolean"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "DraftChange": {
         "description": "One staged, uncommitted change to the library.",
         "properties": {
@@ -4167,6 +4652,45 @@
           "checkType",
           "filters"
         ],
+        "type": "object"
+      },
+      "FileDiffSummary": {
+        "properties": {
+          "directChanges": {
+            "properties": {
+              "deviceCount": {
+                "type": "integer"
+              },
+              "linesAdded": {
+                "type": "integer"
+              },
+              "linesDeleted": {
+                "type": "integer"
+              },
+              "locationIds": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "indirectChanges": {
+            "properties": {
+              "deviceCount": {
+                "type": "integer"
+              },
+              "locationIds": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        },
         "type": "object"
       },
       "HopFilter": {
@@ -6510,6 +7034,48 @@
         ],
         "type": "object"
       },
+      "NewChangeSet": {
+        "description": "The create body. No networkId: it comes from the path, and Forward rejects unknown properties, so sending one fails with 400.",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "snapshotId": {
+            "description": "The base snapshot.",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "snapshotId"
+        ],
+        "type": "object"
+      },
+      "NewChangeSetCheck": {
+        "properties": {
+          "definition": {
+            "additionalProperties": true,
+            "description": "A check definition; checkType selects the kind.",
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "definition"
+        ],
+        "type": "object"
+      },
       "NewClassicDevice": {
         "properties": {
           "bgpAndBmpFailureHandling": {
@@ -7383,6 +7949,21 @@
               "type": "string"
             },
             "type": "array"
+          }
+        },
+        "required": [
+          "definition"
+        ],
+        "type": "object"
+      },
+      "NewSecurityRule": {
+        "properties": {
+          "definition": {
+            "$ref": "#/components/schemas/SecurityRuleDefinition"
+          },
+          "predecessor": {
+            "description": "Insert after this rule id. Omit to insert at the top.",
+            "type": "string"
           }
         },
         "required": [
@@ -9005,6 +9586,41 @@
         ],
         "type": "string"
       },
+      "PredictedSnapshotMeta": {
+        "description": "The snapshot Predict created. Created, not yet processed.",
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "processedAt": {
+            "type": "string"
+          },
+          "processingTrigger": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PredictedSnapshotRef": {
+        "properties": {
+          "creationInstant": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "networkId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "Protocol": {
         "enum": [
           "HTTP",
@@ -9176,6 +9792,64 @@
         },
         "type": "object"
       },
+      "RoutingLoopDiffCount": {
+        "properties": {
+          "complete": {
+            "description": "False when the search stopped early, so `count` is a lower bound rather than a total.",
+            "type": "boolean"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "RulebaseDescriptor": {
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "editable": {
+            "type": "boolean"
+          },
+          "rulebaseId": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ScopedSecurityRule": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/SecurityRuleDefinition"
+          },
+          "hitCount": {
+            "type": "integer"
+          },
+          "lastModified": {
+            "type": "string"
+          },
+          "lastUsed": {
+            "type": "string"
+          },
+          "rank": {
+            "type": "integer"
+          },
+          "rulebaseId": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "SearchIntent": {
         "enum": [
           "PREFER_VIOLATIONS",
@@ -9183,6 +9857,111 @@
           "VIOLATIONS_ONLY"
         ],
         "type": "string"
+      },
+      "SecurityRuleDefinition": {
+        "additionalProperties": true,
+        "description": "A firewall rule as Forward models it. name is required and must not be blank. The specification fields sit flat beside name, id and description rather than nested. Read one from the diff and mirror it; the full field list is address, user, application and service specifications plus zones, an action and a schedule.",
+        "properties": {
+          "action": {
+            "enum": [
+              "DENY",
+              "DROP",
+              "PERMIT",
+              "RESET_CLIENT",
+              "RESET_CLIENT_AND_SERVER",
+              "RESET_SERVER"
+            ],
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "destinationZones": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sourceZones": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SecurityRuleDiffEntry": {
+        "properties": {
+          "a": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScopedSecurityRule"
+              }
+            ],
+            "description": "The rule before. Absent when ADDED."
+          },
+          "b": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScopedSecurityRule"
+              }
+            ],
+            "description": "The rule after. Absent when DELETED."
+          },
+          "diffType": {
+            "enum": [
+              "ADDED",
+              "DELETED",
+              "MODIFIED",
+              "UNCHANGED"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SecurityRulePatch": {
+        "description": "Exactly one of definition or predecessor.",
+        "properties": {
+          "definition": {
+            "$ref": "#/components/schemas/SecurityRuleDefinition"
+          },
+          "predecessor": {
+            "description": "Move after this rule id; null moves to the top.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SecurityRulesDiff": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityRuleDiffEntry"
+            },
+            "type": "array"
+          },
+          "rulebases": {
+            "items": {
+              "$ref": "#/components/schemas/RulebaseDescriptor"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
       },
       "SecurityZoneFilter": {
         "description": "A filter that matches one security zone on a firewall by name and can be used in the `from` or `to` property\nof a `PathQuery`",
@@ -10025,6 +10804,50 @@
           }
         ]
       },
+      "SubnetConnectivityDiff": {
+        "description": "How connectivity between subnets changed. Computed asynchronously, so an early request can return counts of zero with `isPartialResult` true; those zeros mean \"not finished\", not \"nothing changed\".",
+        "properties": {
+          "evaluatedSubnetPairs": {
+            "description": "How many pairs have been compared so far. Zero alongside a non-zero `totalSubnetPairs` means the computation has not started.",
+            "type": "integer"
+          },
+          "isPartialResult": {
+            "description": "True while the comparison is still being computed.",
+            "type": "boolean"
+          },
+          "modifiedImpactedLocations": {
+            "type": "integer"
+          },
+          "modifiedSubnetPairs": {
+            "type": "integer"
+          },
+          "newlyConnectedDestinationSubnets": {
+            "type": "integer"
+          },
+          "newlyConnectedImpactedLocations": {
+            "type": "integer"
+          },
+          "newlyConnectedSubnetPairs": {
+            "type": "integer"
+          },
+          "newlyIsolatedDestinationSubnets": {
+            "type": "integer"
+          },
+          "newlyIsolatedImpactedLocations": {
+            "type": "integer"
+          },
+          "newlyIsolatedSubnetPairs": {
+            "type": "integer"
+          },
+          "totalImpactedLocations": {
+            "type": "integer"
+          },
+          "totalSubnetPairs": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "SubnetLocationFilter": {
         "description": "A filter that matches a specific IP address or IP subnet address at a specific location in the network. If\nthe IP address is a multicast group address, this filter matches on the locations of the corresponding\nmulticast Rendezvous Points (RPs) in the network.",
         "properties": {
@@ -10851,6 +11674,29 @@
           }
         ]
       },
+      "VulnerabilityDiffCount": {
+        "properties": {
+          "cveCount": {
+            "type": "integer"
+          },
+          "exposedVulnerableDevicesCount": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "VulnerabilityDiffCounts": {
+        "description": "Vulnerability exposure introduced by the change. Fields beyond `newCveCount` appear only on deployments licensed for vulnerability analysis, so the model keeps them optional.",
+        "properties": {
+          "newCveCount": {
+            "type": "integer"
+          },
+          "newExposedVulnerableDevicesCount": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "VulnerabilityVendor": {
         "enum": [
           "CISCO",
@@ -11047,6 +11893,157 @@
               "wan-circuit-01"
             ],
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Webhook": {
+        "properties": {
+          "credential": {
+            "$ref": "#/components/schemas/WebhookCredential"
+          },
+          "description": {
+            "type": "string"
+          },
+          "disableSslValidation": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "eventParams": {
+            "$ref": "#/components/schemas/WebhookEventParams"
+          },
+          "name": {
+            "type": "string"
+          },
+          "template": {
+            "$ref": "#/components/schemas/WebhookTemplate"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "url",
+          "eventParams"
+        ],
+        "type": "object"
+      },
+      "WebhookCredential": {
+        "description": "password is accepted on input and never returned.",
+        "properties": {
+          "password": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "BASIC_AUTH"
+            ],
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "WebhookEventParams": {
+        "additionalProperties": true,
+        "description": "Selected by type. For SNAPSHOT_READY, networkIds is required; empty means every network. The verification-failure types take maps of network id to check directories instead.",
+        "properties": {
+          "networkIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "SNAPSHOT_READY",
+              "NQE_VERIFICATION_FAILURE",
+              "INTENT_VERIFICATION_FAILURE"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "WebhookPatch": {
+        "description": "Every field optional; omitted means unchanged.",
+        "properties": {
+          "credential": {
+            "$ref": "#/components/schemas/WebhookCredential"
+          },
+          "description": {
+            "type": "string"
+          },
+          "disableSslValidation": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "eventParams": {
+            "$ref": "#/components/schemas/WebhookEventParams"
+          },
+          "name": {
+            "type": "string"
+          },
+          "template": {
+            "$ref": "#/components/schemas/WebhookTemplate"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "WebhookTemplate": {
+        "properties": {
+          "payloadFormat": {
+            "enum": [
+              "JSON",
+              "TEXT"
+            ],
+            "type": "string"
+          },
+          "template": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "WebhookTestResult": {
+        "properties": {
+          "error": {
+            "description": "Absent when the test passed.",
+            "type": "string"
+          },
+          "instant": {
+            "description": "Epoch milliseconds.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "WebhooksAndTestResults": {
+        "properties": {
+          "testResults": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/WebhookTestResult"
+            },
+            "type": "object"
+          },
+          "webhooks": {
+            "items": {
+              "$ref": "#/components/schemas/Webhook"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -11630,6 +12627,109 @@
         ]
       }
     },
+    "/config/{property}": {
+      "delete": {
+        "operationId": "clearOrgConfigValue",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cleared."
+          }
+        },
+        "summary": "Remove the calling user's org override, reverting to the default",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "The org's override if one is set, otherwise the global default. This is the value that governs behaviour, so it is the route to read when the question is \"is this on for me\".",
+        "operationId": "getOrgConfigValue",
+        "parameters": [
+          {
+            "description": "An OrgProperty name, upper snake case.",
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "firewall_predict": true
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigValue"
+                }
+              }
+            },
+            "description": "The property and its effective value."
+          }
+        },
+        "summary": "An org property's effective value for the calling user's org",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "put": {
+        "description": "Needs the MANAGE_ORG_SETTINGS permission, and only works for properties an org administrator may configure. Others refuse with \"Permission denied for PROPERTY\"; a Forward support account can set those through the org-scoped route instead.",
+        "operationId": "setOrgConfigValue",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The new value, as a string; Forward parses it per property.",
+            "in": "query",
+            "name": "value",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "session_timeout": 30
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigValue"
+                }
+              }
+            },
+            "description": "The property and its new value."
+          }
+        },
+        "summary": "Set an org property for the calling user's org",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/cve-index": {
       "get": {
         "description": "The CVE index is a gzipped binary (.bin.gz) file.\n\nTo download the latest one from fwd.app:\n\n`curl -vu <user>:<pass> https://fwd.app/api/cve-index -o cve-index.bin.gz`\n\nThe response includes a `Digest` header containing the file\u2019s SHA-256 digest.",
@@ -11696,6 +12796,634 @@
         "tags": [
           "System Administration"
         ]
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/acl": {
+      "get": {
+        "operationId": "getAclDiffCount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "complete": true,
+                  "count": 3
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DiffCount"
+                }
+              }
+            },
+            "description": "The count, and whether it is final."
+          }
+        },
+        "summary": "How many devices have ACL changes",
+        "tags": [
+          "Snapshot Diffs"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "count",
+            ""
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/arp": {
+      "get": {
+        "operationId": "getArpDiffCount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "complete": true,
+                  "count": 3
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DiffCount"
+                }
+              }
+            },
+            "description": "The count, and whether it is final."
+          }
+        },
+        "summary": "How many devices have ARP changes",
+        "tags": [
+          "Snapshot Diffs"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "count",
+            ""
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/devices": {
+      "get": {
+        "operationId": "getDeviceDiffCount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "complete": true,
+                  "count": 3
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DiffCount"
+                }
+              }
+            },
+            "description": "The count, and whether it is final."
+          }
+        },
+        "summary": "How many devices were added or removed",
+        "tags": [
+          "Snapshot Diffs"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "count",
+            ""
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/files": {
+      "get": {
+        "operationId": "getFileDiffSummary",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "directChanges": {
+                    "deviceCount": 2,
+                    "linesAdded": 4,
+                    "linesDeleted": 1,
+                    "locationIds": [
+                      "1"
+                    ]
+                  },
+                  "indirectChanges": {
+                    "deviceCount": 5,
+                    "locationIds": [
+                      "1",
+                      "3"
+                    ]
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/FileDiffSummary"
+                }
+              }
+            },
+            "description": "The summary."
+          }
+        },
+        "summary": "How many devices and locations the change touches, directly and indirectly",
+        "tags": [
+          "Snapshot Diffs"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "deviceSummary"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/interfaces": {
+      "get": {
+        "operationId": "getInterfaceDiffCount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "complete": true,
+                  "count": 3
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DiffCount"
+                }
+              }
+            },
+            "description": "The count, and whether it is final."
+          }
+        },
+        "summary": "How many devices have interface changes",
+        "tags": [
+          "Snapshot Diffs"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "count",
+            ""
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/l2": {
+      "get": {
+        "operationId": "getL2DiffCount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "complete": true,
+                  "count": 3
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DiffCount"
+                }
+              }
+            },
+            "description": "The count, and whether it is final."
+          }
+        },
+        "summary": "How many VLANs changed",
+        "tags": [
+          "Snapshot Diffs"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "count",
+            ""
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/mac": {
+      "get": {
+        "operationId": "getMacDiffCount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "complete": true,
+                  "count": 3
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DiffCount"
+                }
+              }
+            },
+            "description": "The count, and whether it is final."
+          }
+        },
+        "summary": "How many devices have MAC table changes",
+        "tags": [
+          "Snapshot Diffs"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "count",
+            ""
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/nat": {
+      "get": {
+        "operationId": "getNatDiffCount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "complete": true,
+                  "count": 3
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DiffCount"
+                }
+              }
+            },
+            "description": "The count, and whether it is final."
+          }
+        },
+        "summary": "How many devices have NAT changes",
+        "tags": [
+          "Snapshot Diffs"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "count",
+            ""
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/routing-loop/count": {
+      "get": {
+        "operationId": "getRoutingLoopDiffCount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "complete": true,
+                  "count": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingLoopDiffCount"
+                }
+              }
+            },
+            "description": "The routing-loop comparison."
+          }
+        },
+        "summary": "How many routing loops the change introduces",
+        "tags": [
+          "Snapshot Diffs"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getRoutingLoopDiffBidirectional",
+            "summary": "Routing loops introduced and resolved, separately",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "bidirectional"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/subnet-connectivity": {
+      "get": {
+        "operationId": "getSubnetConnectivityDiff",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "evaluatedSubnetPairs": 39,
+                  "isPartialResult": false,
+                  "modifiedImpactedLocations": 0,
+                  "modifiedSubnetPairs": 0,
+                  "newlyConnectedDestinationSubnets": 0,
+                  "newlyConnectedImpactedLocations": 0,
+                  "newlyConnectedSubnetPairs": 0,
+                  "newlyIsolatedDestinationSubnets": 1,
+                  "newlyIsolatedImpactedLocations": 7,
+                  "newlyIsolatedSubnetPairs": 14,
+                  "totalImpactedLocations": 7,
+                  "totalSubnetPairs": 39
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SubnetConnectivityDiff"
+                }
+              }
+            },
+            "description": "The connectivity comparison."
+          }
+        },
+        "summary": "How site-to-site connectivity changed between two snapshots",
+        "tags": [
+          "Snapshot Diffs"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/topology": {
+      "get": {
+        "operationId": "getTopologyDiffCount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "complete": true,
+                  "count": 3
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DiffCount"
+                }
+              }
+            },
+            "description": "The count, and whether it is final."
+          }
+        },
+        "summary": "How many links changed",
+        "tags": [
+          "Snapshot Diffs"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "count",
+            ""
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/vulnerabilities/counts": {
+      "get": {
+        "operationId": "getVulnerabilityDiffCounts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "newCveCount": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/VulnerabilityDiffCounts"
+                }
+              }
+            },
+            "description": "The vulnerability comparison."
+          }
+        },
+        "summary": "How vulnerability exposure changed between two snapshots",
+        "tags": [
+          "Snapshot Diffs"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getVulnerabilityDiffBidirectional",
+            "summary": "Vulnerability exposure introduced and resolved, separately",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "bidirectional"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/endpoint-profiles": {
@@ -11998,6 +13726,84 @@
         "x-position": 5
       }
     },
+    "/global-config/{property}": {
+      "get": {
+        "description": "The fixed default only. This never reflects an org's override, so it keeps reporting the default after an org value has been set. That is correct behaviour and easily mistaken for a failed write.",
+        "operationId": "getGlobalConfigValue",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "firewall_predict": false
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigValue"
+                }
+              }
+            },
+            "description": "The property and its global default."
+          }
+        },
+        "summary": "An org property's global default",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "put": {
+        "description": "Forward administrators only. Properties declared org-scoped have an immutable default and refuse with \"Permission denied. Global default value cannot be changed for PROPERTY\"; set those per org instead.",
+        "operationId": "setGlobalConfigValue",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "value",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "session_timeout": 60
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigValue"
+                }
+              }
+            },
+            "description": "The property and its new default."
+          }
+        },
+        "summary": "Change an org property's global default",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/l7-applications": {
       "get": {
         "operationId": "getL7Applications",
@@ -12290,6 +14096,1366 @@
           "Legacy Collection"
         ],
         "x-position": 3
+      }
+    },
+    "/networks/{networkId}/change-sets": {
+      "get": {
+        "operationId": "listChangeSets",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "createdAt": "2026-09-11T10:00:00Z",
+                    "id": "CHG-101",
+                    "modifiedDeviceCount": 2,
+                    "name": "Core uplink change",
+                    "networkId": "115",
+                    "predictedSnapshots": [
+                      {
+                        "creationInstant": "2026-09-11T10:05:00Z",
+                        "id": "702",
+                        "networkId": "115"
+                      }
+                    ],
+                    "snapshotId": "656",
+                    "tags": []
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChangeSetInfo"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The change sets, with predicted snapshots newest first."
+          }
+        },
+        "summary": "List a network's change sets",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "operationId": "updateChangeSetTags",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "changeSetIds": [
+                  "CHG-101"
+                ],
+                "update": {
+                  "tags": {
+                    "action": "ADD",
+                    "names": [
+                      "approved"
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ChangeSetsTagUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated."
+          }
+        },
+        "summary": "Add or remove tags on several change sets at once",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "operationId": "createChangeSet",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Directory in the change-set tree to create it in.",
+            "in": "query",
+            "name": "dirPath",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "description": "Rehearsal",
+                "name": "Core uplink change",
+                "snapshotId": "656",
+                "tags": [
+                  "rehearsal"
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NewChangeSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-09-11T10:00:00Z",
+                  "id": "CHG-101",
+                  "name": "Core uplink change",
+                  "networkId": "115",
+                  "snapshotId": "656",
+                  "tags": [
+                    "rehearsal"
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeSet"
+                }
+              }
+            },
+            "description": "The new change set."
+          }
+        },
+        "summary": "Create a change set against a base snapshot",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "deleteChangeSets",
+            "summary": "Delete several change sets",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "delete"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}": {
+      "delete": {
+        "operationId": "deleteChangeSet",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "CHG-<n>, or the bare number.",
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete one change set",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "There is no plain GET on a change set; this view is the only read of one by id.",
+        "operationId": "getChangeSetSummary",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "name": "Core uplink change",
+                  "networkId": "115",
+                  "snapshotId": "656",
+                  "tags": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeSetSummary"
+                }
+              }
+            },
+            "description": "The summary."
+          }
+        },
+        "summary": "A change set's name, base snapshot and tags",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "summary"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "operationId": "updateChangeSet",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "description": "Approved by NOC"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ChangeSetPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "description": "Approved by NOC",
+                  "id": "CHG-101",
+                  "name": "Core uplink change",
+                  "networkId": "115",
+                  "snapshotId": "656"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeSet"
+                }
+              }
+            },
+            "description": "The updated change set."
+          }
+        },
+        "summary": "Change a change set's name, description, base snapshot or tags",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "note is a required query parameter. Omitting it returns 400 \"Required request parameter 'note' ... is not present\". The returned snapshot is created, not yet processed; wait for it with the snapshots service.",
+        "operationId": "predictChangeSet",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A note recorded on the predicted snapshot. Required.",
+            "in": "query",
+            "name": "note",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-09-11T10:05:00Z",
+                  "id": "702",
+                  "note": "rehearsal 1",
+                  "processingTrigger": "PREDICT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PredictedSnapshotMeta"
+                }
+              }
+            },
+            "description": "The predicted snapshot, newly created."
+          }
+        },
+        "summary": "Run Predict, producing a snapshot of the network with the change applied",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "predict"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/checks": {
+      "get": {
+        "description": "snapshotId defaults to the base snapshot. It must be the base or one of the change set's predicted snapshots; anything else is refused.",
+        "operationId": "listChangeSetChecks",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "checks": [
+                    {
+                      "definition": {
+                        "checkType": "REACHABILITY"
+                      },
+                      "id": "CSC-7",
+                      "name": "DC to branch",
+                      "status": "PASS"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeSetCheckResults"
+                }
+              }
+            },
+            "description": "The checks."
+          }
+        },
+        "summary": "The change set's checks and their results against a snapshot",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Supported check types are ISOLATION, REACHABILITY, EXISTS and NQE. A name may be given for the first three and must be omitted for NQE.",
+        "operationId": "addChangeSetCheck",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "definition": {
+                  "checkType": "REACHABILITY"
+                },
+                "name": "DC to branch"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NewChangeSetCheck"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "definition": {
+                    "checkType": "REACHABILITY"
+                  },
+                  "id": "CSC-7",
+                  "name": "DC to branch",
+                  "status": "PASS"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeSetCheckResult"
+                }
+              }
+            },
+            "description": "The check, with its result against the base snapshot."
+          }
+        },
+        "summary": "Attach an intent check to a change set",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/checks/{checkId}": {
+      "delete": {
+        "operationId": "deleteChangeSetCheck",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "CSC-<n>, or the bare number.",
+            "in": "path",
+            "name": "checkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed."
+          }
+        },
+        "summary": "Remove a check from a change set",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/commits": {
+      "get": {
+        "operationId": "listChangeSetCommits",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "commitId": "9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978",
+                    "committedAt": "2026-09-11T10:02:00Z",
+                    "deviceToChanges": {
+                      "dc-core": {
+                        "commands": "interface Ethernet1\n shutdown",
+                        "hasConfig": false,
+                        "hasSecurityRuleChanges": false
+                      }
+                    },
+                    "id": "CHG-101",
+                    "name": "Core uplink change",
+                    "networkId": "115",
+                    "note": "staged for review",
+                    "snapshotId": "656"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CommittedChangeSet"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The commits, newest first."
+          }
+        },
+        "summary": "The commit history, each with its device changes",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "note is a required query parameter and must not be blank.",
+        "operationId": "commitChangeSet",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "note",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "commitId": "9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978",
+                  "committedAt": "2026-09-11T10:02:00Z",
+                  "note": "staged for review"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeSetCommit"
+                }
+              }
+            },
+            "description": "The commit."
+          }
+        },
+        "summary": "Commit the staged changes",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/commits/head": {
+      "get": {
+        "operationId": "getChangeSetHeadCommit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "commitId": "9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978",
+                  "id": "CHG-101",
+                  "name": "Core uplink change",
+                  "networkId": "115",
+                  "note": "staged for review",
+                  "snapshotId": "656"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CommittedChangeSet"
+                }
+              }
+            },
+            "description": "The head commit."
+          },
+          "404": {
+            "description": "No commit yet."
+          }
+        },
+        "summary": "The most recent commit, with its device changes",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/commands": {
+      "post": {
+        "operationId": "validateChangeSetDeviceCommands",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "commands": "interface Ethernet1\n shutdown",
+                "cursorColumnNum": 1,
+                "cursorLineNum": 1
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CommandValidationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "commandErrors": [],
+                  "suggestions": [],
+                  "textMarks": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CommandValidationResponse"
+                }
+              }
+            },
+            "description": "Errors, suggestions and marks for the text."
+          }
+        },
+        "summary": "Check CLI commands for a device without staging them",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "validate"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/scopes/{scopeId}/rulebases/{rulebaseId}/security-rules": {
+      "post": {
+        "description": "predecessor is the id of the rule to insert after; omit it to insert at the top. Only scope LOCAL and rulebase PRIMARY accept writes; others refuse with \"Rulebase 'X' in scope 'Y' is not editable\".",
+        "operationId": "addSecurityRule",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "LOCAL is the only editable scope.",
+            "in": "path",
+            "name": "scopeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "PRIMARY is the only editable rulebase.",
+            "in": "path",
+            "name": "rulebaseId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "definition": {
+                  "action": "PERMIT",
+                  "destinationZones": [
+                    "untrust"
+                  ],
+                  "enabled": true,
+                  "name": "allow-dns",
+                  "sourceZones": [
+                    "trust"
+                  ]
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NewSecurityRule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Added."
+          }
+        },
+        "summary": "Add a security rule to a firewall's rulebase",
+        "tags": [
+          "Firewall Predict"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/scopes/{scopeId}/rulebases/{rulebaseId}/security-rules/{ruleId}": {
+      "delete": {
+        "operationId": "deleteSecurityRule",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "scopeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rulebaseId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a security rule",
+        "tags": [
+          "Firewall Predict"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Exactly one of definition or predecessor. A predecessor of null moves the rule to the top. Both or neither is refused.",
+        "operationId": "updateSecurityRule",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "scopeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rulebaseId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "definition": {
+                  "action": "PERMIT",
+                  "enabled": false,
+                  "name": "allow-dns"
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SecurityRulePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated."
+          }
+        },
+        "summary": "Replace a rule's definition, or move it",
+        "tags": [
+          "Firewall Predict"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "operationId": "discardSecurityRuleChanges",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "scopeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rulebaseId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Discarded."
+          }
+        },
+        "summary": "Discard the change set's pending change to one rule",
+        "tags": [
+          "Firewall Predict"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "discardChanges"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/security-rules-diff": {
+      "get": {
+        "description": "The definition objects under entries[].a and entries[].b are the shape the write operations take, so a rule can be read here and posted back.",
+        "operationId": "getSecurityRulesDiff",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "entries": [
+                    {
+                      "b": {
+                        "definition": {
+                          "action": "PERMIT",
+                          "description": "",
+                          "enabled": true,
+                          "id": "",
+                          "name": "allow-dns"
+                        },
+                        "rank": 1,
+                        "rulebaseId": "PRIMARY",
+                        "scopeId": "LOCAL"
+                      },
+                      "diffType": "ADDED"
+                    }
+                  ],
+                  "rulebases": [
+                    {
+                      "displayName": "Local",
+                      "editable": true,
+                      "rulebaseId": "PRIMARY",
+                      "scopeId": "LOCAL"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityRulesDiff"
+                }
+              }
+            },
+            "description": "The rulebases and rule differences. Empty lists are omitted."
+          }
+        },
+        "summary": "A firewall's rulebases and how the change set alters its rules",
+        "tags": [
+          "Firewall Predict"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/draft": {
+      "get": {
+        "operationId": "getChangeSetDraft",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "draft": {
+                    "deviceToChanges": {
+                      "dc-core": {
+                        "commands": "interface Ethernet1\n shutdown",
+                        "hasConfig": false,
+                        "hasSecurityRuleChanges": false
+                      }
+                    },
+                    "id": "CHG-101",
+                    "name": "Core uplink change",
+                    "networkId": "115",
+                    "savedAt": 1757584800000,
+                    "snapshotId": "656"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeSetDraftResponse"
+                }
+              }
+            },
+            "description": "The draft, or a null draft when nothing is staged."
+          }
+        },
+        "summary": "The uncommitted changes on a change set",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}": {
+      "delete": {
+        "operationId": "discardChangeSetDeviceDraft",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Discarded."
+          }
+        },
+        "summary": "Discard one device's uncommitted changes",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/commands": {
+      "put": {
+        "description": "The body is the command text itself, sent as text/plain, not JSON. For PAN-OS devices this route does not work: predicting it fails with \"Device <name> OS pan_os not supported\". Firewall changes go through the security-rule operations instead.",
+        "operationId": "setChangeSetDeviceCommands",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "text/plain": {
+              "example": "interface Ethernet1\n shutdown",
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Staged."
+          }
+        },
+        "summary": "Stage CLI commands for one device",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/predicted-snapshots": {
+      "get": {
+        "operationId": "listPredictedSnapshots",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "createdAt": "2026-09-11T10:05:00Z",
+                    "id": "702",
+                    "processingTrigger": "PREDICT",
+                    "state": "PROCESSED"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SnapshotInfo"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The predicted snapshots, with processing state."
+          }
+        },
+        "summary": "The snapshots Predict has produced for a change set",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/classic-devices": {
@@ -20007,6 +23173,131 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/orgs/{orgId}/config/{property}": {
+      "delete": {
+        "operationId": "clearOrgScopedConfigValue",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cleared."
+          }
+        },
+        "summary": "Remove a named org's override, reverting to the default",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "The org's override if set, otherwise the global default. Forward support accounts.",
+        "operationId": "getOrgScopedConfigValue",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "firewall_predict": true
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigValue"
+                }
+              }
+            },
+            "description": "The property and its effective value for that org."
+          }
+        },
+        "summary": "An org property's effective value for a named org",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "put": {
+        "description": "Forward support accounts. The route to use for properties whose global default cannot be changed and which an org administrator may not set, such as FIREWALL_PREDICT. Read the value back from this route, not the global one.",
+        "operationId": "setOrgScopedConfigValue",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "value",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "firewall_predict": true
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigValue"
+                }
+              }
+            },
+            "description": "The property and its new value."
+          }
+        },
+        "summary": "Set an org property for a named org",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/predefinedChecks": {
       "get": {
         "operationId": "getAvailablePredefinedChecks",
@@ -21301,6 +24592,249 @@
         "tags": [
           "Current Version"
         ]
+      }
+    },
+    "/webhook-types/{eventType}": {
+      "get": {
+        "operationId": "getWebhookDefaultTemplates",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventType",
+            "required": true,
+            "schema": {
+              "enum": [
+                "SNAPSHOT_READY",
+                "NQE_VERIFICATION_FAILURE",
+                "INTENT_VERIFICATION_FAILURE"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "payloadFormat": "JSON",
+                    "template": "{...}"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WebhookTemplate"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The templates."
+          }
+        },
+        "summary": "The default payload templates for an event type",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "default-templates"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/webhooks": {
+      "get": {
+        "operationId": "listWebhooks",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "testResults": {
+                    "predict-pipeline": {
+                      "instant": 1757584800000
+                    }
+                  },
+                  "webhooks": [
+                    {
+                      "disableSslValidation": false,
+                      "enabled": true,
+                      "eventParams": {
+                        "networkIds": [
+                          "115"
+                        ],
+                        "type": "SNAPSHOT_READY"
+                      },
+                      "name": "predict-pipeline",
+                      "url": "https://example.invalid/hook"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/WebhooksAndTestResults"
+                }
+              }
+            },
+            "description": "The webhooks."
+          }
+        },
+        "summary": "The org's webhooks and their last test results",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "For SNAPSHOT_READY, eventParams.networkIds must be present; an empty list means every network in the org, but omitting the key is refused with a 400 that carries no message. Predicted snapshots fire SNAPSHOT_READY too, which is what makes an event-driven Predict pipeline possible. Needs OUTBOUND_CONNECTIONS on the deployment.",
+        "operationId": "createWebhook",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "eventParams": {
+                  "networkIds": [
+                    "115"
+                  ],
+                  "type": "SNAPSHOT_READY"
+                },
+                "name": "predict-pipeline",
+                "url": "https://example.invalid/hook"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/Webhook"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created."
+          }
+        },
+        "summary": "Create a webhook",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "testWebhookDefinition",
+            "summary": "Send a test event to a webhook definition without saving it",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "test"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/webhooks/{webhookName}": {
+      "delete": {
+        "operationId": "deleteWebhook",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "webhookName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a webhook",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Every field is optional and omitted means unchanged. Changing the url, SSL setting or credential re-tests the connection as part of the update.",
+        "operationId": "updateWebhook",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "webhookName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "enabled": false
+              },
+              "schema": {
+                "$ref": "#/components/schemas/WebhookPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated."
+          }
+        },
+        "summary": "Change a webhook",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "operationId": "testWebhook",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "webhookName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "connect timed out",
+                  "instant": 1757584800000
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookTestResult"
+                }
+              }
+            },
+            "description": "Whether the delivery succeeded."
+          }
+        },
+        "summary": "Send a test event to a saved webhook",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "test"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
       }
     }
   },

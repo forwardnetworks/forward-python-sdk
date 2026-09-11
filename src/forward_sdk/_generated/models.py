@@ -225,6 +225,110 @@ class Type5(OpenEnum):
     device_alias_filter = "DeviceAliasFilter"
 
 
+class ChangeSetCheckResult(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    created_by_id: Annotated[str | None, Field(alias="createdById")] = None
+    defined_at: Annotated[str | None, Field(alias="definedAt")] = None
+    definition: dict[str, Any] | None = None
+    executed_at: Annotated[str | None, Field(alias="executedAt")] = None
+    execution_duration_millis: Annotated[int | None, Field(alias="executionDurationMillis")] = None
+    id: str | None = None
+    name: str | None = None
+    num_violations: Annotated[int | None, Field(alias="numViolations")] = None
+    status: str | None = None
+
+
+class ChangeSetCheckResults(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    checks: list[ChangeSetCheckResult] | None = None
+
+
+class ChangeSetCommit(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    commit_id: Annotated[str | None, Field(alias="commitId")] = None
+    committed_at: Annotated[str | None, Field(alias="committedAt")] = None
+    committed_by: Annotated[str | None, Field(alias="committedBy")] = None
+    committed_by_id: Annotated[str | None, Field(alias="committedById")] = None
+    note: str | None = None
+
+
+class ChangeSetIds(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    change_set_ids: Annotated[list[str], Field(alias="changeSetIds")]
+
+
+class ChangeSetPatch(ForwardModel):
+    """
+    Fields to change. Omit a field to leave it alone.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    description: str | None = None
+    name: str | None = None
+    snapshot_id: Annotated[str | None, Field(alias="snapshotId")] = None
+    tags: list[str] | None = None
+
+
+class ChangeSetSummary(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    description: str | None = None
+    name: str | None = None
+    network_id: Annotated[str | None, Field(alias="networkId")] = None
+    snapshot_id: Annotated[str | None, Field(alias="snapshotId")] = None
+    tags: list[str] | None = None
+
+
+class Action1(OpenEnum):
+    add = "ADD"
+    remove = "REMOVE"
+    remove_all = "REMOVE_ALL"
+
+
+class Tags(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    action: Action1 | None = None
+    names: list[str] | None = None
+
+
+class Update(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    tags: Tags | None = None
+
+
+class ChangeSetsTagUpdate(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    change_set_ids: Annotated[list[str], Field(alias="changeSetIds")]
+    update: Update
+
+
 class CheckType(OpenEnum):
     existential = "Existential"
     isolation = "Isolation"
@@ -717,6 +821,35 @@ class ColumnFilter2(BetweenColumnFilter):
     operator: Literal["IS_BETWEEN"]
 
 
+class CommandValidationRequest(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    commands: str
+    """
+    The command text, one command per line.
+    """
+    cursor_column_num: Annotated[int, Field(alias="cursorColumnNum")]
+    """
+    1-based.
+    """
+    cursor_line_num: Annotated[int, Field(alias="cursorLineNum")]
+    """
+    1-based.
+    """
+
+
+class CommandValidationResponse(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    command_errors: Annotated[list[dict[str, Any]] | None, Field(alias="commandErrors")] = None
+    suggestions: list[dict[str, Any]] | None = None
+    text_marks: Annotated[list[dict[str, Any]] | None, Field(alias="textMarks")] = None
+
+
 class CommitResult(ForwardModel):
     """
     The outcome of a commit, or the report from a dry run.
@@ -747,6 +880,17 @@ class ComputationStatus(OpenEnum):
     failure = "FAILURE"
     success = "SUCCESS"
     canceled = "CANCELED"
+
+
+class ConfigValue(ForwardModel):
+    """
+    A single property and its value, keyed by the property name in lower case. Read it with `forward_sdk.config_value`, which returns the value whatever the key.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
 
 
 class ConnectionType(OpenEnum):
@@ -1108,6 +1252,23 @@ class DeviceAliasFilter(ForwardModel):
     """
 
 
+class DeviceChanges(ForwardModel):
+    """
+    What a change set does to one device.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    commands: str | None = None
+    """
+    Staged CLI text, when the change is CLI.
+    """
+    has_config: Annotated[bool | None, Field(alias="hasConfig")] = None
+    has_security_rule_changes: Annotated[bool | None, Field(alias="hasSecurityRuleChanges")] = None
+
+
 class DeviceCluster(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -1460,7 +1621,23 @@ class DevicesAndTags(ForwardModel):
     tags: Annotated[list[str] | None, Field(examples=[["SEC"]])] = None
 
 
-class Action1(OpenEnum):
+class DiffCount(ForwardModel):
+    """
+    A count, and whether the computation that produced it finished.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    complete: bool | None = None
+    """
+    False means count is a lower bound so far.
+    """
+    count: int | None = None
+
+
+class Action2(OpenEnum):
     add_query = "addQuery"
     edit_query = "editQuery"
     add_dir = "addDir"
@@ -1475,7 +1652,7 @@ class DraftChange(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    action: Action1 | None = None
+    action: Action2 | None = None
     path: str | None = None
 
 
@@ -1572,6 +1749,35 @@ class HeaderFieldsWithDefault(OpenEnum):
 class ReturnPath(OpenEnum):
     any = "ANY"
     symmetric = "SYMMETRIC"
+
+
+class DirectChanges(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_count: Annotated[int | None, Field(alias="deviceCount")] = None
+    lines_added: Annotated[int | None, Field(alias="linesAdded")] = None
+    lines_deleted: Annotated[int | None, Field(alias="linesDeleted")] = None
+    location_ids: Annotated[list[str] | None, Field(alias="locationIds")] = None
+
+
+class IndirectChanges(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_count: Annotated[int | None, Field(alias="deviceCount")] = None
+    location_ids: Annotated[list[str] | None, Field(alias="locationIds")] = None
+
+
+class FileDiffSummary(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    direct_changes: Annotated[DirectChanges | None, Field(alias="directChanges")] = None
+    indirect_changes: Annotated[IndirectChanges | None, Field(alias="indirectChanges")] = None
 
 
 class TransitType(OpenEnum):
@@ -2482,6 +2688,36 @@ class NewAiMessage(ForwardModel):
     """
     The question to ask.
     """
+
+
+class NewChangeSet(ForwardModel):
+    """
+    The create body. No networkId: it comes from the path, and Forward rejects unknown properties, so sending one fails with 400.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    description: str | None = None
+    name: str
+    snapshot_id: Annotated[str, Field(alias="snapshotId")]
+    """
+    The base snapshot.
+    """
+    tags: list[str] | None = None
+
+
+class NewChangeSetCheck(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    definition: dict[str, Any]
+    """
+    A check definition; checkType selects the kind.
+    """
+    name: str | None = None
 
 
 class NewCliCredential(ForwardModel):
@@ -3476,6 +3712,32 @@ class PredefinedCheckType(OpenEnum):
     vpc_mst_region_consistency = "VPC_MST_REGION_CONSISTENCY"
 
 
+class PredictedSnapshotMeta(ForwardModel):
+    """
+    The snapshot Predict created. Created, not yet processed.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    id: str | None = None
+    note: str | None = None
+    processed_at: Annotated[str | None, Field(alias="processedAt")] = None
+    processing_trigger: Annotated[str | None, Field(alias="processingTrigger")] = None
+
+
+class PredictedSnapshotRef(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    creation_instant: Annotated[str | None, Field(alias="creationInstant")] = None
+    id: str | None = None
+    network_id: Annotated[str | None, Field(alias="networkId")] = None
+
+
 class ProtocolModel(OpenEnum):
     http = "HTTP"
     https = "HTTPS"
@@ -3577,10 +3839,83 @@ class RepositoryQueryPage(ForwardModel):
     queries: list[RepositoryQuery] | None = None
 
 
+class RoutingLoopDiffCount(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    complete: bool | None = None
+    """
+    False when the search stopped early, so `count` is a lower bound rather than a total.
+    """
+    count: int | None = None
+
+
+class RulebaseDescriptor(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    display_name: Annotated[str | None, Field(alias="displayName")] = None
+    editable: bool | None = None
+    rulebase_id: Annotated[str | None, Field(alias="rulebaseId")] = None
+    scope_id: Annotated[str | None, Field(alias="scopeId")] = None
+
+
 class SearchIntent(OpenEnum):
     prefer_violations = "PREFER_VIOLATIONS"
     prefer_delivered = "PREFER_DELIVERED"
     violations_only = "VIOLATIONS_ONLY"
+
+
+class Action3(OpenEnum):
+    deny = "DENY"
+    drop = "DROP"
+    permit = "PERMIT"
+    reset_client = "RESET_CLIENT"
+    reset_client_and_server = "RESET_CLIENT_AND_SERVER"
+    reset_server = "RESET_SERVER"
+
+
+class SecurityRuleDefinition(ForwardModel):
+    """
+    A firewall rule as Forward models it. name is required and must not be blank. The specification fields sit flat beside name, id and description rather than nested. Read one from the diff and mirror it; the full field list is address, user, application and service specifications plus zones, an action and a schedule.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    action: Action3 | None = None
+    description: str | None = None
+    destination_zones: Annotated[list[str] | None, Field(alias="destinationZones")] = None
+    enabled: bool | None = None
+    id: str | None = None
+    name: str
+    source_zones: Annotated[list[str] | None, Field(alias="sourceZones")] = None
+
+
+class DiffType(OpenEnum):
+    added = "ADDED"
+    deleted = "DELETED"
+    modified = "MODIFIED"
+    unchanged = "UNCHANGED"
+
+
+class SecurityRulePatch(ForwardModel):
+    """
+    Exactly one of definition or predecessor.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    definition: SecurityRuleDefinition | None = None
+    predecessor: str | None = None
+    """
+    Move after this rule id; null moves to the top.
+    """
 
 
 class SecurityZoneFilter(ForwardModel):
@@ -4008,6 +4343,49 @@ class StartCollectionResponse(ForwardModel):
     """
     The system-assigned identifier of the new network collection task.
     """
+
+
+class SubnetConnectivityDiff(ForwardModel):
+    """
+    How connectivity between subnets changed. Computed asynchronously, so an early request can return counts of zero with `isPartialResult` true; those zeros mean "not finished", not "nothing changed".
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    evaluated_subnet_pairs: Annotated[int | None, Field(alias="evaluatedSubnetPairs")] = None
+    """
+    How many pairs have been compared so far. Zero alongside a non-zero `totalSubnetPairs` means the computation has not started.
+    """
+    is_partial_result: Annotated[bool | None, Field(alias="isPartialResult")] = None
+    """
+    True while the comparison is still being computed.
+    """
+    modified_impacted_locations: Annotated[int | None, Field(alias="modifiedImpactedLocations")] = (
+        None
+    )
+    modified_subnet_pairs: Annotated[int | None, Field(alias="modifiedSubnetPairs")] = None
+    newly_connected_destination_subnets: Annotated[
+        int | None, Field(alias="newlyConnectedDestinationSubnets")
+    ] = None
+    newly_connected_impacted_locations: Annotated[
+        int | None, Field(alias="newlyConnectedImpactedLocations")
+    ] = None
+    newly_connected_subnet_pairs: Annotated[
+        int | None, Field(alias="newlyConnectedSubnetPairs")
+    ] = None
+    newly_isolated_destination_subnets: Annotated[
+        int | None, Field(alias="newlyIsolatedDestinationSubnets")
+    ] = None
+    newly_isolated_impacted_locations: Annotated[
+        int | None, Field(alias="newlyIsolatedImpactedLocations")
+    ] = None
+    newly_isolated_subnet_pairs: Annotated[int | None, Field(alias="newlyIsolatedSubnetPairs")] = (
+        None
+    )
+    total_impacted_locations: Annotated[int | None, Field(alias="totalImpactedLocations")] = None
+    total_subnet_pairs: Annotated[int | None, Field(alias="totalSubnetPairs")] = None
 
 
 class SubnetLocationFilter(ForwardModel):
@@ -4614,6 +4992,32 @@ class VulnerabilityDeviceWithResult(VulnerabilityDevice):
     """
 
 
+class VulnerabilityDiffCount(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cve_count: Annotated[int | None, Field(alias="cveCount")] = None
+    exposed_vulnerable_devices_count: Annotated[
+        int | None, Field(alias="exposedVulnerableDevicesCount")
+    ] = None
+
+
+class VulnerabilityDiffCounts(ForwardModel):
+    """
+    Vulnerability exposure introduced by the change. Fields beyond `newCveCount` appear only on deployments licensed for vulnerability analysis, so the model keeps them optional.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    new_cve_count: Annotated[int | None, Field(alias="newCveCount")] = None
+    new_exposed_vulnerable_devices_count: Annotated[
+        int | None, Field(alias="newExposedVulnerableDevicesCount")
+    ] = None
+
+
 class VulnerabilityVendor(OpenEnum):
     cisco = "CISCO"
     juniper = "JUNIPER"
@@ -4746,6 +5150,72 @@ class WanCircuitPatch(ForwardModel):
     name: Annotated[str | None, Field(examples=["wan-circuit-01"])] = None
 
 
+class Type40(OpenEnum):
+    basic_auth = "BASIC_AUTH"
+
+
+class WebhookCredential(ForwardModel):
+    """
+    password is accepted on input and never returned.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    password: str | None = None
+    type: Type40 | None = None
+    username: str | None = None
+
+
+class Type41(OpenEnum):
+    snapshot_ready = "SNAPSHOT_READY"
+    nqe_verification_failure = "NQE_VERIFICATION_FAILURE"
+    intent_verification_failure = "INTENT_VERIFICATION_FAILURE"
+
+
+class WebhookEventParams(ForwardModel):
+    """
+    Selected by type. For SNAPSHOT_READY, networkIds is required; empty means every network. The verification-failure types take maps of network id to check directories instead.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
+    type: Type41
+
+
+class PayloadFormat(OpenEnum):
+    json = "JSON"
+    text = "TEXT"
+
+
+class WebhookTemplate(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    payload_format: Annotated[PayloadFormat | None, Field(alias="payloadFormat")] = None
+    template: str | None = None
+
+
+class WebhookTestResult(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    error: str | None = None
+    """
+    Absent when the test passed.
+    """
+    instant: int | None = None
+    """
+    Epoch milliseconds.
+    """
+
+
 class AiMessage(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -4866,12 +5336,114 @@ class AvailablePredefinedCheck(ForwardModel):
     ] = None
 
 
+class BidirectionalDiffCount(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    improvements: DiffCount | None = None
+    warnings: DiffCount | None = None
+
+
+class BidirectionalVulnerabilityDiff(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    improvements: VulnerabilityDiffCount | None = None
+    warnings: VulnerabilityDiffCount | None = None
+
+
 class BypassFilter1(HopLocationFilter1):
     type: Literal["DeviceFilter"]
 
 
 class BypassFilter2(HopLocationFilter6):
     type: Literal["DeviceAliasFilter"]
+
+
+class ChangeSet(ForwardModel):
+    """
+    A change set with its device changes. Attribution fields sit flat on the object rather than nested.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    created_by_id: Annotated[str | None, Field(alias="createdById")] = None
+    description: str | None = None
+    device_to_changes: Annotated[
+        dict[str, DeviceChanges] | None, Field(alias="deviceToChanges")
+    ] = None
+    id: str | None = None
+    name: str | None = None
+    network_id: Annotated[str | None, Field(alias="networkId")] = None
+    snapshot_id: Annotated[str | None, Field(alias="snapshotId")] = None
+    tags: list[str] | None = None
+    updated_at: Annotated[str | None, Field(alias="updatedAt")] = None
+    updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
+    updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
+
+
+class ChangeSetDraft(ForwardModel):
+    """
+    The staged changes. savedAt is epoch milliseconds, unlike every other timestamp.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_to_changes: Annotated[
+        dict[str, DeviceChanges] | None, Field(alias="deviceToChanges")
+    ] = None
+    hidden_devices: Annotated[list[str] | None, Field(alias="hiddenDevices")] = None
+    id: str | None = None
+    name: str | None = None
+    network_id: Annotated[str | None, Field(alias="networkId")] = None
+    saved_at: Annotated[int | None, Field(alias="savedAt")] = None
+    snapshot_id: Annotated[str | None, Field(alias="snapshotId")] = None
+
+
+class ChangeSetDraftResponse(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    draft: ChangeSetDraft | None = None
+    """
+    Null when nothing is staged.
+    """
+
+
+class ChangeSetInfo(ForwardModel):
+    """
+    A change set as listed, with its predicted snapshots newest first.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    created_by_id: Annotated[str | None, Field(alias="createdById")] = None
+    description: str | None = None
+    id: str | None = None
+    modified_device_count: Annotated[int | None, Field(alias="modifiedDeviceCount")] = None
+    name: str | None = None
+    network_id: Annotated[str | None, Field(alias="networkId")] = None
+    predicted_snapshots: Annotated[
+        list[PredictedSnapshotRef] | None, Field(alias="predictedSnapshots")
+    ] = None
+    snapshot_id: Annotated[str | None, Field(alias="snapshotId")] = None
+    tags: list[str] | None = None
+    updated_at: Annotated[str | None, Field(alias="updatedAt")] = None
+    updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
+    updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
 
 
 class CheckDefinition4(QueryStringCheck):
@@ -5787,6 +6359,36 @@ class ColumnFilter1(DefaultColumnFilter):
         populate_by_name=True,
     )
     operator: Literal["DEFAULT"]
+
+
+class CommittedChangeSet(ForwardModel):
+    """
+    A commit with the change set's device changes as of that commit, flattened together.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    commit_id: Annotated[str | None, Field(alias="commitId")] = None
+    committed_at: Annotated[str | None, Field(alias="committedAt")] = None
+    committed_by: Annotated[str | None, Field(alias="committedBy")] = None
+    committed_by_id: Annotated[str | None, Field(alias="committedById")] = None
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    created_by_id: Annotated[str | None, Field(alias="createdById")] = None
+    description: str | None = None
+    device_to_changes: Annotated[
+        dict[str, DeviceChanges] | None, Field(alias="deviceToChanges")
+    ] = None
+    hidden_devices: Annotated[list[str] | None, Field(alias="hiddenDevices")] = None
+    id: str | None = None
+    name: str | None = None
+    network_id: Annotated[str | None, Field(alias="networkId")] = None
+    note: str | None = None
+    snapshot_id: Annotated[str | None, Field(alias="snapshotId")] = None
+    tags: list[str] | None = None
+    updated_at: Annotated[str | None, Field(alias="updatedAt")] = None
+    updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
 
 
 class CurrentUser(ForwardModel):
@@ -6863,6 +7465,18 @@ class NewClassicDevice(ForwardModel):
     """
 
 
+class NewSecurityRule(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    definition: SecurityRuleDefinition
+    predecessor: str | None = None
+    """
+    Insert after this rule id. Omit to insert at the top.
+    """
+
+
 class NqeExecutionRequest(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -7371,6 +7985,46 @@ class PredefinedCheck(ForwardModel):
     ] = None
 
 
+class ScopedSecurityRule(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    definition: SecurityRuleDefinition | None = None
+    hit_count: Annotated[int | None, Field(alias="hitCount")] = None
+    last_modified: Annotated[str | None, Field(alias="lastModified")] = None
+    last_used: Annotated[str | None, Field(alias="lastUsed")] = None
+    rank: int | None = None
+    rulebase_id: Annotated[str | None, Field(alias="rulebaseId")] = None
+    scope_id: Annotated[str | None, Field(alias="scopeId")] = None
+
+
+class SecurityRuleDiffEntry(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    a: ScopedSecurityRule | None = None
+    """
+    The rule before. Absent when ADDED.
+    """
+    b: ScopedSecurityRule | None = None
+    """
+    The rule after. Absent when DELETED.
+    """
+    diff_type: Annotated[DiffType | None, Field(alias="diffType")] = None
+
+
+class SecurityRulesDiff(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    entries: list[SecurityRuleDiffEntry] | None = None
+    rulebases: list[RulebaseDescriptor] | None = None
+
+
 class SnapshotInfo(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -7717,6 +8371,49 @@ class WanCircuitList(ForwardModel):
         populate_by_name=True,
     )
     wan_circuits: Annotated[list[WanCircuit] | None, Field(alias="wanCircuits")] = None
+
+
+class Webhook(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    credential: WebhookCredential | None = None
+    description: str | None = None
+    disable_ssl_validation: Annotated[bool | None, Field(alias="disableSslValidation")] = None
+    enabled: bool | None = None
+    event_params: Annotated[WebhookEventParams, Field(alias="eventParams")]
+    name: str
+    template: WebhookTemplate | None = None
+    url: str
+
+
+class WebhookPatch(ForwardModel):
+    """
+    Every field optional; omitted means unchanged.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    credential: WebhookCredential | None = None
+    description: str | None = None
+    disable_ssl_validation: Annotated[bool | None, Field(alias="disableSslValidation")] = None
+    enabled: bool | None = None
+    event_params: Annotated[WebhookEventParams | None, Field(alias="eventParams")] = None
+    name: str | None = None
+    template: WebhookTemplate | None = None
+    url: str | None = None
+
+
+class WebhooksAndTestResults(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    test_results: Annotated[dict[str, WebhookTestResult] | None, Field(alias="testResults")] = None
+    webhooks: list[Webhook] | None = None
 
 
 class CheckDefinition5(PredefinedCheck):

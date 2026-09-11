@@ -15,7 +15,15 @@ from forward_sdk._generated.operations import OPERATIONS
 # Import the hand-written builders first. This module claims whatever is left,
 # so without a fixed order it would claim operations they own, and which module
 # happened to be imported first would decide the SDK's behaviour.
-from forward_sdk._ops import REGISTRY, ai, core, nqe, nqe_repo  # noqa: F401
+from forward_sdk._ops import (  # noqa: F401
+    REGISTRY,
+    ai,
+    change_sets,
+    core,
+    diffs,
+    nqe,
+    nqe_repo,
+)
 from forward_sdk._ops._generic import build_all
 
 #: POST operations that only read. Forward uses POST where a query is too large

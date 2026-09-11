@@ -57,7 +57,9 @@ def _load_isolated(module_name: str, path: Path) -> types.ModuleType:
     return module
 
 
-_load_isolated("forward_sdk._generated._defs", SOURCE_ROOT / "forward_sdk/_generated/_defs.py")
+_defs = _load_isolated(
+    "forward_sdk._generated._defs", SOURCE_ROOT / "forward_sdk/_generated/_defs.py"
+)
 _operations = _load_isolated(
     "forward_sdk._generated.operations",
     SOURCE_ROOT / "forward_sdk/_generated/operations.py",
@@ -91,19 +93,7 @@ MODEL_NAMES = _model_names()
 OUTPUT_DIR = Path("src/forward_sdk/_async/services/_generated")
 
 #: Groups with a hand-written service; see the module docstring.
-HAND_WRITTEN_TAGS = {
-    "Network Management",
-    "Network Snapshots",
-    "Network Devices",
-    "Device Tags",
-    "NQE",
-    "Current Version",
-    "NQE Repository",
-    "Snapshot Reachability",
-    # Hand-written: answers arrive asynchronously, so this needs a chat handle
-    # with a poll loop rather than a method per endpoint.
-    "Forward AI",
-}
+HAND_WRITTEN_TAGS = frozenset(_defs.HAND_WRITTEN_TAGS)
 
 HEADER = '''"""{title}.
 

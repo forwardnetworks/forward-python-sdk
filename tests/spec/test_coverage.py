@@ -18,6 +18,7 @@ import yaml
 
 import forward_sdk._ops as ops_package
 from forward_sdk import AsyncForwardClient, ForwardClient
+from forward_sdk._generated._defs import HAND_WRITTEN_TAGS
 from forward_sdk._generated.operations import OPERATIONS
 from forward_sdk._ops import REGISTRY
 from forward_sdk._ops._generic import snake
@@ -92,12 +93,12 @@ def test_builder_matches_the_spec(operation_id: str) -> None:
 def test_client_exposes_every_api_group() -> None:
     """Each group in the description is reachable from the client."""
 
+    # Where a hand-written group lives under a different attribute than its
+    # tag would suggest. Anything not listed derives its attribute from the tag.
     hand_written = {
         "Network Management": "networks",
         "Network Snapshots": "snapshots",
         "Network Devices": "devices",
-        "Device Tags": "device_tags",
-        "NQE": "nqe",
         "Current Version": "networks",
         "NQE Repository": "nqe",
         "Snapshot Reachability": "snapshots",
@@ -133,22 +134,7 @@ def test_every_operation_has_a_service_method() -> None:
 
     # Hand-written services use curated names, so only the generated groups are
     # checked by operation id.
-    generated_tags = {
-        op.tag
-        for op in OPERATIONS.values()
-        if op.tag
-        not in {
-            "Network Management",
-            "Network Snapshots",
-            "Network Devices",
-            "Device Tags",
-            "NQE",
-            "Current Version",
-            "NQE Repository",
-            "Snapshot Reachability",
-            "Forward AI",
-        }
-    }
+    generated_tags = {op.tag for op in OPERATIONS.values() if op.tag not in HAND_WRITTEN_TAGS}
     missing = sorted(
         op.operation_id
         for op in OPERATIONS.values()

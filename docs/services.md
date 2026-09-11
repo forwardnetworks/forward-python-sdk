@@ -51,6 +51,11 @@ Forward's API documentation: `getLocations` becomes `get_locations`.
 | `client.user_accounts` | User Accounts | Admin role |
 | `client.vulnerability_analysis` | Vulnerability Analysis | Licence |
 | `client.wan_circuits` | WAN Circuits | |
+| `client.change_sets` | Change Sets | Unpublished; `PREDICT_MODELING` org property |
+| `client.snapshot_diffs` | Snapshot Diffs | Unpublished; connectivity needs `LOCATION_CONNECTIVITY_DIFFS` |
+| `client.firewall_predict` | Firewall Predict | Unpublished; `FIREWALL_PREDICT` org property |
+| `client.webhooks` | Webhooks | Unpublished; writes need `OUTBOUND_CONNECTIONS` |
+| `client.configuration` | Configuration | Unpublished; org admin or Forward support |
 
 "Notes" says what is known to gate a group. It is a hint for interpreting a
 refusal, not a guarantee; see [availability](gating.md).

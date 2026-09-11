@@ -547,6 +547,1058 @@ paths:
               example:
                 status: COMPLETED
 
+  # ---------------------------------------------------------------- diffs ---
+  # Comparisons between two snapshots. These state blast radius without being
+  # asked a question, which is what makes them worth having for a change
+  # rehearsal: the caller does not have to know which question to ask.
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/subnet-connectivity:
+    get:
+      operationId: getSubnetConnectivityDiff
+      summary: How site-to-site connectivity changed between two snapshots
+      x-forward-stability: unpublished
+      tags: [Snapshot Diffs]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The connectivity comparison.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SubnetConnectivityDiff" }
+              example:
+                newlyConnectedSubnetPairs: 0
+                newlyConnectedImpactedLocations: 0
+                newlyConnectedDestinationSubnets: 0
+                newlyIsolatedSubnetPairs: 14
+                newlyIsolatedImpactedLocations: 7
+                newlyIsolatedDestinationSubnets: 1
+                modifiedSubnetPairs: 0
+                modifiedImpactedLocations: 0
+                evaluatedSubnetPairs: 39
+                totalSubnetPairs: 39
+                totalImpactedLocations: 7
+                isPartialResult: false
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/vulnerabilities/counts:
+    get:
+      operationId: getVulnerabilityDiffCounts
+      summary: How vulnerability exposure changed between two snapshots
+      x-forward-stability: unpublished
+      tags: [Snapshot Diffs]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The vulnerability comparison.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VulnerabilityDiffCounts" }
+              example:
+                newCveCount: 0
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/routing-loop/count:
+    get:
+      operationId: getRoutingLoopDiffCount
+      summary: How many routing loops the change introduces
+      x-forward-stability: unpublished
+      tags: [Snapshot Diffs]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The routing-loop comparison.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoutingLoopDiffCount" }
+              example: { count: 0, complete: true }
+
+  # --------------------------------------------------------- configuration ---
+  # Org and global property settings. Three scopes exist, and the routes are not
+  # interchangeable: the global route reads and writes the fixed default only,
+  # never an org's override, so after setting a value for an org the global
+  # route still reports the default. Read from the scope you wrote to.
+  #
+  # The response is {property: value} with the property name as the key. Forward
+  # lower-cases it on the wire, so the key for FIREWALL_PREDICT is
+  # firewall_predict. Values are typed per property: boolean, integer, string
+  # or an enum name.
+  /config/{property}:
+    get:
+      operationId: getOrgConfigValue
+      summary: An org property's effective value for the calling user's org
+      description: >-
+        The org's override if one is set, otherwise the global default. This is
+        the value that governs behaviour, so it is the route to read when the
+        question is "is this on for me".
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: property, in: path, required: true, schema: { type: string }, description: "An OrgProperty name, upper snake case." }
+      responses:
+        "200":
+          description: The property and its effective value.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigValue" }
+              example: { firewall_predict: true }
+    put:
+      operationId: setOrgConfigValue
+      summary: Set an org property for the calling user's org
+      description: >-
+        Needs the MANAGE_ORG_SETTINGS permission, and only works for properties
+        an org administrator may configure. Others refuse with "Permission
+        denied for PROPERTY"; a Forward support account can set those through
+        the org-scoped route instead.
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: property, in: path, required: true, schema: { type: string } }
+        - { name: value, in: query, required: true, schema: { type: string }, description: "The new value, as a string; Forward parses it per property." }
+      responses:
+        "200":
+          description: The property and its new value.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigValue" }
+              example: { session_timeout: 30 }
+    delete:
+      operationId: clearOrgConfigValue
+      summary: Remove the calling user's org override, reverting to the default
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: property, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Cleared. }
+
+  /global-config/{property}:
+    get:
+      operationId: getGlobalConfigValue
+      summary: An org property's global default
+      description: >-
+        The fixed default only. This never reflects an org's override, so it
+        keeps reporting the default after an org value has been set. That is
+        correct behaviour and easily mistaken for a failed write.
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: property, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The property and its global default.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigValue" }
+              example: { firewall_predict: false }
+    put:
+      operationId: setGlobalConfigValue
+      summary: Change an org property's global default
+      description: >-
+        Forward administrators only. Properties declared org-scoped have an
+        immutable default and refuse with "Permission denied. Global default
+        value cannot be changed for PROPERTY"; set those per org instead.
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: property, in: path, required: true, schema: { type: string } }
+        - { name: value, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The property and its new default.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigValue" }
+              example: { session_timeout: 60 }
+
+  /orgs/{orgId}/config/{property}:
+    get:
+      operationId: getOrgScopedConfigValue
+      summary: An org property's effective value for a named org
+      description: The org's override if set, otherwise the global default. Forward support accounts.
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: string } }
+        - { name: property, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The property and its effective value for that org.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigValue" }
+              example: { firewall_predict: true }
+    put:
+      operationId: setOrgScopedConfigValue
+      summary: Set an org property for a named org
+      description: >-
+        Forward support accounts. The route to use for properties whose global
+        default cannot be changed and which an org administrator may not set,
+        such as FIREWALL_PREDICT. Read the value back from this route, not the
+        global one.
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: string } }
+        - { name: property, in: path, required: true, schema: { type: string } }
+        - { name: value, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The property and its new value.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigValue" }
+              example: { firewall_predict: true }
+    delete:
+      operationId: clearOrgScopedConfigValue
+      summary: Remove a named org's override, reverting to the default
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: string } }
+        - { name: property, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Cleared. }
+
+  # ------------------------------------------------------------ change sets ---
+  # Forward Predict. A change set holds proposed device changes against a base
+  # snapshot; predicting it produces a new snapshot that shows the network as
+  # it would be, which the diff endpoints then compare against the base.
+  #
+  # Two conventions differ from the published API. Query-string actions select
+  # the operation, so ?action=predict and ?action=delete are distinct
+  # operations on one path. And Forward rejects unknown body properties with
+  # 400, so a body must carry exactly the documented keys: in particular the
+  # create body takes no networkId, which comes from the path.
+  /networks/{networkId}/change-sets:
+    post:
+      operationId: createChangeSet
+      summary: Create a change set against a base snapshot
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: dirPath, in: query, required: false, schema: { type: string }, description: Directory in the change-set tree to create it in. }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewChangeSet" }
+            example: { name: "Core uplink change", description: "Rehearsal", snapshotId: "656", tags: [rehearsal] }
+      responses:
+        "200":
+          description: The new change set.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSet" }
+              example: { id: CHG-101, name: "Core uplink change", networkId: "115", snapshotId: "656", tags: [rehearsal], createdAt: "2026-09-11T10:00:00Z" }
+    get:
+      operationId: listChangeSets
+      summary: List a network's change sets
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The change sets, with predicted snapshots newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ChangeSetInfo" }
+              example:
+                - id: CHG-101
+                  name: "Core uplink change"
+                  networkId: "115"
+                  snapshotId: "656"
+                  tags: []
+                  modifiedDeviceCount: 2
+                  predictedSnapshots:
+                    - { id: "702", creationInstant: "2026-09-11T10:05:00Z", networkId: "115" }
+                  createdAt: "2026-09-11T10:00:00Z"
+    patch:
+      operationId: updateChangeSetTags
+      summary: Add or remove tags on several change sets at once
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangeSetsTagUpdate" }
+            example: { changeSetIds: [CHG-101], update: { tags: { action: ADD, names: [approved] } } }
+      responses:
+        "204": { description: Updated. }
+
+  /networks/{networkId}/change-sets?action=delete:
+    post:
+      operationId: deleteChangeSets
+      summary: Delete several change sets
+      description: >-
+        The body key is changeSetIds. Forward rejects any other key, including
+        ids, with "Non-empty 'changeSetIds' is required".
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangeSetIds" }
+            example: { changeSetIds: [CHG-101, CHG-102] }
+      responses:
+        "204": { description: Deleted. }
+
+  /networks/{networkId}/change-sets/{changeSetId}:
+    delete:
+      operationId: deleteChangeSet
+      summary: Delete one change set
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string }, description: 'CHG-<n>, or the bare number.' }
+      responses:
+        "204": { description: Deleted. }
+    patch:
+      operationId: updateChangeSet
+      summary: Change a change set's name, description, base snapshot or tags
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangeSetPatch" }
+            example: { description: "Approved by NOC" }
+      responses:
+        "200":
+          description: The updated change set.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSet" }
+              example: { id: CHG-101, name: "Core uplink change", description: "Approved by NOC", networkId: "115", snapshotId: "656" }
+
+  /networks/{networkId}/change-sets/{changeSetId}?view=summary:
+    get:
+      operationId: getChangeSetSummary
+      summary: A change set's name, base snapshot and tags
+      description: There is no plain GET on a change set; this view is the only read of one by id.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The summary.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSetSummary" }
+              example: { name: "Core uplink change", networkId: "115", snapshotId: "656", tags: [] }
+
+  /networks/{networkId}/change-sets/{changeSetId}?action=predict:
+    post:
+      operationId: predictChangeSet
+      summary: Run Predict, producing a snapshot of the network with the change applied
+      description: >-
+        note is a required query parameter. Omitting it returns 400 "Required
+        request parameter 'note' ... is not present". The returned snapshot is
+        created, not yet processed; wait for it with the snapshots service.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: note, in: query, required: true, schema: { type: string }, description: A note recorded on the predicted snapshot. Required. }
+      responses:
+        "200":
+          description: The predicted snapshot, newly created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PredictedSnapshotMeta" }
+              example: { id: "702", note: "rehearsal 1", createdAt: "2026-09-11T10:05:00Z", processingTrigger: PREDICT }
+
+  /networks/{networkId}/change-sets/{changeSetId}/predicted-snapshots:
+    get:
+      operationId: listPredictedSnapshots
+      summary: The snapshots Predict has produced for a change set
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The predicted snapshots, with processing state.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SnapshotInfo" }
+              example:
+                - { id: "702", state: PROCESSED, processingTrigger: PREDICT, createdAt: "2026-09-11T10:05:00Z" }
+
+  /networks/{networkId}/change-sets/{changeSetId}/draft:
+    get:
+      operationId: getChangeSetDraft
+      summary: The uncommitted changes on a change set
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The draft, or a null draft when nothing is staged.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSetDraftResponse" }
+              example:
+                draft:
+                  id: CHG-101
+                  name: "Core uplink change"
+                  networkId: "115"
+                  snapshotId: "656"
+                  deviceToChanges:
+                    dc-core: { commands: "interface Ethernet1\n shutdown", hasConfig: false, hasSecurityRuleChanges: false }
+                  savedAt: 1757584800000
+
+  /networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/commands:
+    put:
+      operationId: setChangeSetDeviceCommands
+      summary: Stage CLI commands for one device
+      description: >-
+        The body is the command text itself, sent as text/plain, not JSON. For
+        PAN-OS devices this route does not work: predicting it fails with
+        "Device <name> OS pan_os not supported". Firewall changes go through the
+        security-rule operations instead.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema: { type: string }
+            example: "interface Ethernet1\n shutdown"
+      responses:
+        "204": { description: Staged. }
+
+  /networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}:
+    delete:
+      operationId: discardChangeSetDeviceDraft
+      summary: Discard one device's uncommitted changes
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Discarded. }
+
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/commands?action=validate:
+    post:
+      operationId: validateChangeSetDeviceCommands
+      summary: Check CLI commands for a device without staging them
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CommandValidationRequest" }
+            example: { commands: "interface Ethernet1\n shutdown", cursorLineNum: 1, cursorColumnNum: 1 }
+      responses:
+        "200":
+          description: Errors, suggestions and marks for the text.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommandValidationResponse" }
+              example: { commandErrors: [], suggestions: [], textMarks: [] }
+
+  /networks/{networkId}/change-sets/{changeSetId}/commits:
+    post:
+      operationId: commitChangeSet
+      summary: Commit the staged changes
+      description: note is a required query parameter and must not be blank.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: note, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The commit.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSetCommit" }
+              example: { commitId: 9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978, note: "staged for review", committedAt: "2026-09-11T10:02:00Z" }
+    get:
+      operationId: listChangeSetCommits
+      summary: The commit history, each with its device changes
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The commits, newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CommittedChangeSet" }
+              example:
+                - id: CHG-101
+                  name: "Core uplink change"
+                  networkId: "115"
+                  snapshotId: "656"
+                  commitId: 9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978
+                  note: "staged for review"
+                  committedAt: "2026-09-11T10:02:00Z"
+                  deviceToChanges:
+                    dc-core: { commands: "interface Ethernet1\n shutdown", hasConfig: false, hasSecurityRuleChanges: false }
+
+  /networks/{networkId}/change-sets/{changeSetId}/commits/head:
+    get:
+      operationId: getChangeSetHeadCommit
+      summary: The most recent commit, with its device changes
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The head commit.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommittedChangeSet" }
+              example: { id: CHG-101, name: "Core uplink change", networkId: "115", snapshotId: "656", commitId: 9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978, note: "staged for review" }
+        "404":
+          description: No commit yet.
+
+  /networks/{networkId}/change-sets/{changeSetId}/checks:
+    post:
+      operationId: addChangeSetCheck
+      summary: Attach an intent check to a change set
+      description: >-
+        Supported check types are ISOLATION, REACHABILITY, EXISTS and NQE.
+        A name may be given for the first three and must be omitted for NQE.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewChangeSetCheck" }
+            example: { name: "DC to branch", definition: { checkType: REACHABILITY } }
+      responses:
+        "200":
+          description: The check, with its result against the base snapshot.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSetCheckResult" }
+              example: { id: CSC-7, name: "DC to branch", definition: { checkType: REACHABILITY }, status: PASS }
+    get:
+      operationId: listChangeSetChecks
+      summary: The change set's checks and their results against a snapshot
+      description: >-
+        snapshotId defaults to the base snapshot. It must be the base or one of
+        the change set's predicted snapshots; anything else is refused.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: false, schema: { type: string } }
+      responses:
+        "200":
+          description: The checks.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSetCheckResults" }
+              example: { checks: [ { id: CSC-7, name: "DC to branch", definition: { checkType: REACHABILITY }, status: PASS } ] }
+
+  /networks/{networkId}/change-sets/{changeSetId}/checks/{checkId}:
+    delete:
+      operationId: deleteChangeSetCheck
+      summary: Remove a check from a change set
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: checkId, in: path, required: true, schema: { type: string }, description: 'CSC-<n>, or the bare number.' }
+      responses:
+        "204": { description: Removed. }
+
+  # ------------------------------------------------------- firewall predict ---
+  # Structured rule edits for PAN-OS devices, which CLI-driven Predict cannot
+  # model. Gated on the FIREWALL_PREDICT org property. Only scope LOCAL with
+  # rulebase PRIMARY is editable; everything else Forward returns is read-only.
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/security-rules-diff:
+    get:
+      operationId: getSecurityRulesDiff
+      summary: A firewall's rulebases and how the change set alters its rules
+      description: >-
+        The definition objects under entries[].a and entries[].b are the shape
+        the write operations take, so a rule can be read here and posted back.
+      x-forward-stability: unpublished
+      tags: [Firewall Predict]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The rulebases and rule differences. Empty lists are omitted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SecurityRulesDiff" }
+              example:
+                rulebases:
+                  - { scopeId: LOCAL, rulebaseId: PRIMARY, editable: true, displayName: Local }
+                entries:
+                  - diffType: ADDED
+                    b:
+                      scopeId: LOCAL
+                      rulebaseId: PRIMARY
+                      rank: 1
+                      definition: { name: allow-dns, id: "", description: "", enabled: true, action: PERMIT }
+
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/scopes/{scopeId}/rulebases/{rulebaseId}/security-rules:
+    post:
+      operationId: addSecurityRule
+      summary: Add a security rule to a firewall's rulebase
+      description: >-
+        predecessor is the id of the rule to insert after; omit it to insert at
+        the top. Only scope LOCAL and rulebase PRIMARY accept writes; others
+        refuse with "Rulebase 'X' in scope 'Y' is not editable".
+      x-forward-stability: unpublished
+      tags: [Firewall Predict]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+        - { name: scopeId, in: path, required: true, schema: { type: string }, description: 'LOCAL is the only editable scope.' }
+        - { name: rulebaseId, in: path, required: true, schema: { type: string }, description: 'PRIMARY is the only editable rulebase.' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewSecurityRule" }
+            example: { definition: { name: allow-dns, enabled: true, action: PERMIT, sourceZones: [trust], destinationZones: [untrust] } }
+      responses:
+        "204": { description: Added. }
+
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/scopes/{scopeId}/rulebases/{rulebaseId}/security-rules/{ruleId}:
+    patch:
+      operationId: updateSecurityRule
+      summary: Replace a rule's definition, or move it
+      description: >-
+        Exactly one of definition or predecessor. A predecessor of null moves
+        the rule to the top. Both or neither is refused.
+      x-forward-stability: unpublished
+      tags: [Firewall Predict]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+        - { name: scopeId, in: path, required: true, schema: { type: string } }
+        - { name: rulebaseId, in: path, required: true, schema: { type: string } }
+        - { name: ruleId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SecurityRulePatch" }
+            example: { definition: { name: allow-dns, enabled: false, action: PERMIT } }
+      responses:
+        "204": { description: Updated. }
+    delete:
+      operationId: deleteSecurityRule
+      summary: Delete a security rule
+      x-forward-stability: unpublished
+      tags: [Firewall Predict]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+        - { name: scopeId, in: path, required: true, schema: { type: string } }
+        - { name: rulebaseId, in: path, required: true, schema: { type: string } }
+        - { name: ruleId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted. }
+
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/scopes/{scopeId}/rulebases/{rulebaseId}/security-rules/{ruleId}?action=discardChanges:
+    post:
+      operationId: discardSecurityRuleChanges
+      summary: Discard the change set's pending change to one rule
+      x-forward-stability: unpublished
+      tags: [Firewall Predict]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+        - { name: scopeId, in: path, required: true, schema: { type: string } }
+        - { name: rulebaseId, in: path, required: true, schema: { type: string } }
+        - { name: ruleId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Discarded. }
+
+  # --------------------------------------------------- more snapshot diffs ---
+  # Counts of what changed in each area. One shape serves them all.
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/devices?count:
+    get:
+      operationId: getDeviceDiffCount
+      summary: How many devices were added or removed
+      x-forward-stability: unpublished
+      tags: [Snapshot Diffs]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The count, and whether it is final.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiffCount" }
+              example: { count: 3, complete: true }
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/interfaces?count:
+    get:
+      operationId: getInterfaceDiffCount
+      summary: How many devices have interface changes
+      x-forward-stability: unpublished
+      tags: [Snapshot Diffs]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The count, and whether it is final.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiffCount" }
+              example: { count: 3, complete: true }
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/topology?count:
+    get:
+      operationId: getTopologyDiffCount
+      summary: How many links changed
+      x-forward-stability: unpublished
+      tags: [Snapshot Diffs]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The count, and whether it is final.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiffCount" }
+              example: { count: 3, complete: true }
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/l2?count:
+    get:
+      operationId: getL2DiffCount
+      summary: How many VLANs changed
+      x-forward-stability: unpublished
+      tags: [Snapshot Diffs]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The count, and whether it is final.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiffCount" }
+              example: { count: 3, complete: true }
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/acl?count:
+    get:
+      operationId: getAclDiffCount
+      summary: How many devices have ACL changes
+      x-forward-stability: unpublished
+      tags: [Snapshot Diffs]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The count, and whether it is final.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiffCount" }
+              example: { count: 3, complete: true }
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/nat?count:
+    get:
+      operationId: getNatDiffCount
+      summary: How many devices have NAT changes
+      x-forward-stability: unpublished
+      tags: [Snapshot Diffs]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The count, and whether it is final.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiffCount" }
+              example: { count: 3, complete: true }
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/arp?count:
+    get:
+      operationId: getArpDiffCount
+      summary: How many devices have ARP changes
+      x-forward-stability: unpublished
+      tags: [Snapshot Diffs]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The count, and whether it is final.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiffCount" }
+              example: { count: 3, complete: true }
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/mac?count:
+    get:
+      operationId: getMacDiffCount
+      summary: How many devices have MAC table changes
+      x-forward-stability: unpublished
+      tags: [Snapshot Diffs]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The count, and whether it is final.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiffCount" }
+              example: { count: 3, complete: true }
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/routing-loop/count?view=bidirectional:
+    get:
+      operationId: getRoutingLoopDiffBidirectional
+      summary: Routing loops introduced and resolved, separately
+      description: Needs the PREDICT_DIFF_INSIGHT_ENHANCEMENTS org property.
+      x-forward-stability: unpublished
+      tags: [Snapshot Diffs]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Loops the change adds, and loops it removes.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BidirectionalDiffCount" }
+              example: { warnings: { count: 0, complete: true }, improvements: { count: 1, complete: true } }
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/vulnerabilities/counts?view=bidirectional:
+    get:
+      operationId: getVulnerabilityDiffBidirectional
+      summary: Vulnerability exposure introduced and resolved, separately
+      description: >-
+        Needs the PREDICT_DIFF_INSIGHT_ENHANCEMENTS org property. Note the
+        field names differ from the one-directional counts: cveCount rather
+        than newCveCount.
+      x-forward-stability: unpublished
+      tags: [Snapshot Diffs]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Exposure the change adds, and exposure it removes.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BidirectionalVulnerabilityDiff" }
+              example: { warnings: { cveCount: 2 }, improvements: { cveCount: 0 } }
+
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/files?view=deviceSummary:
+    get:
+      operationId: getFileDiffSummary
+      summary: How many devices and locations the change touches, directly and indirectly
+      x-forward-stability: unpublished
+      tags: [Snapshot Diffs]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The summary.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FileDiffSummary" }
+              example:
+                directChanges: { deviceCount: 2, locationIds: ["1"], linesAdded: 4, linesDeleted: 1 }
+                indirectChanges: { deviceCount: 5, locationIds: ["1", "3"] }
+
+  # --------------------------------------------------------------- webhooks ---
+  /webhooks:
+    get:
+      operationId: listWebhooks
+      summary: The org's webhooks and their last test results
+      x-forward-stability: unpublished
+      tags: [Webhooks]
+      responses:
+        "200":
+          description: The webhooks.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebhooksAndTestResults" }
+              example:
+                webhooks:
+                  - name: predict-pipeline
+                    url: https://example.invalid/hook
+                    disableSslValidation: false
+                    eventParams: { type: SNAPSHOT_READY, networkIds: ["115"] }
+                    enabled: true
+                testResults:
+                  predict-pipeline: { instant: 1757584800000 }
+    post:
+      operationId: createWebhook
+      summary: Create a webhook
+      description: >-
+        For SNAPSHOT_READY, eventParams.networkIds must be present; an empty
+        list means every network in the org, but omitting the key is refused
+        with a 400 that carries no message. Predicted snapshots fire
+        SNAPSHOT_READY too, which is what makes an event-driven Predict
+        pipeline possible. Needs OUTBOUND_CONNECTIONS on the deployment.
+      x-forward-stability: unpublished
+      tags: [Webhooks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Webhook" }
+            example:
+              name: predict-pipeline
+              url: https://example.invalid/hook
+              eventParams: { type: SNAPSHOT_READY, networkIds: ["115"] }
+      responses:
+        "201": { description: Created. }
+
+  /webhooks?action=test:
+    post:
+      operationId: testWebhookDefinition
+      summary: Send a test event to a webhook definition without saving it
+      x-forward-stability: unpublished
+      tags: [Webhooks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Webhook" }
+            example:
+              name: predict-pipeline
+              url: https://example.invalid/hook
+              eventParams: { type: SNAPSHOT_READY, networkIds: [] }
+      responses:
+        "200":
+          description: Whether the delivery succeeded.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebhookTestResult" }
+              example: { instant: 1757584800000 }
+
+  /webhooks/{webhookName}:
+    patch:
+      operationId: updateWebhook
+      summary: Change a webhook
+      description: >-
+        Every field is optional and omitted means unchanged. Changing the url,
+        SSL setting or credential re-tests the connection as part of the update.
+      x-forward-stability: unpublished
+      tags: [Webhooks]
+      parameters:
+        - { name: webhookName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WebhookPatch" }
+            example: { enabled: false }
+      responses:
+        "204": { description: Updated. }
+    delete:
+      operationId: deleteWebhook
+      summary: Delete a webhook
+      x-forward-stability: unpublished
+      tags: [Webhooks]
+      parameters:
+        - { name: webhookName, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted. }
+
+  /webhooks/{webhookName}?action=test:
+    post:
+      operationId: testWebhook
+      summary: Send a test event to a saved webhook
+      x-forward-stability: unpublished
+      tags: [Webhooks]
+      parameters:
+        - { name: webhookName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Whether the delivery succeeded.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebhookTestResult" }
+              example: { instant: 1757584800000, error: "connect timed out" }
+
+  /webhook-types/{eventType}?view=default-templates:
+    get:
+      operationId: getWebhookDefaultTemplates
+      summary: The default payload templates for an event type
+      x-forward-stability: unpublished
+      tags: [Webhooks]
+      parameters:
+        - { name: eventType, in: path, required: true, schema: { type: string, enum: [SNAPSHOT_READY, NQE_VERIFICATION_FAILURE, INTENT_VERIFICATION_FAILURE] } }
+      responses:
+        "200":
+          description: The templates.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/WebhookTemplate" }
+              example:
+                - { payloadFormat: JSON, template: "{...}" }
+
 components:
   schemas:
     RepositoryCommit:
@@ -790,3 +1842,502 @@ components:
         roles:
           $ref: "#/components/schemas/CurrentUserRoles"
         passwordSetAt: { type: string }
+
+    SubnetConnectivityDiff:
+      type: object
+      description: >-
+        How connectivity between subnets changed. Computed asynchronously, so an
+        early request can return counts of zero with `isPartialResult` true;
+        those zeros mean "not finished", not "nothing changed".
+      properties:
+        newlyConnectedSubnetPairs: { type: integer }
+        newlyConnectedImpactedLocations: { type: integer }
+        newlyConnectedDestinationSubnets: { type: integer }
+        newlyIsolatedSubnetPairs: { type: integer }
+        newlyIsolatedImpactedLocations: { type: integer }
+        newlyIsolatedDestinationSubnets: { type: integer }
+        modifiedSubnetPairs: { type: integer }
+        modifiedImpactedLocations: { type: integer }
+        evaluatedSubnetPairs:
+          type: integer
+          description: >-
+            How many pairs have been compared so far. Zero alongside a non-zero
+            `totalSubnetPairs` means the computation has not started.
+        totalSubnetPairs: { type: integer }
+        totalImpactedLocations: { type: integer }
+        isPartialResult:
+          type: boolean
+          description: True while the comparison is still being computed.
+
+    VulnerabilityDiffCounts:
+      type: object
+      description: >-
+        Vulnerability exposure introduced by the change. Fields beyond
+        `newCveCount` appear only on deployments licensed for vulnerability
+        analysis, so the model keeps them optional.
+      properties:
+        newCveCount: { type: integer }
+        newExposedVulnerableDevicesCount: { type: integer }
+
+    RoutingLoopDiffCount:
+      type: object
+      properties:
+        count: { type: integer }
+        complete:
+          type: boolean
+          description: >-
+            False when the search stopped early, so `count` is a lower bound
+            rather than a total.
+
+    ConfigValue:
+      type: object
+      description: >-
+        A single property and its value, keyed by the property name in lower
+        case. Read it with `forward_sdk.config_value`, which returns the value
+        whatever the key.
+      additionalProperties: true
+
+    NewChangeSet:
+      type: object
+      description: >-
+        The create body. No networkId: it comes from the path, and Forward
+        rejects unknown properties, so sending one fails with 400.
+      required: [name, snapshotId]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        snapshotId: { type: string, description: The base snapshot. }
+        tags:
+          type: array
+          items: { type: string }
+
+    ChangeSetPatch:
+      type: object
+      description: Fields to change. Omit a field to leave it alone.
+      properties:
+        name: { type: string }
+        description: { type: string }
+        snapshotId: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+
+    ChangeSetIds:
+      type: object
+      required: [changeSetIds]
+      properties:
+        changeSetIds:
+          type: array
+          items: { type: string }
+
+    ChangeSetsTagUpdate:
+      type: object
+      required: [changeSetIds, update]
+      properties:
+        changeSetIds:
+          type: array
+          items: { type: string }
+        update:
+          type: object
+          properties:
+            tags:
+              type: object
+              properties:
+                action: { type: string, enum: [ADD, REMOVE, REMOVE_ALL] }
+                names:
+                  type: array
+                  items: { type: string }
+
+    ChangeSetSummary:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        networkId: { type: string }
+        snapshotId: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+
+    DeviceChanges:
+      type: object
+      description: What a change set does to one device.
+      properties:
+        commands: { type: string, description: "Staged CLI text, when the change is CLI." }
+        hasConfig: { type: boolean }
+        hasSecurityRuleChanges: { type: boolean }
+
+    ChangeSet:
+      type: object
+      description: >-
+        A change set with its device changes. Attribution fields sit flat on
+        the object rather than nested.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        networkId: { type: string }
+        snapshotId: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+        deviceToChanges:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/DeviceChanges" }
+        createdById: { type: string }
+        createdBy: { type: string }
+        createdAt: { type: string }
+        updatedById: { type: string }
+        updatedBy: { type: string }
+        updatedAt: { type: string }
+
+    PredictedSnapshotRef:
+      type: object
+      properties:
+        id: { type: string }
+        creationInstant: { type: string }
+        networkId: { type: string }
+
+    ChangeSetInfo:
+      type: object
+      description: A change set as listed, with its predicted snapshots newest first.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        networkId: { type: string }
+        snapshotId: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+        modifiedDeviceCount: { type: integer }
+        predictedSnapshots:
+          type: array
+          items: { $ref: "#/components/schemas/PredictedSnapshotRef" }
+        createdById: { type: string }
+        createdBy: { type: string }
+        createdAt: { type: string }
+        updatedById: { type: string }
+        updatedBy: { type: string }
+        updatedAt: { type: string }
+
+    PredictedSnapshotMeta:
+      type: object
+      description: The snapshot Predict created. Created, not yet processed.
+      properties:
+        id: { type: string }
+        note: { type: string }
+        createdAt: { type: string }
+        processedAt: { type: string }
+        processingTrigger: { type: string }
+
+    ChangeSetDraft:
+      type: object
+      description: The staged changes. savedAt is epoch milliseconds, unlike every other timestamp.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        networkId: { type: string }
+        snapshotId: { type: string }
+        deviceToChanges:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/DeviceChanges" }
+        savedAt: { type: integer }
+        hiddenDevices:
+          type: array
+          items: { type: string }
+
+    ChangeSetDraftResponse:
+      type: object
+      properties:
+        draft:
+          allOf: [ { $ref: "#/components/schemas/ChangeSetDraft" } ]
+          description: Null when nothing is staged.
+
+    CommandValidationRequest:
+      type: object
+      required: [commands, cursorLineNum, cursorColumnNum]
+      properties:
+        commands: { type: string, description: "The command text, one command per line." }
+        cursorLineNum: { type: integer, description: 1-based. }
+        cursorColumnNum: { type: integer, description: 1-based. }
+
+    CommandValidationResponse:
+      type: object
+      properties:
+        commandErrors:
+          type: array
+          items: { type: object, additionalProperties: true }
+        suggestions:
+          type: array
+          items: { type: object, additionalProperties: true }
+        textMarks:
+          type: array
+          items: { type: object, additionalProperties: true }
+
+    ChangeSetCommit:
+      type: object
+      properties:
+        commitId: { type: string }
+        note: { type: string }
+        committedById: { type: string }
+        committedBy: { type: string }
+        committedAt: { type: string }
+
+    CommittedChangeSet:
+      type: object
+      description: A commit with the change set's device changes as of that commit, flattened together.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        networkId: { type: string }
+        snapshotId: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+        deviceToChanges:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/DeviceChanges" }
+        commitId: { type: string }
+        note: { type: string }
+        committedById: { type: string }
+        committedBy: { type: string }
+        committedAt: { type: string }
+        hiddenDevices:
+          type: array
+          items: { type: string }
+        createdById: { type: string }
+        createdAt: { type: string }
+        updatedById: { type: string }
+        updatedAt: { type: string }
+
+    NewChangeSetCheck:
+      type: object
+      required: [definition]
+      properties:
+        name: { type: string }
+        definition:
+          type: object
+          description: A check definition; checkType selects the kind.
+          additionalProperties: true
+
+    ChangeSetCheckResult:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        definition: { type: object, additionalProperties: true }
+        definedAt: { type: string }
+        status: { type: string }
+        executedAt: { type: string }
+        executionDurationMillis: { type: integer }
+        numViolations: { type: integer }
+        createdById: { type: string }
+        createdAt: { type: string }
+
+    ChangeSetCheckResults:
+      type: object
+      properties:
+        checks:
+          type: array
+          items: { $ref: "#/components/schemas/ChangeSetCheckResult" }
+
+    DiffCount:
+      type: object
+      description: A count, and whether the computation that produced it finished.
+      properties:
+        count: { type: integer }
+        complete:
+          type: boolean
+          description: False means count is a lower bound so far.
+
+    BidirectionalDiffCount:
+      type: object
+      properties:
+        warnings: { $ref: "#/components/schemas/DiffCount" }
+        improvements: { $ref: "#/components/schemas/DiffCount" }
+
+    VulnerabilityDiffCount:
+      type: object
+      properties:
+        cveCount: { type: integer }
+        exposedVulnerableDevicesCount: { type: integer }
+
+    BidirectionalVulnerabilityDiff:
+      type: object
+      properties:
+        warnings: { $ref: "#/components/schemas/VulnerabilityDiffCount" }
+        improvements: { $ref: "#/components/schemas/VulnerabilityDiffCount" }
+
+    FileDiffSummary:
+      type: object
+      properties:
+        directChanges:
+          type: object
+          properties:
+            deviceCount: { type: integer }
+            locationIds:
+              type: array
+              items: { type: string }
+            linesAdded: { type: integer }
+            linesDeleted: { type: integer }
+        indirectChanges:
+          type: object
+          properties:
+            deviceCount: { type: integer }
+            locationIds:
+              type: array
+              items: { type: string }
+
+    RulebaseDescriptor:
+      type: object
+      properties:
+        scopeId: { type: string }
+        rulebaseId: { type: string }
+        editable: { type: boolean }
+        displayName: { type: string }
+
+    SecurityRuleDefinition:
+      type: object
+      description: >-
+        A firewall rule as Forward models it. name is required and must not be
+        blank. The specification fields sit flat beside name, id and
+        description rather than nested. Read one from the diff and mirror it;
+        the full field list is address, user, application and service
+        specifications plus zones, an action and a schedule.
+      required: [name]
+      properties:
+        name: { type: string }
+        id: { type: string }
+        description: { type: string }
+        enabled: { type: boolean }
+        action: { type: string, enum: [DENY, DROP, PERMIT, RESET_CLIENT, RESET_CLIENT_AND_SERVER, RESET_SERVER] }
+        sourceZones:
+          type: array
+          items: { type: string }
+        destinationZones:
+          type: array
+          items: { type: string }
+      additionalProperties: true
+
+    ScopedSecurityRule:
+      type: object
+      properties:
+        scopeId: { type: string }
+        rulebaseId: { type: string }
+        rank: { type: integer }
+        definition: { $ref: "#/components/schemas/SecurityRuleDefinition" }
+        createdAt: { type: string }
+        lastModified: { type: string }
+        lastUsed: { type: string }
+        hitCount: { type: integer }
+
+    SecurityRuleDiffEntry:
+      type: object
+      properties:
+        diffType: { type: string, enum: [ADDED, DELETED, MODIFIED, UNCHANGED] }
+        a:
+          allOf: [ { $ref: "#/components/schemas/ScopedSecurityRule" } ]
+          description: The rule before. Absent when ADDED.
+        b:
+          allOf: [ { $ref: "#/components/schemas/ScopedSecurityRule" } ]
+          description: The rule after. Absent when DELETED.
+
+    SecurityRulesDiff:
+      type: object
+      properties:
+        rulebases:
+          type: array
+          items: { $ref: "#/components/schemas/RulebaseDescriptor" }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/SecurityRuleDiffEntry" }
+
+    NewSecurityRule:
+      type: object
+      required: [definition]
+      properties:
+        predecessor:
+          type: string
+          description: Insert after this rule id. Omit to insert at the top.
+        definition: { $ref: "#/components/schemas/SecurityRuleDefinition" }
+
+    SecurityRulePatch:
+      type: object
+      description: Exactly one of definition or predecessor.
+      properties:
+        definition: { $ref: "#/components/schemas/SecurityRuleDefinition" }
+        predecessor:
+          type: string
+          description: Move after this rule id; null moves to the top.
+
+    WebhookTemplate:
+      type: object
+      properties:
+        payloadFormat: { type: string, enum: [JSON, TEXT] }
+        template: { type: string }
+
+    WebhookEventParams:
+      type: object
+      description: >-
+        Selected by type. For SNAPSHOT_READY, networkIds is required; empty
+        means every network. The verification-failure types take maps of
+        network id to check directories instead.
+      required: [type]
+      properties:
+        type: { type: string, enum: [SNAPSHOT_READY, NQE_VERIFICATION_FAILURE, INTENT_VERIFICATION_FAILURE] }
+        networkIds:
+          type: array
+          items: { type: string }
+      additionalProperties: true
+
+    WebhookCredential:
+      type: object
+      description: password is accepted on input and never returned.
+      properties:
+        type: { type: string, enum: [BASIC_AUTH] }
+        username: { type: string }
+        password: { type: string }
+
+    Webhook:
+      type: object
+      required: [name, url, eventParams]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        url: { type: string }
+        disableSslValidation: { type: boolean }
+        eventParams: { $ref: "#/components/schemas/WebhookEventParams" }
+        credential: { $ref: "#/components/schemas/WebhookCredential" }
+        enabled: { type: boolean }
+        template: { $ref: "#/components/schemas/WebhookTemplate" }
+
+    WebhookPatch:
+      type: object
+      description: Every field optional; omitted means unchanged.
+      properties:
+        name: { type: string }
+        description: { type: string }
+        url: { type: string }
+        disableSslValidation: { type: boolean }
+        eventParams: { $ref: "#/components/schemas/WebhookEventParams" }
+        credential: { $ref: "#/components/schemas/WebhookCredential" }
+        enabled: { type: boolean }
+        template: { $ref: "#/components/schemas/WebhookTemplate" }
+
+    WebhookTestResult:
+      type: object
+      properties:
+        instant: { type: integer, description: Epoch milliseconds. }
+        error: { type: string, description: Absent when the test passed. }
+
+    WebhooksAndTestResults:
+      type: object
+      properties:
+        webhooks:
+          type: array
+          items: { $ref: "#/components/schemas/Webhook" }
+        testResults:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/WebhookTestResult" }

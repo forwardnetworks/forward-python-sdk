@@ -17,11 +17,13 @@ from forward_sdk._sync.services._generated.collection_schedules import (
     CollectionSchedulesService,
 )
 from forward_sdk._sync.services._generated.collector_tasks import CollectorTasksService
+from forward_sdk._sync.services._generated.configuration import ConfigurationService
 from forward_sdk._sync.services._generated.credentials import CredentialsService
 from forward_sdk._sync.services._generated.data_connectors import DataConnectorsService
 from forward_sdk._sync.services._generated.data_files import DataFilesService
 from forward_sdk._sync.services._generated.encryptors import EncryptorsService
 from forward_sdk._sync.services._generated.endpoint_profiles import EndpointProfilesService
+from forward_sdk._sync.services._generated.firewall_predict import FirewallPredictService
 from forward_sdk._sync.services._generated.internet_node import InternetNodeService
 from forward_sdk._sync.services._generated.intranet_nodes import IntranetNodesService
 from forward_sdk._sync.services._generated.jump_servers import JumpServersService
@@ -40,6 +42,7 @@ from forward_sdk._sync.services._generated.vulnerability_analysis import (
     VulnerabilityAnalysisService,
 )
 from forward_sdk._sync.services._generated.wan_circuits import WANCircuitsService
+from forward_sdk._sync.services._generated.webhooks import WebhooksService
 
 if TYPE_CHECKING:  # pragma: no cover
     from forward_sdk._sync.transport import Transport
@@ -50,11 +53,13 @@ __all__ = [
     "ClassicDevicesService",
     "CollectionSchedulesService",
     "CollectorTasksService",
+    "ConfigurationService",
     "CredentialsService",
     "DataConnectorsService",
     "DataFilesService",
     "EncryptorsService",
     "EndpointProfilesService",
+    "FirewallPredictService",
     "GeneratedServices",
     "InternetNodeService",
     "IntranetNodesService",
@@ -70,6 +75,7 @@ __all__ = [
     "UserAccountsService",
     "VulnerabilityAnalysisService",
     "WANCircuitsService",
+    "WebhooksService",
 ]
 
 
@@ -85,11 +91,13 @@ class GeneratedServices:
     classic_devices: ClassicDevicesService
     collection_schedules: CollectionSchedulesService
     collector_tasks: CollectorTasksService
+    configuration: ConfigurationService
     credentials: CredentialsService
     data_connectors: DataConnectorsService
     data_files: DataFilesService
     encryptors: EncryptorsService
     endpoint_profiles: EndpointProfilesService
+    firewall_predict: FirewallPredictService
     internet_node: InternetNodeService
     intranet_nodes: IntranetNodesService
     jump_servers: JumpServersService
@@ -104,6 +112,7 @@ class GeneratedServices:
     user_accounts: UserAccountsService
     vulnerability_analysis: VulnerabilityAnalysisService
     wan_circuits: WANCircuitsService
+    webhooks: WebhooksService
 
     def _attach_generated_services(self, transport: Transport) -> None:
         self.aliases = AliasesService(transport)
@@ -111,11 +120,13 @@ class GeneratedServices:
         self.classic_devices = ClassicDevicesService(transport)
         self.collection_schedules = CollectionSchedulesService(transport)
         self.collector_tasks = CollectorTasksService(transport)
+        self.configuration = ConfigurationService(transport)
         self.credentials = CredentialsService(transport)
         self.data_connectors = DataConnectorsService(transport)
         self.data_files = DataFilesService(transport)
         self.encryptors = EncryptorsService(transport)
         self.endpoint_profiles = EndpointProfilesService(transport)
+        self.firewall_predict = FirewallPredictService(transport)
         self.internet_node = InternetNodeService(transport)
         self.intranet_nodes = IntranetNodesService(transport)
         self.jump_servers = JumpServersService(transport)
@@ -130,6 +141,7 @@ class GeneratedServices:
         self.user_accounts = UserAccountsService(transport)
         self.vulnerability_analysis = VulnerabilityAnalysisService(transport)
         self.wan_circuits = WANCircuitsService(transport)
+        self.webhooks = WebhooksService(transport)
 
 
 #: API group name to the client attribute carrying its service.
@@ -139,11 +151,13 @@ SERVICE_TAGS: dict[str, str] = {
     "Classic Devices": "classic_devices",
     "Collection Schedules": "collection_schedules",
     "Collector Tasks": "collector_tasks",
+    "Configuration": "configuration",
     "Credentials": "credentials",
     "Data Connectors": "data_connectors",
     "Data Files": "data_files",
     "Encryptors": "encryptors",
     "Endpoint Profiles": "endpoint_profiles",
+    "Firewall Predict": "firewall_predict",
     "Internet Node": "internet_node",
     "Intranet Nodes": "intranet_nodes",
     "Jump Servers": "jump_servers",
@@ -158,4 +172,5 @@ SERVICE_TAGS: dict[str, str] = {
     "User Accounts": "user_accounts",
     "Vulnerability Analysis": "vulnerability_analysis",
     "WAN Circuits": "wan_circuits",
+    "Webhooks": "webhooks",
 }

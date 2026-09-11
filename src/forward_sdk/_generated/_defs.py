@@ -72,3 +72,32 @@ class OpDef:
     def __str__(self) -> str:
         query = "".join(f"?{k}" if v is None else f"?{k}={v}" for k, v in self.fixed_query[:1])
         return f"{self.method.upper()} {self.path}{query}"
+
+
+#: Tags whose service classes are written by hand rather than generated.
+#:
+#: One list, read by the service generator to know what to skip and by the
+#: coverage test to know what to check by operation id, so the two cannot
+#: disagree about which is which. Each entry says why it is hand-written.
+HAND_WRITTEN_TAGS: frozenset[str] = frozenset(
+    {
+        "Network Management",
+        "Network Snapshots",
+        "Network Devices",
+        "Device Tags",
+        "NQE",
+        "Current Version",
+        "NQE Repository",
+        "Snapshot Reachability",
+        # Answers arrive asynchronously, so this needs a chat handle with a
+        # poll loop rather than a method per endpoint.
+        "Forward AI",
+        # The connectivity comparison is computed asynchronously and an early
+        # read returns zeros that look like "nothing changed", so this needs a
+        # wait loop and a docstring about the ambiguous settled zero.
+        "Snapshot Diffs",
+        # Two routes take text/plain bodies, predict needs a wait for the
+        # snapshot it creates, and the workflow reads better as a handle.
+        "Change Sets",
+    }
+)

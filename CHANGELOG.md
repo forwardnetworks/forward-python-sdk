@@ -5,7 +5,45 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Forward Predict, as five new groups of unpublished operations: 50 in all,
+  described from Forward's server source and verified against a live instance
+  of the current build. Requested by the change-demo integration, which had
+  been reaching them through a raw request helper.
+
+  `client.change_sets` covers the rehearsal loop with a handle per change set:
+  create against a base snapshot, stage device commands as plain text, validate,
+  commit, `predict_and_wait()` for the processed predicted snapshot, checks, and
+  delete. `client.snapshot_diffs` compares two snapshots: subnet connectivity
+  with `wait_for_subnet_connectivity()` for the asynchronous computation,
+  vulnerability and routing-loop counts, their bidirectional views, a file
+  summary, and `counts()` for every per-area count at once.
+  `client.firewall_predict` holds the structured security-rule edits PAN-OS
+  needs, since CLI-driven Predict does not work there. `client.webhooks` and
+  `client.configuration` round it out, with `config_value()` to read a
+  configuration response whatever its key.
+
+  The traps a consumer met while working around these are encoded rather than
+  documented: `note` is required on predict and commit, the bulk delete key is
+  `changeSetIds`, the create body carries no `networkId` because Forward
+  rejects unknown properties, and the first connectivity read after a
+  prediction returns zeros that mean "not finished". See the new "Rehearsing a
+  change" page for the ones a signature cannot carry, including the global
+  configuration route reporting a default that the org route contradicts.
+
+  Two claims in the consumer's notes were wrong and are corrected here: the
+  create body must not carry `networkId`, and an omitted webhook network list
+  is a 400 rather than a server crash.
+
+- `HAND_WRITTEN_TAGS` is now one list, on the operation definitions module,
+  read by the service generator and the coverage test alike, so the two cannot
+  disagree about which groups are generated.
+
 ### Fixed
+
+- The unpublished-endpoints page said the NQE execution request's sort and
+  filter fields were absent from the published description. They are in it.
 
 - `nqe.repo.publish` no longer raises when nothing has changed. Forward
   terminates its rejection with a full stop, `User has no changes at the

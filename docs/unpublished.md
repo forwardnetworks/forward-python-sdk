@@ -51,14 +51,25 @@ operation table, so nothing lands here by accident.
 | Ask a follow-up | `POST /ai-chats/{id}/messages` | `conversation.ask()` |
 | Read the answers | `GET /ai-chats/{id}/messages` | `conversation.messages()` |
 | Export a transcript | `GET /ai-chats/{id}/transcript` | `conversation.transcript()` |
+| Change sets: create, list, tag, delete | `/networks/{id}/change-sets` and `?action=delete` | `client.change_sets` |
+| Change set: summary, update, delete | `/networks/{id}/change-sets/{id}` and `?view=summary` | `handle.summary()`, `update()`, `delete()` |
+| Stage, validate, discard device changes | `.../draft/devices/{name}/commands`, `.../commands?action=validate` | `handle.set_commands()`, `validate_commands()`, `discard_device()` |
+| Draft, commits, head | `.../draft`, `.../commits`, `.../commits/head` | `handle.draft()`, `commits()`, `head()` |
+| Commit | `POST .../commits?note=` | `handle.commit()` |
+| Predict | `POST .../change-sets/{id}?action=predict&note=` | `handle.predict()`, `predict_and_wait()` |
+| Predicted snapshots | `GET .../predicted-snapshots` | `handle.predicted_snapshots()` |
+| Checks: add, list, delete | `.../checks`, `.../checks/{id}` | `handle.add_check()`, `checks()`, `delete_check()` |
+| Firewall rules diff and edits | `.../devices/{name}/security-rules-diff`, `.../scopes/{s}/rulebases/{r}/security-rules` | `client.firewall_predict` |
+| Snapshot diffs | `/diffs/{a}/{b}/...` (connectivity, vulnerabilities, routing loops, per-area counts, file summary) | `client.snapshot_diffs` |
+| Webhooks | `/webhooks`, `/webhooks/{name}`, `?action=test`, `/webhook-types/{type}?view=default-templates` | `client.webhooks` |
+| Org and global configuration | `/config/{p}`, `/global-config/{p}`, `/orgs/{org}/config/{p}` | `client.configuration`, `config_value()` |
 
 The published `POST /snapshots/{id}?action=computeAdvancedReachability` does the
 same work as the reachability job without progress polling; prefer it when you
 do not need progress.
 
-Two fields on the NQE execution request, `sortKeys` and `columnFilters`, are
-also absent from the published description. They are sent only when you supply
-them.
+The Predict families are described in [Rehearsing a change](predict.md),
+including the traps a consumer met while working around their absence.
 
 The Forward AI endpoints carry a second condition beyond being unpublished: they
 require the `AI_ALLOWED` organization property, so most organizations are

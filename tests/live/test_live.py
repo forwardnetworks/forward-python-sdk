@@ -21,7 +21,7 @@ from collections.abc import Iterator
 
 import pytest
 
-from forward_sdk import ForwardClient, ForwardNotFoundError, QueryRef
+from forward_sdk import ForwardClient, ForwardNotFoundError, QueryRef, config_value
 from forward_sdk.errors import ForwardConfigurationError
 
 pytestmark = pytest.mark.live
@@ -206,6 +206,85 @@ class TestShapesWithNoCiBackstop:
         """
         user = client.user_accounts.get_current_user()
         assert user is not None
+
+
+class TestPredictFamilies:
+    """The unpublished Predict, diff, webhook and configuration endpoints.
+
+    Read-only. Each skips rather than fails when the instance has nothing to
+    read, so the backstop still runs on a bare deployment; what it asserts is
+    that the shapes the SDK declares are the shapes Forward sends.
+    """
+
+    def test_change_sets_list_with_typed_predictions(
+        self, client: ForwardClient, network_id: str
+    ) -> None:
+        sets = client.change_sets.list(network_id)
+        if not sets:
+            pytest.skip("network has no change sets")
+        first = sets[0]
+        assert first.id and first.id.startswith("CHG-")
+        assert first.snapshot_id
+        for predicted in first.predicted_snapshots or []:
+            assert predicted.id
+
+    def test_change_set_summary_and_commits(self, client: ForwardClient, network_id: str) -> None:
+        sets = client.change_sets.list(network_id)
+        if not sets:
+            pytest.skip("network has no change sets")
+        assert sets[0].id
+        handle = client.change_sets.handle(sets[0].id, network_id=network_id)
+        summary = handle.summary()
+        assert summary.snapshot_id == sets[0].snapshot_id
+        for commit in handle.commits():
+            assert len(commit.commit_id or "") == 40
+            for changes in (commit.device_to_changes or {}).values():
+                assert isinstance(changes.has_config, bool)
+
+    def test_diffs_between_a_base_and_its_prediction(
+        self, client: ForwardClient, network_id: str
+    ) -> None:
+        candidates = [cs for cs in client.change_sets.list(network_id) if cs.predicted_snapshots]
+        if not candidates:
+            pytest.skip("no change set has a predicted snapshot")
+        base = candidates[0].snapshot_id
+        predicted = candidates[0].predicted_snapshots or []
+        after = predicted[0].id if predicted else None
+        assert base and after
+        diffs = client.snapshot_diffs
+        connectivity = diffs.wait_for_subnet_connectivity(base, after, timeout=300)
+        assert not connectivity.is_partial_result
+        loops = diffs.routing_loops(base, after)
+        assert isinstance(loops.complete, bool)
+        counts = diffs.counts(base, after)
+        assert set(counts) == {
+            "devices",
+            "interfaces",
+            "topology",
+            "l2",
+            "acl",
+            "nat",
+            "arp",
+            "mac",
+        }
+
+    def test_webhooks_list_parses(self, client: ForwardClient) -> None:
+        listing = client.webhooks.list_webhooks()
+        for hook in listing.webhooks or []:
+            assert hook.name and hook.url
+            assert hook.event_params is not None
+
+    def test_config_routes_disagree_on_purpose(self, client: ForwardClient) -> None:
+        """The global route reports the default; the org route reports what governs.
+
+        Reading only the global route makes an enabled feature look disabled.
+        Both must parse; whether they agree depends on the org.
+        """
+        cfg = client.configuration
+        global_value = config_value(cfg.get_global_config_value(property="FIREWALL_PREDICT"))
+        org_value = config_value(cfg.get_org_config_value(property="FIREWALL_PREDICT"))
+        assert isinstance(global_value, bool)
+        assert isinstance(org_value, bool)
 
 
 def test_counters_record_the_traffic(client: ForwardClient) -> None:

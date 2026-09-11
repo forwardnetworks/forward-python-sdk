@@ -59,6 +59,7 @@ nav:
       - Overview: nqe/index.md
       - Query library: nqe/library.md
   - Snapshots: snapshots.md
+  - Rehearsing a change: predict.md
   - Forward AI: ai.md
   - API groups: services.md
   - Async: async.md

@@ -265,10 +265,36 @@ class AsyncNqeRepository(AsyncService):
 
         Returns Forward's report, including any errors the changes would
         introduce and which existing queries depend on them.
+
+        Paths with nothing staged are dropped and the dry run retried, exactly
+        as :meth:`commit` does, because a dry run is the same request with a
+        flag and Forward refuses it for the same reason. Without this, the
+        documented recommendation to dry-run before publishing and the no-op
+        case of publishing an unchanged corpus could not be used together:
+        the dry run raised where the commit would have reported. When every
+        path is unchanged there is nothing to validate, and an empty report is
+        returned rather than an error.
         """
-        payload = await self._send_json(
-            ops.commit(paths=paths, title="", dry_run=True, snapshot_id=snapshot_id)
-        )
+        requested = list(paths)
+        try:
+            payload = await self._send_json(
+                ops.commit(paths=requested, title="", dry_run=True, snapshot_id=snapshot_id)
+            )
+        except ForwardConflictError as exc:
+            unchanged = self._unchanged_paths(exc, requested)
+            if unchanged is None:
+                raise
+            remaining = [p for p in requested if p not in unchanged]
+            if not remaining:
+                return {}
+            try:
+                payload = await self._send_json(
+                    ops.commit(paths=remaining, title="", dry_run=True, snapshot_id=snapshot_id)
+                )
+            except ForwardConflictError as retry_exc:
+                if self._unchanged_paths(retry_exc, remaining) is None:
+                    raise
+                return {}
         return dict(payload or {})
 
     async def commit(self, paths: Sequence[str], *, title: str, body: str = "") -> CommitReport:

@@ -87,6 +87,45 @@ class TestReading:
         assert queries[0].query_id == "FQ_1"
         assert recorder.query_for()["path"] == ["/A"]
 
+    async def test_dry_run_drops_unchanged_paths_like_commit_does(self, recorder: Recorder) -> None:
+        """A dry run is the same request with a flag, refused for the same reason.
+
+        Without this, publish(dry_run_snapshot_id=...) raised on an unchanged
+        corpus where publish() alone reported it, so the documented
+        recommendation and the no-op case could not be used together.
+        """
+        recorder.add(
+            "POST",
+            COMMITS,
+            error_response(
+                409,
+                "User has no changes at the following paths: /A/q1, /A/q2.",
+                reason="INVALID_CHANGE_PATH",
+            ),
+        )
+        async with make_client(recorder) as client:
+            report = await client.nqe.repo.dry_run(["/A/q1", "/A/q2"], snapshot_id="663")
+
+        assert report == {}
+        assert recorder.count("POST", COMMITS) == 1
+
+    async def test_dry_run_retries_with_the_changed_subset(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            COMMITS,
+            error_response(
+                409,
+                "User has no changes at the following paths: /A/q1.",
+                reason="INVALID_CHANGE_PATH",
+            ),
+            json_response({"newErrors": []}),
+        )
+        async with make_client(recorder) as client:
+            report = await client.nqe.repo.dry_run(["/A/q1", "/A/q2"], snapshot_id="663")
+
+        assert report == {"newErrors": []}
+        assert recorder.body_for()["paths"] == ["/A/q2"]
+
     async def test_filtering_at_head_resolves_the_commit_first(self, recorder: Recorder) -> None:
         """Forward ignores path and source at head instead of refusing them.
 

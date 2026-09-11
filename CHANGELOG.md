@@ -3,6 +3,19 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Fixed
+
+- `nqe.repo.dry_run` drops paths with nothing staged and retries, exactly as
+  `commit` does. A dry run is the same request with a flag and Forward refuses
+  it for the same reason, so `publish(dry_run_snapshot_id=...)` raised on an
+  unchanged corpus where `publish()` alone reported it. The documented
+  recommendation to dry-run before publishing and the no-op case could not be
+  used together. Reported by the change-demo integration in its third report
+  and verified live: 23 unchanged paths with a dry run now publish as 23
+  skipped, nothing raised, no drafts left.
+
 ## [0.1.10] - 2026-09-11
 
 ### Added

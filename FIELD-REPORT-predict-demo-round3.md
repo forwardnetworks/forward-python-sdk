@@ -1,7 +1,7 @@
 # Forward SDK: after 0.1.10
 
-Written 2026-09-11 against **forward-sdk 0.1.10** and the from-source Forward instance
-(`1.0.0-260908-6aa8ff0c29ba`). Third and, on the evidence, last round.
+Written 2026-09-11 against **forward-sdk 0.1.10**, updated the same day for **0.1.11**, and the from-source Forward instance
+(`1.0.0-260908-6aa8ff0c29ba`). Third round.
 
 Round 2 listed five gaps. 0.1.9 and 0.1.10 closed every one of them, and the SDK's
 changelog was right to point out that two were already closed and one had never been
@@ -36,34 +36,58 @@ be a curl in a runbook.
 
 ---
 
-## Still open: `publish(dry_run_snapshot_id=…)` raises on an unchanged corpus
+## Closed in 0.1.11: `publish(dry_run_snapshot_id=…)` on an unchanged corpus
 
-`nqe.repo.commit` catches Forward's 409 `INVALID_CHANGE_PATH`, strips the unchanged
-paths and retries — verified: the full 23-query corpus, unchanged, publishes as
-`committed: 0, skipped: 23`, and leaves no drafts behind.
+`dry_run` now strips unchanged paths and retries, as `commit` does. Verified on 0.1.11:
+the full unchanged corpus with a dry run publishes as `committed: 0, skipped: 23`, no
+drafts left. Same-day turnaround.
 
-But `publish` calls `dry_run` *before* `commit` when `dry_run_snapshot_id` is given, and
-`dry_run` is the same commit request with `dryRun=true`. Forward answers it with the
-same 409, and `dry_run` does not have the handling. So:
+## Open in 0.1.11: `publish` refuses every clean dry run of a *changed* query
 
+Found while verifying the fix above, and it is older than the fix — the line dates from
+the NQE layer's first commit.
+
+`publish` decides whether the dry run found errors with:
+
+```python
+errors = report.get("newErrors") or []
+if errors:
+    raise ForwardConflictError(f"... would introduce {len(errors)} new error(s) ...")
 ```
-publish(files, title=…)                              -> CommitReport(skipped_paths=23)   ok
-publish(files, title=…, dry_run_snapshot_id="663")   -> ForwardConflictError 409         raises
-```
 
-The docstring recommends the dry run, and it is the right recommendation — it is what
-catches a query that no longer compiles before it becomes a check that silently errors.
-The recommended path and the no-op path cannot currently be used together.
+But `newErrors` is `Map<QueryPath, Set<Diagnostic>>` (`CommitDryRunInfo.java`), keyed
+by **every path in the dry run**, with an empty set for a path that compiles. So a
+non-empty map means "the dry run looked at something", and `len(errors)` is the number
+of paths, not errors. Verified live: one query edited by adding a trailing comment,
+`dry_run` returns `{"newErrors": {"/ChangeAssurance/hygiene_interface_descriptions": []}}`,
+and `publish(..., dry_run_snapshot_id="664")` raises "publishing 1 queries would
+introduce 1 new error(s); nothing was committed".
 
-**Ask:** apply the same unchanged-path stripping in `dry_run` (or have `publish` compute
-the changed set once, before both). `discard_on_failure` does clean up after the raise —
-drafts were 0 before and after — so nothing is left broken, it just fails.
+The consequence is that the recommended path — dry run before commit — cannot publish
+a changed query at all. The unchanged case works only because there is nothing to dry
+run.
 
-**How we are handling it:** `publish_nqe_corpus.py` keeps comparing `repo.source(path)`
-against the local text and submits only what differs, with the dry run. It is exact and
-it makes the no-change case zero writes, so it would stay even after the fix.
+Two more things about the shape, from Forward's commit dialog
+(`NqeCommitModal.svelte`), which is the behaviour to mirror:
 
----
+- A diagnostic carries `severity`, `ERROR` or `WARNING`. The dialog disables Commit
+  only when there is at least one `ERROR`; warnings turn the button into "Commit
+  anyway". The Java comment on `newErrors` says "errors (or warnings)". A warning-only
+  dry run should publish, or at least be distinguishable.
+- The dialog also treats "snapshot not processed" from the dry run as "cannot check",
+  and offers Commit anyway rather than failing.
+
+**Ask:** `errors = {p: [d for d in ds if d["severity"] == "ERROR"] for p, ds in
+report["newErrors"].items()}`, raise only if any list is non-empty, and put the paths
+and messages in the exception — Forward's diagnostics are good ("Mismatched input
+'this'. Reminder: record fields are comma-separated") and are the thing the caller
+needs to see.
+
+**How we are handling it:** `publish_nqe_corpus.py` carries `publish_checked()` —
+stage, dry run, count ERROR diagnostics per path, commit, discard on any failure —
+which is `publish` with the check done as the dialog does it. Verified: a clean edit
+commits, a broken one is refused quoting Forward's diagnostic, no drafts survive a
+refusal. It collapses back to one `publish` call when the fix lands.
 
 ## For the record
 

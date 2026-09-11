@@ -535,6 +535,14 @@ class TestPublishing:
                 await client.nqe.repo.commit(["/A"], title="t")
 
     async def test_dry_run_failure_prevents_the_commit(self, recorder: Recorder) -> None:
+        """The dry-run result is a map of every path examined to its diagnostics.
+
+        This fixture is the shape Forward sent on a live instance, recorded
+        rather than written from the parser's assumption. The earlier fixture
+        was a list, which is what the parser believed, and the two agreed with
+        each other while both were wrong: a clean change came back as a map
+        with an empty list, which read as one error.
+        """
         recorder.add("GET", CHANGES, json_response(NO_DRAFTS))
         recorder.add("GET", QUERIES, json_response({"queries": []}))
         recorder.add("POST", CHANGES, json_response({}))
@@ -542,19 +550,84 @@ class TestPublishing:
         recorder.add(
             "POST",
             COMMITS,
-            json_response({"newErrors": [{"message": "query no longer compiles"}]}),
+            json_response(
+                {
+                    "newErrors": {
+                        "/A": [
+                            {
+                                "severity": "ERROR",
+                                "message": (
+                                    "Mismatched input 'this'. "
+                                    "Reminder: record fields are comma-separated."
+                                ),
+                                "location": {"start": {"line": 3, "column": 1}},
+                            }
+                        ]
+                    },
+                    "uses": [],
+                }
+            ),
         )
 
         async with make_client(recorder) as client:
-            with pytest.raises(ForwardConflictError, match="new error"):
+            with pytest.raises(ForwardConflictError, match="Mismatched input") as caught:
                 await client.nqe.repo.publish({"/A": "broken"}, title="t", dry_run_snapshot_id="9")
 
+        assert "1 error" in str(caught.value)
+        assert "/A" in str(caught.value)
         dry_run = next(
             r for r in recorder.requests if r.url.path == COMMITS and r.url.params.get("dryRun")
         )
-        assert dry_run.url.params["snapshotId"] == "9"
-        # The failed attempt must not leave drafts staged behind.
-        assert recorder.count("DELETE", CHANGES) == 1
+        assert dry_run is not None
+        assert recorder.count("DELETE", CHANGES) == 1, "the draft is discarded on refusal"
+
+    async def test_a_clean_dry_run_commits(self, recorder: Recorder) -> None:
+        """A changed query that compiles: the map has the path with no diagnostics.
+
+        This is the case that could not publish at all before, because the
+        non-empty map was read as an error count.
+        """
+        recorder.add("GET", CHANGES, json_response(NO_DRAFTS))
+        recorder.add("GET", QUERIES, json_response({"queries": []}))
+        recorder.add("POST", CHANGES, json_response({}))
+        recorder.add(
+            "POST",
+            COMMITS,
+            json_response({"newErrors": {"/A": []}, "uses": []}),
+            json_response({}),
+        )
+        recorder.add("GET", HEAD, json_response({"id": "a" * 40}))
+        async with make_client(recorder) as client:
+            report = await client.nqe.repo.publish(
+                {"/A": "clean"}, title="t", dry_run_snapshot_id="9"
+            )
+
+        assert report.committed_paths == ("/A",)
+        assert report.warnings == ()
+        assert recorder.count("POST", COMMITS) == 2
+
+    async def test_warnings_do_not_block_but_are_reported(self, recorder: Recorder) -> None:
+        """Forward's dialog offers "Commit anyway" on warnings; so does this."""
+        recorder.add("GET", CHANGES, json_response(NO_DRAFTS))
+        recorder.add("GET", QUERIES, json_response({"queries": []}))
+        recorder.add("POST", CHANGES, json_response({}))
+        recorder.add(
+            "POST",
+            COMMITS,
+            json_response(
+                {"newErrors": {"/A": [{"severity": "WARNING", "message": "unused variable x"}]}}
+            ),
+            json_response({}),
+        )
+        recorder.add("GET", HEAD, json_response({"id": "a" * 40}))
+        async with make_client(recorder) as client:
+            report = await client.nqe.repo.publish(
+                {"/A": "fine"}, title="t", dry_run_snapshot_id="9"
+            )
+
+        assert report.committed_paths == ("/A",)
+        assert [w.message for w in report.warnings] == ["unused variable x"]
+        assert not report.warnings[0].is_error
 
     async def test_staging_failure_discards_earlier_drafts(self, recorder: Recorder) -> None:
         recorder.add("GET", CHANGES, json_response(NO_DRAFTS))

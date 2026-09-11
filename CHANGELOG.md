@@ -5,6 +5,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `nqe.repo.publish` with a dry run refused every clean change. Forward's dry
+  run returns `newErrors` as a map from every path examined to that path's
+  diagnostics, and a path that compiles maps to an empty list; the SDK read the
+  map's size as an error count, so a changed query that compiled was refused as
+  "1 new error". The recommended path, dry run before commit, could therefore
+  not publish a changed query at all. Older than any of the reports: the line
+  dates from the NQE layer's first commit, and its test fixture was a list, the
+  shape the parser believed, so the two agreed while both were wrong.
+
+  Diagnostics are now read by severity, as Forward's own commit dialog reads
+  them: an `ERROR` refuses the publish and puts Forward's message and the path
+  in the exception, since diagnostics like "Mismatched input 'this'. Reminder:
+  record fields are comma-separated." are what the caller needs to see; a
+  `WARNING` does not block and is returned on `CommitReport.warnings`. Verified
+  live: a broken edit is refused quoting the diagnostic with no draft left and
+  the library unchanged. Reported by the change-demo integration in its third
+  report, found while verifying the previous fix.
+
 ### Added
 
 - `devices.upsert_classic()`, which runs Forward's batch upsert and then reads

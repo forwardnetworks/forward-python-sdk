@@ -141,14 +141,72 @@ class DraftChange:
 
 
 @dataclass(frozen=True, slots=True)
+class Diagnostic:
+    """One thing Forward's dry run found wrong, or worth a warning, in a query.
+
+    Attributes:
+        path: The library path of the query.
+        severity: ``ERROR`` or ``WARNING``. Errors block a commit; warnings do
+            not, which is how Forward's own commit dialog treats them.
+        message: Forward's explanation, such as "Mismatched input 'this'.
+            Reminder: record fields are comma-separated."
+        location: Where in the source, as Forward reports it, when it does.
+    """
+
+    path: str
+    severity: str
+    message: str
+    location: Mapping[str, Any] | None = None
+
+    @property
+    def is_error(self) -> bool:
+        return self.severity.upper() == "ERROR"
+
+
+def diagnostics_of(report: Mapping[str, Any]) -> tuple[Diagnostic, ...]:
+    """Flatten a dry run's ``newErrors`` into diagnostics.
+
+    ``newErrors`` is a map from every path the dry run examined to that path's
+    diagnostics, and a path that compiles maps to an empty list. So a non-empty
+    map means "the dry run looked at something", not "something is wrong", and
+    the count that matters is of diagnostics with severity ``ERROR``. Reading
+    the map's size as an error count refused every clean change.
+    """
+    found: list[Diagnostic] = []
+    raw = report.get("newErrors") or {}
+    if not isinstance(raw, Mapping):
+        return ()
+    for path, items in raw.items():
+        for item in items or ():
+            if not isinstance(item, Mapping):
+                continue
+            found.append(
+                Diagnostic(
+                    path=str(path),
+                    severity=str(item.get("severity") or "ERROR"),
+                    message=str(item.get("message") or ""),
+                    location=item.get("location"),
+                )
+            )
+    return tuple(found)
+
+
+@dataclass(frozen=True, slots=True)
 class CommitReport:
-    """The outcome of publishing queries."""
+    """The outcome of publishing queries.
+
+    Attributes:
+        warnings: Diagnostics of severity ``WARNING`` the dry run raised. They
+            did not block the commit, matching Forward's dialog, but a caller
+            publishing on someone's behalf may want to show them.
+    """
 
     committed_paths: tuple[str, ...] = ()
     skipped_paths: tuple[str, ...] = ()
     commit_id: str | None = None
     dry_run: bool = False
     new_errors: tuple[Any, ...] = field(default_factory=tuple)
+    warnings: tuple[Diagnostic, ...] = ()
 
     @property
     def changed(self) -> bool:

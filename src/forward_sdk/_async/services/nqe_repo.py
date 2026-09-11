@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from typing import Any
 
 from forward_sdk._async.services._base import AsyncService
@@ -28,8 +29,10 @@ from forward_sdk.nqe.repository import (
     INVALID_CHANGE_PATH,
     NO_CHANGES_PREFIX,
     CommitReport,
+    Diagnostic,
     DraftChange,
     RepositoryQuery,
+    diagnostics_of,
     message_of,
     optional_str,
     paths_without_changes,
@@ -424,17 +427,27 @@ class AsyncNqeRepository(AsyncService):
                     )
                 staged.append(path)
 
+            warnings: tuple[Diagnostic, ...] = ()
             if dry_run_snapshot_id is not None:
                 report = await self.dry_run(staged, snapshot_id=dry_run_snapshot_id)
-                errors = report.get("newErrors") or []
+                found = diagnostics_of(report)
+                errors = [d for d in found if d.is_error]
+                warnings = tuple(d for d in found if not d.is_error)
                 if errors:
+                    # Forward's diagnostics are good and are what the caller
+                    # needs to see, so they go in the message, not just on an
+                    # attribute nobody reads from a log line.
+                    detail = "; ".join(f"{d.path}: {d.message}" for d in errors[:5])
+                    more = f", and {len(errors) - 5} more" if len(errors) > 5 else ""
                     raise ForwardConflictError(
-                        f"publishing {len(staged)} queries would introduce "
-                        f"{len(errors)} new error(s); nothing was committed",
+                        f"publishing would introduce {len(errors)} error(s) in "
+                        f"{len({d.path for d in errors})} quer(y/ies); nothing was "
+                        f"committed. {detail}{more}",
                         status=409,
                     )
 
-            return await self.commit(staged, title=title, body=body)
+            result = await self.commit(staged, title=title, body=body)
+            return replace(result, warnings=warnings) if warnings else result
         except Exception:
             if discard_on_failure:
                 await self._discard_quietly([*staged, *created])

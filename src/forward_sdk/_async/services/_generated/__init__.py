@@ -14,6 +14,7 @@ from forward_sdk._async.services._generated.change_set_directories import (
 )
 from forward_sdk._async.services._generated.checks import AsyncChecksService
 from forward_sdk._async.services._generated.classic_devices import AsyncClassicDevicesService
+from forward_sdk._async.services._generated.cloud_accounts import AsyncCloudAccountsService
 from forward_sdk._async.services._generated.collection_schedules import (
     AsyncCollectionSchedulesService,
 )
@@ -60,6 +61,7 @@ __all__ = [
     "AsyncChangeSetDirectoriesService",
     "AsyncChecksService",
     "AsyncClassicDevicesService",
+    "AsyncCloudAccountsService",
     "AsyncCollectionSchedulesService",
     "AsyncCollectorBindingService",
     "AsyncCollectorTasksService",
@@ -104,6 +106,7 @@ class AsyncGeneratedServices:
     change_set_directories: AsyncChangeSetDirectoriesService
     checks: AsyncChecksService
     classic_devices: AsyncClassicDevicesService
+    cloud_accounts: AsyncCloudAccountsService
     collection_schedules: AsyncCollectionSchedulesService
     collector_binding: AsyncCollectorBindingService
     collector_tasks: AsyncCollectorTasksService
@@ -139,6 +142,7 @@ class AsyncGeneratedServices:
         self.change_set_directories = AsyncChangeSetDirectoriesService(transport)
         self.checks = AsyncChecksService(transport)
         self.classic_devices = AsyncClassicDevicesService(transport)
+        self.cloud_accounts = AsyncCloudAccountsService(transport)
         self.collection_schedules = AsyncCollectionSchedulesService(transport)
         self.collector_binding = AsyncCollectorBindingService(transport)
         self.collector_tasks = AsyncCollectorTasksService(transport)
@@ -176,6 +180,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Change Set Directories": "change_set_directories",
     "Checks": "checks",
     "Classic Devices": "classic_devices",
+    "Cloud Accounts": "cloud_accounts",
     "Collection Schedules": "collection_schedules",
     "Collector Binding": "collector_binding",
     "Collector Tasks": "collector_tasks",

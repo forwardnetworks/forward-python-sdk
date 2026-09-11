@@ -12,6 +12,7 @@ from forward_sdk._async.services.change_sets import AsyncChangeSetsService
 from forward_sdk._async.services.device_tags import AsyncDeviceTagsService
 from forward_sdk._async.services.devices import AsyncDevicesService
 from forward_sdk._async.services.diffs import AsyncSnapshotDiffsService
+from forward_sdk._async.services.events import AsyncUserEventsService
 from forward_sdk._async.services.networks import AsyncNetworksService
 from forward_sdk._async.services.nqe import AsyncNqeService
 from forward_sdk._async.services.snapshots import AsyncSnapshotsService
@@ -112,6 +113,7 @@ class AsyncForwardClient(AsyncGeneratedServices):
         self.ai = AsyncAiService(self._transport)
         self.snapshot_diffs = AsyncSnapshotDiffsService(self._transport)
         self.change_sets = AsyncChangeSetsService(self._transport, self.snapshots)
+        self.user_events = AsyncUserEventsService(self._transport)
 
         # The rest of the API, one attribute per group; see scripts/gen_services.py.
         self._attach_generated_services(self._transport)

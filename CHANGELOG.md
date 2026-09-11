@@ -3,6 +3,27 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Added
+
+- `client.user_events.stream()`, the calling user's live events as Server-Sent
+  Events, parsed into typed `UserEvent` values with keepalives consumed. It is
+  the only source of per-device collection progress; polling a collector task
+  gives the task, not each device. Verified live: a change set created and
+  deleted while subscribed arrived as `CHANGE_SET_DELETED` with its id. The
+  parser is pure and shared by both clients.
+- `client.cloud_accounts`: seventeen operations for cloud collection sources,
+  list, create, update, delete, credential rotation, sub-account discovery
+  before and after creation, connectivity tests, the AWS assume-role external
+  id, and the region and environment lookups. Bodies are selected by cloud
+  type and the per-type fields are documented on each schema; secrets are
+  accepted on input and never returned. Verified live for the reads.
+
+That completes the change-demo integration's second report. Everything Forward
+serves for Predict, credentials, collectors, cloud sources and live events is
+now an SDK call.
+
 ## [0.1.9] - 2026-09-11
 
 ### Added

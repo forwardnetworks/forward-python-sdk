@@ -2864,6 +2864,317 @@ paths:
       responses:
         "200": { description: Unbound. No body. }
 
+  # ---------------------------------------------------------- cloud accounts ---
+  # Cloud collection sources. Every request body is selected by its type:
+  # AWS, AZURE, GCP, IBM_CLOUD or ALKIRA, with per-type fields beside the
+  # common ones. Secrets are accepted on input and never returned.
+  /networks/{networkId}/cloudAccounts:
+    get:
+      operationId: listCloudAccounts
+      summary: A network's cloud accounts, with their test results
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The accounts.
+          content:
+            application/json:
+              schema: 
+                type: array
+                items: { $ref: "#/components/schemas/CloudAccountWithMeta" }
+              example: [ { type: AWS, name: prod-aws, collect: true, regions: { us-east-1: { testInstant: 1757584800000, error: NONE } }, numVirtualizedDevices: 12 } ]
+    post:
+      operationId: createCloudAccount
+      summary: Add a cloud account
+      description: Needs both MANAGE_COLLECTION_SOURCES and EDIT_DEVICE_CREDENTIALS.
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewCloudAccount" }
+            example: { type: AWS, name: prod-aws, collect: true, roleArn: "arn:aws:iam::123456789012:role/forward", regions: { us-east-1: "2026-09-11T10:00:00Z" } }
+      responses:
+        "200":
+          description: The account.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CloudAccount" }
+              example: { type: AWS, name: prod-aws, collect: true, regions: { us-east-1: null } }
+
+  /networks/{networkId}/cloudAccounts?view=newlyDiscovered:
+    get:
+      operationId: listNewlyDiscoveredCloudAccounts
+      summary: Sub-accounts discovery found that are not yet configured, per account
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiscoveredAccountsByAccount" }
+              example: { prod-aws: [ { id: "210987654321", name: staging } ] }
+
+  /networks/{networkId}/cloudAccounts/{accountName}:
+    patch:
+      operationId: updateCloudAccount
+      summary: Change a cloud account's settings
+      description: Every field optional and omitted means unchanged. Credentials cannot be changed here; use the credential operation.
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: accountName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CloudAccountPatch" }
+            example: { type: AWS, collect: false }
+      responses:
+        "200":
+          description: The account.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CloudAccount" }
+              example: { type: AWS, name: prod-aws, collect: false }
+    delete:
+      operationId: deleteCloudAccount
+      summary: Remove a cloud account
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: accountName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Removed. Empty object. }
+
+  /networks/{networkId}/cloudAccounts/{accountName}/credential:
+    get:
+      operationId: getCloudAccountCredential
+      summary: The non-secret part of an account's credential
+      description: >-
+        What comes back depends on the type: a role ARN for AWS, a client id and
+        tenant for Azure, a username for others, and 404 for GCP or when there
+        is none. Secrets are never included.
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: accountName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+              example: { roleArn: "arn:aws:iam::123456789012:role/forward" }
+    post:
+      operationId: setCloudAccountCredential
+      summary: Replace an account's credential
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: accountName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CloudAccountCredential" }
+            example: { type: AWS, roleArn: "arn:aws:iam::123456789012:role/forward" }
+      responses:
+        "200":
+          description: The account.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CloudAccount" }
+              example: { type: AWS, name: prod-aws, collect: true }
+
+  /networks/{networkId}/cloudAccounts/{accountName}/discovery:
+    post:
+      operationId: discoverCloudSubAccounts
+      summary: Discover the sub-accounts, projects or subscriptions reachable from an existing account
+      description: Long-polls until discovery finishes.
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: accountName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CloudExistingAccountDiscovery" }
+            example: { type: GCP, projectIds: [my-project] }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CloudAccountDiscoveryResult" }
+              example: { error: NONE, discoveredEntities: [ { id: "210987654321", name: staging } ] }
+
+  /networks/{networkId}/cloudAccountDiscovery:
+    post:
+      operationId: discoverCloudAccounts
+      summary: Discover accounts reachable with a credential, before creating one
+      description: Long-polls until discovery finishes.
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CloudAccountDiscovery" }
+            example: { type: AZURE, clientId: app-id, password: secret, tenant: tenant-id, environment: AZURE }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CloudAccountDiscoveryResult" }
+              example: { error: NONE, discoveredEntities: [ { id: sub-1, name: Production } ] }
+
+  /networks/{networkId}/cloudAccounts/test:
+    post:
+      operationId: testCloudConnectivity
+      summary: Test connectivity with a credential, before creating an account
+      description: Returns nothing; the result arrives on the user event stream as CLOUD_CONNECTIVITY_TEST_RESULT.
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CloudConnectivityTest" }
+            example: { type: AWS, id: my-test, roleArn: "arn:aws:iam::123456789012:role/forward", regions: [us-east-1] }
+      responses:
+        "200": { description: Started. Empty object. }
+
+  /networks/{networkId}/cloudAccounts/{accountName}/test:
+    post:
+      operationId: testCloudAccountConnectivity
+      summary: Test an existing account's connectivity
+      description: Returns nothing; the result arrives on the user event stream as CLOUD_CONNECTIVITY_TEST_RESULT.
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: accountName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CloudAccountConnectivityTest" }
+            example: { type: AWS, regions: [us-east-1] }
+      responses:
+        "200": { description: Started. Empty object. }
+
+  /networks/{networkId}/cloudAccounts/aws/assumeRole/externalId:
+    get:
+      operationId: getAwsAssumeRoleExternalId
+      summary: The external id to put in an AWS assume-role trust policy
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AwsExternalId" }
+              example: { externalId: "fwd-4c1f9a" }
+
+  /cloud/aws-regions:
+    get:
+      operationId: listAwsRegions
+      summary: AWS region ids and display names
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: { type: string } }
+              example: { us-east-1: "US East (N. Virginia)" }
+
+  /cloud/gcp-regions:
+    get:
+      operationId: listGcpRegions
+      summary: GCP region ids and display names
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: { type: string } }
+              example: { us-central1: "Iowa" }
+
+  /cloud/ibm-regions:
+    get:
+      operationId: listIbmRegions
+      summary: IBM Cloud region ids and display names
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: { type: string } }
+              example: { us-south: "Dallas" }
+
+  /cloud/azure-environments:
+    get:
+      operationId: listAzureEnvironments
+      summary: Azure environment ids and display names
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: { type: string } }
+              example: { AZURE: "Azure", AZURE_US_GOVERNMENT: "Azure US Government" }
+
+  # ------------------------------------------------------- user event stream ---
+  /users/current/events:
+    get:
+      operationId: streamUserEvents
+      summary: Live events for the calling user, as Server-Sent Events
+      description: >-
+        A never-ending stream. Each message is an event name and a JSON data
+        line; a comment line ":ping" arrives every few seconds as a keepalive.
+        Carries per-device collection progress, snapshot processing stages,
+        change-set updates and more. See the events service.
+      x-forward-stability: unpublished
+      x-streaming: true
+      tags: [User Events]
+      responses:
+        "200":
+          description: The event stream.
+          content:
+            text/event-stream:
+              schema: { type: string }
+
 components:
   schemas:
     RepositoryCommit:
@@ -4425,3 +4736,156 @@ components:
       required: [username]
       properties:
         username: { type: string, description: The collector account's username. }
+
+    CloudTestResult:
+      type: object
+      properties:
+        testInstant: { type: integer, description: Epoch milliseconds. }
+        error: { type: string, description: A collection error name; NONE on success. }
+
+    CloudAccount:
+      type: object
+      description: >-
+        Common fields, with per-type fields beside them: AWS regions and
+        assume-role settings, Azure tenant and subscriptions, GCP projects and
+        regions, IBM accounts and regions, Alkira URL. Secrets and credential
+        ids are never included.
+      required: [type, name]
+      properties:
+        type: { type: string, enum: [AWS, AZURE, GCP, IBM_CLOUD, ALKIRA] }
+        name: { type: string }
+        collect: { type: boolean }
+        proxyServerId: { type: string }
+        collectorId: { type: string }
+        concurrency: { type: integer }
+        connectionTimeoutSeconds: { type: integer }
+        requestTimeoutSeconds: { type: integer }
+      additionalProperties: true
+
+    CloudAccountWithMeta:
+      allOf:
+        - { $ref: "#/components/schemas/CloudAccount" }
+        - type: object
+          properties:
+            numVirtualizedDevices: { type: integer }
+
+    NewCloudAccount:
+      type: object
+      description: >-
+        Selected by type. Common: name, collect, collectorId, proxyServerId,
+        concurrency and timeouts. AWS: regions as a map of region to test
+        instant, plus username and password, or roleArn, or assumeRoleInfos.
+        AZURE: clientId, password, tenant, environment, testInstants per
+        subscription. GCP: clientId, clientEmail, privateKeyId, privateKey,
+        regions, projectIds or discoveredProjectIds. IBM_CLOUD: apiKey,
+        regions, optional accountIds. ALKIRA: cloudUrl, apiKeyId, testInstant.
+      required: [type, name]
+      properties:
+        type: { type: string, enum: [AWS, AZURE, GCP, IBM_CLOUD, ALKIRA] }
+        name: { type: string }
+        collect: { type: boolean }
+        collectorId: { type: string }
+        proxyServerId: { type: string }
+        concurrency: { type: integer }
+        connectionTimeoutSeconds: { type: integer }
+        requestTimeoutSeconds: { type: integer }
+      additionalProperties: true
+
+    CloudAccountPatch:
+      type: object
+      description: Selected by type. Every field optional; omitted means unchanged. Credentials cannot be changed here.
+      required: [type]
+      properties:
+        type: { type: string, enum: [AWS, AZURE, GCP, IBM_CLOUD, ALKIRA] }
+        name: { type: string }
+        collect: { type: boolean }
+        collectorId: { type: string }
+        proxyServerId: { type: string }
+        concurrency: { type: integer }
+        connectionTimeoutSeconds: { type: integer }
+        requestTimeoutSeconds: { type: integer }
+      additionalProperties: true
+
+    CloudAccountCredential:
+      type: object
+      description: >-
+        Selected by type; no ALKIRA. AWS: username and password, or roleArn.
+        AZURE: clientId, password, tenant. GCP: clientId, clientEmail,
+        privateKeyId, privateKey. IBM_CLOUD: apiKey.
+      required: [type]
+      properties:
+        type: { type: string, enum: [AWS, AZURE, GCP, IBM_CLOUD] }
+      additionalProperties: true
+
+    CloudAccountDiscovery:
+      type: object
+      description: >-
+        A credential to discover accounts with, selected by type; no ALKIRA.
+        The same secret fields as the credential body, plus optional
+        collectorId, proxyServerId, concurrency and timeouts.
+      required: [type]
+      properties:
+        type: { type: string, enum: [AWS, AZURE, GCP, IBM_CLOUD] }
+      additionalProperties: true
+
+    CloudExistingAccountDiscovery:
+      type: object
+      description: Only GCP takes a field, projectIds.
+      properties:
+        type: { type: string, enum: [AWS, AZURE, GCP] }
+        projectIds: { type: array, items: { type: string } }
+      additionalProperties: true
+
+    DiscoveredEntity:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        agency: { type: string }
+        mission: { type: string }
+        roles: { type: array, items: { type: string } }
+        errorMsg: { type: string }
+
+    CloudAccountDiscoveryResult:
+      type: object
+      properties:
+        error: { type: string, description: A collection error name; NONE on success. }
+        discoveredEntities:
+          type: array
+          items: { $ref: "#/components/schemas/DiscoveredEntity" }
+
+    DiscoveredAccountsByAccount:
+      type: object
+      description: Configured account name to the sub-accounts found beneath it.
+      additionalProperties:
+        type: array
+        items:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+
+    CloudConnectivityTest:
+      type: object
+      description: >-
+        Selected by type. id is a name you choose for the test; the result
+        arrives on the event stream under it. The per-type fields match the
+        create body, with regions as a list rather than a map.
+      required: [type, id]
+      properties:
+        type: { type: string, enum: [AWS, AZURE, GCP, IBM_CLOUD, ALKIRA] }
+        id: { type: string }
+      additionalProperties: true
+
+    CloudAccountConnectivityTest:
+      type: object
+      description: Selected by type. Regions to test as a list, and optional overrides for collector, proxy and timeouts.
+      properties:
+        type: { type: string, enum: [AWS, AZURE, GCP, IBM_CLOUD] }
+        regions: { type: array, items: { type: string } }
+      additionalProperties: true
+
+    AwsExternalId:
+      type: object
+      properties:
+        externalId: { type: string }

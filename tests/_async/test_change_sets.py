@@ -271,3 +271,33 @@ class TestConfigValue:
         assert config_value(ConfigValue.model_validate({"firewall_predict": True})) is True
         assert config_value({"session_timeout": 30}) == 30
         assert config_value({}) is None
+
+
+class TestUserEvents:
+    async def test_streams_typed_events_and_filters(self, recorder: Recorder) -> None:
+        body = (
+            ":ping\n\n"
+            'event:COLLECTOR_TASK_STARTED\ndata:{"taskId":"T1"}\n\n'
+            'event:CHANGE_SET_DELETED\ndata:["CHG-1"]\n\n'
+            "event:NQE_LIBRARY_COMMIT\ndata:0\n\n"
+        )
+        recorder.add(
+            "GET",
+            "/api/users/current/events",
+            httpx.Response(
+                200, content=body.encode(), headers={"content-type": "text/event-stream"}
+            ),
+        )
+        async with make_client(recorder) as client:
+            everything = [e async for e in client.user_events.stream()]
+            only = [e async for e in client.user_events.stream(types={"CHANGE_SET_DELETED"})]
+
+        assert [e.type for e in everything] == [
+            "COLLECTOR_TASK_STARTED",
+            "CHANGE_SET_DELETED",
+            "NQE_LIBRARY_COMMIT",
+        ]
+        assert everything[0].data == {"taskId": "T1"}
+        assert everything[2].data is None
+        assert [e.type for e in only] == ["CHANGE_SET_DELETED"]
+        assert recorder.requests[-1].headers["accept"] == "text/event-stream"

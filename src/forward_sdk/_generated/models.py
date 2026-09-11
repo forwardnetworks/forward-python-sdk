@@ -201,6 +201,14 @@ class AutoDiscoverySource(OpenEnum):
     interface_addresses = "INTERFACE_ADDRESSES"
 
 
+class AwsExternalId(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    external_id: Annotated[str | None, Field(alias="externalId")] = None
+
+
 class BetweenColumnFilter(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -842,6 +850,140 @@ class CliNetworkEndpointPatch(ForwardModel):
     """
 
 
+class Type8(OpenEnum):
+    aws = "AWS"
+    azure = "AZURE"
+    gcp = "GCP"
+    ibm_cloud = "IBM_CLOUD"
+    alkira = "ALKIRA"
+
+
+class CloudAccount(ForwardModel):
+    """
+    Common fields, with per-type fields beside them: AWS regions and assume-role settings, Azure tenant and subscriptions, GCP projects and regions, IBM accounts and regions, Alkira URL. Secrets and credential ids are never included.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collect: bool | None = None
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    concurrency: int | None = None
+    connection_timeout_seconds: Annotated[int | None, Field(alias="connectionTimeoutSeconds")] = (
+        None
+    )
+    name: str
+    proxy_server_id: Annotated[str | None, Field(alias="proxyServerId")] = None
+    request_timeout_seconds: Annotated[int | None, Field(alias="requestTimeoutSeconds")] = None
+    type: Type8
+
+
+class Type9(OpenEnum):
+    aws = "AWS"
+    azure = "AZURE"
+    gcp = "GCP"
+    ibm_cloud = "IBM_CLOUD"
+
+
+class CloudAccountConnectivityTest(ForwardModel):
+    """
+    Selected by type. Regions to test as a list, and optional overrides for collector, proxy and timeouts.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    regions: list[str] | None = None
+    type: Type9 | None = None
+
+
+class CloudAccountCredential(ForwardModel):
+    """
+    Selected by type; no ALKIRA. AWS: username and password, or roleArn. AZURE: clientId, password, tenant. GCP: clientId, clientEmail, privateKeyId, privateKey. IBM_CLOUD: apiKey.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    type: Type9
+
+
+class CloudAccountDiscovery(ForwardModel):
+    """
+    A credential to discover accounts with, selected by type; no ALKIRA. The same secret fields as the credential body, plus optional collectorId, proxyServerId, concurrency and timeouts.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    type: Type9
+
+
+class CloudAccountPatch(ForwardModel):
+    """
+    Selected by type. Every field optional; omitted means unchanged. Credentials cannot be changed here.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collect: bool | None = None
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    concurrency: int | None = None
+    connection_timeout_seconds: Annotated[int | None, Field(alias="connectionTimeoutSeconds")] = (
+        None
+    )
+    name: str | None = None
+    proxy_server_id: Annotated[str | None, Field(alias="proxyServerId")] = None
+    request_timeout_seconds: Annotated[int | None, Field(alias="requestTimeoutSeconds")] = None
+    type: Type8
+
+
+class CloudAccountWithMeta(CloudAccount):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    num_virtualized_devices: Annotated[int | None, Field(alias="numVirtualizedDevices")] = None
+
+
+class CloudConnectivityTest(ForwardModel):
+    """
+    Selected by type. id is a name you choose for the test; the result arrives on the event stream under it. The per-type fields match the create body, with regions as a list rather than a map.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    id: str
+    type: Type8
+
+
+class Type14(OpenEnum):
+    aws = "AWS"
+    azure = "AZURE"
+    gcp = "GCP"
+
+
+class CloudExistingAccountDiscovery(ForwardModel):
+    """
+    Only GCP takes a field, projectIds.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    project_ids: Annotated[list[str] | None, Field(alias="projectIds")] = None
+    type: Type14 | None = None
+
+
 class CloudType(OpenEnum):
     aws = "AWS"
     gcp = "GCP"
@@ -866,6 +1008,21 @@ class CloudObjectMetadata(ForwardModel):
     vpcs: list[str] | None = None
 
 
+class CloudTestResult(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    error: str | None = None
+    """
+    A collection error name; NONE on success.
+    """
+    test_instant: Annotated[int | None, Field(alias="testInstant")] = None
+    """
+    Epoch milliseconds.
+    """
+
+
 class CollectorBinding(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -877,7 +1034,7 @@ class CollectorBinding(ForwardModel):
     """
 
 
-class Type8(OpenEnum):
+class Type15(OpenEnum):
     high_cpu = "HIGH_CPU"
     low_memory = "LOW_MEMORY"
     low_disk = "LOW_DISK"
@@ -893,7 +1050,7 @@ class CollectorHealthIssue(ForwardModel):
     Absent while the issue is ongoing.
     """
     start_time: Annotated[str | None, Field(alias="startTime")] = None
-    type: Type8 | None = None
+    type: Type15 | None = None
 
 
 class Status1(OpenEnum):
@@ -1905,6 +2062,36 @@ class DiffStats(ForwardModel):
     unchanged: Annotated[int | None, Field(alias="UNCHANGED")] = None
 
 
+class DiscoveredAccountsByAccountItem(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    id: str | None = None
+    name: str | None = None
+
+
+class DiscoveredAccountsByAccount(RootModel[dict[str, list[DiscoveredAccountsByAccountItem]]]):
+    """
+    Configured account name to the sub-accounts found beneath it.
+    """
+
+    root: dict[str, list[DiscoveredAccountsByAccountItem]]
+
+
+class DiscoveredEntity(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    agency: str | None = None
+    error_msg: Annotated[str | None, Field(alias="errorMsg")] = None
+    id: str | None = None
+    mission: str | None = None
+    name: str | None = None
+    roles: list[str] | None = None
+
+
 class Action2(OpenEnum):
     add_query = "addQuery"
     edit_query = "editQuery"
@@ -2075,7 +2262,7 @@ class TransitType(OpenEnum):
     egress = "egress"
 
 
-class Type9(OpenEnum):
+class Type16(OpenEnum):
     device_filter = "DeviceFilter"
     interface_filter = "InterfaceFilter"
     tunnel_interface_filter = "TunnelInterfaceFilter"
@@ -2746,7 +2933,7 @@ class LocationConnDiffStat(ForwardModel):
     outgoing: ConnChangeStats | None = None
 
 
-class Type18(OpenEnum):
+class Type25(OpenEnum):
     host_filter = "HostFilter"
     device_filter = "DeviceFilter"
     interface_filter = "InterfaceFilter"
@@ -2873,7 +3060,7 @@ class DiscoveryMethod(OpenEnum):
     ospf = "OSPF"
 
 
-class Type30(OpenEnum):
+class Type37(OpenEnum):
     """
     Detected device type. Absent if undetermined. Never `"unknown"`.
     """
@@ -2966,7 +3153,7 @@ class MissingDevice(ForwardModel):
     """
     The names of the modeled devices from which this device was discovered.
     """
-    type: Annotated[Type30 | None, Field(examples=["cisco_ios_ssh"])] = None
+    type: Annotated[Type37 | None, Field(examples=["cisco_ios_ssh"])] = None
     """
     Detected device type. Absent if undetermined. Never `"unknown"`.
     """
@@ -3188,6 +3375,27 @@ class NewCliNetworkEndpoint(ForwardModel):
     The collection protocol to use. Defaults to SSH.
     """
     type: Literal["CLI"]
+
+
+class NewCloudAccount(ForwardModel):
+    """
+    Selected by type. Common: name, collect, collectorId, proxyServerId, concurrency and timeouts. AWS: regions as a map of region to test instant, plus username and password, or roleArn, or assumeRoleInfos. AZURE: clientId, password, tenant, environment, testInstants per subscription. GCP: clientId, clientEmail, privateKeyId, privateKey, regions, projectIds or discoveredProjectIds. IBM_CLOUD: apiKey, regions, optional accountIds. ALKIRA: cloudUrl, apiKeyId, testInstant.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collect: bool | None = None
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    concurrency: int | None = None
+    connection_timeout_seconds: Annotated[int | None, Field(alias="connectionTimeoutSeconds")] = (
+        None
+    )
+    name: str
+    proxy_server_id: Annotated[str | None, Field(alias="proxyServerId")] = None
+    request_timeout_seconds: Annotated[int | None, Field(alias="requestTimeoutSeconds")] = None
+    type: Type8
 
 
 class NewHttpCredential(ForwardModel):
@@ -3516,7 +3724,7 @@ class NqeCheckDiffStats(ForwardModel):
     checks: list[NqeCheckDiffStat] | None = None
 
 
-class Type34(OpenEnum):
+class Type42(OpenEnum):
     """
     Describes the type of difference between `before` and `after`:
     * If `MODIFIED`, then both `before` and `after` will be present, but will differ in at least one property;
@@ -3540,7 +3748,7 @@ class NqeDiffEntry(ForwardModel):
     )
     after: dict[str, Any] | None = None
     before: dict[str, Any] | None = None
-    type: Type34 | None = None
+    type: Type42 | None = None
     """
     Describes the type of difference between `before` and `after`:
     * If `MODIFIED`, then both `before` and `after` will be present, but will differ in at least one property;
@@ -3794,7 +4002,7 @@ class PacketFilter(ForwardModel):
     values: Annotated[dict[str, list[str]], Field(examples=[{"ipv4_dst": ["10.10.10.0/24"]}])]
 
 
-class Type35(OpenEnum):
+class Type43(OpenEnum):
     packet_filter = "PacketFilter"
     packet_alias_filter = "PacketAliasFilter"
     not_filter = "NotFilter"
@@ -3830,7 +4038,7 @@ class PaginationMode(OpenEnum):
     enable_pagination = "ENABLE_PAGINATION"
 
 
-class Type38(OpenEnum):
+class Type46(OpenEnum):
     offset = "OFFSET"
     url_cursor = "URL_CURSOR"
     parameter_cursor = "PARAMETER_CURSOR"
@@ -5150,7 +5358,7 @@ class TopologyLink(ForwardModel):
     target_port: Annotated[str | None, Field(alias="targetPort")] = None
 
 
-class Type41(OpenEnum):
+class Type49(OpenEnum):
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -5175,7 +5383,7 @@ class TotalHits(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    type: Type41 | None = None
+    type: Type49 | None = None
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -5819,7 +6027,7 @@ class WanCircuitPatch(ForwardModel):
     name: Annotated[str | None, Field(examples=["wan-circuit-01"])] = None
 
 
-class Type42(OpenEnum):
+class Type50(OpenEnum):
     basic_auth = "BASIC_AUTH"
 
 
@@ -5833,11 +6041,11 @@ class WebhookCredential(ForwardModel):
         populate_by_name=True,
     )
     password: str | None = None
-    type: Type42 | None = None
+    type: Type50 | None = None
     username: str | None = None
 
 
-class Type43(OpenEnum):
+class Type51(OpenEnum):
     snapshot_ready = "SNAPSHOT_READY"
     nqe_verification_failure = "NQE_VERIFICATION_FAILURE"
     intent_verification_failure = "INTENT_VERIFICATION_FAILURE"
@@ -5853,7 +6061,7 @@ class WebhookEventParams(ForwardModel):
         populate_by_name=True,
     )
     network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
-    type: Type43
+    type: Type51
 
 
 class PayloadFormat(OpenEnum):
@@ -6993,6 +7201,20 @@ class CliEndpointProfilePatch(ForwardModel):
     """
     Timeout in seconds applied to this profile’s CLI commands run during discovery and collection. Use `null` to
     clear. Omit to leave this property alone.
+    """
+
+
+class CloudAccountDiscoveryResult(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    discovered_entities: Annotated[
+        list[DiscoveredEntity] | None, Field(alias="discoveredEntities")
+    ] = None
+    error: str | None = None
+    """
+    A collection error name; NONE on success.
     """
 
 

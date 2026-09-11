@@ -99,5 +99,8 @@ HAND_WRITTEN_TAGS: frozenset[str] = frozenset(
         # Two routes take text/plain bodies, predict needs a wait for the
         # snapshot it creates, and the workflow reads better as a handle.
         "Change Sets",
+        # A Server-Sent Events stream that never ends; parsing it into typed
+        # events is a loop, not a method per endpoint.
+        "User Events",
     }
 )

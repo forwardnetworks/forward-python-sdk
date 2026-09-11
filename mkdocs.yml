@@ -60,6 +60,7 @@ nav:
       - Query library: nqe/library.md
   - Snapshots: snapshots.md
   - Rehearsing a change: predict.md
+  - Live events: events.md
   - Forward AI: ai.md
   - API groups: services.md
   - Async: async.md

@@ -21,6 +21,7 @@ from forward_sdk._ops import (  # noqa: F401
     change_sets,
     core,
     diffs,
+    events,
     nqe,
     nqe_repo,
 )

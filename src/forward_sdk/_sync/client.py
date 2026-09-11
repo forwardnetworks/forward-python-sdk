@@ -15,6 +15,7 @@ from forward_sdk._sync.services.change_sets import ChangeSetsService
 from forward_sdk._sync.services.device_tags import DeviceTagsService
 from forward_sdk._sync.services.devices import DevicesService
 from forward_sdk._sync.services.diffs import SnapshotDiffsService
+from forward_sdk._sync.services.events import UserEventsService
 from forward_sdk._sync.services.networks import NetworksService
 from forward_sdk._sync.services.nqe import NqeService
 from forward_sdk._sync.services.snapshots import SnapshotsService
@@ -115,6 +116,7 @@ class ForwardClient(GeneratedServices):
         self.ai = AiService(self._transport)
         self.snapshot_diffs = SnapshotDiffsService(self._transport)
         self.change_sets = ChangeSetsService(self._transport, self.snapshots)
+        self.user_events = UserEventsService(self._transport)
 
         # The rest of the API, one attribute per group; see scripts/gen_services.py.
         self._attach_generated_services(self._transport)

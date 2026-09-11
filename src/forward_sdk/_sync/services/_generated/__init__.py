@@ -17,6 +17,7 @@ from forward_sdk._sync.services._generated.change_set_directories import (
 )
 from forward_sdk._sync.services._generated.checks import ChecksService
 from forward_sdk._sync.services._generated.classic_devices import ClassicDevicesService
+from forward_sdk._sync.services._generated.cloud_accounts import CloudAccountsService
 from forward_sdk._sync.services._generated.collection_schedules import (
     CollectionSchedulesService,
 )
@@ -63,6 +64,7 @@ __all__ = [
     "ChangeSetDirectoriesService",
     "ChecksService",
     "ClassicDevicesService",
+    "CloudAccountsService",
     "CollectionSchedulesService",
     "CollectorBindingService",
     "CollectorTasksService",
@@ -107,6 +109,7 @@ class GeneratedServices:
     change_set_directories: ChangeSetDirectoriesService
     checks: ChecksService
     classic_devices: ClassicDevicesService
+    cloud_accounts: CloudAccountsService
     collection_schedules: CollectionSchedulesService
     collector_binding: CollectorBindingService
     collector_tasks: CollectorTasksService
@@ -142,6 +145,7 @@ class GeneratedServices:
         self.change_set_directories = ChangeSetDirectoriesService(transport)
         self.checks = ChecksService(transport)
         self.classic_devices = ClassicDevicesService(transport)
+        self.cloud_accounts = CloudAccountsService(transport)
         self.collection_schedules = CollectionSchedulesService(transport)
         self.collector_binding = CollectorBindingService(transport)
         self.collector_tasks = CollectorTasksService(transport)
@@ -179,6 +183,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Change Set Directories": "change_set_directories",
     "Checks": "checks",
     "Classic Devices": "classic_devices",
+    "Cloud Accounts": "cloud_accounts",
     "Collection Schedules": "collection_schedules",
     "Collector Binding": "collector_binding",
     "Collector Tasks": "collector_tasks",

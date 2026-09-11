@@ -532,6 +532,14 @@
         },
         "type": "object"
       },
+      "AwsExternalId": {
+        "properties": {
+          "externalId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "BetweenColumnFilter": {
         "properties": {
           "columnName": {
@@ -2678,6 +2686,224 @@
         },
         "type": "object"
       },
+      "CloudAccount": {
+        "additionalProperties": true,
+        "description": "Common fields, with per-type fields beside them: AWS regions and assume-role settings, Azure tenant and subscriptions, GCP projects and regions, IBM accounts and regions, Alkira URL. Secrets and credential ids are never included.",
+        "properties": {
+          "collect": {
+            "type": "boolean"
+          },
+          "collectorId": {
+            "type": "string"
+          },
+          "concurrency": {
+            "type": "integer"
+          },
+          "connectionTimeoutSeconds": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "proxyServerId": {
+            "type": "string"
+          },
+          "requestTimeoutSeconds": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "AWS",
+              "AZURE",
+              "GCP",
+              "IBM_CLOUD",
+              "ALKIRA"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name"
+        ],
+        "type": "object"
+      },
+      "CloudAccountConnectivityTest": {
+        "additionalProperties": true,
+        "description": "Selected by type. Regions to test as a list, and optional overrides for collector, proxy and timeouts.",
+        "properties": {
+          "regions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "AWS",
+              "AZURE",
+              "GCP",
+              "IBM_CLOUD"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CloudAccountCredential": {
+        "additionalProperties": true,
+        "description": "Selected by type; no ALKIRA. AWS: username and password, or roleArn. AZURE: clientId, password, tenant. GCP: clientId, clientEmail, privateKeyId, privateKey. IBM_CLOUD: apiKey.",
+        "properties": {
+          "type": {
+            "enum": [
+              "AWS",
+              "AZURE",
+              "GCP",
+              "IBM_CLOUD"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "CloudAccountDiscovery": {
+        "additionalProperties": true,
+        "description": "A credential to discover accounts with, selected by type; no ALKIRA. The same secret fields as the credential body, plus optional collectorId, proxyServerId, concurrency and timeouts.",
+        "properties": {
+          "type": {
+            "enum": [
+              "AWS",
+              "AZURE",
+              "GCP",
+              "IBM_CLOUD"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "CloudAccountDiscoveryResult": {
+        "properties": {
+          "discoveredEntities": {
+            "items": {
+              "$ref": "#/components/schemas/DiscoveredEntity"
+            },
+            "type": "array"
+          },
+          "error": {
+            "description": "A collection error name; NONE on success.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CloudAccountPatch": {
+        "additionalProperties": true,
+        "description": "Selected by type. Every field optional; omitted means unchanged. Credentials cannot be changed here.",
+        "properties": {
+          "collect": {
+            "type": "boolean"
+          },
+          "collectorId": {
+            "type": "string"
+          },
+          "concurrency": {
+            "type": "integer"
+          },
+          "connectionTimeoutSeconds": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "proxyServerId": {
+            "type": "string"
+          },
+          "requestTimeoutSeconds": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "AWS",
+              "AZURE",
+              "GCP",
+              "IBM_CLOUD",
+              "ALKIRA"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "CloudAccountWithMeta": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CloudAccount"
+          },
+          {
+            "properties": {
+              "numVirtualizedDevices": {
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        ]
+      },
+      "CloudConnectivityTest": {
+        "additionalProperties": true,
+        "description": "Selected by type. id is a name you choose for the test; the result arrives on the event stream under it. The per-type fields match the create body, with regions as a list rather than a map.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "AWS",
+              "AZURE",
+              "GCP",
+              "IBM_CLOUD",
+              "ALKIRA"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id"
+        ],
+        "type": "object"
+      },
+      "CloudExistingAccountDiscovery": {
+        "additionalProperties": true,
+        "description": "Only GCP takes a field, projectIds.",
+        "properties": {
+          "projectIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "AWS",
+              "AZURE",
+              "GCP"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "CloudObjectDiffEntry": {
         "properties": {
           "a": {
@@ -2771,6 +2997,19 @@
               "type": "string"
             },
             "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CloudTestResult": {
+        "properties": {
+          "error": {
+            "description": "A collection error name; NONE on success.",
+            "type": "string"
+          },
+          "testInstant": {
+            "description": "Epoch milliseconds.",
+            "type": "integer"
           }
         },
         "type": "object"
@@ -5162,6 +5401,50 @@
           },
           "UNCHANGED": {
             "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "DiscoveredAccountsByAccount": {
+        "additionalProperties": {
+          "items": {
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "description": "Configured account name to the sub-accounts found beneath it.",
+        "type": "object"
+      },
+      "DiscoveredEntity": {
+        "properties": {
+          "agency": {
+            "type": "string"
+          },
+          "errorMsg": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mission": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -8830,6 +9113,48 @@
           "type",
           "name",
           "host"
+        ],
+        "type": "object"
+      },
+      "NewCloudAccount": {
+        "additionalProperties": true,
+        "description": "Selected by type. Common: name, collect, collectorId, proxyServerId, concurrency and timeouts. AWS: regions as a map of region to test instant, plus username and password, or roleArn, or assumeRoleInfos. AZURE: clientId, password, tenant, environment, testInstants per subscription. GCP: clientId, clientEmail, privateKeyId, privateKey, regions, projectIds or discoveredProjectIds. IBM_CLOUD: apiKey, regions, optional accountIds. ALKIRA: cloudUrl, apiKeyId, testInstant.",
+        "properties": {
+          "collect": {
+            "type": "boolean"
+          },
+          "collectorId": {
+            "type": "string"
+          },
+          "concurrency": {
+            "type": "integer"
+          },
+          "connectionTimeoutSeconds": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "proxyServerId": {
+            "type": "string"
+          },
+          "requestTimeoutSeconds": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "AWS",
+              "AZURE",
+              "GCP",
+              "IBM_CLOUD",
+              "ALKIRA"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name"
         ],
         "type": "object"
       },
@@ -14357,6 +14682,119 @@
         "summary": "Export a chat as a transcript",
         "tags": [
           "Forward AI"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/cloud/aws-regions": {
+      "get": {
+        "operationId": "listAwsRegions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "us-east-1": "US East (N. Virginia)"
+                },
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "AWS region ids and display names",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/cloud/azure-environments": {
+      "get": {
+        "operationId": "listAzureEnvironments",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "AZURE": "Azure",
+                  "AZURE_US_GOVERNMENT": "Azure US Government"
+                },
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "Azure environment ids and display names",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/cloud/gcp-regions": {
+      "get": {
+        "operationId": "listGcpRegions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "us-central1": "Iowa"
+                },
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "GCP region ids and display names",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/cloud/ibm-regions": {
+      "get": {
+        "operationId": "listIbmRegions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "us-south": "Dallas"
+                },
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "IBM Cloud region ids and display names",
+        "tags": [
+          "Cloud Accounts"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -20250,6 +20688,572 @@
         "tags": [
           "Credentials"
         ]
+      }
+    },
+    "/networks/{networkId}/cloudAccountDiscovery": {
+      "post": {
+        "description": "Long-polls until discovery finishes.",
+        "operationId": "discoverCloudAccounts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "clientId": "app-id",
+                "environment": "AZURE",
+                "password": "secret",
+                "tenant": "tenant-id",
+                "type": "AZURE"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CloudAccountDiscovery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "discoveredEntities": [
+                    {
+                      "id": "sub-1",
+                      "name": "Production"
+                    }
+                  ],
+                  "error": "NONE"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CloudAccountDiscoveryResult"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "Discover accounts reachable with a credential, before creating one",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/cloudAccounts": {
+      "get": {
+        "operationId": "listCloudAccounts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "collect": true,
+                    "name": "prod-aws",
+                    "numVirtualizedDevices": 12,
+                    "regions": {
+                      "us-east-1": {
+                        "error": "NONE",
+                        "testInstant": 1757584800000
+                      }
+                    },
+                    "type": "AWS"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CloudAccountWithMeta"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The accounts."
+          }
+        },
+        "summary": "A network's cloud accounts, with their test results",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "listNewlyDiscoveredCloudAccounts",
+            "summary": "Sub-accounts discovery found that are not yet configured, per account",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "newlyDiscovered"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Needs both MANAGE_COLLECTION_SOURCES and EDIT_DEVICE_CREDENTIALS.",
+        "operationId": "createCloudAccount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "collect": true,
+                "name": "prod-aws",
+                "regions": {
+                  "us-east-1": "2026-09-11T10:00:00Z"
+                },
+                "roleArn": "arn:aws:iam::123456789012:role/forward",
+                "type": "AWS"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NewCloudAccount"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "collect": true,
+                  "name": "prod-aws",
+                  "regions": {
+                    "us-east-1": null
+                  },
+                  "type": "AWS"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CloudAccount"
+                }
+              }
+            },
+            "description": "The account."
+          }
+        },
+        "summary": "Add a cloud account",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/cloudAccounts/aws/assumeRole/externalId": {
+      "get": {
+        "operationId": "getAwsAssumeRoleExternalId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "externalId": "fwd-4c1f9a"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AwsExternalId"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "The external id to put in an AWS assume-role trust policy",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/cloudAccounts/test": {
+      "post": {
+        "description": "Returns nothing; the result arrives on the user event stream as CLOUD_CONNECTIVITY_TEST_RESULT.",
+        "operationId": "testCloudConnectivity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "id": "my-test",
+                "regions": [
+                  "us-east-1"
+                ],
+                "roleArn": "arn:aws:iam::123456789012:role/forward",
+                "type": "AWS"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CloudConnectivityTest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Started. Empty object."
+          }
+        },
+        "summary": "Test connectivity with a credential, before creating an account",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/cloudAccounts/{accountName}": {
+      "delete": {
+        "operationId": "deleteCloudAccount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "accountName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Removed. Empty object."
+          }
+        },
+        "summary": "Remove a cloud account",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Every field optional and omitted means unchanged. Credentials cannot be changed here; use the credential operation.",
+        "operationId": "updateCloudAccount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "accountName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "collect": false,
+                "type": "AWS"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CloudAccountPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "collect": false,
+                  "name": "prod-aws",
+                  "type": "AWS"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CloudAccount"
+                }
+              }
+            },
+            "description": "The account."
+          }
+        },
+        "summary": "Change a cloud account's settings",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/cloudAccounts/{accountName}/credential": {
+      "get": {
+        "description": "What comes back depends on the type: a role ARN for AWS, a client id and tenant for Azure, a username for others, and 404 for GCP or when there is none. Secrets are never included.",
+        "operationId": "getCloudAccountCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "accountName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "roleArn": "arn:aws:iam::123456789012:role/forward"
+                },
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "The non-secret part of an account's credential",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "operationId": "setCloudAccountCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "accountName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "roleArn": "arn:aws:iam::123456789012:role/forward",
+                "type": "AWS"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CloudAccountCredential"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "collect": true,
+                  "name": "prod-aws",
+                  "type": "AWS"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CloudAccount"
+                }
+              }
+            },
+            "description": "The account."
+          }
+        },
+        "summary": "Replace an account's credential",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/cloudAccounts/{accountName}/discovery": {
+      "post": {
+        "description": "Long-polls until discovery finishes.",
+        "operationId": "discoverCloudSubAccounts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "accountName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "projectIds": [
+                  "my-project"
+                ],
+                "type": "GCP"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CloudExistingAccountDiscovery"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "discoveredEntities": [
+                    {
+                      "id": "210987654321",
+                      "name": "staging"
+                    }
+                  ],
+                  "error": "NONE"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CloudAccountDiscoveryResult"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "Discover the sub-accounts, projects or subscriptions reachable from an existing account",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/cloudAccounts/{accountName}/test": {
+      "post": {
+        "description": "Returns nothing; the result arrives on the user event stream as CLOUD_CONNECTIVITY_TEST_RESULT.",
+        "operationId": "testCloudAccountConnectivity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "accountName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "regions": [
+                  "us-east-1"
+                ],
+                "type": "AWS"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CloudAccountConnectivityTest"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "description": "Started. Empty object."
+          }
+        },
+        "summary": "Test an existing account's connectivity",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/collection-schedules": {
@@ -28759,6 +29763,30 @@
           "User Accounts"
         ],
         "x-forward-stability": "unpublished"
+      }
+    },
+    "/users/current/events": {
+      "get": {
+        "description": "A never-ending stream. Each message is an event name and a JSON data line; a comment line \":ping\" arrives every few seconds as a keepalive. Carries per-device collection progress, snapshot processing stages, change-set updates and more. See the events service.",
+        "operationId": "streamUserEvents",
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The event stream."
+          }
+        },
+        "summary": "Live events for the calling user, as Server-Sent Events",
+        "tags": [
+          "User Events"
+        ],
+        "x-forward-stability": "unpublished",
+        "x-streaming": true
       }
     },
     "/users/current/nqe/changes": {

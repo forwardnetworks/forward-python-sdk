@@ -7,6 +7,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- A failed NQE query now says what was wrong with it. Forward's message is the
+  fixed string "Error encountered while executing the NQE query" for every
+  failure, whatever went wrong; the detail lives in a separate `errors` list
+  that the SDK carried on the exception but left out of its message, so every
+  query failure read identically in a log. Up to three diagnostics, with line
+  and column, now reach the message, and the full list stays on `query_errors`.
+- `CounterSnapshot` reads as a mapping, so `dict(snapshot)` and `**snapshot`
+  work. It always had `as_dict()`, but nothing signalled that, and a consumer
+  who tried the obvious thing concluded it could not be serialized.
 - `error.denial` on an API error, which says what kind of refusal it is. Read
   from Forward's server source rather than inferred: its access enforcer sets
   `reason` to `null` on every refusal, so no code distinguishes a missing

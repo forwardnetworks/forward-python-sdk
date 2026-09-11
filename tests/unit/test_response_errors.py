@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from forward_sdk._http import parse_error_body
 from forward_sdk.errors import ForwardError, ForwardResponseError
 from forward_sdk.models import Network
+from forward_sdk.telemetry import Counters, CounterSnapshot
 
 
 class TestParseFailuresStayInTheTree:
@@ -80,3 +81,31 @@ class TestAnUnreadableErrorBody:
             request=httpx.Request("GET", "https://forward.test/api/networks"),
         )
         assert parse_error_body(response) is None
+
+
+class TestCounterSnapshotIsLoggable:
+    """A snapshot's destination is a log line or a metrics sink.
+
+    It carried `as_dict()` from the start, but nothing signalled that, so a
+    consumer trying `dict(snapshot)` hit a TypeError and concluded there was no
+    way to serialize it. Reading as a mapping makes the obvious attempt work.
+    """
+
+    def test_converts_to_a_dict(self) -> None:
+        counters = Counters()
+        counters.increment("http_attempts", 3)
+        snapshot = counters.snapshot()
+
+        assert dict(snapshot)["http_attempts"] == 3
+        assert "http_attempts" in snapshot
+        assert len(snapshot) == len(snapshot.as_dict())
+
+    def test_unpacks_as_keyword_arguments(self) -> None:
+        def sink(**fields: float) -> float:
+            return fields["http_attempts"]
+
+        assert sink(**CounterSnapshot(http_attempts=7)) == 7
+
+    def test_an_unknown_counter_raises_keyerror(self) -> None:
+        with pytest.raises(KeyError):
+            CounterSnapshot()["not_a_counter"]

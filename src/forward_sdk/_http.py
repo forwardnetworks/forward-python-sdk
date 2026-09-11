@@ -189,6 +189,38 @@ def parse_error_body(response: httpx.Response) -> Any:
         return None
 
 
+#: How many query diagnostics to fold into an exception message before saying
+#: how many more there are. The rest stay on ``.query_errors``.
+_MAX_QUERY_ERRORS_IN_MESSAGE = 3
+
+
+def _query_error_detail(error_info: Any) -> str:
+    """Summarize NQE's per-error diagnostics for the exception message.
+
+    Forward's message for a failed query is the fixed string "Error encountered
+    while executing the NQE query" for every failure, whatever went wrong. What
+    actually went wrong is in ``errors``, each with a message and often a line
+    and column. Leaving that out of the exception message makes every query
+    failure read identically in a log, which is what a caller sees first.
+    """
+    errors = getattr(error_info, "errors", None) or []
+    rendered: list[str] = []
+    for item in errors[:_MAX_QUERY_ERRORS_IN_MESSAGE]:
+        text = str(getattr(item, "message", "") or "").strip()
+        if not text:
+            continue
+        start = getattr(getattr(item, "location", None), "start", None)
+        line = getattr(start, "line", None)
+        column = getattr(start, "column", None)
+        where = f" at line {line}, column {column}" if line is not None else ""
+        rendered.append(f"{text}{where}")
+    if not rendered:
+        return ""
+    more = len(errors) - len(rendered)
+    tail = f", and {more} more" if more > 0 else ""
+    return f" -- {'; '.join(rendered)}{tail}"
+
+
 def error_message(response: httpx.Response, error_info: Any) -> str:
     """Build a message that leads with Forward's own explanation."""
     detail = getattr(error_info, "message", None)
@@ -202,6 +234,7 @@ def error_message(response: httpx.Response, error_info: Any) -> str:
     return (
         f"{request.method} {request.url.path} failed with HTTP "
         f"{response.status_code}: {detail or 'no response body'}{suffix}"
+        f"{_query_error_detail(error_info)}"
     )
 
 

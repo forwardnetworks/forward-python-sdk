@@ -281,6 +281,55 @@ def test_nqe_query_error_exposes_diagnostics(recorder: Recorder) -> None:
     assert error.completion_type == "FINISHED"
     assert len(error.query_errors) == 1
     assert error.query_errors[0].message == "unknown field"
+    # Forward's own message is a fixed string for every query failure, so the
+    # diagnostics have to reach the message or every failure reads alike in a
+    # log. This is the first thing a caller sees.
+    assert "unknown field" in str(error)
+    assert "line 2, column 5" in str(error)
+
+
+def test_many_query_errors_are_summarised_not_dumped(recorder: Recorder) -> None:
+    """The message stays readable; the full list stays on the exception."""
+    errors = [
+        {"message": f"problem {n}", "location": {"start": {"line": n, "column": 1}}}
+        for n in range(1, 8)
+    ]
+    body = {
+        "httpMethod": "POST",
+        "apiUrl": "/api/nqe",
+        "message": "Error encountered while executing the NQE query",
+        "errors": errors,
+    }
+    recorder.add("POST", "/api/nqe", httpx.Response(400, json=body))
+    spec = spec_for("runNqeQuery", json={"query": "bad"})
+    with make_transport(recorder) as transport:
+        with pytest.raises(ForwardNqeQueryError) as caught:
+            transport.send(spec)
+
+    message = str(caught.value)
+    assert "problem 1" in message
+    assert "and 4 more" in message
+    assert "problem 7" not in message
+    assert len(caught.value.query_errors) == 7
+
+
+def test_a_query_failure_without_diagnostics_still_reads_cleanly(
+    recorder: Recorder,
+) -> None:
+    """No errors list means no dangling separator."""
+    body = {
+        "httpMethod": "POST",
+        "apiUrl": "/api/nqe",
+        "message": "Error encountered while executing the NQE query",
+        "errors": [],
+    }
+    recorder.add("POST", "/api/nqe", httpx.Response(400, json=body))
+    spec = spec_for("runNqeQuery", json={"query": "bad"})
+    with make_transport(recorder) as transport:
+        with pytest.raises(ForwardNqeQueryError) as caught:
+            transport.send(spec)
+
+    assert str(caught.value).endswith("Error encountered while executing the NQE query")
 
 
 def test_non_json_error_body_still_raises(recorder: Recorder) -> None:

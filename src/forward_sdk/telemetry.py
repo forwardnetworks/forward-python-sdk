@@ -9,6 +9,7 @@ those without the caller instrumenting every call site.
 from __future__ import annotations
 
 import threading
+from collections.abc import Iterator
 from dataclasses import dataclass, fields
 from typing import TYPE_CHECKING, Any
 
@@ -80,7 +81,25 @@ class CounterSnapshot:
         return (self.http_attempts - 1) * 60.0 / elapsed
 
     def as_dict(self) -> dict[str, float]:
+        """Every counter as a plain dictionary."""
         return {f.name: getattr(self, f.name) for f in fields(self)}
+
+    # A snapshot's natural destination is a log line or a metrics sink, so it
+    # reads as a mapping: ``dict(snapshot)`` and ``**snapshot`` both work, and a
+    # caller does not have to discover ``as_dict`` to get there.
+    def keys(self) -> tuple[str, ...]:
+        return tuple(f.name for f in fields(self))
+
+    def __getitem__(self, name: str) -> float:
+        if name not in self.keys():
+            raise KeyError(name)
+        return float(getattr(self, name))
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self.keys())
+
+    def __len__(self) -> int:
+        return len(fields(self))
 
 
 class Counters:

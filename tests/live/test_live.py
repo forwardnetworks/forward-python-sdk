@@ -244,13 +244,24 @@ class TestPredictFamilies:
     def test_diffs_between_a_base_and_its_prediction(
         self, client: ForwardClient, network_id: str
     ) -> None:
-        candidates = [cs for cs in client.change_sets.list(network_id) if cs.predicted_snapshots]
-        if not candidates:
-            pytest.skip("no change set has a predicted snapshot")
-        base = candidates[0].snapshot_id
-        predicted = candidates[0].predicted_snapshots or []
-        after = predicted[0].id if predicted else None
-        assert base and after
+        # A prediction that has not finished processing is refused with 409
+        # SNAPSHOT_UNAVAILABLE, correctly, so pick one that has. Compare the
+        # state exactly: "UNPROCESSED" ends with "PROCESSED".
+        base = after = None
+        for info in client.change_sets.list(network_id):
+            if not info.predicted_snapshots or not info.id:
+                continue
+            handle = client.change_sets.handle(info.id, network_id=network_id)
+            processed = [
+                snap
+                for snap in handle.predicted_snapshots()
+                if str(snap.state) == "PROCESSED" and snap.id
+            ]
+            if processed:
+                base, after = info.snapshot_id, processed[0].id
+                break
+        if not (base and after):
+            pytest.skip("no change set has a processed predicted snapshot")
         diffs = client.snapshot_diffs
         connectivity = diffs.wait_for_subnet_connectivity(base, after, timeout=300)
         assert not connectivity.is_partial_result

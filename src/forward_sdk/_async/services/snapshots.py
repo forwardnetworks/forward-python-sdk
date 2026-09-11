@@ -77,7 +77,12 @@ PREDICT_TRIGGER = "PREDICT"
 def is_predicted(snapshot: SnapshotInfo) -> bool:
     """Whether Forward made this snapshot to analyse a change set."""
     trigger = getattr(snapshot, "processing_trigger", None)
-    return trigger is not None and str(trigger).upper().endswith(PREDICT_TRIGGER)
+    if trigger is None:
+        return False
+    # Exact match on the value. A suffix test would be wrong for the same
+    # reason "UNPROCESSED" ends with "PROCESSED".
+    value = getattr(trigger, "value", trigger)
+    return str(value).upper() == PREDICT_TRIGGER
 
 
 def _state_of(snapshot: SnapshotInfo) -> str:

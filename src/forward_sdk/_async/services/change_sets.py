@@ -163,7 +163,7 @@ class AsyncChangeSetHandle:
         self.id: str = str(resolved)
 
     def __repr__(self) -> str:
-        return f"<AsyncChangeSetHandle {self.id} on network {self.network_id}>"
+        return f"<{type(self).__name__} {self.id} on network {self.network_id}>"
 
     # -- reading ---------------------------------------------------------
 

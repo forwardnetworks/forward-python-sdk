@@ -109,3 +109,9 @@ the wrong state of the network.
 
 Forward does not publish `PREDICT` in its API description, so a deployment not
 using Predict sees no difference either way.
+
+`list()` takes the same idea as a filter: `exclude_triggers=["PREDICT"]` drops
+predictions from a listing. Forward does not filter by trigger, so the SDK does,
+and when a `limit` is also given the listing is fetched without a server limit
+and cut afterwards, so you get up to `limit` matching snapshots rather than a
+short page. That costs a larger response.

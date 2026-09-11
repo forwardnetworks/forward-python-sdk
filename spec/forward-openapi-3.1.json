@@ -2896,6 +2896,57 @@
         },
         "type": "object"
       },
+      "CollectorBinding": {
+        "properties": {
+          "username": {
+            "description": "The collector account's username.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "type": "object"
+      },
+      "CollectorHealthIssue": {
+        "properties": {
+          "endTime": {
+            "description": "Absent while the issue is ongoing.",
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "HIGH_CPU",
+              "LOW_MEMORY",
+              "LOW_DISK"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CollectorHealthSummary": {
+        "properties": {
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/CollectorHealthIssue"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "HEALTHY",
+              "UNHEALTHY",
+              "UNKNOWN"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "CollectorState": {
         "properties": {
           "busyStatus": {
@@ -3020,6 +3071,86 @@
             "examples": [
               "NETWORK_COLLECTION"
             ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CollectorWithStatus": {
+        "additionalProperties": true,
+        "description": "The collector's own fields sit flat beside its status. Empty when no collector is bound to the network.",
+        "properties": {
+          "collectorUpdating": {
+            "type": "boolean"
+          },
+          "connectionStatus": {
+            "enum": [
+              "NEVER_CONNECTED",
+              "CONNECTED",
+              "DISCONNECTED"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "description": "Epoch milliseconds",
+            "type": "integer",
+            "unlike most timestamps.": null
+          },
+          "createdBy": {
+            "description": "A user id",
+            "not a name.": null,
+            "type": "string"
+          },
+          "disconnectedAt": {
+            "type": "string"
+          },
+          "externalIp": {
+            "type": "string"
+          },
+          "features": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "health": {
+            "$ref": "#/components/schemas/CollectorHealthSummary"
+          },
+          "id": {
+            "type": "string"
+          },
+          "internalIps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "networkIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "orgId": {
+            "type": "string"
+          },
+          "updateStatus": {
+            "enum": [
+              "UP_TO_DATE",
+              "OUTDATED",
+              "NOT_SUPPORTED",
+              "END_OF_LIFE"
+            ],
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "version": {
             "type": "string"
           }
         },
@@ -9104,6 +9235,38 @@
         ],
         "type": "object"
       },
+      "NewSnmpCredential": {
+        "description": "communityString applies to V2C, authSettings to V3.",
+        "properties": {
+          "authSettings": {
+            "$ref": "#/components/schemas/SnmpAuthSettings"
+          },
+          "autoAssociate": {
+            "description": "Attach to new devices automatically.",
+            "type": "boolean"
+          },
+          "communityString": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "timeoutSec": {
+            "type": "integer"
+          },
+          "version": {
+            "enum": [
+              "V2C",
+              "V3"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "NewSnmpNetworkEndpoint": {
         "properties": {
           "collect": {
@@ -11769,6 +11932,123 @@
           "RESTORE_FAILED"
         ],
         "type": "string"
+      },
+      "SnmpAuthSettings": {
+        "description": "SNMPv3 settings. Passwords are accepted on input and returned as stored-secret references.",
+        "properties": {
+          "authType": {
+            "enum": [
+              "MD5",
+              "SHA",
+              "SHA_256",
+              "SHA_384",
+              "SHA_512"
+            ],
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "privacyPassword": {
+            "type": "string"
+          },
+          "privacyProtocol": {
+            "enum": [
+              "DES",
+              "AES_128",
+              "AES_192",
+              "AES_256"
+            ],
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SnmpCredential": {
+        "description": "A stored credential with attribution flat beside it.",
+        "properties": {
+          "authSettings": {
+            "$ref": "#/components/schemas/SnmpAuthSettings"
+          },
+          "autoAssociate": {
+            "type": "boolean"
+          },
+          "communityString": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "timeoutSec": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "updatedById": {
+            "type": "string"
+          },
+          "version": {
+            "enum": [
+              "V2C",
+              "V3"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SnmpCredentialPatch": {
+        "description": "Every field optional; omitted means unchanged.",
+        "properties": {
+          "authSettings": {
+            "$ref": "#/components/schemas/SnmpAuthSettings"
+          },
+          "autoAssociate": {
+            "type": "boolean"
+          },
+          "communityString": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "timeoutSec": {
+            "type": "integer"
+          },
+          "version": {
+            "enum": [
+              "V2C",
+              "V3"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
       },
       "SnmpEndpointProfile": {
         "allOf": [
@@ -20179,6 +20459,115 @@
         ]
       }
     },
+    "/networks/{networkId}/collector": {
+      "delete": {
+        "operationId": "unbindNetworkCollector",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Unbound."
+          }
+        },
+        "summary": "Unbind the network from its collector",
+        "tags": [
+          "Collector Binding"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "An empty object when no collector is bound.",
+        "operationId": "getNetworkCollector",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "connectionStatus": "CONNECTED",
+                  "createdAt": 1788949865425,
+                  "createdBy": "100",
+                  "health": {
+                    "issues": [],
+                    "status": "HEALTHY"
+                  },
+                  "id": "12",
+                  "name": "lab-collector",
+                  "networkIds": [
+                    "115"
+                  ],
+                  "updateStatus": "UP_TO_DATE",
+                  "username": "collector-lab",
+                  "version": "26.8.4-03"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CollectorWithStatus"
+                }
+              }
+            },
+            "description": "The collector, or an empty object."
+          }
+        },
+        "summary": "The collector bound to a network, with its connection and health",
+        "tags": [
+          "Collector Binding"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "put": {
+        "operationId": "setNetworkCollector",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "username": "collector-lab"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CollectorBinding"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Bound."
+          }
+        },
+        "summary": "Bind a network to a collector, by the collector's username",
+        "tags": [
+          "Collector Binding"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/collector/status": {
       "get": {
         "deprecated": true,
@@ -25890,6 +26279,183 @@
         "summary": "Poll a reachability computation",
         "tags": [
           "Snapshot Reachability"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/snmpCredentials": {
+      "get": {
+        "description": "The community string is returned on the wire; it is not masked. Treat the response as sensitive.",
+        "operationId": "listSnmpCredentials",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "autoAssociate": true,
+                    "communityString": "public",
+                    "createdAt": "2026-09-11T10:00:00Z",
+                    "id": "3",
+                    "name": "lab-ro",
+                    "version": "V2C"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SnmpCredential"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The credentials."
+          }
+        },
+        "summary": "A network's SNMP credentials",
+        "tags": [
+          "SNMP Credentials"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "operationId": "createSnmpCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "autoAssociate": true,
+                "communityString": "public",
+                "name": "lab-ro",
+                "version": "V2C"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NewSnmpCredential"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "autoAssociate": true,
+                  "communityString": "public",
+                  "id": "3",
+                  "name": "lab-ro",
+                  "version": "V2C"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SnmpCredential"
+                }
+              }
+            },
+            "description": "The credential."
+          }
+        },
+        "summary": "Create an SNMP credential",
+        "tags": [
+          "SNMP Credentials"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/snmpCredentials/{credentialId}": {
+      "delete": {
+        "operationId": "deleteSnmpCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "credentialId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete an SNMP credential",
+        "tags": [
+          "SNMP Credentials"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Every field is optional and omitted means unchanged.",
+        "operationId": "updateSnmpCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "credentialId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "communityString": "newstring"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SnmpCredentialPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated."
+          }
+        },
+        "summary": "Change an SNMP credential",
+        "tags": [
+          "SNMP Credentials"
         ],
         "x-forward-stability": "unpublished"
       }

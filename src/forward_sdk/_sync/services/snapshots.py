@@ -76,15 +76,19 @@ _MISS = _Miss()
 PREDICT_TRIGGER = "PREDICT"
 
 
-def is_predicted(snapshot: SnapshotInfo) -> bool:
-    """Whether Forward made this snapshot to analyse a change set."""
+def _trigger_of(snapshot: SnapshotInfo) -> str | None:
+    """The snapshot's processing trigger as an upper-case string, or None."""
     trigger = getattr(snapshot, "processing_trigger", None)
     if trigger is None:
-        return False
+        return None
+    return str(getattr(trigger, "value", trigger)).upper()
+
+
+def is_predicted(snapshot: SnapshotInfo) -> bool:
+    """Whether Forward made this snapshot to analyse a change set."""
     # Exact match on the value. A suffix test would be wrong for the same
     # reason "UNPROCESSED" ends with "PROCESSED".
-    value = getattr(trigger, "value", trigger)
-    return str(value).upper() == PREDICT_TRIGGER
+    return _trigger_of(snapshot) == PREDICT_TRIGGER
 
 
 def _state_of(snapshot: SnapshotInfo) -> str:
@@ -154,14 +158,27 @@ class SnapshotsService(Service):
         state: str | SnapshotState | Sequence[str] | None = None,
         limit: int | None = None,
         include_archived: bool = False,
+        exclude_triggers: Sequence[str] = (),
         **filters: Any,
     ) -> list[SnapshotInfo]:
-        """List a network's snapshots, newest first."""
+        """List a network's snapshots, newest first.
+
+        Args:
+            exclude_triggers: Drop snapshots whose ``processingTrigger`` is one
+                of these, ``("PREDICT",)`` being the usual case. Forward does not
+                filter by trigger, so this is applied here after the response.
+                When combined with ``limit``, the listing is fetched without a
+                server-side limit and cut to ``limit`` after filtering, so you
+                get up to ``limit`` matching snapshots rather than up to
+                ``limit`` snapshots with some then removed. That costs a
+                larger response.
+        """
+        excluded = {str(t).upper() for t in exclude_triggers}
         payload = self._send_json(
             ops.list_snapshots(
                 network_id=self._network(network_id),
                 state=_state_param(state),
-                limit=limit,
+                limit=None if excluded else limit,
                 # Sent even when false. Forward's default happens to match, but
                 # relying on a server default means this argument does not
                 # actually assert anything, and a change upstream would alter
@@ -171,7 +188,12 @@ class SnapshotsService(Service):
             )
         )
         rows = (payload or {}).get("snapshots") or []
-        return [SnapshotInfo.model_validate(row) for row in rows]
+        snapshots = [SnapshotInfo.model_validate(row) for row in rows]
+        if excluded:
+            snapshots = [s for s in snapshots if _trigger_of(s) not in excluded]
+            if limit is not None:
+                snapshots = snapshots[:limit]
+        return snapshots
 
     def latest_processed(
         self, network_id: str | None = None, *, include_predicted: bool = False

@@ -2734,6 +2734,136 @@ paths:
               schema: { $ref: "#/components/schemas/SubnetConnDiffDetails" }
               example: { diffs: [ { diffType: DELETED, value: {} } ] }
 
+  # ------------------------------------------------------ SNMP credentials ---
+  # The CLI and HTTP credential operations are published; SNMP ones are not.
+  # Classic devices reference an SNMP credential by id, so listing is how a
+  # name resolves to the id a device needs.
+  /networks/{networkId}/snmpCredentials:
+    get:
+      operationId: listSnmpCredentials
+      summary: A network's SNMP credentials
+      description: >-
+        The community string is returned on the wire; it is not masked. Treat
+        the response as sensitive.
+      x-forward-stability: unpublished
+      tags: [SNMP Credentials]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The credentials.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SnmpCredential" }
+              example:
+                - { id: "3", name: lab-ro, version: V2C, communityString: public, autoAssociate: true, createdAt: "2026-09-11T10:00:00Z" }
+    post:
+      operationId: createSnmpCredential
+      summary: Create an SNMP credential
+      x-forward-stability: unpublished
+      tags: [SNMP Credentials]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewSnmpCredential" }
+            example: { name: lab-ro, version: V2C, communityString: public, autoAssociate: true }
+      responses:
+        "200":
+          description: The credential.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SnmpCredential" }
+              example: { id: "3", name: lab-ro, version: V2C, communityString: public, autoAssociate: true }
+
+  /networks/{networkId}/snmpCredentials/{credentialId}:
+    patch:
+      operationId: updateSnmpCredential
+      summary: Change an SNMP credential
+      description: Every field is optional and omitted means unchanged.
+      x-forward-stability: unpublished
+      tags: [SNMP Credentials]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: credentialId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SnmpCredentialPatch" }
+            example: { communityString: newstring }
+      responses:
+        "204": { description: Updated. }
+    delete:
+      operationId: deleteSnmpCredential
+      summary: Delete an SNMP credential
+      x-forward-stability: unpublished
+      tags: [SNMP Credentials]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: credentialId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted. }
+
+  # ------------------------------------------------------ collector binding ---
+  # Which collector serves a network, and how it is doing. The published
+  # /collector/status is the deprecated busy flag; this is the one a pre-flight
+  # wants: connected, healthy, which version.
+  /networks/{networkId}/collector:
+    get:
+      operationId: getNetworkCollector
+      summary: The collector bound to a network, with its connection and health
+      description: An empty object when no collector is bound.
+      x-forward-stability: unpublished
+      tags: [Collector Binding]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The collector, or an empty object.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CollectorWithStatus" }
+              example:
+                id: "12"
+                name: lab-collector
+                username: collector-lab
+                connectionStatus: CONNECTED
+                health: { status: HEALTHY, issues: [] }
+                updateStatus: UP_TO_DATE
+                version: 26.8.4-03
+                networkIds: ["115"]
+                createdAt: 1788949865425
+                createdBy: "100"
+    put:
+      operationId: setNetworkCollector
+      summary: Bind a network to a collector, by the collector's username
+      x-forward-stability: unpublished
+      tags: [Collector Binding]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CollectorBinding" }
+            example: { username: collector-lab }
+      responses:
+        "204": { description: Bound. }
+    delete:
+      operationId: unbindNetworkCollector
+      summary: Unbind the network from its collector
+      x-forward-stability: unpublished
+      tags: [Collector Binding]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Unbound. }
+
 components:
   schemas:
     RepositoryCommit:
@@ -4189,3 +4319,102 @@ components:
         diffs:
           type: array
           items: { $ref: "#/components/schemas/SubnetConnDiffDetail" }
+
+    SnmpAuthSettings:
+      type: object
+      description: SNMPv3 settings. Passwords are accepted on input and returned as stored-secret references.
+      properties:
+        username: { type: string }
+        password: { type: string }
+        authType: { type: string, enum: [MD5, SHA, SHA_256, SHA_384, SHA_512] }
+        privacyProtocol: { type: string, enum: [DES, AES_128, AES_192, AES_256] }
+        privacyPassword: { type: string }
+
+    NewSnmpCredential:
+      type: object
+      description: communityString applies to V2C, authSettings to V3.
+      properties:
+        name: { type: string }
+        version: { type: string, enum: [V2C, V3] }
+        port: { type: integer }
+        timeoutSec: { type: integer }
+        communityString: { type: string }
+        authSettings: { $ref: "#/components/schemas/SnmpAuthSettings" }
+        autoAssociate: { type: boolean, description: Attach to new devices automatically. }
+
+    SnmpCredentialPatch:
+      type: object
+      description: Every field optional; omitted means unchanged.
+      properties:
+        name: { type: string }
+        version: { type: string, enum: [V2C, V3] }
+        port: { type: integer }
+        timeoutSec: { type: integer }
+        communityString: { type: string }
+        authSettings: { $ref: "#/components/schemas/SnmpAuthSettings" }
+        autoAssociate: { type: boolean }
+
+    SnmpCredential:
+      type: object
+      description: A stored credential with attribution flat beside it.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        version: { type: string, enum: [V2C, V3] }
+        port: { type: integer }
+        timeoutSec: { type: integer }
+        communityString: { type: string }
+        authSettings: { $ref: "#/components/schemas/SnmpAuthSettings" }
+        autoAssociate: { type: boolean }
+        createdById: { type: string }
+        createdBy: { type: string }
+        createdAt: { type: string }
+        updatedById: { type: string }
+        updatedBy: { type: string }
+        updatedAt: { type: string }
+
+    CollectorHealthIssue:
+      type: object
+      properties:
+        type: { type: string, enum: [HIGH_CPU, LOW_MEMORY, LOW_DISK] }
+        startTime: { type: string }
+        endTime: { type: string, description: Absent while the issue is ongoing. }
+
+    CollectorHealthSummary:
+      type: object
+      properties:
+        status: { type: string, enum: [HEALTHY, UNHEALTHY, UNKNOWN] }
+        issues:
+          type: array
+          items: { $ref: "#/components/schemas/CollectorHealthIssue" }
+
+    CollectorWithStatus:
+      type: object
+      description: >-
+        The collector's own fields sit flat beside its status. Empty when no
+        collector is bound to the network.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        username: { type: string }
+        orgId: { type: string }
+        networkIds: { type: array, items: { type: string } }
+        isDefault: { type: boolean }
+        externalIp: { type: string }
+        internalIps: { type: array, items: { type: string } }
+        features: { type: object, additionalProperties: true }
+        connectionStatus: { type: string, enum: [NEVER_CONNECTED, CONNECTED, DISCONNECTED] }
+        disconnectedAt: { type: string }
+        health: { $ref: "#/components/schemas/CollectorHealthSummary" }
+        version: { type: string }
+        updateStatus: { type: string, enum: [UP_TO_DATE, OUTDATED, NOT_SUPPORTED, END_OF_LIFE] }
+        collectorUpdating: { type: boolean }
+        createdAt: { type: integer, description: Epoch milliseconds, unlike most timestamps. }
+        createdBy: { type: string, description: A user id, not a name. }
+      additionalProperties: true
+
+    CollectorBinding:
+      type: object
+      required: [username]
+      properties:
+        username: { type: string, description: The collector account's username. }

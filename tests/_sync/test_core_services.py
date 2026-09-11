@@ -359,6 +359,33 @@ class TestPredictedSnapshots:
 
         assert latest is not None and latest.id == "9"
 
+    def test_list_can_exclude_triggers(self, recorder: Recorder) -> None:
+        """The filter they asked for, and the limit interaction it forces.
+
+        Forward does not filter by trigger, so the SDK does, and a server-side
+        limit applied before the filter would return fewer than asked. The
+        listing is therefore fetched unlimited and cut afterwards.
+        """
+        recorder.add(
+            "GET",
+            SNAPSHOTS,
+            json_response(
+                {
+                    "snapshots": [
+                        self._snap("p1", "PREDICT", 40),
+                        self._snap("r1", "REPROCESS", 30),
+                        self._snap("p2", "PREDICT", 20),
+                        self._snap("c1", "COLLECTION", 10),
+                    ]
+                }
+            ),
+        )
+        with make_client(recorder) as client:
+            real = client.snapshots.list(limit=1, exclude_triggers=["PREDICT"])
+
+        assert [s.id for s in real] == ["r1"]
+        assert "limit" not in recorder.query_for()
+
     def test_the_two_answers_are_cached_apart(self, recorder: Recorder) -> None:
         for _ in range(2):
             recorder.add(

@@ -60,6 +60,8 @@ Forward's API documentation: `getLocations` becomes `get_locations`.
 | `client.bgp_advertisements` | BGP Advertisements | Unpublished; `PREDICT_MODELING` org property |
 | `client.change_set_directories` | Change Set Directories | Unpublished; `PREDICT_MODELING` org property |
 | `client.predict_assist` | Predict Assist | Unpublished; `AI_ALLOWED` and `PREDICT_AI_ASSIST` |
+| `client.snmp_credentials` | SNMP Credentials | Unpublished; device-credential permissions |
+| `client.collector_binding` | Collector Binding | Unpublished; `VIEW_COLLECTORS` to read, collection settings to write |
 
 "Notes" says what is known to gate a group. It is a hint for interpreting a
 refusal, not a guarantee; see [availability](gating.md).

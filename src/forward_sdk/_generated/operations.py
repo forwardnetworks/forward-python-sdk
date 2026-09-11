@@ -758,6 +758,20 @@ OPERATIONS: dict[str, OpDef] = {
         response_model="SnapshotInfo",
         summary="Import a Snapshot",
     ),
+    "createSnmpCredential": OpDef(
+        operation_id="createSnmpCredential",
+        method="post",
+        path="/networks/{networkId}/snmpCredentials",
+        tag="SNMP Credentials",
+        parameters=(
+            ParamDef(name="networkId", location="path", required=True, schema_type="string"),
+        ),
+        request_media=('application/json',),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="SnmpCredential",
+        summary="Create an SNMP credential",
+    ),
     "createSnmpEndpointProfile": OpDef(
         operation_id="createSnmpEndpointProfile",
         method="post",
@@ -1300,6 +1314,18 @@ OPERATIONS: dict[str, OpDef] = {
         parent_tag="Networks",
         response_media=('application/json',),
         summary="Delete a Snapshot",
+    ),
+    "deleteSnmpCredential": OpDef(
+        operation_id="deleteSnmpCredential",
+        method="delete",
+        path="/networks/{networkId}/snmpCredentials/{credentialId}",
+        tag="SNMP Credentials",
+        parameters=(
+            ParamDef(name="networkId", location="path", required=True, schema_type="string"),
+            ParamDef(name="credentialId", location="path", required=True, schema_type="string"),
+        ),
+        stability="unpublished",
+        summary="Delete an SNMP credential",
     ),
     "deleteUser": OpDef(
         operation_id="deleteUser",
@@ -2946,6 +2972,19 @@ OPERATIONS: dict[str, OpDef] = {
         response_model="DeviceDiffStats",
         summary="Per-device NAT change statistics",
     ),
+    "getNetworkCollector": OpDef(
+        operation_id="getNetworkCollector",
+        method="get",
+        path="/networks/{networkId}/collector",
+        tag="Collector Binding",
+        parameters=(
+            ParamDef(name="networkId", location="path", required=True, schema_type="string"),
+        ),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="CollectorWithStatus",
+        summary="The collector bound to a network, with its connection and health",
+    ),
     "getNetworkEndpoint": OpDef(
         operation_id="getNetworkEndpoint",
         method="get",
@@ -3835,6 +3874,20 @@ OPERATIONS: dict[str, OpDef] = {
         response_is_array=True,
         summary="The snapshots Predict has produced for a change set",
     ),
+    "listSnmpCredentials": OpDef(
+        operation_id="listSnmpCredentials",
+        method="get",
+        path="/networks/{networkId}/snmpCredentials",
+        tag="SNMP Credentials",
+        parameters=(
+            ParamDef(name="networkId", location="path", required=True, schema_type="string"),
+        ),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="SnmpCredential",
+        response_is_array=True,
+        summary="A network's SNMP credentials",
+    ),
     "listWebhooks": OpDef(
         operation_id="listWebhooks",
         method="get",
@@ -4492,6 +4545,18 @@ OPERATIONS: dict[str, OpDef] = {
         response_model="ConfigValue",
         summary="Change an org property's global default",
     ),
+    "setNetworkCollector": OpDef(
+        operation_id="setNetworkCollector",
+        method="put",
+        path="/networks/{networkId}/collector",
+        tag="Collector Binding",
+        parameters=(
+            ParamDef(name="networkId", location="path", required=True, schema_type="string"),
+        ),
+        request_media=('application/json',),
+        stability="unpublished",
+        summary="Bind a network to a collector, by the collector's username",
+    ),
     "setOrgConfigValue": OpDef(
         operation_id="setOrgConfigValue",
         method="put",
@@ -4605,6 +4670,17 @@ OPERATIONS: dict[str, OpDef] = {
         stability="unpublished",
         response_model="WebhookTestResult",
         summary="Send a test event to a webhook definition without saving it",
+    ),
+    "unbindNetworkCollector": OpDef(
+        operation_id="unbindNetworkCollector",
+        method="delete",
+        path="/networks/{networkId}/collector",
+        tag="Collector Binding",
+        parameters=(
+            ParamDef(name="networkId", location="path", required=True, schema_type="string"),
+        ),
+        stability="unpublished",
+        summary="Unbind the network from its collector",
     ),
     "updateAiChat": OpDef(
         operation_id="updateAiChat",
@@ -4810,6 +4886,19 @@ OPERATIONS: dict[str, OpDef] = {
         request_media=('application/json',),
         stability="unpublished",
         summary="Replace a rule's definition, or move it",
+    ),
+    "updateSnmpCredential": OpDef(
+        operation_id="updateSnmpCredential",
+        method="patch",
+        path="/networks/{networkId}/snmpCredentials/{credentialId}",
+        tag="SNMP Credentials",
+        parameters=(
+            ParamDef(name="networkId", location="path", required=True, schema_type="string"),
+            ParamDef(name="credentialId", location="path", required=True, schema_type="string"),
+        ),
+        request_media=('application/json',),
+        stability="unpublished",
+        summary="Change an SNMP credential",
     ),
     "updateSnmpEndpointProfile": OpDef(
         operation_id="updateSnmpEndpointProfile",

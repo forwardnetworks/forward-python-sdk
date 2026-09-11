@@ -20,6 +20,7 @@ from forward_sdk._sync.services._generated.classic_devices import ClassicDevices
 from forward_sdk._sync.services._generated.collection_schedules import (
     CollectionSchedulesService,
 )
+from forward_sdk._sync.services._generated.collector_binding import CollectorBindingService
 from forward_sdk._sync.services._generated.collector_tasks import CollectorTasksService
 from forward_sdk._sync.services._generated.configuration import ConfigurationService
 from forward_sdk._sync.services._generated.credentials import CredentialsService
@@ -42,6 +43,7 @@ from forward_sdk._sync.services._generated.predict_assist import PredictAssistSe
 from forward_sdk._sync.services._generated.snapshot_diff_details import (
     SnapshotDiffDetailsService,
 )
+from forward_sdk._sync.services._generated.snmp_credentials import SNMPCredentialsService
 from forward_sdk._sync.services._generated.system_administration import (
     SystemAdministrationService,
 )
@@ -62,6 +64,7 @@ __all__ = [
     "ChecksService",
     "ClassicDevicesService",
     "CollectionSchedulesService",
+    "CollectorBindingService",
     "CollectorTasksService",
     "ConfigurationService",
     "CredentialsService",
@@ -82,6 +85,7 @@ __all__ = [
     "NetworkTopologyService",
     "PathSearchService",
     "PredictAssistService",
+    "SNMPCredentialsService",
     "SnapshotDiffDetailsService",
     "SystemAdministrationService",
     "UserAccountsService",
@@ -104,6 +108,7 @@ class GeneratedServices:
     checks: ChecksService
     classic_devices: ClassicDevicesService
     collection_schedules: CollectionSchedulesService
+    collector_binding: CollectorBindingService
     collector_tasks: CollectorTasksService
     configuration: ConfigurationService
     credentials: CredentialsService
@@ -123,6 +128,7 @@ class GeneratedServices:
     network_topology: NetworkTopologyService
     path_search: PathSearchService
     predict_assist: PredictAssistService
+    snmp_credentials: SNMPCredentialsService
     snapshot_diff_details: SnapshotDiffDetailsService
     system_administration: SystemAdministrationService
     user_accounts: UserAccountsService
@@ -137,6 +143,7 @@ class GeneratedServices:
         self.checks = ChecksService(transport)
         self.classic_devices = ClassicDevicesService(transport)
         self.collection_schedules = CollectionSchedulesService(transport)
+        self.collector_binding = CollectorBindingService(transport)
         self.collector_tasks = CollectorTasksService(transport)
         self.configuration = ConfigurationService(transport)
         self.credentials = CredentialsService(transport)
@@ -156,6 +163,7 @@ class GeneratedServices:
         self.network_topology = NetworkTopologyService(transport)
         self.path_search = PathSearchService(transport)
         self.predict_assist = PredictAssistService(transport)
+        self.snmp_credentials = SNMPCredentialsService(transport)
         self.snapshot_diff_details = SnapshotDiffDetailsService(transport)
         self.system_administration = SystemAdministrationService(transport)
         self.user_accounts = UserAccountsService(transport)
@@ -172,6 +180,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Checks": "checks",
     "Classic Devices": "classic_devices",
     "Collection Schedules": "collection_schedules",
+    "Collector Binding": "collector_binding",
     "Collector Tasks": "collector_tasks",
     "Configuration": "configuration",
     "Credentials": "credentials",
@@ -191,6 +200,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Topology": "network_topology",
     "Path Search": "path_search",
     "Predict Assist": "predict_assist",
+    "SNMP Credentials": "snmp_credentials",
     "Snapshot Diff Details": "snapshot_diff_details",
     "System Administration": "system_administration",
     "User Accounts": "user_accounts",

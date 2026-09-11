@@ -3,6 +3,35 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Added
+
+- `client.snmp_credentials`: list, create, update and delete a network's SNMP
+  credentials, which the published description leaves out although classic
+  devices reference them by id. Verified live with a credential created,
+  renamed and deleted. The community string comes back on the wire unmasked.
+- `client.collector_binding`: which collector serves a network, its connection
+  and health status, its version and update state, plus binding and unbinding.
+  The published `/collector/status` is the deprecated busy flag; this is the
+  route a pre-flight wants. Verified live, where the collector reported
+  `CONNECTED` and `UNHEALTHY`. Its `createdAt` is epoch milliseconds, which the
+  new response error caught on the first live call.
+- `snapshots.list(exclude_triggers=[...])`, applied after the response since
+  Forward does not filter by trigger, with the limit applied after filtering so
+  the answer is not a short page.
+
+### Noted
+
+- The second gap report from the change-demo integration, written against
+  0.1.7, listed the unchanged-corpus publish failure and the predicted-snapshot
+  default as still open. Both are fixed in 0.1.7 and verified again here on the
+  published package: 23 unchanged paths publish as 23 skipped, and predictions
+  are excluded by default. It also asked for a classic-device upsert, which the
+  SDK has had all along as `classic_devices.put_classic_devices()` and the
+  per-device `put_classic_device()` and `patch_classic_device()`, generated from
+  the published description under Forward's operation names.
+
 ## [0.1.8] - 2026-09-11
 
 ### Added

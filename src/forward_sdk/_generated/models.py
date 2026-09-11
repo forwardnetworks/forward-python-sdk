@@ -866,6 +866,51 @@ class CloudObjectMetadata(ForwardModel):
     vpcs: list[str] | None = None
 
 
+class CollectorBinding(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    username: str
+    """
+    The collector account's username.
+    """
+
+
+class Type8(OpenEnum):
+    high_cpu = "HIGH_CPU"
+    low_memory = "LOW_MEMORY"
+    low_disk = "LOW_DISK"
+
+
+class CollectorHealthIssue(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    end_time: Annotated[str | None, Field(alias="endTime")] = None
+    """
+    Absent while the issue is ongoing.
+    """
+    start_time: Annotated[str | None, Field(alias="startTime")] = None
+    type: Type8 | None = None
+
+
+class Status1(OpenEnum):
+    healthy = "HEALTHY"
+    unhealthy = "UNHEALTHY"
+    unknown = "UNKNOWN"
+
+
+class CollectorHealthSummary(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    issues: list[CollectorHealthIssue] | None = None
+    status: Status1 | None = None
+
+
 class CollectorStatus(OpenEnum):
     offline = "OFFLINE"
     idle = "IDLE"
@@ -876,7 +921,7 @@ class CollectorStatus(OpenEnum):
     updating = "UPDATING"
 
 
-class Status1(OpenEnum):
+class Status2(OpenEnum):
     """
     The current status of the task.
     """
@@ -949,7 +994,7 @@ class CollectorTask(ForwardModel):
     """
     When this task started. Absent if the task hasn’t started yet.
     """
-    status: Annotated[Status1 | None, Field(examples=["SUCCEEDED"])] = None
+    status: Annotated[Status2 | None, Field(examples=["SUCCEEDED"])] = None
     """
     The current status of the task.
     """
@@ -957,6 +1002,53 @@ class CollectorTask(ForwardModel):
     """
     The type of the task
     """
+
+
+class ConnectionStatus(OpenEnum):
+    never_connected = "NEVER_CONNECTED"
+    connected = "CONNECTED"
+    disconnected = "DISCONNECTED"
+
+
+class UpdateStatus(OpenEnum):
+    up_to_date = "UP_TO_DATE"
+    outdated = "OUTDATED"
+    not_supported = "NOT_SUPPORTED"
+    end_of_life = "END_OF_LIFE"
+
+
+class CollectorWithStatus(ForwardModel):
+    """
+    The collector's own fields sit flat beside its status. Empty when no collector is bound to the network.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collector_updating: Annotated[bool | None, Field(alias="collectorUpdating")] = None
+    connection_status: Annotated[ConnectionStatus | None, Field(alias="connectionStatus")] = None
+    created_at: Annotated[int | None, Field(alias="createdAt")] = None
+    """
+    Epoch milliseconds
+    """
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    """
+    A user id
+    """
+    disconnected_at: Annotated[str | None, Field(alias="disconnectedAt")] = None
+    external_ip: Annotated[str | None, Field(alias="externalIp")] = None
+    features: dict[str, Any] | None = None
+    health: CollectorHealthSummary | None = None
+    id: str | None = None
+    internal_ips: Annotated[list[str] | None, Field(alias="internalIps")] = None
+    is_default: Annotated[bool | None, Field(alias="isDefault")] = None
+    name: str | None = None
+    network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
+    org_id: Annotated[str | None, Field(alias="orgId")] = None
+    update_status: Annotated[UpdateStatus | None, Field(alias="updateStatus")] = None
+    username: str | None = None
+    version: str | None = None
 
 
 class Operator(OpenEnum):
@@ -1983,7 +2075,7 @@ class TransitType(OpenEnum):
     egress = "egress"
 
 
-class Type8(OpenEnum):
+class Type9(OpenEnum):
     device_filter = "DeviceFilter"
     interface_filter = "InterfaceFilter"
     tunnel_interface_filter = "TunnelInterfaceFilter"
@@ -2654,7 +2746,7 @@ class LocationConnDiffStat(ForwardModel):
     outgoing: ConnChangeStats | None = None
 
 
-class Type17(OpenEnum):
+class Type18(OpenEnum):
     host_filter = "HostFilter"
     device_filter = "DeviceFilter"
     interface_filter = "InterfaceFilter"
@@ -2781,7 +2873,7 @@ class DiscoveryMethod(OpenEnum):
     ospf = "OSPF"
 
 
-class Type29(OpenEnum):
+class Type30(OpenEnum):
     """
     Detected device type. Absent if undetermined. Never `"unknown"`.
     """
@@ -2874,7 +2966,7 @@ class MissingDevice(ForwardModel):
     """
     The names of the modeled devices from which this device was discovered.
     """
-    type: Annotated[Type29 | None, Field(examples=["cisco_ios_ssh"])] = None
+    type: Annotated[Type30 | None, Field(examples=["cisco_ios_ssh"])] = None
     """
     Detected device type. Absent if undetermined. Never `"unknown"`.
     """
@@ -3270,6 +3362,11 @@ class NewLocation(ForwardModel):
     name: Annotated[str, Field(examples=["Dayton DC"])]
 
 
+class Version(OpenEnum):
+    v2_c = "V2C"
+    v3 = "V3"
+
+
 class NewSnmpNetworkEndpoint(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -3419,7 +3516,7 @@ class NqeCheckDiffStats(ForwardModel):
     checks: list[NqeCheckDiffStat] | None = None
 
 
-class Type33(OpenEnum):
+class Type34(OpenEnum):
     """
     Describes the type of difference between `before` and `after`:
     * If `MODIFIED`, then both `before` and `after` will be present, but will differ in at least one property;
@@ -3443,7 +3540,7 @@ class NqeDiffEntry(ForwardModel):
     )
     after: dict[str, Any] | None = None
     before: dict[str, Any] | None = None
-    type: Type33 | None = None
+    type: Type34 | None = None
     """
     Describes the type of difference between `before` and `after`:
     * If `MODIFIED`, then both `before` and `after` will be present, but will differ in at least one property;
@@ -3494,7 +3591,7 @@ class Outcome(OpenEnum):
     user_error = "USER_ERROR"
 
 
-class Status3(OpenEnum):
+class Status4(OpenEnum):
     """
     The current state of the query execution:
     - `SUBMITTED`: the query has been accepted and is queued, but execution has not yet begun.
@@ -3697,7 +3794,7 @@ class PacketFilter(ForwardModel):
     values: Annotated[dict[str, list[str]], Field(examples=[{"ipv4_dst": ["10.10.10.0/24"]}])]
 
 
-class Type34(OpenEnum):
+class Type35(OpenEnum):
     packet_filter = "PacketFilter"
     packet_alias_filter = "PacketAliasFilter"
     not_filter = "NotFilter"
@@ -3733,7 +3830,7 @@ class PaginationMode(OpenEnum):
     enable_pagination = "ENABLE_PAGINATION"
 
 
-class Type37(OpenEnum):
+class Type38(OpenEnum):
     offset = "OFFSET"
     url_cursor = "URL_CURSOR"
     parameter_cursor = "PARAMETER_CURSOR"
@@ -4385,6 +4482,80 @@ class SnapshotState(OpenEnum):
     restore_failed = "RESTORE_FAILED"
 
 
+class AuthType(OpenEnum):
+    md5 = "MD5"
+    sha = "SHA"
+    sha_256 = "SHA_256"
+    sha_384 = "SHA_384"
+    sha_512 = "SHA_512"
+
+
+class PrivacyProtocol(OpenEnum):
+    des = "DES"
+    aes_128 = "AES_128"
+    aes_192 = "AES_192"
+    aes_256 = "AES_256"
+
+
+class SnmpAuthSettings(ForwardModel):
+    """
+    SNMPv3 settings. Passwords are accepted on input and returned as stored-secret references.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    auth_type: Annotated[AuthType | None, Field(alias="authType")] = None
+    password: str | None = None
+    privacy_password: Annotated[str | None, Field(alias="privacyPassword")] = None
+    privacy_protocol: Annotated[PrivacyProtocol | None, Field(alias="privacyProtocol")] = None
+    username: str | None = None
+
+
+class SnmpCredential(ForwardModel):
+    """
+    A stored credential with attribution flat beside it.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    auth_settings: Annotated[SnmpAuthSettings | None, Field(alias="authSettings")] = None
+    auto_associate: Annotated[bool | None, Field(alias="autoAssociate")] = None
+    community_string: Annotated[str | None, Field(alias="communityString")] = None
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    created_by_id: Annotated[str | None, Field(alias="createdById")] = None
+    id: str | None = None
+    name: str | None = None
+    port: int | None = None
+    timeout_sec: Annotated[int | None, Field(alias="timeoutSec")] = None
+    updated_at: Annotated[str | None, Field(alias="updatedAt")] = None
+    updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
+    updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
+    version: Version | None = None
+
+
+class SnmpCredentialPatch(ForwardModel):
+    """
+    Every field optional; omitted means unchanged.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    auth_settings: Annotated[SnmpAuthSettings | None, Field(alias="authSettings")] = None
+    auto_associate: Annotated[bool | None, Field(alias="autoAssociate")] = None
+    community_string: Annotated[str | None, Field(alias="communityString")] = None
+    name: str | None = None
+    port: int | None = None
+    timeout_sec: Annotated[int | None, Field(alias="timeoutSec")] = None
+    version: Version | None = None
+
+
 class SnmpEndpointProfileDef(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -4973,7 +5144,7 @@ class TopologyLink(ForwardModel):
     target_port: Annotated[str | None, Field(alias="targetPort")] = None
 
 
-class Type40(OpenEnum):
+class Type41(OpenEnum):
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -4998,7 +5169,7 @@ class TotalHits(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    type: Type40 | None = None
+    type: Type41 | None = None
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -5446,7 +5617,7 @@ class VulnerabilityDevice(ForwardModel):
     """
 
 
-class Status4(OpenEnum):
+class Status5(OpenEnum):
     """
     The device’s vulnerability status for the CVE.
     """
@@ -5478,7 +5649,7 @@ class VulnerabilityDeviceWithResult(VulnerabilityDevice):
     The device’s [detection result](https://docs.fwd.app/latest/application/security/vulnerability/#detection-results)
     for the CVE.
     """
-    status: Annotated[Status4 | None, Field(examples=["VULNERABLE"])] = None
+    status: Annotated[Status5 | None, Field(examples=["VULNERABLE"])] = None
     """
     The device’s vulnerability status for the CVE.
     """
@@ -5642,7 +5813,7 @@ class WanCircuitPatch(ForwardModel):
     name: Annotated[str | None, Field(examples=["wan-circuit-01"])] = None
 
 
-class Type41(OpenEnum):
+class Type42(OpenEnum):
     basic_auth = "BASIC_AUTH"
 
 
@@ -5656,11 +5827,11 @@ class WebhookCredential(ForwardModel):
         populate_by_name=True,
     )
     password: str | None = None
-    type: Type41 | None = None
+    type: Type42 | None = None
     username: str | None = None
 
 
-class Type42(OpenEnum):
+class Type43(OpenEnum):
     snapshot_ready = "SNAPSHOT_READY"
     nqe_verification_failure = "NQE_VERIFICATION_FAILURE"
     intent_verification_failure = "INTENT_VERIFICATION_FAILURE"
@@ -5676,7 +5847,7 @@ class WebhookEventParams(ForwardModel):
         populate_by_name=True,
     )
     network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
-    type: Type42
+    type: Type43
 
 
 class PayloadFormat(OpenEnum):
@@ -7125,7 +7296,7 @@ class CveOsInfoWithDevices(CveOsInfo):
     """
 
 
-class Status2(ForwardModel):
+class Status3(ForwardModel):
     """
     How the most recent collection from this connector went. Absent unless `?with=status` is used, and absent then
     too if the network has no processed Snapshot or that Snapshot didn’t collect this connector.
@@ -8176,6 +8347,27 @@ class NewSecurityRule(ForwardModel):
     """
     Insert after this rule id. Omit to insert at the top.
     """
+
+
+class NewSnmpCredential(ForwardModel):
+    """
+    communityString applies to V2C, authSettings to V3.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    auth_settings: Annotated[SnmpAuthSettings | None, Field(alias="authSettings")] = None
+    auto_associate: Annotated[bool | None, Field(alias="autoAssociate")] = None
+    """
+    Attach to new devices automatically.
+    """
+    community_string: Annotated[str | None, Field(alias="communityString")] = None
+    name: str | None = None
+    port: int | None = None
+    timeout_sec: Annotated[int | None, Field(alias="timeoutSec")] = None
+    version: Version | None = None
 
 
 class NqeExecutionRequest(ForwardModel):
@@ -9774,7 +9966,7 @@ class NqeExecutionStatus(ForwardModel):
     The number of rows produced by the query so far. This count may increase as execution progresses. Absent when
     `status` is `SUBMITTED`.
     """
-    status: Status3
+    status: Status4
     """
     The current state of the query execution:
     - `SUBMITTED`: the query has been accepted and is queued, but execution has not yet begun.
@@ -10032,7 +10224,7 @@ class DataConnector(Attribution):
     The `id` of a proxy server to route requests through. Absent if the Collector reaches the service
     directly.
     """
-    status: Status2 | None = None
+    status: Status3 | None = None
     """
     How the most recent collection from this connector went. Absent unless `?with=status` is used, and absent then
     too if the network has no processed Snapshot or that Snapshot didn’t collect this connector.

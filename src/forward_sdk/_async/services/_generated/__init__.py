@@ -17,6 +17,7 @@ from forward_sdk._async.services._generated.classic_devices import AsyncClassicD
 from forward_sdk._async.services._generated.collection_schedules import (
     AsyncCollectionSchedulesService,
 )
+from forward_sdk._async.services._generated.collector_binding import AsyncCollectorBindingService
 from forward_sdk._async.services._generated.collector_tasks import AsyncCollectorTasksService
 from forward_sdk._async.services._generated.configuration import AsyncConfigurationService
 from forward_sdk._async.services._generated.credentials import AsyncCredentialsService
@@ -39,6 +40,7 @@ from forward_sdk._async.services._generated.predict_assist import AsyncPredictAs
 from forward_sdk._async.services._generated.snapshot_diff_details import (
     AsyncSnapshotDiffDetailsService,
 )
+from forward_sdk._async.services._generated.snmp_credentials import AsyncSNMPCredentialsService
 from forward_sdk._async.services._generated.system_administration import (
     AsyncSystemAdministrationService,
 )
@@ -59,6 +61,7 @@ __all__ = [
     "AsyncChecksService",
     "AsyncClassicDevicesService",
     "AsyncCollectionSchedulesService",
+    "AsyncCollectorBindingService",
     "AsyncCollectorTasksService",
     "AsyncConfigurationService",
     "AsyncCredentialsService",
@@ -79,6 +82,7 @@ __all__ = [
     "AsyncNetworkTopologyService",
     "AsyncPathSearchService",
     "AsyncPredictAssistService",
+    "AsyncSNMPCredentialsService",
     "AsyncSnapshotDiffDetailsService",
     "AsyncSystemAdministrationService",
     "AsyncUserAccountsService",
@@ -101,6 +105,7 @@ class AsyncGeneratedServices:
     checks: AsyncChecksService
     classic_devices: AsyncClassicDevicesService
     collection_schedules: AsyncCollectionSchedulesService
+    collector_binding: AsyncCollectorBindingService
     collector_tasks: AsyncCollectorTasksService
     configuration: AsyncConfigurationService
     credentials: AsyncCredentialsService
@@ -120,6 +125,7 @@ class AsyncGeneratedServices:
     network_topology: AsyncNetworkTopologyService
     path_search: AsyncPathSearchService
     predict_assist: AsyncPredictAssistService
+    snmp_credentials: AsyncSNMPCredentialsService
     snapshot_diff_details: AsyncSnapshotDiffDetailsService
     system_administration: AsyncSystemAdministrationService
     user_accounts: AsyncUserAccountsService
@@ -134,6 +140,7 @@ class AsyncGeneratedServices:
         self.checks = AsyncChecksService(transport)
         self.classic_devices = AsyncClassicDevicesService(transport)
         self.collection_schedules = AsyncCollectionSchedulesService(transport)
+        self.collector_binding = AsyncCollectorBindingService(transport)
         self.collector_tasks = AsyncCollectorTasksService(transport)
         self.configuration = AsyncConfigurationService(transport)
         self.credentials = AsyncCredentialsService(transport)
@@ -153,6 +160,7 @@ class AsyncGeneratedServices:
         self.network_topology = AsyncNetworkTopologyService(transport)
         self.path_search = AsyncPathSearchService(transport)
         self.predict_assist = AsyncPredictAssistService(transport)
+        self.snmp_credentials = AsyncSNMPCredentialsService(transport)
         self.snapshot_diff_details = AsyncSnapshotDiffDetailsService(transport)
         self.system_administration = AsyncSystemAdministrationService(transport)
         self.user_accounts = AsyncUserAccountsService(transport)
@@ -169,6 +177,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Checks": "checks",
     "Classic Devices": "classic_devices",
     "Collection Schedules": "collection_schedules",
+    "Collector Binding": "collector_binding",
     "Collector Tasks": "collector_tasks",
     "Configuration": "configuration",
     "Credentials": "credentials",
@@ -188,6 +197,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Topology": "network_topology",
     "Path Search": "path_search",
     "Predict Assist": "predict_assist",
+    "SNMP Credentials": "snmp_credentials",
     "Snapshot Diff Details": "snapshot_diff_details",
     "System Administration": "system_administration",
     "User Accounts": "user_accounts",

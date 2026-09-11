@@ -3,6 +3,38 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Fixed
+
+- `nqe.repo.publish` no longer raises when nothing has changed. Forward
+  terminates its rejection with a full stop, `User has no changes at the
+  following paths: /a/q1, /a/q2.`, and the parser kept it, so the last path read
+  as `/a/q2.` and matched nothing. The caller then stripped every path but that
+  one and retried a commit Forward refused for the same reason, and the second
+  refusal escaped. Re-running an idempotent publisher with nothing to publish is
+  the normal case in a pipeline, and it reported failure. A single-path commit
+  was affected too, since that path is also the last one.
+
+  A second refusal of the stripped set is now also read as a no-op rather than
+  raising, so a message this parser cannot read cannot turn a no-op into an
+  error again. Found by reading Forward's own source, which builds that string.
+
+### Changed
+
+- `latest_processed` and `latest_processed_id` exclude predicted snapshots.
+  Forward creates and processes one for every Predict run, so on a network using
+  Predict the newest processed snapshot is very often a prediction rather than a
+  state the network was ever in, and basing a change set on one predicts a
+  change against a change. Pass `include_predicted=True` for the old behaviour.
+
+  The filter excludes `PREDICT` rather than requiring `COLLECTION`. A reprocessed
+  snapshot reports `REPROCESS` and is real collected data, and on one live
+  network 20 of 43 processed snapshots were reprocessed; requiring `COLLECTION`
+  would skip those and select the previous collection, which during a rehearsal
+  is the snapshot taken while the change was still applied. Reported by the
+  change-demo integration, which had hit exactly that.
+
 ## [0.1.6] - 2026-09-11
 
 ### Added

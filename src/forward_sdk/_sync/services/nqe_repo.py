@@ -287,7 +287,16 @@ class NqeRepository(Service):
             remaining = [p for p in requested if p not in unchanged]
             if not remaining:
                 return CommitReport(skipped_paths=tuple(sorted(unchanged)))
-            self._send_json(ops.commit(paths=remaining, title=title, body=body))
+            try:
+                self._send_json(ops.commit(paths=remaining, title=title, body=body))
+            except ForwardConflictError as retry_exc:
+                # Forward refused the stripped set for the same reason, so
+                # nothing was staged after all and this is still a no-op. Only
+                # a mis-parsed message gets here, and raising would report a
+                # corpus with nothing to publish as a failure.
+                if self._unchanged_paths(retry_exc, remaining) is None:
+                    raise
+                return CommitReport(skipped_paths=tuple(sorted(set(requested))))
             self._invalidate()
             return CommitReport(
                 committed_paths=tuple(remaining),

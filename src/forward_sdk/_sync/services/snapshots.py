@@ -70,6 +70,18 @@ class _Miss:
 _MISS = _Miss()
 
 
+#: Forward's trigger for a snapshot it created to analyse a change set. Absent
+#: from the published description, which lists every other trigger, so it
+#: arrives as an unknown enum value and is compared as a string.
+PREDICT_TRIGGER = "PREDICT"
+
+
+def is_predicted(snapshot: SnapshotInfo) -> bool:
+    """Whether Forward made this snapshot to analyse a change set."""
+    trigger = getattr(snapshot, "processing_trigger", None)
+    return trigger is not None and str(trigger).upper().endswith(PREDICT_TRIGGER)
+
+
 def _state_of(snapshot: SnapshotInfo) -> str:
     return str(snapshot.state) if snapshot.state is not None else ""
 
@@ -156,7 +168,9 @@ class SnapshotsService(Service):
         rows = (payload or {}).get("snapshots") or []
         return [SnapshotInfo.model_validate(row) for row in rows]
 
-    def latest_processed(self, network_id: str | None = None) -> SnapshotInfo | None:
+    def latest_processed(
+        self, network_id: str | None = None, *, include_predicted: bool = False
+    ) -> SnapshotInfo | None:
         """The most recent fully processed snapshot, or ``None`` if there is none.
 
         Uses the snapshot listing rather than Forward's dedicated endpoint,
@@ -166,17 +180,39 @@ class SnapshotsService(Service):
         row of a one-row request. It sorts what comes back by when each snapshot
         finished processing. Picking an arbitrary processed snapshot would pin a
         sync to the wrong baseline without anything appearing to go wrong.
+
+        Predicted snapshots are excluded by default. Forward creates one for
+        every Predict run, and they are processed like any other, so on a
+        network using Predict the newest processed snapshot is very often a
+        prediction rather than a state the network was ever in. Basing a change
+        set on one predicts a change against a change.
+
+        The filter excludes ``PREDICT`` rather than requiring ``COLLECTION``,
+        and the difference matters. A reprocessed snapshot reports
+        ``REPROCESS`` and is real collected data; reprocessing is how a changed
+        query or feature flag is picked up. Requiring ``COLLECTION`` would skip
+        it and silently select the previous collection, which during a
+        rehearsal is the snapshot taken while the change was still applied.
+
+        Args:
+            include_predicted: Consider predicted snapshots too. Forward does
+                not publish ``PREDICT`` in its description, so a deployment not
+                using Predict is unaffected either way.
         """
-        key = ("latest_processed", self._network(network_id))
+        key = ("latest_processed", self._network(network_id), include_predicted)
         cached = self._cached(key)
         if cached is not _MISS:
             return cached  # type: ignore[no-any-return]
         snapshots = self.list(network_id, state=PROCESSED)
+        if not include_predicted:
+            snapshots = [s for s in snapshots if not is_predicted(s)]
         latest = max(snapshots, key=_processed_order, default=None)
         return self._remember(key, latest)  # type: ignore[no-any-return]
 
-    def latest_processed_id(self, network_id: str | None = None) -> str | None:
-        snapshot = self.latest_processed(network_id)
+    def latest_processed_id(
+        self, network_id: str | None = None, *, include_predicted: bool = False
+    ) -> str | None:
+        snapshot = self.latest_processed(network_id, include_predicted=include_predicted)
         return snapshot.id if snapshot else None
 
     def latest_collected_id(

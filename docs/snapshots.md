@@ -86,3 +86,26 @@ For progress, there is a pollable job, which uses unpublished endpoints:
 job = client.snapshots.start_reachability_job(snapshot_id, network_id="101")
 job.wait()
 ```
+
+## Predicted snapshots
+
+Forward creates and processes a snapshot for every Predict run. They are
+processed like any other, so on a network using Predict the newest processed
+snapshot is very often a prediction rather than a state the network was ever in.
+Basing a change set on one predicts a change against a change.
+
+`latest_processed` and `latest_processed_id` exclude them. Pass
+`include_predicted=True` to get Forward's newest processed snapshot whatever
+produced it.
+
+The filter excludes `PREDICT` rather than requiring `COLLECTION`, and the
+difference is not cosmetic. A reprocessed snapshot reports `REPROCESS` and is
+real collected data: reprocessing is how a changed query or feature flag gets
+picked up, and on one live network 20 of 43 processed snapshots were
+reprocessed. Requiring `COLLECTION` would skip those and silently select the
+previous collection, which during a change rehearsal is the snapshot taken while
+the change was still applied. Everything downstream then reports green against
+the wrong state of the network.
+
+Forward does not publish `PREDICT` in its API description, so a deployment not
+using Predict sees no difference either way.

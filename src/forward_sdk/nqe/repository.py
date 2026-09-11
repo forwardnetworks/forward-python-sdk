@@ -228,12 +228,24 @@ def message_of(error: Any) -> str | None:
 
 
 def paths_without_changes(message: str) -> set[str]:
-    """Pull the offending paths out of Forward's rejection message."""
+    """Pull the offending paths out of Forward's rejection message.
+
+    Forward writes the list as a sentence and terminates it with a full stop:
+    ``User has no changes at the following paths: /a/q1, /a/q2.`` The stop is
+    removed once, from the end of the list rather than from each path, so a path
+    that genuinely ended in a dot would survive.
+
+    Leaving it on was a real defect. The final path parsed as ``/a/q2.``, which
+    matched nothing in the requested set, so the caller stripped every path but
+    that one and retried a commit Forward refused again for the same reason.
+    The second refusal escaped, and publishing an unchanged corpus raised
+    instead of reporting that there was nothing to do. It applied to a
+    single-path commit too, since that path is also the last one.
+    """
     match = re.search(re.escape(NO_CHANGES_PREFIX) + r"\s*(?P<paths>.+)", message, re.DOTALL)
     if not match:
         return set()
-    return {
-        part.strip().strip("'\"")
-        for part in re.split(r"[,\n]", match.group("paths"))
-        if part.strip()
-    }
+    listed = match.group("paths").strip()
+    if listed.endswith("."):
+        listed = listed[:-1]
+    return {part.strip().strip("'\"") for part in re.split(r"[,\n]", listed) if part.strip()}

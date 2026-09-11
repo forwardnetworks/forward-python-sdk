@@ -271,6 +271,116 @@ class TestSnapshots:
         assert recorder.count("POST", "/api/nqe") == 2
 
 
+class TestPredictedSnapshots:
+    """Forward processes a snapshot for every Predict run, like any other.
+
+    On a network using Predict the newest processed snapshot is very often a
+    prediction rather than a state the network was ever in, so basing a change
+    set on it predicts a change against a change.
+    """
+
+    def _snap(self, sid: str, trigger: str, minute: int) -> dict[str, Any]:
+        return snapshot(
+            sid,
+            processingTrigger=trigger,
+            processedAt=f"2026-01-01T00:{minute:02d}:00.000Z",
+        )
+
+    def test_a_prediction_is_not_the_latest_processed(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            SNAPSHOTS,
+            json_response(
+                {
+                    "snapshots": [
+                        self._snap("predicted", "PREDICT", 20),
+                        self._snap("real", "COLLECTION", 10),
+                    ]
+                }
+            ),
+        )
+        with make_client(recorder) as client:
+            latest = client.snapshots.latest_processed()
+
+        assert latest is not None and latest.id == "real"
+
+    def test_a_reprocessed_snapshot_still_counts(self, recorder: Recorder) -> None:
+        """The reason the filter excludes PREDICT rather than requiring COLLECTION.
+
+        Reprocessing is how a changed query or feature flag is picked up, and
+        the result is real collected data. Requiring COLLECTION would skip it
+        and select the previous collection, which during a rehearsal is the
+        snapshot taken while the change was still applied.
+        """
+        recorder.add(
+            "GET",
+            SNAPSHOTS,
+            json_response(
+                {
+                    "snapshots": [
+                        self._snap("reprocessed", "REPROCESS", 30),
+                        self._snap("collected", "COLLECTION", 10),
+                    ]
+                }
+            ),
+        )
+        with make_client(recorder) as client:
+            latest = client.snapshots.latest_processed()
+
+        assert latest is not None and latest.id == "reprocessed"
+
+    def test_predictions_can_be_asked_for(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            SNAPSHOTS,
+            json_response(
+                {
+                    "snapshots": [
+                        self._snap("predicted", "PREDICT", 20),
+                        self._snap("real", "COLLECTION", 10),
+                    ]
+                }
+            ),
+        )
+        with make_client(recorder) as client:
+            latest = client.snapshots.latest_processed(include_predicted=True)
+
+        assert latest is not None and latest.id == "predicted"
+
+    def test_a_snapshot_with_no_trigger_is_kept(self, recorder: Recorder) -> None:
+        """An older Forward, or a listing that omits the field, must still work."""
+        recorder.add(
+            "GET",
+            SNAPSHOTS,
+            json_response({"snapshots": [{"id": "9", "state": "PROCESSED"}]}),
+        )
+        with make_client(recorder) as client:
+            latest = client.snapshots.latest_processed()
+
+        assert latest is not None and latest.id == "9"
+
+    def test_the_two_answers_are_cached_apart(self, recorder: Recorder) -> None:
+        for _ in range(2):
+            recorder.add(
+                "GET",
+                SNAPSHOTS,
+                json_response(
+                    {
+                        "snapshots": [
+                            self._snap("predicted", "PREDICT", 20),
+                            self._snap("real", "COLLECTION", 10),
+                        ]
+                    }
+                ),
+            )
+        with make_client(recorder, snapshot_cache_ttl="lifetime") as client:
+            without = client.snapshots.latest_processed()
+            with_predicted = client.snapshots.latest_processed(include_predicted=True)
+
+        assert without is not None and without.id == "real"
+        assert with_predicted is not None and with_predicted.id == "predicted"
+
+
 class TestUnparseableResponses:
     def test_a_bad_payload_raises_a_catchable_error(self, recorder: Recorder) -> None:
         """The path an integration actually hit, end to end through the client.

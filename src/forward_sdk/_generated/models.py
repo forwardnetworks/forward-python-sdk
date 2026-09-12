@@ -1293,6 +1293,17 @@ class ConfigValue(ForwardModel):
     )
 
 
+class ConfigValues(ForwardModel):
+    """
+    Property name to value, one entry per property.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+
+
 class ConnChangeStats(ForwardModel):
     model_config = ConfigDict(
         extra="allow",

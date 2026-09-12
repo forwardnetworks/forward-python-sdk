@@ -436,6 +436,17 @@ OPERATIONS: dict[str, OpDef] = {
         response_media=('application/json',),
         summary="Cancel an in-progress network collection",
     ),
+    "clearDeploymentConfigValue": OpDef(
+        operation_id="clearDeploymentConfigValue",
+        method="delete",
+        path="/deployment-config/{property}",
+        tag="Configuration",
+        parameters=(
+            ParamDef(name="property", location="path", required=True, schema_type="string"),
+        ),
+        stability="unpublished",
+        summary="Remove a deployment property's override, reverting to its default",
+    ),
     "clearOrgConfigValue": OpDef(
         operation_id="clearOrgConfigValue",
         method="delete",
@@ -2209,6 +2220,29 @@ OPERATIONS: dict[str, OpDef] = {
         response_media=('application/json',),
         stability="unpublished",
         summary="List the data files collected for a network",
+    ),
+    "getDeploymentConfig": OpDef(
+        operation_id="getDeploymentConfig",
+        method="get",
+        path="/deployment-config",
+        tag="Configuration",
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="ConfigValues",
+        summary="Every deployment property and its effective value",
+    ),
+    "getDeploymentConfigValue": OpDef(
+        operation_id="getDeploymentConfigValue",
+        method="get",
+        path="/deployment-config/{property}",
+        tag="Configuration",
+        parameters=(
+            ParamDef(name="property", location="path", required=True, schema_type="string"),
+        ),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="ConfigValue",
+        summary="A deployment property's effective value",
     ),
     "getDevice": OpDef(
         operation_id="getDevice",
@@ -4690,6 +4724,20 @@ OPERATIONS: dict[str, OpDef] = {
         stability="unpublished",
         response_model="CloudAccount",
         summary="Replace an account's credential",
+    ),
+    "setDeploymentConfigValue": OpDef(
+        operation_id="setDeploymentConfigValue",
+        method="put",
+        path="/deployment-config/{property}",
+        tag="Configuration",
+        parameters=(
+            ParamDef(name="property", location="path", required=True, schema_type="string"),
+            ParamDef(name="value", location="query", required=True, schema_type="string"),
+        ),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="ConfigValue",
+        summary="Set a deployment property",
     ),
     "setGlobalConfigValue": OpDef(
         operation_id="setGlobalConfigValue",

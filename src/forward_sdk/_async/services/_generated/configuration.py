@@ -19,6 +19,20 @@ __all__ = ["AsyncConfigurationService"]
 class AsyncConfigurationService(AsyncService):
     """Configuration."""
 
+    async def clear_deployment_config_value(
+        self,
+        *,
+        property: str,
+    ) -> Any:
+        """Remove a deployment property's override, reverting to its default.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["clearDeploymentConfigValue"](property=property)
+        )
+        return payload
+
     async def clear_org_config_value(
         self,
         *,
@@ -45,6 +59,28 @@ class AsyncConfigurationService(AsyncService):
             ops.BUILDERS["clearOrgScopedConfigValue"](org_id=org_id, property=property)
         )
         return payload
+
+    async def get_deployment_config(
+        self,
+    ) -> models.ConfigValues:
+        """Every deployment property and its effective value.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(ops.BUILDERS["getDeploymentConfig"]())
+        return models.ConfigValues.model_validate(payload or {})
+
+    async def get_deployment_config_value(
+        self,
+        *,
+        property: str,
+    ) -> models.ConfigValue:
+        """A deployment property's effective value.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(ops.BUILDERS["getDeploymentConfigValue"](property=property))
+        return models.ConfigValue.model_validate(payload or {})
 
     async def get_global_config_value(
         self,
@@ -82,6 +118,21 @@ class AsyncConfigurationService(AsyncService):
         """
         payload = await self._send_json(
             ops.BUILDERS["getOrgScopedConfigValue"](org_id=org_id, property=property)
+        )
+        return models.ConfigValue.model_validate(payload or {})
+
+    async def set_deployment_config_value(
+        self,
+        *,
+        property: str,
+        value: str,
+    ) -> models.ConfigValue:
+        """Set a deployment property.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["setDeploymentConfigValue"](property=property, value=value)
         )
         return models.ConfigValue.model_validate(payload or {})
 

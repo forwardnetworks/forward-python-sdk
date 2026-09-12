@@ -149,6 +149,14 @@ behaviour and easily mistaken for a failed write. The org-effective routes
 report what governs. Read from the scope you care about: `get_org_config_value`
 for the calling user's org, or `get_org_scoped_config_value` for a named one.
 
+Deployment properties are a third scope, and the other routes cannot reach
+them. `OUTBOUND_CONNECTIONS` gates webhook creation and cloud tests;
+`PROBE_LLM_AVAILABILITY` is what makes Forward AI appear on a self-hosted
+deployment. `get_deployment_config()` lists every one with its value, and the
+`*_deployment_config_value` operations read, set and clear one. Setting them
+needs a Forward administrator, or an org administrator on a self-hosted
+deployment for the properties marked configurable there.
+
 Writes follow the same split. Properties declared org-scoped, including every
 Predict gate, have an immutable global default: the global write refuses with
 "Permission denied. Global default value cannot be changed for X", and the org

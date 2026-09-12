@@ -1,6 +1,6 @@
 # Forward SDK: after 0.1.10
 
-Written 2026-09-11 against **forward-sdk 0.1.10**, updated the same day for **0.1.11**, and the from-source Forward instance
+Written 2026-09-11 against **forward-sdk 0.1.10**, updated the same day for **0.1.11** and **0.1.12**, and the from-source Forward instance
 (`1.0.0-260908-6aa8ff0c29ba`). Third round.
 
 Round 2 listed five gaps. 0.1.9 and 0.1.10 closed every one of them, and the SDK's
@@ -42,52 +42,56 @@ be a curl in a runbook.
 the full unchanged corpus with a dry run publishes as `committed: 0, skipped: 23`, no
 drafts left. Same-day turnaround.
 
-## Open in 0.1.11: `publish` refuses every clean dry run of a *changed* query
+## Closed in 0.1.12: `publish` refused every clean dry run of a *changed* query
 
-Found while verifying the fix above, and it is older than the fix — the line dates from
-the NQE layer's first commit.
+Found while verifying the 0.1.11 fix, and older than any of the reports: `publish`
+tested the dry run's `newErrors` map for truth, but Forward keys that map by every path
+examined (`Map<QueryPath, Set<Diagnostic>>`, empty set for a clean one), so a changed
+query that compiled was refused as "1 new error". The SDK's own test fixture was a list,
+the shape the parser believed, so the suite was green while both were wrong.
 
-`publish` decides whether the dry run found errors with:
+0.1.12 reads diagnostics by severity as Forward's commit dialog does: an `ERROR` refuses
+the publish with Forward's message and path in the exception; a `WARNING` does not block
+and is on `CommitReport.warnings`. It also adds `devices.upsert_classic()`, the batch
+upsert followed by a read-back of the same names, because the upsert itself answers 201
+with nothing.
 
-```python
-errors = report.get("newErrors") or []
-if errors:
-    raise ForwardConflictError(f"... would introduce {len(errors)} new error(s) ...")
+Verified here on the live library, all four paths with a dry run: full corpus unchanged
+→ 0 committed / 23 skipped; one clean edit → 1 committed / 22 skipped, no warnings, a
+commit id; one broken edit → refused, "Mismatched input 'this'. Reminder: record fields
+are comma-separated", no drafts left; restore → committed, source matches the file.
+
+**What it removed from this repo:** the whole read-back-and-compare in
+`publish_nqe_corpus.py`, and the local stage/dry-run/commit that stood in for `publish`
+for one release. The publisher is one call. `apply_forward_sources.py` uses
+`upsert_classic` and logs what Forward stored rather than what was sent.
+
+One small thing is open after 0.1.12: the deployment-config scope, below.
+
+## Open after 0.1.12: deployment configuration
+
+`GET/PUT/DELETE /api/deployment-config/{PROPERTY}` (`DeploymentConfigController`) has no
+SDK service. `configuration` covers org and global properties; deployment properties are
+a third scope — `PROBE_LLM_AVAILABILITY`, `OUTBOUND_CONNECTIONS` and friends — and the
+first of those is what makes the Forward AI page appear in the UI on an on-prem box
+(off by default; when on, the server probes Bedrock once and caches the answer).
+Round 1 noted `OUTBOUND_CONNECTIONS` "cannot be read or set this way at all"; this is the
+route that reads and sets it.
+
+```
+GET    /api/deployment-config                      -> {PROPERTY: value, ...}
+GET    /api/deployment-config/{PROPERTY}           -> {PROPERTY: value}
+PUT    /api/deployment-config/{PROPERTY}?value=... -> {PROPERTY: newValue}
+DELETE /api/deployment-config/{PROPERTY}           -> back to the default
 ```
 
-But `newErrors` is `Map<QueryPath, Set<Diagnostic>>` (`CommitDryRunInfo.java`), keyed
-by **every path in the dry run**, with an empty set for a path that compiles. So a
-non-empty map means "the dry run looked at something", and `len(errors)` is the number
-of paths, not errors. Verified live: one query edited by adding a trailing comment,
-`dry_run` returns `{"newErrors": {"/ChangeAssurance/hygiene_interface_descriptions": []}}`,
-and `publish(..., dry_run_snapshot_id="664")` raises "publishing 1 queries would
-introduce 1 new error(s); nothing was committed".
+**Ask:** `configuration.get_deployment_config_value(name)` /
+`set_deployment_config_value(name, value)` / `clear_deployment_config_value(name)`, with
+the same typed errors the org and global scopes have.
 
-The consequence is that the recommended path — dry run before commit — cannot publish
-a changed query at all. The unchanged case works only because there is nothing to dry
-run.
-
-Two more things about the shape, from Forward's commit dialog
-(`NqeCommitModal.svelte`), which is the behaviour to mirror:
-
-- A diagnostic carries `severity`, `ERROR` or `WARNING`. The dialog disables Commit
-  only when there is at least one `ERROR`; warnings turn the button into "Commit
-  anyway". The Java comment on `newErrors` says "errors (or warnings)". A warning-only
-  dry run should publish, or at least be distinguishable.
-- The dialog also treats "snapshot not processed" from the dry run as "cannot check",
-  and offers Commit anyway rather than failing.
-
-**Ask:** `errors = {p: [d for d in ds if d["severity"] == "ERROR"] for p, ds in
-report["newErrors"].items()}`, raise only if any list is non-empty, and put the paths
-and messages in the exception — Forward's diagnostics are good ("Mismatched input
-'this'. Reminder: record fields are comma-separated") and are the thing the caller
-needs to see.
-
-**How we are handling it:** `publish_nqe_corpus.py` carries `publish_checked()` —
-stage, dry run, count ERROR diagnostics per path, commit, discard on any failure —
-which is `publish` with the check done as the dialog does it. Verified: a clean edit
-commits, a broken one is refused quoting Forward's diagnostic, no drafts survive a
-refusal. It collapses back to one `publish` call when the fix lands.
+**How we are handling it:** a one-time documented curl in `DEMO-PREDICT.md`
+(`PUT .../PROBE_LLM_AVAILABILITY?value=true`, 2026-09-12); the value persists in the
+management store, so nothing in the repo needs it and no raw HTTP was added.
 
 ## For the record
 

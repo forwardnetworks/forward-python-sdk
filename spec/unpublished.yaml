@@ -3175,6 +3175,70 @@ paths:
             text/event-stream:
               schema: { type: string }
 
+  # ------------------------------------------------ deployment configuration ---
+  # The third scope beside org and global. Deployment properties such as
+  # OUTBOUND_CONNECTIONS or PROBE_LLM_AVAILABILITY are not org properties and
+  # are unreachable through the other configuration routes. Keys come back in
+  # upper case here, unlike the org routes; config_value() reads either.
+  /deployment-config:
+    get:
+      operationId: getDeploymentConfig
+      summary: Every deployment property and its effective value
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      responses:
+        "200":
+          description: Property name to value.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigValues" }
+              example: { OUTBOUND_CONNECTIONS: true, CONCURRENT_BACKGROUND_SNAPSHOT_REPROCESS: 1 }
+
+  /deployment-config/{property}:
+    get:
+      operationId: getDeploymentConfigValue
+      summary: A deployment property's effective value
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: property, in: path, required: true, schema: { type: string }, description: "A DeploymentProperty name, upper snake case." }
+      responses:
+        "200":
+          description: The property and its value.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigValue" }
+              example: { OUTBOUND_CONNECTIONS: true }
+    put:
+      operationId: setDeploymentConfigValue
+      summary: Set a deployment property
+      description: >-
+        Forward administrators, or an org administrator on a self-hosted
+        deployment for properties marked configurable there. Others refuse with
+        "Permission denied for PROPERTY". A value Forward cannot parse for the
+        property is a 400 with its reason.
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: property, in: path, required: true, schema: { type: string } }
+        - { name: value, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The property and its new value.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigValue" }
+              example: { PROBE_LLM_AVAILABILITY: true }
+    delete:
+      operationId: clearDeploymentConfigValue
+      summary: Remove a deployment property's override, reverting to its default
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: property, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Cleared. No body. }
+
 components:
   schemas:
     RepositoryCommit:
@@ -4889,3 +4953,8 @@ components:
       type: object
       properties:
         externalId: { type: string }
+
+    ConfigValues:
+      type: object
+      description: Property name to value, one entry per property.
+      additionalProperties: true

@@ -3593,6 +3593,11 @@
         "description": "A single property and its value, keyed by the property name in lower case. Read it with `forward_sdk.config_value`, which returns the value whatever the key.",
         "type": "object"
       },
+      "ConfigValues": {
+        "additionalProperties": true,
+        "description": "Property name to value, one entry per property.",
+        "type": "object"
+      },
       "ConnChangeStats": {
         "properties": {
           "modified": {
@@ -15175,6 +15180,133 @@
         "tags": [
           "System Administration"
         ]
+      }
+    },
+    "/deployment-config": {
+      "get": {
+        "operationId": "getDeploymentConfig",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "CONCURRENT_BACKGROUND_SNAPSHOT_REPROCESS": 1,
+                  "OUTBOUND_CONNECTIONS": true
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigValues"
+                }
+              }
+            },
+            "description": "Property name to value."
+          }
+        },
+        "summary": "Every deployment property and its effective value",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/deployment-config/{property}": {
+      "delete": {
+        "operationId": "clearDeploymentConfigValue",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cleared. No body."
+          }
+        },
+        "summary": "Remove a deployment property's override, reverting to its default",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "operationId": "getDeploymentConfigValue",
+        "parameters": [
+          {
+            "description": "A DeploymentProperty name, upper snake case.",
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "OUTBOUND_CONNECTIONS": true
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigValue"
+                }
+              }
+            },
+            "description": "The property and its value."
+          }
+        },
+        "summary": "A deployment property's effective value",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "put": {
+        "description": "Forward administrators, or an org administrator on a self-hosted deployment for properties marked configurable there. Others refuse with \"Permission denied for PROPERTY\". A value Forward cannot parse for the property is a 400 with its reason.",
+        "operationId": "setDeploymentConfigValue",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "value",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "PROBE_LLM_AVAILABILITY": true
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigValue"
+                }
+              }
+            },
+            "description": "The property and its new value."
+          }
+        },
+        "summary": "Set a deployment property",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/diffs/{beforeSnapshotId}/{afterSnapshotId}/acl": {

@@ -3,6 +3,19 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Added
+
+- Deployment configuration on `client.configuration`: list every deployment
+  property, and read, set or clear one. The third scope beside org and
+  global, and the only route to properties such as `OUTBOUND_CONNECTIONS`,
+  which gates webhook creation, and `PROBE_LLM_AVAILABILITY`, which makes
+  Forward AI appear on a self-hosted deployment. Keys come back in upper case
+  here, unlike the org routes; `config_value()` reads either. Verified live,
+  including a write of a property's current value back to itself. Reported by
+  the change-demo integration as the last item of its third report.
+
 ## [0.1.12] - 2026-09-11
 
 ### Fixed

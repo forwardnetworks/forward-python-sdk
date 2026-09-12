@@ -1008,6 +1008,17 @@ class CloudObjectMetadata(ForwardModel):
     vpcs: list[str] | None = None
 
 
+class CloudResourcePool(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    name: str
+    security_groups: Annotated[list[str], Field(alias="securityGroups")]
+    subnets: list[str]
+    type: Literal["CLOUD"]
+
+
 class CloudTestResult(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -1406,6 +1417,38 @@ class ConnectivityTestError(OpenEnum):
     other = "OTHER"
 
 
+class Type16(OpenEnum):
+    unknown = "UNKNOWN"
+    inferred_host = "INFERRED_HOST"
+    edge_node = "EDGE_NODE"
+    cloud_host = "CLOUD_HOST"
+
+
+class CoveredTopologyHostGroup(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cloud_host_id: Annotated[str | None, Field(alias="cloudHostId")] = None
+    device_name: Annotated[str, Field(alias="deviceName")]
+    name: str | None = None
+    """
+    Absent for an inferred host.
+    """
+    type: Type16
+
+
+class CoveredTopologyNode(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    id: str
+    """
+    A device name.
+    """
+
+
 class Omission(OpenEnum):
     custom_commands = "CUSTOM_COMMANDS"
     nqe_checks = "NQE_CHECKS"
@@ -1636,7 +1679,7 @@ class Severity(OpenEnum):
     critical = "CRITICAL"
 
 
-class Type16(OpenEnum):
+class Type17(OpenEnum):
     default = "DEFAULT"
     composed = "COMPOSED"
 
@@ -1677,7 +1720,7 @@ class DashboardDisplaySettings(ForwardModel):
     auto_scroll_speed: Annotated[AutoScrollSpeed | None, Field(alias="autoScrollSpeed")] = None
 
 
-class Type17(OpenEnum):
+class Type18(OpenEnum):
     row = "ROW"
     panel = "PANEL"
 
@@ -1706,7 +1749,7 @@ class DashboardWidget(ForwardModel):
     """
     panel_id: Annotated[str | None, Field(alias="panelId")] = None
     title: str | None = None
-    type: Type17
+    type: Type18
     updated_at: Annotated[str | None, Field(alias="updatedAt")] = None
     updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
     updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
@@ -2114,6 +2157,24 @@ class DeviceVrfFilter(ForwardModel):
     vrf: Annotated[str, Field(examples=["MY VRF"])]
 
 
+class DeviceZoneResourcePool(ForwardModel):
+    """
+    A device's security zone, as a resource pool.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device: str
+    name: str | None = None
+    """
+    Computed by Forward as "device zone"; ignored on write.
+    """
+    type: Literal["DEVICE_ZONE"]
+    zone: str
+
+
 class DevicesAliasBuilder(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -2382,7 +2443,7 @@ class TransitType(OpenEnum):
     egress = "egress"
 
 
-class Type18(OpenEnum):
+class Type19(OpenEnum):
     device_filter = "DeviceFilter"
     interface_filter = "InterfaceFilter"
     tunnel_interface_filter = "TunnelInterfaceFilter"
@@ -2665,6 +2726,27 @@ class InternetConnectionSuggestions(ForwardModel):
         populate_by_name=True,
     )
     suggestions: list[InternetConnectionSuggestion] | None = None
+
+
+class Error(OpenEnum):
+    internet_node_not_defined = "INTERNET_NODE_NOT_DEFINED"
+    reachability_computation_disabled = "REACHABILITY_COMPUTATION_DISABLED"
+    pending_advanced_reachability = "PENDING_ADVANCED_REACHABILITY"
+
+
+class InternetExposure(ForwardModel):
+    """
+    error is present only when trafficReceivingInterfaces could not be computed.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    error: Error | None = None
+    traffic_receiving_interfaces: Annotated[
+        list[str] | None, Field(alias="trafficReceivingInterfaces")
+    ] = None
 
 
 class InventoryDeviceInfo(ForwardModel):
@@ -3100,7 +3182,7 @@ class LocationConnDiffStat(ForwardModel):
     outgoing: ConnChangeStats | None = None
 
 
-class Type27(OpenEnum):
+class Type28(OpenEnum):
     host_filter = "HostFilter"
     device_filter = "DeviceFilter"
     interface_filter = "InterfaceFilter"
@@ -3227,7 +3309,7 @@ class DiscoveryMethod(OpenEnum):
     ospf = "OSPF"
 
 
-class Type39(OpenEnum):
+class Type40(OpenEnum):
     """
     Detected device type. Absent if undetermined. Never `"unknown"`.
     """
@@ -3320,7 +3402,7 @@ class MissingDevice(ForwardModel):
     """
     The names of the modeled devices from which this device was discovered.
     """
-    type: Annotated[Type39 | None, Field(examples=["cisco_ios_ssh"])] = None
+    type: Annotated[Type40 | None, Field(examples=["cisco_ios_ssh"])] = None
     """
     Detected device type. Absent if undetermined. Never `"unknown"`.
     """
@@ -3891,7 +3973,7 @@ class NqeCheckDiffStats(ForwardModel):
     checks: list[NqeCheckDiffStat] | None = None
 
 
-class Type44(OpenEnum):
+class Type45(OpenEnum):
     """
     Describes the type of difference between `before` and `after`:
     * If `MODIFIED`, then both `before` and `after` will be present, but will differ in at least one property;
@@ -3915,7 +3997,7 @@ class NqeDiffEntry(ForwardModel):
     )
     after: dict[str, Any] | None = None
     before: dict[str, Any] | None = None
-    type: Type44 | None = None
+    type: Type45 | None = None
     """
     Describes the type of difference between `before` and `after`:
     * If `MODIFIED`, then both `before` and `after` will be present, but will differ in at least one property;
@@ -4184,6 +4266,21 @@ class OffsetIncrementExpression(ForwardModel):
     """
 
 
+class OnPremResourcePool(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    devices: list[str]
+    name: str
+    subnets: list[str]
+    """
+    Non-empty; "0.0.0.0/0" is refused.
+    """
+    type: Literal["ON_PREM"]
+    vrfs: list[str]
+
+
 class DetectionMethod(OpenEnum):
     """
     How the set of possibly matching devices was constructed. `CONFIG` means that the analysis was more thorough
@@ -4260,7 +4357,7 @@ class PacketFilter(ForwardModel):
     values: Annotated[dict[str, list[str]], Field(examples=[{"ipv4_dst": ["10.10.10.0/24"]}])]
 
 
-class Type45(OpenEnum):
+class Type46(OpenEnum):
     packet_filter = "PacketFilter"
     packet_alias_filter = "PacketAliasFilter"
     not_filter = "NotFilter"
@@ -4296,13 +4393,13 @@ class PaginationMode(OpenEnum):
     enable_pagination = "ENABLE_PAGINATION"
 
 
-class Type48(OpenEnum):
+class Type49(OpenEnum):
     offset = "OFFSET"
     url_cursor = "URL_CURSOR"
     parameter_cursor = "PARAMETER_CURSOR"
 
 
-class Type51(OpenEnum):
+class Type52(OpenEnum):
     tabular = "TABULAR"
     metric = "METRIC"
 
@@ -4654,6 +4751,24 @@ class QueryStringCheck(ForwardModel):
     value: str | None = None
 
 
+class Rapid7Info(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    asset_id: Annotated[str, Field(alias="assetId")]
+    last_scanned_instant: Annotated[int, Field(alias="lastScannedInstant")]
+    """
+    Epoch milliseconds.
+    """
+    risk_score: Annotated[float, Field(alias="riskScore")]
+    service_names: Annotated[list[str], Field(alias="serviceNames")]
+    severity_to_vulnerability_count: Annotated[
+        dict[str, int], Field(alias="severityToVulnerabilityCount")
+    ]
+    source_id: Annotated[int, Field(alias="sourceId")]
+
+
 class ReachabilityJob(ForwardModel):
     """
     A reachability computation. The identifier has been observed under three names, so all three are declared.
@@ -4737,6 +4852,48 @@ class RepositoryQueryPage(ForwardModel):
     queries: list[RepositoryQuery] | None = None
 
 
+class Type53(OpenEnum):
+    device_zone = "DEVICE_ZONE"
+    on_prem = "ON_PREM"
+    cloud = "CLOUD"
+
+
+class ResourcePool1(DeviceZoneResourcePool):
+    """
+    A named group of endpoints, for the security matrix and blast radius.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    type: Literal["DEVICE_ZONE"]
+
+
+class ResourcePool2(OnPremResourcePool):
+    """
+    A named group of endpoints, for the security matrix and blast radius.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    type: Literal["ON_PREM"]
+
+
+class ResourcePool3(CloudResourcePool):
+    """
+    A named group of endpoints, for the security matrix and blast radius.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    type: Literal["CLOUD"]
+
+
 class RoutingDiffDetails(ForwardModel):
     """
     Route entries as Forward serialises them; the entry shape is not declared.
@@ -4811,6 +4968,80 @@ class SearchIntent(OpenEnum):
     prefer_violations = "PREFER_VIOLATIONS"
     prefer_delivered = "PREFER_DELIVERED"
     violations_only = "VIOLATIONS_ONLY"
+
+
+class ConnectivityLevel(OpenEnum):
+    no_route = "NO_ROUTE"
+    acl_blocked = "ACL_BLOCKED"
+    partial = "PARTIAL"
+    open = "OPEN"
+    missing = "MISSING"
+    timed_out = "TIMED_OUT"
+
+
+class SecurityMatrixFilter(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[int | None, Field(alias="createdAt")] = None
+    """
+    Epoch milliseconds.
+    """
+    created_by_user_id: Annotated[str | None, Field(alias="createdByUserId")] = None
+    id: str | None = None
+    last_edited_at: Annotated[int | None, Field(alias="lastEditedAt")] = None
+    """
+    Epoch milliseconds.
+    """
+    last_edited_by_user_id: Annotated[str | None, Field(alias="lastEditedByUserId")] = None
+    name: str | None = None
+    resource_pools: Annotated[
+        list[Annotated[ResourcePool1 | ResourcePool2 | ResourcePool3, Field(discriminator="type")]]
+        | None,
+        Field(alias="resourcePools"),
+    ] = None
+    timeout_mins: Annotated[int | None, Field(alias="timeoutMins")] = None
+
+
+class SecurityMatrixFilterUpdate(ForwardModel):
+    """
+    Every field optional; at least one is required. Omitted means unchanged.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    name: str | None = None
+    protocol_exclusions: Annotated[list[int] | None, Field(alias="protocolExclusions")] = None
+    resource_pools: Annotated[
+        list[Annotated[ResourcePool1 | ResourcePool2 | ResourcePool3, Field(discriminator="type")]]
+        | None,
+        Field(alias="resourcePools"),
+    ] = None
+    timeout_mins: Annotated[int | None, Field(alias="timeoutMins")] = None
+
+
+class SecurityMatrixFilterWithUsers(SecurityMatrixFilter):
+    """
+    A SecurityMatrixFilter plus the usernames behind its user ids, as the listing sends it.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    last_edited_by: Annotated[str | None, Field(alias="lastEditedBy")] = None
+
+
+class SecurityMatrixFiltersList(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    filters: list[SecurityMatrixFilterWithUsers] | None = None
 
 
 class SecurityObjectId(ScopedUserObject):
@@ -4890,6 +5121,14 @@ class SecurityZoneFilter(ForwardModel):
     device: Annotated[str, Field(examples=["nyc-dc01-rtr-01"])]
     type: Literal["SecurityZoneFilter"]
     value: Annotated[str, Field(examples=["corp-trusted"])]
+
+
+class SecurityZones(RootModel[dict[str, list[str]]]):
+    """
+    Device name to the sorted list of zone names it belongs to.
+    """
+
+    root: dict[str, list[str]]
 
 
 class ServiceDefinition(ForwardModel):
@@ -5543,6 +5782,23 @@ class TapiNetworkContainerList(ForwardModel):
     containers: list[TapiNetworkContainer]
 
 
+class TenableInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    asset_id: Annotated[str, Field(alias="assetId")]
+    last_scanned_instant: Annotated[int, Field(alias="lastScannedInstant")]
+    """
+    Epoch milliseconds.
+    """
+    risk_score: Annotated[float, Field(alias="riskScore")]
+    severity_to_vulnerability_count: Annotated[
+        dict[str, int], Field(alias="severityToVulnerabilityCount")
+    ]
+    source_id: Annotated[int, Field(alias="sourceId")]
+
+
 class TextPosition(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -5660,7 +5916,7 @@ class TopologyLink(ForwardModel):
     target_port: Annotated[str | None, Field(alias="targetPort")] = None
 
 
-class Type52(OpenEnum):
+class Type56(OpenEnum):
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -5685,7 +5941,7 @@ class TotalHits(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    type: Type52 | None = None
+    type: Type56 | None = None
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -6329,7 +6585,7 @@ class WanCircuitPatch(ForwardModel):
     name: Annotated[str | None, Field(examples=["wan-circuit-01"])] = None
 
 
-class Type53(OpenEnum):
+class Type57(OpenEnum):
     basic_auth = "BASIC_AUTH"
 
 
@@ -6343,11 +6599,11 @@ class WebhookCredential(ForwardModel):
         populate_by_name=True,
     )
     password: str | None = None
-    type: Type53 | None = None
+    type: Type57 | None = None
     username: str | None = None
 
 
-class Type54(OpenEnum):
+class Type58(OpenEnum):
     snapshot_ready = "SNAPSHOT_READY"
     nqe_verification_failure = "NQE_VERIFICATION_FAILURE"
     intent_verification_failure = "INTENT_VERIFICATION_FAILURE"
@@ -6363,7 +6619,7 @@ class WebhookEventParams(ForwardModel):
         populate_by_name=True,
     )
     network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
-    type: Type54
+    type: Type58
 
 
 class PayloadFormat(OpenEnum):
@@ -6526,6 +6782,23 @@ class Aliases(ForwardModel):
         populate_by_name=True,
     )
     aliases: list[Alias]
+
+
+class AnalyzedResourcePool(ForwardModel):
+    """
+    resourcePools is absent when empty, meaning no valid combination was found.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    resource_pools: Annotated[
+        list[Annotated[ResourcePool1 | ResourcePool2 | ResourcePool3, Field(discriminator="type")]]
+        | None,
+        Field(alias="resourcePools"),
+    ] = None
+    timed_out: Annotated[bool | None, Field(alias="timedOut")] = None
 
 
 class AvailablePredefinedCheck(ForwardModel):
@@ -7665,6 +7938,42 @@ class CommittedChangeSet(ForwardModel):
     updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
 
 
+class ConnectivityDetailsRequest(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    dst_resource_pool: Annotated[
+        ResourcePool1 | ResourcePool2 | ResourcePool3,
+        Field(alias="dstResourcePool", discriminator="type"),
+    ]
+    """
+    A named group of endpoints, for the security matrix and blast radius.
+    """
+    protocol_exclusions: Annotated[list[int] | None, Field(alias="protocolExclusions")] = None
+    src_resource_pool: Annotated[
+        ResourcePool1 | ResourcePool2 | ResourcePool3,
+        Field(alias="srcResourcePool", discriminator="type"),
+    ]
+    """
+    A named group of endpoints, for the security matrix and blast radius.
+    """
+
+
+class CoveredTopology(ForwardModel):
+    """
+    A minimal topology sketch scoped to one zone's devices.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    hosts: list[CoveredTopologyHostGroup] | None = None
+    links: list[TopologyLink] | None = None
+    nodes: list[CoveredTopologyNode] | None = None
+
+
 class CurrentUser(ForwardModel):
     """
     The calling user. Note the account is nested under `user`; the roles sit beside it rather than inside it.
@@ -7857,7 +8166,7 @@ class Dashboard(ForwardModel):
     id: str | None = None
     layout: list[DashboardWidget] | None = None
     name: str | None = None
-    type: Type16 | None = None
+    type: Type17 | None = None
     updated_at: Annotated[str | None, Field(alias="updatedAt")] = None
     updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
     updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
@@ -8142,6 +8451,22 @@ class EncryptorPatch(ForwardModel):
     ] = None
 
 
+class ExposedHost(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    id: str
+    """
+    deviceId-hostIndex, opaque.
+    """
+    ips: list[str]
+    name: str | None = None
+    rapid7_info: Annotated[Rapid7Info | None, Field(alias="rapid7Info")] = None
+    tenable_info: Annotated[TenableInfo | None, Field(alias="tenableInfo")] = None
+    zones: list[str]
+
+
 class HopLocationFilter2(LocationFilter3):
     type: Literal["InterfaceFilter"]
 
@@ -8176,6 +8501,27 @@ class HopLocationFilter8(VrfFilter):
 
 class HopLocationFilter9(PacketHeaderFilter3):
     type: Literal["NotFilter"]
+
+
+class HostsExposureResponse(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    host_counts: Annotated[list[int] | None, Field(alias="hostCounts")] = None
+    """
+    Length 3, non-increasing: [vulnerable per scanner, also found by Forward, also exposed here].
+    """
+    hosts: list[ExposedHost] | None = None
+    scan_type: Annotated[str | None, Field(alias="scanType")] = None
+    """
+    Absent when no scanner is configured.
+    """
+    scanner_urls: Annotated[list[str] | None, Field(alias="scannerUrls")] = None
+    """
+    Empty when no scanner is configured.
+    """
+    timed_out: Annotated[bool | None, Field(alias="timedOut")] = None
 
 
 class HttpCredential(ForwardModel):
@@ -8931,6 +9277,29 @@ class NewClassicDevice(ForwardModel):
     """
 
 
+class NewSecurityMatrixFilter(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    name: str
+    protocol_exclusions: Annotated[list[int] | None, Field(alias="protocolExclusions")] = None
+    """
+    IANA protocol numbers to exclude.
+    """
+    resource_pools: Annotated[
+        list[Annotated[ResourcePool1 | ResourcePool2 | ResourcePool3, Field(discriminator="type")]],
+        Field(alias="resourcePools"),
+    ]
+    """
+    Non-empty.
+    """
+    timeout_mins: Annotated[int | None, Field(alias="timeoutMins")] = None
+    """
+    1 to 60; default 5.
+    """
+
+
 class NewSecurityRule(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -9386,7 +9755,7 @@ class PanelConfig(ForwardModel):
     decimal_precision: Annotated[int | None, Field(alias="decimalPrecision")] = None
     frozen_columns: Annotated[list[str] | None, Field(alias="frozenColumns")] = None
     thresholds: list[ThresholdRule] | None = None
-    type: Type51
+    type: Type52
     unit: str | None = None
     visible_columns: Annotated[list[ColumnInfo] | None, Field(alias="visibleColumns")] = None
 
@@ -9619,6 +9988,17 @@ class SecurityRulesDiff(ForwardModel):
     )
     entries: list[SecurityRuleDiffEntry] | None = None
     rulebases: list[RulebaseDescriptor] | None = None
+
+
+class SecurityZoneDetails(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    covered_topo: Annotated[CoveredTopology | None, Field(alias="coveredTopo")] = None
+    interfaces: list[str] | None = None
+    subnets: list[str] | None = None
+    vrfs: list[str] | None = None
 
 
 class ServiceGroupCollection(ForwardModel):
@@ -10132,6 +10512,58 @@ class ArpEntryInfo(ForwardModel):
     mac_address: Annotated[str | None, Field(alias="macAddress")] = None
     port: str | None = None
     vrf_name: Annotated[str | None, Field(alias="vrfName")] = None
+
+
+class BlastRadiusPagingOptions(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    column_filters: Annotated[
+        list[Annotated[ColumnFilter1 | ColumnFilter2, Field(discriminator="operator")]] | None,
+        Field(alias="columnFilters"),
+    ] = None
+    limit: int | None = None
+    """
+    1 to 10000; default 1000.
+    """
+    offset: int | None = None
+    """
+    Non-negative; default 0.
+    """
+    sort_by: Annotated[SortOrder | None, Field(alias="sortBy")] = None
+
+
+class BlastRadiusRequest(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    dst_subnets: Annotated[list[str], Field(alias="dstSubnets")]
+    """
+    Non-empty; IPv4 only.
+    """
+    paging_options: Annotated[BlastRadiusPagingOptions | None, Field(alias="pagingOptions")] = None
+    protocol_exclusions: Annotated[list[int] | None, Field(alias="protocolExclusions")] = None
+    source: Annotated[
+        LocationFilter1
+        | LocationFilter2
+        | LocationFilter3
+        | LocationFilter4
+        | LocationFilter5
+        | LocationFilter6
+        | LocationFilter7
+        | LocationFilter8
+        | LocationFilter9
+        | LocationFilter10
+        | LocationFilter11
+        | LocationFilter12,
+        Field(discriminator="type"),
+    ]
+    timeout_secs: Annotated[int | None, Field(alias="timeoutSecs")] = None
+    """
+    1 to 3600.
+    """
 
 
 class CheckDefinition5(PredefinedCheck):
@@ -10840,6 +11272,50 @@ class ReachabilityCheck(ForwardModel):
     """
 
 
+class SampleQuery(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    from_: Annotated[EndpointFilter, Field(alias="from")]
+    to: EndpointFilter
+
+
+class SecurityMatrixConnectivity(ForwardModel):
+    """
+    sampleQuery is present unless connectivityLevel is PARTIAL or MISSING, where no single sample represents the cell.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    connectivity_level: Annotated[ConnectivityLevel, Field(alias="connectivityLevel")]
+    sample_query: Annotated[SampleQuery | None, Field(alias="sampleQuery")] = None
+
+
+class SecurityMatrixResult(ForwardModel):
+    """
+    matrix[i][j] is the connectivity from srcResourcePools[i] to dstResourcePools[j].
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    dst_resource_pools: Annotated[
+        list[Annotated[ResourcePool1 | ResourcePool2 | ResourcePool3, Field(discriminator="type")]]
+        | None,
+        Field(alias="dstResourcePools"),
+    ] = None
+    matrix: list[list[SecurityMatrixConnectivity]] | None = None
+    src_resource_pools: Annotated[
+        list[Annotated[ResourcePool1 | ResourcePool2 | ResourcePool3, Field(discriminator="type")]]
+        | None,
+        Field(alias="srcResourcePools"),
+    ] = None
+
+
 class AclDiffEntry(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -10876,6 +11352,19 @@ class CheckDiagnosis(ForwardModel):
     details: list[DiagnosisDetail] | None = None
     details_incomplete: Annotated[bool | None, Field(alias="detailsIncomplete")] = None
     summary: str | None = None
+
+
+class ConnectivityDetailsValue(ForwardModel):
+    """
+    headers describes one packet-header region that has this connectivity; several values together cover every case. sampleQuery is a concrete example packet from that region, when one applies.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    headers: dict[str, str]
+    sample_query: Annotated[SampleQuery | None, Field(alias="sampleQuery")] = None
 
 
 class DataConnector(Attribution):
@@ -11035,6 +11524,28 @@ class ExistsCheck(ForwardModel):
     return_path: Annotated[ReturnPath | None, Field(alias="returnPath")] = None
 
 
+class HostConnectivityInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    critical_vulnerabilities_count: Annotated[
+        int | None, Field(alias="criticalVulnerabilitiesCount")
+    ] = None
+    headers: dict[str, str] | None = None
+    host_ips: Annotated[list[str] | None, Field(alias="hostIps")] = None
+    host_name: Annotated[str | None, Field(alias="hostName")] = None
+    moderate_vulnerabilities_count: Annotated[
+        int | None, Field(alias="moderateVulnerabilitiesCount")
+    ] = None
+    sample_query: Annotated[SampleQuery | None, Field(alias="sampleQuery")] = None
+    severe_vulnerabilities_count: Annotated[
+        int | None, Field(alias="severeVulnerabilitiesCount")
+    ] = None
+    vulnerable_services: Annotated[list[str] | None, Field(alias="vulnerableServices")] = None
+    zones: list[str] | None = None
+
+
 class HttpDataConnectorPatch(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -11164,6 +11675,19 @@ class CheckDefinition2(IsolationCheck):
     check_type: Annotated[Literal["Isolation"], Field(alias="checkType")]
 
 
+class ConnectivityDetails(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    details: list[ConnectivityDetailsValue] | None = None
+    invalid_source: Annotated[bool | None, Field(alias="invalidSource")] = None
+    """
+    True when the source no longer resolves to anything in the snapshot.
+    """
+    timed_out: Annotated[bool | None, Field(alias="timedOut")] = None
+
+
 class EndpointProfile4(HttpEndpointProfile, EndpointProfile1):
     model_config = ConfigDict(
         extra="allow",
@@ -11177,6 +11701,17 @@ class EndpointProfiles(ForwardModel):
         populate_by_name=True,
     )
     profiles: list[EndpointProfile2 | EndpointProfile3 | EndpointProfile4]
+
+
+class HostConnectivityDetails(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    all_computed: Annotated[bool | None, Field(alias="allComputed")] = None
+    details: list[HostConnectivityInfo] | None = None
+    invalid_source: Annotated[bool | None, Field(alias="invalidSource")] = None
+    num_computed: Annotated[int | None, Field(alias="numComputed")] = None
 
 
 class NetworkCheckResult(ForwardModel):

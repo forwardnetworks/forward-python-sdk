@@ -446,6 +446,21 @@
         ],
         "type": "object"
       },
+      "AnalyzedResourcePool": {
+        "description": "resourcePools is absent when empty, meaning no valid combination was found.",
+        "properties": {
+          "resourcePools": {
+            "items": {
+              "$ref": "#/components/schemas/ResourcePool"
+            },
+            "type": "array"
+          },
+          "timedOut": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "ApiVersion": {
         "properties": {
           "build": {
@@ -780,6 +795,60 @@
             "$ref": "#/components/schemas/VulnerabilityDiffCount"
           }
         },
+        "type": "object"
+      },
+      "BlastRadiusPagingOptions": {
+        "properties": {
+          "columnFilters": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnFilter"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "description": "1 to 10000; default 1000.",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Non-negative; default 0.",
+            "type": "integer"
+          },
+          "sortBy": {
+            "$ref": "#/components/schemas/SortOrder"
+          }
+        },
+        "type": "object"
+      },
+      "BlastRadiusRequest": {
+        "properties": {
+          "dstSubnets": {
+            "description": "Non-empty; IPv4 only.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "pagingOptions": {
+            "$ref": "#/components/schemas/BlastRadiusPagingOptions"
+          },
+          "protocolExclusions": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "source": {
+            "$ref": "#/components/schemas/LocationFilter"
+          },
+          "timeoutSecs": {
+            "description": "1 to 3600.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source",
+          "dstSubnets"
+        ],
         "type": "object"
       },
       "BypassFilter": {
@@ -3070,6 +3139,35 @@
         },
         "type": "object"
       },
+      "CloudResourcePool": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "securityGroups": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "subnets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "const": "CLOUD"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "subnets",
+          "securityGroups"
+        ],
+        "type": "object"
+      },
       "CloudTestResult": {
         "properties": {
           "error": {
@@ -3705,6 +3803,63 @@
         ],
         "type": "string"
       },
+      "ConnectivityDetails": {
+        "properties": {
+          "details": {
+            "items": {
+              "$ref": "#/components/schemas/ConnectivityDetailsValue"
+            },
+            "type": "array"
+          },
+          "invalidSource": {
+            "description": "True when the source no longer resolves to anything in the snapshot.",
+            "type": "boolean"
+          },
+          "timedOut": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "ConnectivityDetailsRequest": {
+        "properties": {
+          "dstResourcePool": {
+            "$ref": "#/components/schemas/ResourcePool"
+          },
+          "protocolExclusions": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "srcResourcePool": {
+            "$ref": "#/components/schemas/ResourcePool"
+          }
+        },
+        "required": [
+          "srcResourcePool",
+          "dstResourcePool"
+        ],
+        "type": "object"
+      },
+      "ConnectivityDetailsValue": {
+        "description": "headers describes one packet-header region that has this connectivity; several values together cover every case. sampleQuery is a concrete example packet from that region, when one applies.",
+        "properties": {
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "sampleQuery": {
+            "$ref": "#/components/schemas/SampleQuery"
+          }
+        },
+        "required": [
+          "headers"
+        ],
+        "type": "object"
+      },
       "ConnectivityTestError": {
         "enum": [
           "PING_FAILED",
@@ -3778,6 +3933,70 @@
           "OTHER"
         ],
         "type": "string"
+      },
+      "CoveredTopology": {
+        "description": "A minimal topology sketch scoped to one zone's devices.",
+        "properties": {
+          "hosts": {
+            "items": {
+              "$ref": "#/components/schemas/CoveredTopologyHostGroup"
+            },
+            "type": "array"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/TopologyLink"
+            },
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/CoveredTopologyNode"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CoveredTopologyHostGroup": {
+        "properties": {
+          "cloudHostId": {
+            "type": "string"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "name": {
+            "description": "Absent for an inferred host.",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "UNKNOWN",
+              "INFERRED_HOST",
+              "EDGE_NODE",
+              "CLOUD_HOST"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "deviceName",
+          "type"
+        ],
+        "type": "object"
+      },
+      "CoveredTopologyNode": {
+        "properties": {
+          "id": {
+            "description": "A device name.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
       },
       "CreateWorkspaceNetworkRequest": {
         "properties": {
@@ -5540,6 +5759,30 @@
         ],
         "type": "object"
       },
+      "DeviceZoneResourcePool": {
+        "description": "A device's security zone, as a resource pool.",
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "name": {
+            "description": "Computed by Forward as \"device zone\"; ignored on write.",
+            "type": "string"
+          },
+          "type": {
+            "const": "DEVICE_ZONE"
+          },
+          "zone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "device",
+          "zone"
+        ],
+        "type": "object"
+      },
       "DevicesAliasBuilder": {
         "properties": {
           "name": {
@@ -6059,6 +6302,41 @@
         ],
         "type": "object"
       },
+      "ExposedHost": {
+        "properties": {
+          "id": {
+            "description": "deviceId-hostIndex, opaque.",
+            "type": "string"
+          },
+          "ips": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "rapid7Info": {
+            "$ref": "#/components/schemas/Rapid7Info"
+          },
+          "tenableInfo": {
+            "$ref": "#/components/schemas/TenableInfo"
+          },
+          "zones": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "ips",
+          "zones",
+          "id"
+        ],
+        "type": "object"
+      },
       "FieldAndValues": {
         "properties": {
           "field": {
@@ -6252,6 +6530,70 @@
         ],
         "type": "object"
       },
+      "HostConnectivityDetails": {
+        "properties": {
+          "allComputed": {
+            "type": "boolean"
+          },
+          "details": {
+            "items": {
+              "$ref": "#/components/schemas/HostConnectivityInfo"
+            },
+            "type": "array"
+          },
+          "invalidSource": {
+            "type": "boolean"
+          },
+          "numComputed": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "HostConnectivityInfo": {
+        "properties": {
+          "criticalVulnerabilitiesCount": {
+            "type": "integer"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "hostIps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "hostName": {
+            "type": "string"
+          },
+          "moderateVulnerabilitiesCount": {
+            "type": "integer"
+          },
+          "sampleQuery": {
+            "$ref": "#/components/schemas/SampleQuery"
+          },
+          "severeVulnerabilitiesCount": {
+            "type": "integer"
+          },
+          "vulnerableServices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "zones": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "HostFilter": {
         "description": "A filter that matches hosts by hostname, IP subnet address, or MAC address",
         "properties": {
@@ -6297,6 +6639,38 @@
           "name",
           "type"
         ],
+        "type": "object"
+      },
+      "HostsExposureResponse": {
+        "properties": {
+          "hostCounts": {
+            "description": "Length 3, non-increasing: [vulnerable per scanner, also found by Forward, also exposed here].",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "hosts": {
+            "items": {
+              "$ref": "#/components/schemas/ExposedHost"
+            },
+            "type": "array"
+          },
+          "scanType": {
+            "description": "Absent when no scanner is configured.",
+            "type": "string"
+          },
+          "scannerUrls": {
+            "description": "Empty when no scanner is configured.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "timedOut": {
+            "type": "boolean"
+          }
+        },
         "type": "object"
       },
       "HttpAuthStrategy": {
@@ -7170,6 +7544,27 @@
           "suggestions": {
             "items": {
               "$ref": "#/components/schemas/InternetConnectionSuggestion"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "InternetExposure": {
+        "description": "error is present only when trafficReceivingInterfaces could not be computed.",
+        "properties": {
+          "error": {
+            "enum": [
+              "INTERNET_NODE_NOT_DEFINED",
+              "REACHABILITY_COMPUTATION_DISABLED",
+              "PENDING_ADVANCED_REACHABILITY"
+            ],
+            "type": "string"
+          },
+          "trafficReceivingInterfaces": {
+            "items": {
+              "description": "device:interface",
+              "type": "string"
             },
             "type": "array"
           }
@@ -9907,6 +10302,36 @@
         ],
         "type": "object"
       },
+      "NewSecurityMatrixFilter": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "protocolExclusions": {
+            "description": "IANA protocol numbers to exclude.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "resourcePools": {
+            "description": "Non-empty.",
+            "items": {
+              "$ref": "#/components/schemas/ResourcePool"
+            },
+            "type": "array"
+          },
+          "timeoutMins": {
+            "description": "1 to 60; default 5.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "resourcePools"
+        ],
+        "type": "object"
+      },
       "NewSecurityRule": {
         "properties": {
           "definition": {
@@ -10957,6 +11382,43 @@
       "OidSet": {
         "const": "STANDARD",
         "type": "string"
+      },
+      "OnPremResourcePool": {
+        "properties": {
+          "devices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "subnets": {
+            "description": "Non-empty; \"0.0.0.0/0\" is refused.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "const": "ON_PREM"
+          },
+          "vrfs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "devices",
+          "vrfs",
+          "subnets"
+        ],
+        "type": "object"
       },
       "OsVulnerability": {
         "properties": {
@@ -12033,6 +12495,45 @@
         ],
         "type": "object"
       },
+      "Rapid7Info": {
+        "properties": {
+          "assetId": {
+            "type": "string"
+          },
+          "lastScannedInstant": {
+            "description": "Epoch milliseconds.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "riskScore": {
+            "type": "number"
+          },
+          "serviceNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "severityToVulnerabilityCount": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "sourceId": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sourceId",
+          "assetId",
+          "riskScore",
+          "serviceNames",
+          "severityToVulnerabilityCount",
+          "lastScannedInstant"
+        ],
+        "type": "object"
+      },
       "ReachabilityCheck": {
         "properties": {
           "checkType": {
@@ -12176,6 +12677,42 @@
         },
         "type": "object"
       },
+      "ResourcePool": {
+        "description": "A named group of endpoints, for the security matrix and blast radius.",
+        "discriminator": {
+          "mapping": {
+            "CLOUD": "#/components/schemas/CloudResourcePool",
+            "DEVICE_ZONE": "#/components/schemas/DeviceZoneResourcePool",
+            "ON_PREM": "#/components/schemas/OnPremResourcePool"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DeviceZoneResourcePool"
+          },
+          {
+            "$ref": "#/components/schemas/OnPremResourcePool"
+          },
+          {
+            "$ref": "#/components/schemas/CloudResourcePool"
+          }
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "DEVICE_ZONE",
+              "ON_PREM",
+              "CLOUD"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
       "RoutingDiffDetails": {
         "description": "Route entries as Forward serialises them; the entry shape is not declared.",
         "properties": {
@@ -12219,6 +12756,21 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "SampleQuery": {
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/EndpointFilter"
+          },
+          "to": {
+            "$ref": "#/components/schemas/EndpointFilter"
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
         "type": "object"
       },
       "ScopedAddressGroup": {
@@ -12452,6 +13004,146 @@
         ],
         "type": "string"
       },
+      "SecurityMatrixConnectivity": {
+        "description": "sampleQuery is present unless connectivityLevel is PARTIAL or MISSING, where no single sample represents the cell.",
+        "properties": {
+          "connectivityLevel": {
+            "enum": [
+              "NO_ROUTE",
+              "ACL_BLOCKED",
+              "PARTIAL",
+              "OPEN",
+              "MISSING",
+              "TIMED_OUT"
+            ],
+            "type": "string"
+          },
+          "sampleQuery": {
+            "$ref": "#/components/schemas/SampleQuery"
+          }
+        },
+        "required": [
+          "connectivityLevel"
+        ],
+        "type": "object"
+      },
+      "SecurityMatrixFilter": {
+        "properties": {
+          "createdAt": {
+            "description": "Epoch milliseconds.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "createdByUserId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastEditedAt": {
+            "description": "Epoch milliseconds.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastEditedByUserId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "resourcePools": {
+            "items": {
+              "$ref": "#/components/schemas/ResourcePool"
+            },
+            "type": "array"
+          },
+          "timeoutMins": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SecurityMatrixFilterUpdate": {
+        "description": "Every field optional; at least one is required. Omitted means unchanged.",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "protocolExclusions": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "resourcePools": {
+            "items": {
+              "$ref": "#/components/schemas/ResourcePool"
+            },
+            "type": "array"
+          },
+          "timeoutMins": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SecurityMatrixFilterWithUsers": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SecurityMatrixFilter"
+          },
+          {
+            "properties": {
+              "createdBy": {
+                "type": "string"
+              },
+              "lastEditedBy": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "A SecurityMatrixFilter plus the usernames behind its user ids, as the listing sends it."
+      },
+      "SecurityMatrixFiltersList": {
+        "properties": {
+          "filters": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityMatrixFilterWithUsers"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "SecurityMatrixResult": {
+        "description": "matrix[i][j] is the connectivity from srcResourcePools[i] to dstResourcePools[j].",
+        "properties": {
+          "dstResourcePools": {
+            "items": {
+              "$ref": "#/components/schemas/ResourcePool"
+            },
+            "type": "array"
+          },
+          "matrix": {
+            "items": {
+              "items": {
+                "$ref": "#/components/schemas/SecurityMatrixConnectivity"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "srcResourcePools": {
+            "items": {
+              "$ref": "#/components/schemas/ResourcePool"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "SecurityObjectId": {
         "properties": {
           "name": {
@@ -12593,6 +13285,32 @@
         },
         "type": "object"
       },
+      "SecurityZoneDetails": {
+        "properties": {
+          "coveredTopo": {
+            "$ref": "#/components/schemas/CoveredTopology"
+          },
+          "interfaces": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "subnets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "vrfs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "SecurityZoneFilter": {
         "description": "A filter that matches one security zone on a firewall by name and can be used in the `from` or `to` property\nof a `PathQuery`",
         "properties": {
@@ -12618,6 +13336,16 @@
           "type",
           "value"
         ],
+        "type": "object"
+      },
+      "SecurityZones": {
+        "additionalProperties": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": "Device name to the sorted list of zone names it belongs to.",
         "type": "object"
       },
       "ServiceDefinition": {
@@ -13793,6 +14521,38 @@
         },
         "required": [
           "containers"
+        ],
+        "type": "object"
+      },
+      "TenableInfo": {
+        "properties": {
+          "assetId": {
+            "type": "string"
+          },
+          "lastScannedInstant": {
+            "description": "Epoch milliseconds.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "riskScore": {
+            "type": "number"
+          },
+          "severityToVulnerabilityCount": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "sourceId": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sourceId",
+          "assetId",
+          "riskScore",
+          "severityToVulnerabilityCount",
+          "lastScannedInstant"
         ],
         "type": "object"
       },
@@ -19038,6 +19798,144 @@
         "tags": [
           "Network Locations"
         ]
+      }
+    },
+    "/networks/{networkId}/blast-radius": {
+      "post": {
+        "operationId": "getBlastRadius",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Uses the network's latest processed snapshot when omitted.",
+            "in": "query",
+            "name": "snapshotId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "dstSubnets": [
+                  "10.0.0.0/24"
+                ],
+                "source": {
+                  "type": "DeviceFilter",
+                  "value": "ash-dc-fw01"
+                },
+                "timeoutSecs": 30
+              },
+              "schema": {
+                "$ref": "#/components/schemas/BlastRadiusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "details": [],
+                  "timedOut": false
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectivityDetails"
+                }
+              }
+            },
+            "description": "The connectivity."
+          }
+        },
+        "summary": "Sample connectivity from one location to a set of destination subnets",
+        "tags": [
+          "Blast Radius"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getHostCentricBlastRadius",
+            "summary": "The same, broken out per destination host with vulnerability counts",
+            "x-forward-fixed-query": [
+              [
+                "type",
+                "host-centric"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/blast-radius-report": {
+      "post": {
+        "operationId": "getHostCentricBlastRadiusReport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Uses the network's latest processed snapshot when omitted.",
+            "in": "query",
+            "name": "snapshotId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "dstSubnets": [
+                  "10.0.0.0/24"
+                ],
+                "source": {
+                  "type": "DeviceFilter",
+                  "value": "ash-dc-fw01"
+                },
+                "timeoutSecs": 30
+              },
+              "schema": {
+                "$ref": "#/components/schemas/BlastRadiusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            },
+            "description": "The workbook."
+          }
+        },
+        "summary": "The host-centric blast radius as an XLSX workbook",
+        "tags": [
+          "Blast Radius"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "type",
+            "host-centric"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/cancelcollection": {
@@ -24538,6 +25436,82 @@
         ]
       }
     },
+    "/networks/{networkId}/devices/{deviceName}/security-zones/{zoneName}": {
+      "get": {
+        "operationId": "getSecurityZone",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "zoneName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Uses the network's latest processed snapshot when omitted.",
+            "in": "query",
+            "name": "snapshotId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "coveredTopo": {
+                    "hosts": [],
+                    "links": [],
+                    "nodes": [
+                      {
+                        "id": "ash-dc-fw01"
+                      }
+                    ]
+                  },
+                  "interfaces": [
+                    "ethernet1/5"
+                  ],
+                  "subnets": [
+                    "172.16.20.0/24"
+                  ],
+                  "vrfs": [
+                    "default"
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityZoneDetails"
+                }
+              }
+            },
+            "description": "The zone's details."
+          }
+        },
+        "summary": "One device zone's VRFs, interfaces, subnets and covered topology",
+        "tags": [
+          "Security Zones"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/encryptors": {
       "get": {
         "operationId": "getEncryptors",
@@ -25487,6 +26461,49 @@
         "tags": [
           "Credentials"
         ]
+      }
+    },
+    "/networks/{networkId}/internet-exposure": {
+      "get": {
+        "operationId": "getInternetExposure",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Uses the network's latest processed snapshot when omitted.",
+            "in": "query",
+            "name": "snapshotId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "trafficReceivingInterfaces": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternetExposure"
+                }
+              }
+            },
+            "description": "The exposure, or why it is unknown."
+          }
+        },
+        "summary": "Interfaces that receive traffic from the internet node",
+        "tags": [
+          "Internet Exposure"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/internet-node": {
@@ -29174,6 +30191,552 @@
         ]
       }
     },
+    "/networks/{networkId}/resource-pool-connectivity-details": {
+      "post": {
+        "operationId": "getResourcePoolConnectivityDetails",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Uses the network's latest processed snapshot when omitted.",
+            "in": "query",
+            "name": "snapshotId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "dstResourcePool": {
+                  "device": "ash-dc-fw01",
+                  "type": "DEVICE_ZONE",
+                  "zone": "api"
+                },
+                "srcResourcePool": {
+                  "device": "ash-dc-fw01",
+                  "type": "DEVICE_ZONE",
+                  "zone": "api"
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ConnectivityDetailsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "details": [],
+                  "timedOut": false
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectivityDetails"
+                }
+              }
+            },
+            "description": "The connectivity."
+          }
+        },
+        "summary": "Sample connectivity between two resource pools",
+        "tags": [
+          "Resource Pools"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/resource-pools": {
+      "post": {
+        "description": "An empty list means no valid combination was found.",
+        "operationId": "analyzeResourcePool",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Uses the network's latest processed snapshot when omitted.",
+            "in": "query",
+            "name": "snapshotId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "devices": [
+                  "ash-dc-fw01"
+                ],
+                "name": "p1",
+                "subnets": [
+                  "10.0.0.0/24"
+                ],
+                "type": "ON_PREM",
+                "vrfs": []
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ResourcePool"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "timedOut": false
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyzedResourcePool"
+                }
+              }
+            },
+            "description": "The analysis."
+          }
+        },
+        "summary": "Valid device/VRF/subnet combinations for a resource pool's filters",
+        "tags": [
+          "Resource Pools"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "analyze"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/security-matrix": {
+      "get": {
+        "operationId": "getSecurityMatrix",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "filterId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Uses the network's latest processed snapshot when omitted.",
+            "in": "query",
+            "name": "snapshotId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "dstResourcePools": [],
+                  "matrix": [],
+                  "srcResourcePools": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityMatrixResult"
+                }
+              }
+            },
+            "description": "The matrix."
+          }
+        },
+        "summary": "Run the security matrix for a saved filter",
+        "tags": [
+          "Security Matrix"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Takes the same shape as saving a filter, but nothing is saved.",
+        "operationId": "getAnonymousSecurityMatrix",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Uses the network's latest processed snapshot when omitted.",
+            "in": "query",
+            "name": "snapshotId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "anon",
+                "resourcePools": [
+                  {
+                    "device": "ash-dc-fw01",
+                    "type": "DEVICE_ZONE",
+                    "zone": "api"
+                  },
+                  {
+                    "devices": [
+                      "ash-dc-fw01"
+                    ],
+                    "name": "p1",
+                    "subnets": [
+                      "10.0.0.0/24"
+                    ],
+                    "type": "ON_PREM",
+                    "vrfs": []
+                  }
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NewSecurityMatrixFilter"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "dstResourcePools": [],
+                  "matrix": [],
+                  "srcResourcePools": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityMatrixResult"
+                }
+              }
+            },
+            "description": "The matrix."
+          }
+        },
+        "summary": "Run the security matrix for resource pools without saving a filter",
+        "tags": [
+          "Security Matrix"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/security-zones": {
+      "get": {
+        "operationId": "getSecurityZones",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Uses the network's latest processed snapshot when omitted.",
+            "in": "query",
+            "name": "snapshotId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "ash-dc-fw01": [
+                    "api",
+                    "app",
+                    "database",
+                    "dmz",
+                    "inside",
+                    "services",
+                    "untrust"
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityZones"
+                }
+              }
+            },
+            "description": "Device names mapped to the zones they belong to."
+          }
+        },
+        "summary": "Every device's security zones",
+        "tags": [
+          "Security Zones"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/securityMatrixFilters": {
+      "get": {
+        "operationId": "getSecurityMatrixFilters",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "filters": [
+                    {
+                      "createdAt": 1789225615855,
+                      "createdBy": "forward",
+                      "id": "0",
+                      "lastEditedAt": 1789225615855,
+                      "name": "Sample Matrix",
+                      "resourcePools": [
+                        {
+                          "device": "dc-fw",
+                          "name": "dc-fw api",
+                          "type": "DEVICE_ZONE",
+                          "zone": "api"
+                        }
+                      ],
+                      "timeoutMins": 5
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityMatrixFiltersList"
+                }
+              }
+            },
+            "description": "The filters."
+          }
+        },
+        "summary": "The network's saved security matrix filters",
+        "tags": [
+          "Security Matrix Filters"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Names are unique, case-insensitively, within the network.",
+        "operationId": "addSecurityMatrixFilter",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "sdk-test",
+                "resourcePools": [
+                  {
+                    "device": "ash-dc-fw01",
+                    "type": "DEVICE_ZONE",
+                    "zone": "api"
+                  }
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NewSecurityMatrixFilter"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": 1789225615855,
+                  "createdByUserId": "100",
+                  "id": "1",
+                  "lastEditedAt": 1789225615855,
+                  "lastEditedByUserId": "100",
+                  "name": "sdk-test",
+                  "resourcePools": [
+                    {
+                      "device": "ash-dc-fw01",
+                      "name": "ash-dc-fw01 api",
+                      "type": "DEVICE_ZONE",
+                      "zone": "api"
+                    }
+                  ],
+                  "timeoutMins": 5
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityMatrixFilter"
+                }
+              }
+            },
+            "description": "The saved filter."
+          }
+        },
+        "summary": "Save a security matrix filter",
+        "tags": [
+          "Security Matrix Filters"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/securityMatrixFilters/{filterId}": {
+      "delete": {
+        "operationId": "deleteSecurityMatrixFilter",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "filterId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {},
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a saved security matrix filter",
+        "tags": [
+          "Security Matrix Filters"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Every field optional; omitted means unchanged.",
+        "operationId": "updateSecurityMatrixFilter",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "filterId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "timeoutMins": 10
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SecurityMatrixFilterUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": 1789225615855,
+                  "createdByUserId": "100",
+                  "id": "1",
+                  "lastEditedAt": 1789225616009,
+                  "lastEditedByUserId": "100",
+                  "name": "sdk-test",
+                  "resourcePools": [
+                    {
+                      "device": "ash-dc-fw01",
+                      "name": "ash-dc-fw01 api",
+                      "type": "DEVICE_ZONE",
+                      "zone": "api"
+                    }
+                  ],
+                  "timeoutMins": 10
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityMatrixFilter"
+                }
+              }
+            },
+            "description": "The updated filter."
+          }
+        },
+        "summary": "Change a saved security matrix filter",
+        "tags": [
+          "Security Matrix Filters"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/snapshots": {
       "get": {
         "operationId": "listNetworkSnapshots",
@@ -32120,6 +33683,88 @@
         ]
       }
     },
+    "/snapshots/{snapshotId}/internetNode/exposed-hosts": {
+      "get": {
+        "operationId": "getInternetExposedHosts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "hostCounts": [],
+                  "hosts": [],
+                  "scannerUrls": [],
+                  "timedOut": false
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/HostsExposureResponse"
+                }
+              }
+            },
+            "description": "The exposed hosts."
+          }
+        },
+        "summary": "Hosts exposed through the internet node, with scanner vulnerability counts",
+        "tags": [
+          "Internet Exposure"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/snapshots/{snapshotId}/internetNode/exposed-hosts/{exposedHostId}": {
+      "get": {
+        "operationId": "getInternetExposedHostConnectivity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "exposedHostId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "details": [],
+                  "timedOut": false
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectivityDetails"
+                }
+              }
+            },
+            "description": "The connectivity."
+          }
+        },
+        "summary": "Sample connectivity from the internet node to one exposed host",
+        "tags": [
+          "Internet Exposure"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/snapshots/{snapshotId}/metrics": {
       "get": {
         "description": "Returns collection and processing health metrics of a Snapshot.",
@@ -33242,6 +34887,36 @@
       "description": "Model optical networks from T-API topology documents.",
       "name": "TAPI Network Containers",
       "x-parent": "Synthetic Devices"
+    },
+    {
+      "description": "The security zones a snapshot's devices belong to.",
+      "name": "Security Zones",
+      "x-parent": "Network Analysis"
+    },
+    {
+      "description": "Saved resource-pool selections for the security matrix.",
+      "name": "Security Matrix Filters",
+      "x-parent": "Network Analysis"
+    },
+    {
+      "description": "Pairwise reachability between resource pools.",
+      "name": "Security Matrix",
+      "x-parent": "Network Analysis"
+    },
+    {
+      "description": "Ad hoc resource-pool analysis, without saving a filter.",
+      "name": "Resource Pools",
+      "x-parent": "Network Analysis"
+    },
+    {
+      "description": "What one location can reach, by subnet or by host.",
+      "name": "Blast Radius",
+      "x-parent": "Network Analysis"
+    },
+    {
+      "description": "What the network exposes to the internet, and to whom.",
+      "name": "Internet Exposure",
+      "x-parent": "Network Analysis"
     }
   ]
 }

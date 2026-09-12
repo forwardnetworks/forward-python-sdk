@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from forward_sdk._sync.services._generated.adjacent_networks import AdjacentNetworksService
 from forward_sdk._sync.services._generated.aliases import AliasesService
 from forward_sdk._sync.services._generated.bgp_advertisements import BGPAdvertisementsService
+from forward_sdk._sync.services._generated.blast_radius import BlastRadiusService
 from forward_sdk._sync.services._generated.change_set_directories import (
     ChangeSetDirectoriesService,
 )
@@ -32,6 +33,7 @@ from forward_sdk._sync.services._generated.data_files import DataFilesService
 from forward_sdk._sync.services._generated.encryptors import EncryptorsService
 from forward_sdk._sync.services._generated.endpoint_profiles import EndpointProfilesService
 from forward_sdk._sync.services._generated.firewall_predict import FirewallPredictService
+from forward_sdk._sync.services._generated.internet_exposure import InternetExposureService
 from forward_sdk._sync.services._generated.internet_node import InternetNodeService
 from forward_sdk._sync.services._generated.intranet_nodes import IntranetNodesService
 from forward_sdk._sync.services._generated.jump_servers import JumpServersService
@@ -44,6 +46,12 @@ from forward_sdk._sync.services._generated.network_topology import NetworkTopolo
 from forward_sdk._sync.services._generated.nqe_panels import NQEPanelsService
 from forward_sdk._sync.services._generated.path_search import PathSearchService
 from forward_sdk._sync.services._generated.predict_assist import PredictAssistService
+from forward_sdk._sync.services._generated.resource_pools import ResourcePoolsService
+from forward_sdk._sync.services._generated.security_matrix import SecurityMatrixService
+from forward_sdk._sync.services._generated.security_matrix_filters import (
+    SecurityMatrixFiltersService,
+)
+from forward_sdk._sync.services._generated.security_zones import SecurityZonesService
 from forward_sdk._sync.services._generated.snapshot_diff_details import (
     SnapshotDiffDetailsService,
 )
@@ -65,6 +73,7 @@ __all__ = [
     "AdjacentNetworksService",
     "AliasesService",
     "BGPAdvertisementsService",
+    "BlastRadiusService",
     "ChangeSetDirectoriesService",
     "ChecksService",
     "ClassicDevicesService",
@@ -81,6 +90,7 @@ __all__ = [
     "EndpointProfilesService",
     "FirewallPredictService",
     "GeneratedServices",
+    "InternetExposureService",
     "InternetNodeService",
     "IntranetNodesService",
     "JumpServersService",
@@ -93,7 +103,11 @@ __all__ = [
     "NetworkTopologyService",
     "PathSearchService",
     "PredictAssistService",
+    "ResourcePoolsService",
     "SNMPCredentialsService",
+    "SecurityMatrixFiltersService",
+    "SecurityMatrixService",
+    "SecurityZonesService",
     "SnapshotDiffDetailsService",
     "SystemAdministrationService",
     "UserAccountsService",
@@ -113,6 +127,7 @@ class GeneratedServices:
     adjacent_networks: AdjacentNetworksService
     aliases: AliasesService
     bgp_advertisements: BGPAdvertisementsService
+    blast_radius: BlastRadiusService
     change_set_directories: ChangeSetDirectoriesService
     checks: ChecksService
     classic_devices: ClassicDevicesService
@@ -128,6 +143,7 @@ class GeneratedServices:
     encryptors: EncryptorsService
     endpoint_profiles: EndpointProfilesService
     firewall_predict: FirewallPredictService
+    internet_exposure: InternetExposureService
     internet_node: InternetNodeService
     intranet_nodes: IntranetNodesService
     jump_servers: JumpServersService
@@ -140,7 +156,11 @@ class GeneratedServices:
     network_topology: NetworkTopologyService
     path_search: PathSearchService
     predict_assist: PredictAssistService
+    resource_pools: ResourcePoolsService
     snmp_credentials: SNMPCredentialsService
+    security_matrix: SecurityMatrixService
+    security_matrix_filters: SecurityMatrixFiltersService
+    security_zones: SecurityZonesService
     snapshot_diff_details: SnapshotDiffDetailsService
     system_administration: SystemAdministrationService
     user_accounts: UserAccountsService
@@ -152,6 +172,7 @@ class GeneratedServices:
         self.adjacent_networks = AdjacentNetworksService(transport)
         self.aliases = AliasesService(transport)
         self.bgp_advertisements = BGPAdvertisementsService(transport)
+        self.blast_radius = BlastRadiusService(transport)
         self.change_set_directories = ChangeSetDirectoriesService(transport)
         self.checks = ChecksService(transport)
         self.classic_devices = ClassicDevicesService(transport)
@@ -167,6 +188,7 @@ class GeneratedServices:
         self.encryptors = EncryptorsService(transport)
         self.endpoint_profiles = EndpointProfilesService(transport)
         self.firewall_predict = FirewallPredictService(transport)
+        self.internet_exposure = InternetExposureService(transport)
         self.internet_node = InternetNodeService(transport)
         self.intranet_nodes = IntranetNodesService(transport)
         self.jump_servers = JumpServersService(transport)
@@ -179,7 +201,11 @@ class GeneratedServices:
         self.network_topology = NetworkTopologyService(transport)
         self.path_search = PathSearchService(transport)
         self.predict_assist = PredictAssistService(transport)
+        self.resource_pools = ResourcePoolsService(transport)
         self.snmp_credentials = SNMPCredentialsService(transport)
+        self.security_matrix = SecurityMatrixService(transport)
+        self.security_matrix_filters = SecurityMatrixFiltersService(transport)
+        self.security_zones = SecurityZonesService(transport)
         self.snapshot_diff_details = SnapshotDiffDetailsService(transport)
         self.system_administration = SystemAdministrationService(transport)
         self.user_accounts = UserAccountsService(transport)
@@ -193,6 +219,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Adjacent Networks": "adjacent_networks",
     "Aliases": "aliases",
     "BGP Advertisements": "bgp_advertisements",
+    "Blast Radius": "blast_radius",
     "Change Set Directories": "change_set_directories",
     "Checks": "checks",
     "Classic Devices": "classic_devices",
@@ -208,6 +235,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Encryptors": "encryptors",
     "Endpoint Profiles": "endpoint_profiles",
     "Firewall Predict": "firewall_predict",
+    "Internet Exposure": "internet_exposure",
     "Internet Node": "internet_node",
     "Intranet Nodes": "intranet_nodes",
     "Jump Servers": "jump_servers",
@@ -220,7 +248,11 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Topology": "network_topology",
     "Path Search": "path_search",
     "Predict Assist": "predict_assist",
+    "Resource Pools": "resource_pools",
     "SNMP Credentials": "snmp_credentials",
+    "Security Matrix": "security_matrix",
+    "Security Matrix Filters": "security_matrix_filters",
+    "Security Zones": "security_zones",
     "Snapshot Diff Details": "snapshot_diff_details",
     "System Administration": "system_administration",
     "User Accounts": "user_accounts",

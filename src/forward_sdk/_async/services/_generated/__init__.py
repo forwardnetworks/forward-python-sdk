@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from forward_sdk._async.services._generated.adjacent_networks import AsyncAdjacentNetworksService
 from forward_sdk._async.services._generated.aliases import AsyncAliasesService
 from forward_sdk._async.services._generated.bgp_advertisements import AsyncBGPAdvertisementsService
+from forward_sdk._async.services._generated.blast_radius import AsyncBlastRadiusService
 from forward_sdk._async.services._generated.change_set_directories import (
     AsyncChangeSetDirectoriesService,
 )
@@ -29,6 +30,7 @@ from forward_sdk._async.services._generated.data_files import AsyncDataFilesServ
 from forward_sdk._async.services._generated.encryptors import AsyncEncryptorsService
 from forward_sdk._async.services._generated.endpoint_profiles import AsyncEndpointProfilesService
 from forward_sdk._async.services._generated.firewall_predict import AsyncFirewallPredictService
+from forward_sdk._async.services._generated.internet_exposure import AsyncInternetExposureService
 from forward_sdk._async.services._generated.internet_node import AsyncInternetNodeService
 from forward_sdk._async.services._generated.intranet_nodes import AsyncIntranetNodesService
 from forward_sdk._async.services._generated.jump_servers import AsyncJumpServersService
@@ -41,6 +43,12 @@ from forward_sdk._async.services._generated.network_topology import AsyncNetwork
 from forward_sdk._async.services._generated.nqe_panels import AsyncNQEPanelsService
 from forward_sdk._async.services._generated.path_search import AsyncPathSearchService
 from forward_sdk._async.services._generated.predict_assist import AsyncPredictAssistService
+from forward_sdk._async.services._generated.resource_pools import AsyncResourcePoolsService
+from forward_sdk._async.services._generated.security_matrix import AsyncSecurityMatrixService
+from forward_sdk._async.services._generated.security_matrix_filters import (
+    AsyncSecurityMatrixFiltersService,
+)
+from forward_sdk._async.services._generated.security_zones import AsyncSecurityZonesService
 from forward_sdk._async.services._generated.snapshot_diff_details import (
     AsyncSnapshotDiffDetailsService,
 )
@@ -62,6 +70,7 @@ __all__ = [
     "AsyncAdjacentNetworksService",
     "AsyncAliasesService",
     "AsyncBGPAdvertisementsService",
+    "AsyncBlastRadiusService",
     "AsyncChangeSetDirectoriesService",
     "AsyncChecksService",
     "AsyncClassicDevicesService",
@@ -78,6 +87,7 @@ __all__ = [
     "AsyncEndpointProfilesService",
     "AsyncFirewallPredictService",
     "AsyncGeneratedServices",
+    "AsyncInternetExposureService",
     "AsyncInternetNodeService",
     "AsyncIntranetNodesService",
     "AsyncJumpServersService",
@@ -90,7 +100,11 @@ __all__ = [
     "AsyncNetworkTopologyService",
     "AsyncPathSearchService",
     "AsyncPredictAssistService",
+    "AsyncResourcePoolsService",
     "AsyncSNMPCredentialsService",
+    "AsyncSecurityMatrixFiltersService",
+    "AsyncSecurityMatrixService",
+    "AsyncSecurityZonesService",
     "AsyncSnapshotDiffDetailsService",
     "AsyncSystemAdministrationService",
     "AsyncUserAccountsService",
@@ -110,6 +124,7 @@ class AsyncGeneratedServices:
     adjacent_networks: AsyncAdjacentNetworksService
     aliases: AsyncAliasesService
     bgp_advertisements: AsyncBGPAdvertisementsService
+    blast_radius: AsyncBlastRadiusService
     change_set_directories: AsyncChangeSetDirectoriesService
     checks: AsyncChecksService
     classic_devices: AsyncClassicDevicesService
@@ -125,6 +140,7 @@ class AsyncGeneratedServices:
     encryptors: AsyncEncryptorsService
     endpoint_profiles: AsyncEndpointProfilesService
     firewall_predict: AsyncFirewallPredictService
+    internet_exposure: AsyncInternetExposureService
     internet_node: AsyncInternetNodeService
     intranet_nodes: AsyncIntranetNodesService
     jump_servers: AsyncJumpServersService
@@ -137,7 +153,11 @@ class AsyncGeneratedServices:
     network_topology: AsyncNetworkTopologyService
     path_search: AsyncPathSearchService
     predict_assist: AsyncPredictAssistService
+    resource_pools: AsyncResourcePoolsService
     snmp_credentials: AsyncSNMPCredentialsService
+    security_matrix: AsyncSecurityMatrixService
+    security_matrix_filters: AsyncSecurityMatrixFiltersService
+    security_zones: AsyncSecurityZonesService
     snapshot_diff_details: AsyncSnapshotDiffDetailsService
     system_administration: AsyncSystemAdministrationService
     user_accounts: AsyncUserAccountsService
@@ -149,6 +169,7 @@ class AsyncGeneratedServices:
         self.adjacent_networks = AsyncAdjacentNetworksService(transport)
         self.aliases = AsyncAliasesService(transport)
         self.bgp_advertisements = AsyncBGPAdvertisementsService(transport)
+        self.blast_radius = AsyncBlastRadiusService(transport)
         self.change_set_directories = AsyncChangeSetDirectoriesService(transport)
         self.checks = AsyncChecksService(transport)
         self.classic_devices = AsyncClassicDevicesService(transport)
@@ -164,6 +185,7 @@ class AsyncGeneratedServices:
         self.encryptors = AsyncEncryptorsService(transport)
         self.endpoint_profiles = AsyncEndpointProfilesService(transport)
         self.firewall_predict = AsyncFirewallPredictService(transport)
+        self.internet_exposure = AsyncInternetExposureService(transport)
         self.internet_node = AsyncInternetNodeService(transport)
         self.intranet_nodes = AsyncIntranetNodesService(transport)
         self.jump_servers = AsyncJumpServersService(transport)
@@ -176,7 +198,11 @@ class AsyncGeneratedServices:
         self.network_topology = AsyncNetworkTopologyService(transport)
         self.path_search = AsyncPathSearchService(transport)
         self.predict_assist = AsyncPredictAssistService(transport)
+        self.resource_pools = AsyncResourcePoolsService(transport)
         self.snmp_credentials = AsyncSNMPCredentialsService(transport)
+        self.security_matrix = AsyncSecurityMatrixService(transport)
+        self.security_matrix_filters = AsyncSecurityMatrixFiltersService(transport)
+        self.security_zones = AsyncSecurityZonesService(transport)
         self.snapshot_diff_details = AsyncSnapshotDiffDetailsService(transport)
         self.system_administration = AsyncSystemAdministrationService(transport)
         self.user_accounts = AsyncUserAccountsService(transport)
@@ -190,6 +216,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Adjacent Networks": "adjacent_networks",
     "Aliases": "aliases",
     "BGP Advertisements": "bgp_advertisements",
+    "Blast Radius": "blast_radius",
     "Change Set Directories": "change_set_directories",
     "Checks": "checks",
     "Classic Devices": "classic_devices",
@@ -205,6 +232,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Encryptors": "encryptors",
     "Endpoint Profiles": "endpoint_profiles",
     "Firewall Predict": "firewall_predict",
+    "Internet Exposure": "internet_exposure",
     "Internet Node": "internet_node",
     "Intranet Nodes": "intranet_nodes",
     "Jump Servers": "jump_servers",
@@ -217,7 +245,11 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Topology": "network_topology",
     "Path Search": "path_search",
     "Predict Assist": "predict_assist",
+    "Resource Pools": "resource_pools",
     "SNMP Credentials": "snmp_credentials",
+    "Security Matrix": "security_matrix",
+    "Security Matrix Filters": "security_matrix_filters",
+    "Security Zones": "security_zones",
     "Snapshot Diff Details": "snapshot_diff_details",
     "System Administration": "system_administration",
     "User Accounts": "user_accounts",

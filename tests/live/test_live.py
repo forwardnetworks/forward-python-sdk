@@ -558,3 +558,89 @@ class TestSyntheticDevicesAndDashboards:
             if dashboard_id:
                 client.dashboards.delete_dashboard(network_id=network_id, dashboard_id=dashboard_id)
             client.nqe_panels.delete_nqe_panels(body={"panelIds": [str(panel.id)]})
+
+
+class TestSecurityAnalysis:
+    """Security zones, the security matrix, resource pools, blast radius and
+    internet exposure. All unpublished. Reads run everywhere; the write (a
+    saved security matrix filter) needs ``FORWARD_LIVE_WRITES=1`` and cleans
+    up after itself.
+    """
+
+    def test_reads_have_the_declared_shapes(self, client: ForwardClient, network_id: str) -> None:
+        zones = client.security_zones.get_security_zones(network_id=network_id).root
+        device = next(iter(zones), None)
+        if not device:
+            pytest.skip("network has no security zones")
+        zone_name = zones[device][0]
+        detail = client.security_zones.get_security_zone(
+            network_id=network_id, device_name=device, zone_name=zone_name
+        )
+        assert detail.covered_topo is not None
+
+        pool = {"type": "DEVICE_ZONE", "device": device, "zone": zone_name}
+        analyzed = client.resource_pools.analyze_resource_pool(network_id=network_id, body=pool)
+        assert analyzed.timed_out is not None
+
+        connectivity = client.resource_pools.get_resource_pool_connectivity_details(
+            network_id=network_id,
+            body={"srcResourcePool": pool, "dstResourcePool": pool},
+        )
+        assert connectivity.details is not None
+
+        blast = client.blast_radius.get_blast_radius(
+            network_id=network_id,
+            body={
+                "source": {"type": "DeviceFilter", "value": device},
+                "dstSubnets": ["0.0.0.0/0"],
+                "timeoutSecs": 30,
+            },
+        )
+        assert blast.details is not None
+
+        exposure = client.internet_exposure.get_internet_exposure(network_id=network_id)
+        assert exposure.traffic_receiving_interfaces is not None or exposure.error is not None
+
+    @pytest.mark.skipif(
+        os.environ.get("FORWARD_LIVE_WRITES") != "1",
+        reason="writing tests need FORWARD_LIVE_WRITES=1",
+    )
+    def test_security_matrix_filter_round_trip(
+        self, client: ForwardClient, network_id: str
+    ) -> None:
+        zones = client.security_zones.get_security_zones(network_id=network_id).root
+        device = next(iter(zones), None)
+        if not device:
+            pytest.skip("network has no security zones")
+        pool = {"type": "DEVICE_ZONE", "device": device, "zone": zones[device][0]}
+
+        for stale in (
+            client.security_matrix_filters.get_security_matrix_filters(
+                network_id=network_id
+            ).filters
+            or []
+        ):
+            if stale.name == "forward-sdk-live-filter":
+                client.security_matrix_filters.delete_security_matrix_filter(
+                    network_id=network_id, filter_id=str(stale.id)
+                )
+
+        created = client.security_matrix_filters.add_security_matrix_filter(
+            network_id=network_id,
+            body={"name": "forward-sdk-live-filter", "resourcePools": [pool, pool]},
+        )
+        try:
+            updated = client.security_matrix_filters.update_security_matrix_filter(
+                network_id=network_id,
+                filter_id=str(created.id),
+                body={"timeoutMins": 7},
+            )
+            assert updated.timeout_mins == 7
+            matrix = client.security_matrix.get_security_matrix(
+                network_id=network_id, filter_id=str(created.id)
+            )
+            assert matrix.matrix is not None
+        finally:
+            client.security_matrix_filters.delete_security_matrix_filter(
+                network_id=network_id, filter_id=str(created.id)
+            )

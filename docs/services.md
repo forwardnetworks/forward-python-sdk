@@ -68,6 +68,12 @@ Forward's API documentation: `getLocations` becomes `get_locations`.
 | `client.tapi_network_containers` | TAPI Network Containers | Unpublished; collection-source permissions; hand-written (multipart upload) |
 | `client.dashboards` | Dashboards | Unpublished; network view to read, edit to write |
 | `client.nqe_panels` | NQE Panels | Unpublished; `NQE_DASHBOARD_PANELS` to write, `NQE_DASHBOARD_METRIC_PANELS` for metric values |
+| `client.security_zones` | Security Zones | Unpublished; `VIEW_SECURITY_ANALYSIS` |
+| `client.security_matrix_filters` | Security Matrix Filters | Unpublished; `VIEW_SECURITY_ANALYSIS` to read, `EDIT_SECURITY_MATRIX_FILTERS` to write |
+| `client.security_matrix` | Security Matrix | Unpublished; `VIEW_SECURITY_ANALYSIS` |
+| `client.resource_pools` | Resource Pools | Unpublished; `VIEW_SECURITY_ANALYSIS` |
+| `client.blast_radius` | Blast Radius | Unpublished; `VIEW_SECURITY_ANALYSIS` |
+| `client.internet_exposure` | Internet Exposure | Unpublished; `VIEW_SECURITY_ANALYSIS` |
 
 "Notes" says what is known to gate a group. It is a hint for interpreting a
 refusal, not a guarantee; see [availability](gating.md).
@@ -105,6 +111,51 @@ The API reference for each operation gives its shape.
 
 **Streaming.** Methods whose response is not JSON, such as exporting the CVE
 index, return an iterator of bytes.
+
+## Security analysis
+
+Forward's blast-radius, security-matrix and internet-exposure views sit
+entirely outside the published API; only `client.vulnerability_analysis`
+(CVE-driven device impact) is published. The group mirrors the app closely:
+
+- **Security zones.** `security_zones.get_security_zones()` maps every device
+  to its zones; `get_security_zone(device_name, zone_name)` gives one zone's
+  VRFs, interfaces, subnets and a small topology sketch scoped to it.
+- **Resource pools.** A `ResourcePool` is one of three shapes, chosen by
+  `type`: `DEVICE_ZONE` (`device` + `zone`), `ON_PREM` (`devices` + `vrfs` +
+  `subnets`), or `CLOUD` (`subnets` + `securityGroups`). It is the unit
+  everything else here compares: the security matrix runs on a list of them,
+  blast radius reads from one, and `resource_pools.analyze_resource_pool()`
+  reports which device/VRF/subnet combinations a set of filters actually
+  matches before you commit to a pool.
+- **Security matrix.** `security_matrix_filters` is full CRUD over saved
+  `{name, resourcePools, protocolExclusions, timeoutMins}` filters;
+  `security_matrix.get_security_matrix(filter_id=...)` runs a saved one,
+  `get_anonymous_security_matrix(body=...)` runs the same shape without
+  saving it. Both return a `matrix[i][j]` of `connectivityLevel` plus a
+  `sampleQuery` illustrating it, `NO_ROUTE` through `OPEN`.
+- **Blast radius.** `blast_radius.get_blast_radius(body={"source": ...,
+  "dstSubnets": [...]})` samples connectivity from one `LocationFilter`
+  location to a set of IPv4 subnets. `source` reuses the published
+  `LocationFilter` union (`DeviceFilter`, `HostFilter`, `SecurityZoneFilter`,
+  and so on) already used elsewhere in the SDK. `get_host_centric_blast_radius`
+  takes the same body and breaks the result out per destination host, with
+  vulnerability counts when a scanner is configured; it shares its path with
+  the plain form, dispatched by a fixed query Forward adds automatically.
+  `get_host_centric_blast_radius_report` returns the same computation as an
+  XLSX workbook, streamed like any other binary export.
+- **Internet exposure.** `internet_exposure.get_internet_exposure()` lists the
+  interfaces the internet node receives traffic on, or why that could not be
+  computed (`error`, e.g. `PENDING_ADVANCED_REACHABILITY` -- trigger it with
+  `client.snapshots.compute_advanced_reachability()` and poll). The exposed-
+  hosts family hangs off the snapshot directly rather than the network:
+  `get_internet_exposed_hosts(snapshot_id=...)` lists hosts reachable from the
+  internet, with per-scanner vulnerability counts when Rapid7 or Tenable is
+  connected; `get_internet_exposed_host_connectivity(snapshot_id, exposed_host_id)`
+  samples the path to one of them.
+
+Every result here can come back `timedOut: true` on a large or slow snapshot;
+the shape you asked for is still there, just possibly incomplete.
 
 ## Synthetic devices
 

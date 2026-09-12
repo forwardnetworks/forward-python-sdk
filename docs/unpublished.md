@@ -77,6 +77,12 @@ operation table, so nothing lands here by accident.
 | Dashboards and display settings | `/networks/{id}/dashboards[/{id}[/display-settings]]`, `?type=DEFAULT`, `?action=removePanels` | `client.dashboards` |
 | NQE panels and metric values | `/nqe-panels[/{id}]`, `?action=delete`, `/networks/{id}/nqe-panels?resultKey=`, `?action=preview` | `client.nqe_panels` |
 | Execution result key | `GET .../nqe-executions/{key}?for=ui` | `execution.result_key()` |
+| Security zones | `/networks/{id}/security-zones[/...]` | `client.security_zones` |
+| Security matrix filters (CRUD) | `/networks/{id}/securityMatrixFilters[/{id}]` | `client.security_matrix_filters` |
+| Security matrix | `/networks/{id}/security-matrix` | `client.security_matrix` |
+| Resource pool analysis and connectivity | `/networks/{id}/resource-pools?action=analyze`, `/networks/{id}/resource-pool-connectivity-details` | `client.resource_pools` |
+| Blast radius, host-centric variant, XLSX report | `/networks/{id}/blast-radius[-report]?type=host-centric` | `client.blast_radius` |
+| Internet exposure and exposed hosts | `/networks/{id}/internet-exposure`, `/snapshots/{id}/internetNode/exposed-hosts[/{id}]` | `client.internet_exposure` |
 | Org, global and deployment configuration | `/config/{p}`, `/global-config/{p}`, `/orgs/{org}/config/{p}`, `/deployment-config[/{p}]` | `client.configuration`, `config_value()` |
 
 The published `POST /snapshots/{id}?action=computeAdvancedReachability` does the

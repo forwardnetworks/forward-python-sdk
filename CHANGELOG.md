@@ -7,6 +7,19 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Security analysis, unpublished and previously undocumented: security zones
+  (`client.security_zones`), full CRUD over saved security-matrix filters and
+  running the matrix itself (`client.security_matrix_filters`,
+  `client.security_matrix`), resource-pool analysis and pairwise connectivity
+  (`client.resource_pools`), blast radius including the host-centric variant
+  and its XLSX report (`client.blast_radius`), and internet exposure with the
+  per-scanner exposed-hosts listing (`client.internet_exposure`). Resource
+  pools are a new three-way discriminated union (`DEVICE_ZONE`/`ON_PREM`/
+  `CLOUD`); blast radius reuses the published `LocationFilter` union already
+  in the SDK. Verified live: filter created, matrix run, deleted; blast radius,
+  resource-pool analysis, and internet exposure read on the local instance's
+  real snapshot; the XLSX report streamed and its bytes confirmed as a genuine
+  workbook.
 - Dashboards and NQE panels, unpublished: `client.dashboards` (list, defaults,
   create, get, update with a whole-layout replace, delete, remove panels from
   every dashboard, display settings) and `client.nqe_panels` (list with usage,

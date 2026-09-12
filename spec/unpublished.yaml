@@ -49,6 +49,24 @@ tags:
   - name: TAPI Network Containers
     parent: Synthetic Devices
     description: Model optical networks from T-API topology documents.
+  - name: Security Zones
+    parent: Network Analysis
+    description: The security zones a snapshot's devices belong to.
+  - name: Security Matrix Filters
+    parent: Network Analysis
+    description: Saved resource-pool selections for the security matrix.
+  - name: Security Matrix
+    parent: Network Analysis
+    description: Pairwise reachability between resource pools.
+  - name: Resource Pools
+    parent: Network Analysis
+    description: Ad hoc resource-pool analysis, without saving a filter.
+  - name: Blast Radius
+    parent: Network Analysis
+    description: What one location can reach, by subnet or by host.
+  - name: Internet Exposure
+    parent: Network Analysis
+    description: What the network exposes to the internet, and to whom.
 paths:
   /nqe/repos/{repository}/commits/{commitId}/queries:
     get:
@@ -4094,6 +4112,336 @@ paths:
               schema: { $ref: "#/components/schemas/NqeExecutionStatusWithResultKey" }
               example: { status: COMPLETED, outcome: OK, resultKey: R_0123456789abcdef0123, millisExecuting: 16, timeoutMinutes: 20 }
 
+  # ------------------------------------------------------------ security zones ---
+  /networks/{networkId}/security-zones:
+    get:
+      operationId: getSecurityZones
+      summary: Every device's security zones
+      x-forward-stability: unpublished
+      tags: [Security Zones]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, schema: { type: string }, description: "Uses the network's latest processed snapshot when omitted." }
+      responses:
+        "200":
+          description: Device names mapped to the zones they belong to.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SecurityZones" }
+              example: { ash-dc-fw01: [api, app, database, dmz, inside, services, untrust] }
+
+  /networks/{networkId}/devices/{deviceName}/security-zones/{zoneName}:
+    get:
+      operationId: getSecurityZone
+      summary: One device zone's VRFs, interfaces, subnets and covered topology
+      x-forward-stability: unpublished
+      tags: [Security Zones]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+        - { name: zoneName, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, schema: { type: string }, description: "Uses the network's latest processed snapshot when omitted." }
+      responses:
+        "200":
+          description: The zone's details.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SecurityZoneDetails" }
+              example:
+                vrfs: [default]
+                interfaces: [ethernet1/5]
+                subnets: ["172.16.20.0/24"]
+                coveredTopo: { nodes: [{ id: ash-dc-fw01 }], links: [], hosts: [] }
+
+  # -------------------------------------------------------- security matrix filters ---
+  # Saved resource-pool selections a user can re-run against the security matrix
+  # without resending the pools each time.
+  /networks/{networkId}/securityMatrixFilters:
+    get:
+      operationId: getSecurityMatrixFilters
+      summary: The network's saved security matrix filters
+      x-forward-stability: unpublished
+      tags: [Security Matrix Filters]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The filters.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SecurityMatrixFiltersList" }
+              example:
+                filters:
+                  - { id: "0", name: "Sample Matrix", resourcePools: [{ type: DEVICE_ZONE, device: dc-fw, zone: api, name: "dc-fw api" }], createdAt: 1789225615855, lastEditedAt: 1789225615855, timeoutMins: 5, createdBy: forward }
+    post:
+      operationId: addSecurityMatrixFilter
+      summary: Save a security matrix filter
+      description: Names are unique, case-insensitively, within the network.
+      x-forward-stability: unpublished
+      tags: [Security Matrix Filters]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewSecurityMatrixFilter" }
+            example: { name: sdk-test, resourcePools: [{ type: DEVICE_ZONE, device: ash-dc-fw01, zone: api }] }
+      responses:
+        "200":
+          description: The saved filter.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SecurityMatrixFilter" }
+              example: { id: "1", name: sdk-test, resourcePools: [{ type: DEVICE_ZONE, device: ash-dc-fw01, zone: api, name: "ash-dc-fw01 api" }], createdAt: 1789225615855, createdByUserId: "100", lastEditedAt: 1789225615855, lastEditedByUserId: "100", timeoutMins: 5 }
+
+  /networks/{networkId}/securityMatrixFilters/{filterId}:
+    patch:
+      operationId: updateSecurityMatrixFilter
+      summary: Change a saved security matrix filter
+      description: Every field optional; omitted means unchanged.
+      x-forward-stability: unpublished
+      tags: [Security Matrix Filters]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: filterId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SecurityMatrixFilterUpdate" }
+            example: { timeoutMins: 10 }
+      responses:
+        "200":
+          description: The updated filter.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SecurityMatrixFilter" }
+              example: { id: "1", name: sdk-test, resourcePools: [{ type: DEVICE_ZONE, device: ash-dc-fw01, zone: api, name: "ash-dc-fw01 api" }], createdAt: 1789225615855, createdByUserId: "100", lastEditedAt: 1789225616009, lastEditedByUserId: "100", timeoutMins: 10 }
+    delete:
+      operationId: deleteSecurityMatrixFilter
+      summary: Delete a saved security matrix filter
+      x-forward-stability: unpublished
+      tags: [Security Matrix Filters]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: filterId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted.
+          content:
+            application/json:
+              schema: { type: object }
+              example: {}
+
+  # -------------------------------------------------------------- security matrix ---
+  /networks/{networkId}/security-matrix:
+    get:
+      operationId: getSecurityMatrix
+      summary: Run the security matrix for a saved filter
+      x-forward-stability: unpublished
+      tags: [Security Matrix]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: filterId, in: query, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, schema: { type: string }, description: "Uses the network's latest processed snapshot when omitted." }
+      responses:
+        "200":
+          description: The matrix.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SecurityMatrixResult" }
+              example: { srcResourcePools: [], dstResourcePools: [], matrix: [] }
+    post:
+      operationId: getAnonymousSecurityMatrix
+      summary: Run the security matrix for resource pools without saving a filter
+      description: Takes the same shape as saving a filter, but nothing is saved.
+      x-forward-stability: unpublished
+      tags: [Security Matrix]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, schema: { type: string }, description: "Uses the network's latest processed snapshot when omitted." }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewSecurityMatrixFilter" }
+            example: { name: anon, resourcePools: [{ type: DEVICE_ZONE, device: ash-dc-fw01, zone: api }, { type: ON_PREM, name: p1, devices: [ash-dc-fw01], vrfs: [], subnets: ["10.0.0.0/24"] }] }
+      responses:
+        "200":
+          description: The matrix.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SecurityMatrixResult" }
+              example: { srcResourcePools: [], dstResourcePools: [], matrix: [] }
+
+  # -------------------------------------------------------------- resource pools ---
+  /networks/{networkId}/resource-pools?action=analyze:
+    post:
+      operationId: analyzeResourcePool
+      summary: Valid device/VRF/subnet combinations for a resource pool's filters
+      description: An empty list means no valid combination was found.
+      x-forward-stability: unpublished
+      tags: [Resource Pools]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, schema: { type: string }, description: "Uses the network's latest processed snapshot when omitted." }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResourcePool" }
+            example: { type: ON_PREM, name: p1, devices: [ash-dc-fw01], vrfs: [], subnets: ["10.0.0.0/24"] }
+      responses:
+        "200":
+          description: The analysis.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalyzedResourcePool" }
+              example: { timedOut: false }
+
+  /networks/{networkId}/resource-pool-connectivity-details:
+    post:
+      operationId: getResourcePoolConnectivityDetails
+      summary: Sample connectivity between two resource pools
+      x-forward-stability: unpublished
+      tags: [Resource Pools]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, schema: { type: string }, description: "Uses the network's latest processed snapshot when omitted." }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConnectivityDetailsRequest" }
+            example: { srcResourcePool: { type: DEVICE_ZONE, device: ash-dc-fw01, zone: api }, dstResourcePool: { type: DEVICE_ZONE, device: ash-dc-fw01, zone: api } }
+      responses:
+        "200":
+          description: The connectivity.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConnectivityDetails" }
+              example: { details: [], timedOut: false }
+
+  # ---------------------------------------------------------------- blast radius ---
+  /networks/{networkId}/blast-radius:
+    post:
+      operationId: getBlastRadius
+      summary: Sample connectivity from one location to a set of destination subnets
+      x-forward-stability: unpublished
+      tags: [Blast Radius]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, schema: { type: string }, description: "Uses the network's latest processed snapshot when omitted." }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BlastRadiusRequest" }
+            example: { source: { type: DeviceFilter, value: ash-dc-fw01 }, dstSubnets: ["10.0.0.0/24"], timeoutSecs: 30 }
+      responses:
+        "200":
+          description: The connectivity.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConnectivityDetails" }
+              example: { details: [], timedOut: false }
+
+  /networks/{networkId}/blast-radius?type=host-centric:
+    post:
+      operationId: getHostCentricBlastRadius
+      summary: The same, broken out per destination host with vulnerability counts
+      x-forward-stability: unpublished
+      tags: [Blast Radius]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, schema: { type: string }, description: "Uses the network's latest processed snapshot when omitted." }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BlastRadiusRequest" }
+            example: { source: { type: DeviceFilter, value: ash-dc-fw01 }, dstSubnets: ["10.0.0.0/24"], timeoutSecs: 30 }
+      responses:
+        "200":
+          description: The connectivity, one entry per reachable host.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HostConnectivityDetails" }
+              example: { details: [], numComputed: 0, allComputed: true }
+
+  /networks/{networkId}/blast-radius-report?type=host-centric:
+    post:
+      operationId: getHostCentricBlastRadiusReport
+      summary: The host-centric blast radius as an XLSX workbook
+      x-forward-stability: unpublished
+      tags: [Blast Radius]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, schema: { type: string }, description: "Uses the network's latest processed snapshot when omitted." }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BlastRadiusRequest" }
+            example: { source: { type: DeviceFilter, value: ash-dc-fw01 }, dstSubnets: ["10.0.0.0/24"], timeoutSecs: 30 }
+      responses:
+        "200":
+          description: The workbook.
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: {}
+
+  # ------------------------------------------------------------ internet exposure ---
+  /networks/{networkId}/internet-exposure:
+    get:
+      operationId: getInternetExposure
+      summary: Interfaces that receive traffic from the internet node
+      x-forward-stability: unpublished
+      tags: [Internet Exposure]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, schema: { type: string }, description: "Uses the network's latest processed snapshot when omitted." }
+      responses:
+        "200":
+          description: The exposure, or why it is unknown.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InternetExposure" }
+              example: { trafficReceivingInterfaces: [] }
+
+  /snapshots/{snapshotId}/internetNode/exposed-hosts:
+    get:
+      operationId: getInternetExposedHosts
+      summary: Hosts exposed through the internet node, with scanner vulnerability counts
+      x-forward-stability: unpublished
+      tags: [Internet Exposure]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The exposed hosts.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HostsExposureResponse" }
+              example: { hosts: [], timedOut: false, scannerUrls: [], hostCounts: [] }
+
+  /snapshots/{snapshotId}/internetNode/exposed-hosts/{exposedHostId}:
+    get:
+      operationId: getInternetExposedHostConnectivity
+      summary: Sample connectivity from the internet node to one exposed host
+      x-forward-stability: unpublished
+      tags: [Internet Exposure]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+        - { name: exposedHostId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The connectivity.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConnectivityDetails" }
+              example: { details: [], timedOut: false }
+
 components:
   schemas:
     RepositoryCommit:
@@ -6131,3 +6479,372 @@ components:
         millisExecuting: { type: integer }
         timeoutMinutes: { type: integer }
         rowsProduced: { type: integer }
+
+    SecurityZones:
+      type: object
+      description: Device name to the sorted list of zone names it belongs to.
+      additionalProperties:
+        type: array
+        items: { type: string }
+
+    CoveredTopologyNode:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string, description: A device name. }
+
+    CoveredTopologyHostGroup:
+      type: object
+      required: [deviceName, type]
+      properties:
+        deviceName: { type: string }
+        name: { type: string, description: Absent for an inferred host. }
+        cloudHostId: { type: string }
+        type: { type: string, enum: [UNKNOWN, INFERRED_HOST, EDGE_NODE, CLOUD_HOST] }
+
+    CoveredTopology:
+      type: object
+      description: A minimal topology sketch scoped to one zone's devices.
+      properties:
+        nodes:
+          type: array
+          items: { $ref: "#/components/schemas/CoveredTopologyNode" }
+        links:
+          type: array
+          items: { $ref: "#/components/schemas/TopologyLink" }
+        hosts:
+          type: array
+          items: { $ref: "#/components/schemas/CoveredTopologyHostGroup" }
+
+    SecurityZoneDetails:
+      type: object
+      properties:
+        vrfs:
+          type: array
+          items: { type: string }
+        interfaces:
+          type: array
+          items: { type: string }
+        subnets:
+          type: array
+          items: { type: string }
+        coveredTopo: { $ref: "#/components/schemas/CoveredTopology" }
+
+    DeviceZoneResourcePool:
+      type: object
+      description: A device's security zone, as a resource pool.
+      required: [type, device, zone]
+      properties:
+        type: { const: DEVICE_ZONE }
+        device: { type: string }
+        zone: { type: string }
+        name: { type: string, description: Computed by Forward as "device zone"; ignored on write. }
+
+    OnPremResourcePool:
+      type: object
+      required: [type, name, devices, vrfs, subnets]
+      properties:
+        type: { const: ON_PREM }
+        name: { type: string }
+        devices:
+          type: array
+          items: { type: string }
+        vrfs:
+          type: array
+          items: { type: string }
+        subnets:
+          type: array
+          items: { type: string }
+          description: "Non-empty; \"0.0.0.0/0\" is refused."
+
+    CloudResourcePool:
+      type: object
+      required: [type, name, subnets, securityGroups]
+      properties:
+        type: { const: CLOUD }
+        name: { type: string }
+        subnets:
+          type: array
+          items: { type: string }
+        securityGroups:
+          type: array
+          items: { type: string }
+
+    ResourcePool:
+      description: A named group of endpoints, for the security matrix and blast radius.
+      discriminator:
+        propertyName: type
+        mapping:
+          DEVICE_ZONE: "#/components/schemas/DeviceZoneResourcePool"
+          ON_PREM: "#/components/schemas/OnPremResourcePool"
+          CLOUD: "#/components/schemas/CloudResourcePool"
+      oneOf:
+        - { $ref: "#/components/schemas/DeviceZoneResourcePool" }
+        - { $ref: "#/components/schemas/OnPremResourcePool" }
+        - { $ref: "#/components/schemas/CloudResourcePool" }
+      properties:
+        type: { type: string, enum: [DEVICE_ZONE, ON_PREM, CLOUD] }
+      required: [type]
+      type: object
+
+    NewSecurityMatrixFilter:
+      type: object
+      required: [name, resourcePools]
+      properties:
+        name: { type: string }
+        resourcePools:
+          type: array
+          items: { $ref: "#/components/schemas/ResourcePool" }
+          description: Non-empty.
+        protocolExclusions:
+          type: array
+          items: { type: integer }
+          description: IANA protocol numbers to exclude.
+        timeoutMins: { type: integer, description: "1 to 60; default 5." }
+
+    SecurityMatrixFilterUpdate:
+      type: object
+      description: Every field optional; at least one is required. Omitted means unchanged.
+      properties:
+        name: { type: string }
+        resourcePools:
+          type: array
+          items: { $ref: "#/components/schemas/ResourcePool" }
+        protocolExclusions:
+          type: array
+          items: { type: integer }
+        timeoutMins: { type: integer }
+
+    SecurityMatrixFilter:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        resourcePools:
+          type: array
+          items: { $ref: "#/components/schemas/ResourcePool" }
+        createdAt: { type: integer, format: int64, description: Epoch milliseconds. }
+        createdByUserId: { type: string }
+        lastEditedAt: { type: integer, format: int64, description: Epoch milliseconds. }
+        lastEditedByUserId: { type: string }
+        timeoutMins: { type: integer }
+
+    SecurityMatrixFilterWithUsers:
+      description: A SecurityMatrixFilter plus the usernames behind its user ids, as the listing sends it.
+      allOf:
+        - { $ref: "#/components/schemas/SecurityMatrixFilter" }
+        - type: object
+          properties:
+            createdBy: { type: string }
+            lastEditedBy: { type: string }
+
+    SecurityMatrixFiltersList:
+      type: object
+      properties:
+        filters:
+          type: array
+          items: { $ref: "#/components/schemas/SecurityMatrixFilterWithUsers" }
+
+    SecurityMatrixConnectivity:
+      type: object
+      description: >-
+        sampleQuery is present unless connectivityLevel is PARTIAL or MISSING,
+        where no single sample represents the cell.
+      required: [connectivityLevel]
+      properties:
+        sampleQuery: { $ref: "#/components/schemas/SampleQuery" }
+        connectivityLevel:
+          type: string
+          enum: [NO_ROUTE, ACL_BLOCKED, PARTIAL, OPEN, MISSING, TIMED_OUT]
+
+    SecurityMatrixResult:
+      type: object
+      description: matrix[i][j] is the connectivity from srcResourcePools[i] to dstResourcePools[j].
+      properties:
+        srcResourcePools:
+          type: array
+          items: { $ref: "#/components/schemas/ResourcePool" }
+        dstResourcePools:
+          type: array
+          items: { $ref: "#/components/schemas/ResourcePool" }
+        matrix:
+          type: array
+          items:
+            type: array
+            items: { $ref: "#/components/schemas/SecurityMatrixConnectivity" }
+
+    SampleQuery:
+      type: object
+      required: [from, to]
+      properties:
+        from: { $ref: "#/components/schemas/EndpointFilter" }
+        to: { $ref: "#/components/schemas/EndpointFilter" }
+
+    AnalyzedResourcePool:
+      type: object
+      description: resourcePools is absent when empty, meaning no valid combination was found.
+      properties:
+        resourcePools:
+          type: array
+          items: { $ref: "#/components/schemas/ResourcePool" }
+        timedOut: { type: boolean }
+
+    ConnectivityDetailsRequest:
+      type: object
+      required: [srcResourcePool, dstResourcePool]
+      properties:
+        srcResourcePool: { $ref: "#/components/schemas/ResourcePool" }
+        dstResourcePool: { $ref: "#/components/schemas/ResourcePool" }
+        protocolExclusions:
+          type: array
+          items: { type: integer }
+
+    ConnectivityDetailsValue:
+      type: object
+      description: >-
+        headers describes one packet-header region that has this connectivity;
+        several values together cover every case. sampleQuery is a concrete
+        example packet from that region, when one applies.
+      required: [headers]
+      properties:
+        headers:
+          type: object
+          additionalProperties: { type: string }
+        sampleQuery: { $ref: "#/components/schemas/SampleQuery" }
+
+    ConnectivityDetails:
+      type: object
+      properties:
+        details:
+          type: array
+          items: { $ref: "#/components/schemas/ConnectivityDetailsValue" }
+        timedOut: { type: boolean }
+        invalidSource:
+          type: boolean
+          description: True when the source no longer resolves to anything in the snapshot.
+
+    BlastRadiusRequest:
+      type: object
+      required: [source, dstSubnets]
+      properties:
+        source: { $ref: "#/components/schemas/LocationFilter" }
+        dstSubnets:
+          type: array
+          items: { type: string }
+          description: Non-empty; IPv4 only.
+        protocolExclusions:
+          type: array
+          items: { type: integer }
+        timeoutSecs: { type: integer, description: "1 to 3600." }
+        pagingOptions: { $ref: "#/components/schemas/BlastRadiusPagingOptions" }
+
+    BlastRadiusPagingOptions:
+      type: object
+      properties:
+        offset: { type: integer, description: "Non-negative; default 0." }
+        limit: { type: integer, description: "1 to 10000; default 1000." }
+        sortBy: { $ref: "#/components/schemas/SortOrder" }
+        columnFilters:
+          type: array
+          items: { $ref: "#/components/schemas/ColumnFilter" }
+
+    HostConnectivityInfo:
+      type: object
+      properties:
+        hostIps:
+          type: array
+          items: { type: string }
+        hostName: { type: string }
+        zones:
+          type: array
+          items: { type: string }
+        headers:
+          type: object
+          additionalProperties: { type: string }
+        sampleQuery: { $ref: "#/components/schemas/SampleQuery" }
+        vulnerableServices:
+          type: array
+          items: { type: string }
+        moderateVulnerabilitiesCount: { type: integer }
+        severeVulnerabilitiesCount: { type: integer }
+        criticalVulnerabilitiesCount: { type: integer }
+
+    HostConnectivityDetails:
+      type: object
+      properties:
+        details:
+          type: array
+          items: { $ref: "#/components/schemas/HostConnectivityInfo" }
+        numComputed: { type: integer }
+        allComputed: { type: boolean }
+        invalidSource: { type: boolean }
+
+    InternetExposure:
+      type: object
+      description: error is present only when trafficReceivingInterfaces could not be computed.
+      properties:
+        trafficReceivingInterfaces:
+          type: array
+          items: { type: string, description: "device:interface" }
+        error:
+          type: string
+          enum: [INTERNET_NODE_NOT_DEFINED, REACHABILITY_COMPUTATION_DISABLED, PENDING_ADVANCED_REACHABILITY]
+
+    Rapid7Info:
+      type: object
+      required: [sourceId, assetId, riskScore, serviceNames, severityToVulnerabilityCount, lastScannedInstant]
+      properties:
+        sourceId: { type: integer }
+        assetId: { type: string }
+        riskScore: { type: number }
+        serviceNames:
+          type: array
+          items: { type: string }
+        severityToVulnerabilityCount:
+          type: object
+          additionalProperties: { type: integer }
+        lastScannedInstant: { type: integer, format: int64, description: Epoch milliseconds. }
+
+    TenableInfo:
+      type: object
+      required: [sourceId, assetId, riskScore, severityToVulnerabilityCount, lastScannedInstant]
+      properties:
+        sourceId: { type: integer }
+        assetId: { type: string }
+        riskScore: { type: number }
+        severityToVulnerabilityCount:
+          type: object
+          additionalProperties: { type: integer }
+        lastScannedInstant: { type: integer, format: int64, description: Epoch milliseconds. }
+
+    ExposedHost:
+      type: object
+      required: [ips, zones, id]
+      properties:
+        id: { type: string, description: "deviceId-hostIndex, opaque." }
+        name: { type: string }
+        ips:
+          type: array
+          items: { type: string }
+        zones:
+          type: array
+          items: { type: string }
+        rapid7Info: { $ref: "#/components/schemas/Rapid7Info" }
+        tenableInfo: { $ref: "#/components/schemas/TenableInfo" }
+
+    HostsExposureResponse:
+      type: object
+      properties:
+        hosts:
+          type: array
+          items: { $ref: "#/components/schemas/ExposedHost" }
+        timedOut: { type: boolean }
+        scannerUrls:
+          type: array
+          items: { type: string }
+          description: Empty when no scanner is configured.
+        hostCounts:
+          type: array
+          items: { type: integer }
+          description: "Length 3, non-increasing: [vulnerable per scanner, also found by Forward, also exposed here]."
+        scanType: { type: string, description: Absent when no scanner is configured. }

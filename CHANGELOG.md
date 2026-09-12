@@ -5,6 +5,33 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Dashboards and NQE panels, unpublished: `client.dashboards` (list, defaults,
+  create, get, update with a whole-layout replace, delete, remove panels from
+  every dashboard, display settings) and `client.nqe_panels` (list with usage,
+  create, patch, delete one or many, metric values and a metric preview over an
+  execution's result). Requested by the change-demo integration in its fourth
+  report. Shapes from Forward's controllers; verified live with a dashboard and
+  a panel created, embedded, unembedded and deleted. The metric-value reads are
+  gated by an org property an org admin cannot set, so those two were verified
+  against the source rather than a live instance.
+- `execution.result_key()`: the `R_` key naming an execution's result, which
+  the metric reads take. Forward's published execution status omits it; the
+  variant its UI reads (`?for=ui`) carries it.
+- Synthetic devices, the unpublished remainder: `backdate_*` on every family
+  (apply staged changes to an existing snapshot, invalidating it),
+  `compute_*_connections` on the families that accept an NQE query
+  (a preview of what the query produces, with failure in the body),
+  `l2vpns.add_l2_vpns` (batch add), and
+  `internet_node.get_internet_connection_suggestions`. Two families had no
+  published surface at all: adjacent networks (`client.adjacent_networks`, full
+  CRUD and connection filtering) and T-API optical containers
+  (`client.tapi_network_containers`, hand-written because a container is
+  created from uploaded documents). Verified live in a scratch network that
+  was deleted afterwards; the backdate routes were confirmed to reach their
+  handlers without invalidating anything.
+
 ### Fixed
 
 - `device_tags.list()` returned `["tags"]`. Forward wraps the listing as

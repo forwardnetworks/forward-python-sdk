@@ -64,6 +64,10 @@ Forward's API documentation: `getLocations` becomes `get_locations`.
 | `client.collector_binding` | Collector Binding | Unpublished; `VIEW_COLLECTORS` to read, collection settings to write |
 | `client.cloud_accounts` | Cloud Accounts | Unpublished; collection-source permissions |
 | `client.user_events` | User Events | Unpublished; any user |
+| `client.adjacent_networks` | Adjacent Networks | Unpublished; collection-source permissions |
+| `client.tapi_network_containers` | TAPI Network Containers | Unpublished; collection-source permissions; hand-written (multipart upload) |
+| `client.dashboards` | Dashboards | Unpublished; network view to read, edit to write |
+| `client.nqe_panels` | NQE Panels | Unpublished; `NQE_DASHBOARD_PANELS` to write, `NQE_DASHBOARD_METRIC_PANELS` for metric values |
 
 "Notes" says what is known to gate a group. It is a hint for interpreting a
 refusal, not a guarantee; see [availability](gating.md).
@@ -101,6 +105,93 @@ The API reference for each operation gives its shape.
 
 **Streaming.** Methods whose response is not JSON, such as exporting the CVE
 index, return an iterator of bytes.
+
+## Synthetic devices
+
+Forward models what it cannot collect as synthetic devices: the internet, other
+sites' intranets, provider L2VPNs and L3VPNs, WAN circuits, encryptors, adjacent
+networks and T-API optical networks. The published CRUD for the first six is
+generated as usual (`client.internet_node`, `client.intranet_nodes`,
+`client.l2vpns`, `client.l3vpns`, `client.wan_circuits`, `client.encryptors`).
+The rest of the surface is unpublished and sits on the same services:
+
+- **Backdating.** A change to a synthetic device applies to the network's next
+  snapshot. `backdate_*(snapshot_id=...)` applies the changes staged since the
+  last snapshot to an existing one and every newer one, which invalidates them
+  for reprocessing. It needs both the collection-source and the
+  snapshot-invalidation permissions.
+- **NQE-derived connections.** An internet node, intranet node, L2VPN, L3VPN or
+  adjacent network may carry a `queryId`: a committed library query whose rows
+  define its connections, recomputed on each snapshot. `compute_*_connections(
+  query_id=...)` previews what that query produces on the latest processed
+  snapshot without saving anything. Failure is reported in the body
+  (`error.status`, one of `NO_LATEST_SNAPSHOT`, `QUERY_MISSING`,
+  `QUERY_RUN_ERROR`, `MISSING_REQUIRED_COLUMNS`, `COLUMN_DATATYPE_MISMATCH`,
+  `INVALID_IDENTIFIER`), not as an HTTP error.
+- **Batch add.** `client.l2vpns.add_l2_vpns(body=[...])` adds several L2VPNs
+  without replacing the existing ones.
+- **Suggestions.** `client.internet_node.get_internet_connection_suggestions()`
+  lists interfaces in the latest processed snapshot that look like internet
+  uplinks; an empty object when none do.
+- **Adjacent networks** (`client.adjacent_networks`) are networks Forward does
+  not collect, reached over L3 WAN links, with the same connection model as
+  intranet nodes plus `ownedSubnets`.
+- **T-API containers** (`client.tapi_network_containers`) are built from
+  uploaded T-API topology documents: `put(name, files)` takes paths or
+  `(filename, bytes)` pairs and merges them into one model.
+
+Not covered: the internet exposed-hosts reads under
+`/snapshots/{id}/internetNode/exposed-hosts`, which belong to the security
+analysis family (blast radius, security zones, exposure) and will land with it.
+
+## Dashboards and NQE panels
+
+An NQE panel is a committed library query with a presentation, tabular or
+metric; a dashboard is a layout of widgets over panels.
+
+```python
+panel = client.nqe_panels.create_nqe_panel(
+    body={
+        "name": "bgp-sessions",
+        "queryId": "Q_...",  # committed; query text is refused
+        "config": {
+            "type": "TABULAR",
+            "columnOrder": ["device", "peer", "state"],
+            "visibleColumns": [{"name": "device", "width": 200}],
+        },
+    }
+)
+dashboard_id = client.dashboards.create_dashboard(body={"name": "Operations"})  # a bare string
+client.dashboards.update_dashboard(
+    dashboard_id=dashboard_id,
+    body={
+        "layout": [
+            {"type": "ROW", "x": 0, "y": 0, "w": 12, "h": 1, "title": "Core"},
+            {"type": "PANEL", "x": 0, "y": 1, "w": 6, "h": 4, "panelId": f"NQE_PANEL_{panel.id}"},
+        ]
+    },
+)
+```
+
+Things the shapes do not say:
+
+- A layout replaces the whole layout. Each panel widget carries a
+  server-assigned `id` after the first save; echo it to keep that embedding,
+  omit it to create a new one.
+- `PATCH /nqe-panels/{id}` is flat: configuration fields sit beside `name` and
+  `description`, and a field for the other kind of panel is refused. The query
+  and the kind cannot be changed.
+- A panel in use cannot be deleted (409); `remove_panels_from_dashboards` takes
+  it out of every dashboard in a network first.
+- Metric values (`get_nqe_panel_metrics`, `preview_nqe_metric`) are computed
+  over one execution's result, named by its result key. Forward's published
+  execution status omits that key; `execution.result_key()` reads the variant
+  that carries it. Metric values are gated by the
+  `NQE_DASHBOARD_METRIC_PANELS` org property, which an org admin cannot set,
+  so those two operations were verified against Forward's source rather than
+  a live instance.
+- Forward's own dashboards (`list_default_dashboards`) have negative ids and
+  refuse edits.
 
 ## Path search
 

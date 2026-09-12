@@ -99,6 +99,9 @@ HAND_WRITTEN_TAGS: frozenset[str] = frozenset(
         # Two routes take text/plain bodies, predict needs a wait for the
         # snapshot it creates, and the workflow reads better as a handle.
         "Change Sets",
+        # Containers are created from multipart T-API files, which the generic
+        # JSON-body builder cannot send.
+        "TAPI Network Containers",
         # A Server-Sent Events stream that never ends; parsing it into typed
         # events is a loop, not a method per endpoint.
         "User Events",

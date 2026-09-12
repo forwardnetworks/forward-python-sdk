@@ -24,6 +24,7 @@ from forward_sdk._ops import (  # noqa: F401
     events,
     nqe,
     nqe_repo,
+    tapi,
 )
 from forward_sdk._ops._generic import build_all
 

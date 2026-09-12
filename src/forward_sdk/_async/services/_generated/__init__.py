@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from forward_sdk._async.services._generated.adjacent_networks import AsyncAdjacentNetworksService
 from forward_sdk._async.services._generated.aliases import AsyncAliasesService
 from forward_sdk._async.services._generated.bgp_advertisements import AsyncBGPAdvertisementsService
 from forward_sdk._async.services._generated.change_set_directories import (
@@ -22,6 +23,7 @@ from forward_sdk._async.services._generated.collector_binding import AsyncCollec
 from forward_sdk._async.services._generated.collector_tasks import AsyncCollectorTasksService
 from forward_sdk._async.services._generated.configuration import AsyncConfigurationService
 from forward_sdk._async.services._generated.credentials import AsyncCredentialsService
+from forward_sdk._async.services._generated.dashboards import AsyncDashboardsService
 from forward_sdk._async.services._generated.data_connectors import AsyncDataConnectorsService
 from forward_sdk._async.services._generated.data_files import AsyncDataFilesService
 from forward_sdk._async.services._generated.encryptors import AsyncEncryptorsService
@@ -36,6 +38,7 @@ from forward_sdk._async.services._generated.legacy_collection import AsyncLegacy
 from forward_sdk._async.services._generated.network_endpoints import AsyncNetworkEndpointsService
 from forward_sdk._async.services._generated.network_locations import AsyncNetworkLocationsService
 from forward_sdk._async.services._generated.network_topology import AsyncNetworkTopologyService
+from forward_sdk._async.services._generated.nqe_panels import AsyncNQEPanelsService
 from forward_sdk._async.services._generated.path_search import AsyncPathSearchService
 from forward_sdk._async.services._generated.predict_assist import AsyncPredictAssistService
 from forward_sdk._async.services._generated.snapshot_diff_details import (
@@ -56,6 +59,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from forward_sdk._async.transport import AsyncTransport
 
 __all__ = [
+    "AsyncAdjacentNetworksService",
     "AsyncAliasesService",
     "AsyncBGPAdvertisementsService",
     "AsyncChangeSetDirectoriesService",
@@ -67,6 +71,7 @@ __all__ = [
     "AsyncCollectorTasksService",
     "AsyncConfigurationService",
     "AsyncCredentialsService",
+    "AsyncDashboardsService",
     "AsyncDataConnectorsService",
     "AsyncDataFilesService",
     "AsyncEncryptorsService",
@@ -79,6 +84,7 @@ __all__ = [
     "AsyncL2vpnsService",
     "AsyncL3vpnsService",
     "AsyncLegacyCollectionService",
+    "AsyncNQEPanelsService",
     "AsyncNetworkEndpointsService",
     "AsyncNetworkLocationsService",
     "AsyncNetworkTopologyService",
@@ -101,6 +107,7 @@ class AsyncGeneratedServices:
     checkers and editors can see them.
     """
 
+    adjacent_networks: AsyncAdjacentNetworksService
     aliases: AsyncAliasesService
     bgp_advertisements: AsyncBGPAdvertisementsService
     change_set_directories: AsyncChangeSetDirectoriesService
@@ -112,6 +119,7 @@ class AsyncGeneratedServices:
     collector_tasks: AsyncCollectorTasksService
     configuration: AsyncConfigurationService
     credentials: AsyncCredentialsService
+    dashboards: AsyncDashboardsService
     data_connectors: AsyncDataConnectorsService
     data_files: AsyncDataFilesService
     encryptors: AsyncEncryptorsService
@@ -123,6 +131,7 @@ class AsyncGeneratedServices:
     l2vpns: AsyncL2vpnsService
     l3vpns: AsyncL3vpnsService
     legacy_collection: AsyncLegacyCollectionService
+    nqe_panels: AsyncNQEPanelsService
     network_endpoints: AsyncNetworkEndpointsService
     network_locations: AsyncNetworkLocationsService
     network_topology: AsyncNetworkTopologyService
@@ -137,6 +146,7 @@ class AsyncGeneratedServices:
     webhooks: AsyncWebhooksService
 
     def _attach_generated_services(self, transport: AsyncTransport) -> None:
+        self.adjacent_networks = AsyncAdjacentNetworksService(transport)
         self.aliases = AsyncAliasesService(transport)
         self.bgp_advertisements = AsyncBGPAdvertisementsService(transport)
         self.change_set_directories = AsyncChangeSetDirectoriesService(transport)
@@ -148,6 +158,7 @@ class AsyncGeneratedServices:
         self.collector_tasks = AsyncCollectorTasksService(transport)
         self.configuration = AsyncConfigurationService(transport)
         self.credentials = AsyncCredentialsService(transport)
+        self.dashboards = AsyncDashboardsService(transport)
         self.data_connectors = AsyncDataConnectorsService(transport)
         self.data_files = AsyncDataFilesService(transport)
         self.encryptors = AsyncEncryptorsService(transport)
@@ -159,6 +170,7 @@ class AsyncGeneratedServices:
         self.l2vpns = AsyncL2vpnsService(transport)
         self.l3vpns = AsyncL3vpnsService(transport)
         self.legacy_collection = AsyncLegacyCollectionService(transport)
+        self.nqe_panels = AsyncNQEPanelsService(transport)
         self.network_endpoints = AsyncNetworkEndpointsService(transport)
         self.network_locations = AsyncNetworkLocationsService(transport)
         self.network_topology = AsyncNetworkTopologyService(transport)
@@ -175,6 +187,7 @@ class AsyncGeneratedServices:
 
 #: API group name to the client attribute carrying its service.
 SERVICE_TAGS: dict[str, str] = {
+    "Adjacent Networks": "adjacent_networks",
     "Aliases": "aliases",
     "BGP Advertisements": "bgp_advertisements",
     "Change Set Directories": "change_set_directories",
@@ -186,6 +199,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Collector Tasks": "collector_tasks",
     "Configuration": "configuration",
     "Credentials": "credentials",
+    "Dashboards": "dashboards",
     "Data Connectors": "data_connectors",
     "Data Files": "data_files",
     "Encryptors": "encryptors",
@@ -197,6 +211,7 @@ SERVICE_TAGS: dict[str, str] = {
     "L2VPNs": "l2vpns",
     "L3VPNs": "l3vpns",
     "Legacy Collection": "legacy_collection",
+    "NQE Panels": "nqe_panels",
     "Network Endpoints": "network_endpoints",
     "Network Locations": "network_locations",
     "Network Topology": "network_topology",

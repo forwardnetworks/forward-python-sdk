@@ -82,6 +82,15 @@ def execution_status(*, network_id: str, execution_key: str) -> RequestSpec:
     )
 
 
+@op("getNqeExecutionResultKey")
+def execution_status_with_result_key(*, network_id: str, execution_key: str) -> RequestSpec:
+    """The status as the UI reads it, which carries the result key."""
+    return spec_for(
+        "getNqeExecutionResultKey",
+        path_params={"networkId": network_id, "executionKey": execution_key},
+    )
+
+
 @op("getNqeExecutionResult")
 def execution_result(
     *,

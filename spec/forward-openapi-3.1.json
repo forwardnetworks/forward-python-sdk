@@ -128,6 +128,75 @@
         },
         "type": "object"
       },
+      "AdjacentNetwork": {
+        "description": "A network Forward does not collect, reached over L3 WAN connections. queryId, when set, names a committed library query whose rows define the connections dynamically; queryResult holds the last computation.",
+        "properties": {
+          "connections": {
+            "items": {
+              "$ref": "#/components/schemas/L3SyntheticWanConnection"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ownedSubnets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "queryId": {
+            "type": "string"
+          },
+          "queryResult": {
+            "$ref": "#/components/schemas/L3DynamicConnectionsComputeResult"
+          }
+        },
+        "required": [
+          "name",
+          "connections"
+        ],
+        "type": "object"
+      },
+      "AdjacentNetworkList": {
+        "properties": {
+          "adjacentNetworks": {
+            "items": {
+              "$ref": "#/components/schemas/AdjacentNetwork"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "adjacentNetworks"
+        ],
+        "type": "object"
+      },
+      "AdjacentNetworkPatch": {
+        "description": "Omitted means unchanged; an explicit null queryId clears it.",
+        "properties": {
+          "connections": {
+            "items": {
+              "$ref": "#/components/schemas/L3SyntheticWanConnection"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ownedSubnets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "queryId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "AdvancedReachabilityState": {
         "enum": [
           "UNPROCESSED",
@@ -3425,6 +3494,22 @@
         ],
         "type": "object"
       },
+      "ColumnInfo": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "width": {
+            "description": "Positive.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "width"
+        ],
+        "type": "object"
+      },
       "CommandSet": {
         "const": "UNIX",
         "type": "string"
@@ -4257,6 +4342,188 @@
             "type": "object"
           }
         ]
+      },
+      "Dashboard": {
+        "description": "type DEFAULT for the fixed dashboards Forward ships, COMPOSED for yours.",
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "layout": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardWidget"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "DEFAULT",
+              "COMPOSED"
+            ],
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "updatedById": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DashboardDefinition": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "DashboardDisplaySettings": {
+        "description": "Every field optional; a never-customised dashboard reads as an empty object.",
+        "properties": {
+          "attribution": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "autoScrollEnabled": {
+            "type": "boolean"
+          },
+          "autoScrollIntervalSec": {
+            "type": "integer"
+          },
+          "autoScrollMode": {
+            "enum": [
+              "PAGE_BY_PAGE",
+              "CONTINUOUS"
+            ],
+            "type": "string"
+          },
+          "autoScrollSpeed": {
+            "enum": [
+              "SLOW",
+              "MEDIUM",
+              "FAST"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DashboardPatch": {
+        "description": "Omitted means unchanged. A present layout replaces the whole layout.",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "layout": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardWidget"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DashboardWidget": {
+        "description": "Selected by type. A ROW has a title and children, which must not be rows. A PANEL has a panelId such as NQE_PANEL_7, DEFINED_3 or CUSTOM_SCORECARD_2; an NQE panel may also carry an override and a server-assigned id that identifies the embedding across saves.",
+        "properties": {
+          "children": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "h": {
+            "type": "integer"
+          },
+          "id": {
+            "description": "Server-assigned per embedding; echo it to keep the embedding",
+            "omit it to create a new one.": null,
+            "type": "integer"
+          },
+          "override": {
+            "additionalProperties": true,
+            "description": "displayName, queryParams, or a config override; at least one.",
+            "type": "object"
+          },
+          "panelId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "ROW",
+              "PANEL"
+            ],
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "updatedById": {
+            "type": "string"
+          },
+          "w": {
+            "type": "integer"
+          },
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "type",
+          "x",
+          "y",
+          "w",
+          "h"
+        ],
+        "type": "object"
       },
       "DataConnector": {
         "allOf": [
@@ -5480,6 +5747,29 @@
             "type": "array"
           }
         },
+        "type": "object"
+      },
+      "DynamicConnectionsComputeError": {
+        "properties": {
+          "errorMsg": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "NO_LATEST_SNAPSHOT",
+              "QUERY_MISSING",
+              "QUERY_RUN_ERROR",
+              "MISSING_REQUIRED_COLUMNS",
+              "COLUMN_DATATYPE_MISMATCH",
+              "INVALID_IDENTIFIER"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "errorMsg",
+          "status"
+        ],
         "type": "object"
       },
       "Encryptor": {
@@ -6849,6 +7139,43 @@
         ],
         "type": "object"
       },
+      "InternetConnectionSuggestion": {
+        "properties": {
+          "gatewayInterface": {
+            "description": "device:interface",
+            "type": "string"
+          },
+          "gatewayInterfaceDescription": {
+            "type": "string"
+          },
+          "uplinkInterface": {
+            "description": "device:interface",
+            "type": "string"
+          },
+          "uplinkInterfaceDescription": {
+            "type": "string"
+          },
+          "vlan": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "uplinkInterface"
+        ],
+        "type": "object"
+      },
+      "InternetConnectionSuggestions": {
+        "description": "An empty object when there are none.",
+        "properties": {
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/InternetConnectionSuggestion"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "InternetNode": {
         "properties": {
           "connections": {
@@ -7324,6 +7651,21 @@
         ],
         "type": "object"
       },
+      "L2VpnDynamicConnectionsComputeResult": {
+        "description": "connections is absent when empty; error is present only on failure.",
+        "properties": {
+          "connections": {
+            "items": {
+              "$ref": "#/components/schemas/L2VpnConnection"
+            },
+            "type": "array"
+          },
+          "error": {
+            "$ref": "#/components/schemas/DynamicConnectionsComputeError"
+          }
+        },
+        "type": "object"
+      },
       "L2VpnList": {
         "properties": {
           "l2Vpns": {
@@ -7349,6 +7691,21 @@
           },
           "name": {
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "L3DynamicConnectionsComputeResult": {
+        "description": "connections is absent when empty; error is present only on failure.",
+        "properties": {
+          "connections": {
+            "items": {
+              "$ref": "#/components/schemas/L3SyntheticWanConnection"
+            },
+            "type": "array"
+          },
+          "error": {
+            "$ref": "#/components/schemas/DynamicConnectionsComputeError"
           }
         },
         "type": "object"
@@ -10066,6 +10423,265 @@
         ],
         "type": "object"
       },
+      "NqeExecutionStatusWithResultKey": {
+        "description": "NqeExecutionStatus plus the result key. Fields beyond these follow the published status.",
+        "properties": {
+          "millisExecuting": {
+            "type": "integer"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "resultKey": {
+            "description": "R_ followed by twenty hex characters; present once the outcome is OK or USER_ERROR.",
+            "type": "string"
+          },
+          "rowsProduced": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "timeoutMinutes": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "NqeMetricPreview": {
+        "properties": {
+          "aggregation": {
+            "enum": [
+              "COUNT",
+              "COUNT_DISTINCT",
+              "SUM",
+              "MIN",
+              "MAX",
+              "AVERAGE",
+              "MEDIAN",
+              "COUNT_TRUE",
+              "COUNT_FALSE",
+              "COUNT_NULL"
+            ],
+            "type": "string"
+          },
+          "columnName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "columnName",
+          "aggregation"
+        ],
+        "type": "object"
+      },
+      "NqeMetricPreviewResult": {
+        "properties": {
+          "value": {
+            "description": "Absent when undefined.",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "NqePanel": {
+        "description": "A panel with its attribution flat beside it. The kind is config.type.",
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/PanelConfig"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "queryId": {
+            "type": "string"
+          },
+          "queryParams": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "updatedById": {
+            "type": "string"
+          },
+          "usageCount": {
+            "description": "Present on the listing only.",
+            "type": "integer"
+          },
+          "usages": {
+            "description": "Present on the listing only; dashboards the caller may see.",
+            "items": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "networkId": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "NqePanelDef": {
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/PanelConfig"
+          },
+          "description": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "queryId": {
+            "description": "A committed library query id, Q_ or FQ_ followed by 40 hex characters. Query text is not accepted.",
+            "type": "string"
+          },
+          "queryParams": {
+            "additionalProperties": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "name",
+          "queryId",
+          "config"
+        ],
+        "type": "object"
+      },
+      "NqePanelIds": {
+        "properties": {
+          "panelIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "panelIds"
+        ],
+        "type": "object"
+      },
+      "NqePanelMetrics": {
+        "properties": {
+          "results": {
+            "items": {
+              "properties": {
+                "panelId": {
+                  "type": "string"
+                },
+                "value": {
+                  "description": "Null when undefined.",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "NqePanelPatch": {
+        "description": "Every field optional; omitted means unchanged. Flat: configuration fields sit beside name and description. Tabular panels take columnOrder, visibleColumns and frozenColumns; metric panels take columnName, aggregation, unit, decimalPrecision and thresholds.",
+        "properties": {
+          "aggregation": {
+            "type": "string"
+          },
+          "columnName": {
+            "type": "string"
+          },
+          "columnOrder": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "decimalPrecision": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "frozenColumns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "queryParams": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "thresholds": {
+            "items": {
+              "$ref": "#/components/schemas/ThresholdRule"
+            },
+            "type": "array"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "visibleColumns": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnInfo"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "NqePanels": {
+        "properties": {
+          "panels": {
+            "items": {
+              "$ref": "#/components/schemas/NqePanel"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "NqeQuery": {
         "properties": {
           "intent": {
@@ -10725,6 +11341,70 @@
         "required": [
           "type",
           "itemsArrayField"
+        ],
+        "type": "object"
+      },
+      "PanelConfig": {
+        "description": "Selected by type. TABULAR takes columnOrder and visibleColumns, both non-empty, and optional frozenColumns; the latter two are subsets of columnOrder. METRIC takes columnName, aggregation, and optional unit, decimalPrecision and thresholds.",
+        "properties": {
+          "aggregation": {
+            "enum": [
+              "COUNT",
+              "COUNT_DISTINCT",
+              "SUM",
+              "MIN",
+              "MAX",
+              "AVERAGE",
+              "MEDIAN",
+              "COUNT_TRUE",
+              "COUNT_FALSE",
+              "COUNT_NULL"
+            ],
+            "type": "string"
+          },
+          "columnName": {
+            "type": "string"
+          },
+          "columnOrder": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "decimalPrecision": {
+            "type": "integer"
+          },
+          "frozenColumns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "thresholds": {
+            "items": {
+              "$ref": "#/components/schemas/ThresholdRule"
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "TABULAR",
+              "METRIC"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "visibleColumns": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnInfo"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "type"
         ],
         "type": "object"
       },
@@ -13085,6 +13765,37 @@
         ],
         "type": "object"
       },
+      "TapiNetworkContainer": {
+        "properties": {
+          "model": {
+            "additionalProperties": true,
+            "description": "The merged T-API model as Forward parsed it.",
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "model"
+        ],
+        "type": "object"
+      },
+      "TapiNetworkContainerList": {
+        "properties": {
+          "containers": {
+            "items": {
+              "$ref": "#/components/schemas/TapiNetworkContainer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "containers"
+        ],
+        "type": "object"
+      },
       "TextPosition": {
         "properties": {
           "character": {
@@ -13109,6 +13820,24 @@
           "start": {
             "$ref": "#/components/schemas/TextPosition",
             "description": "The region's starting position (starting at (0, 0))."
+          }
+        },
+        "type": "object"
+      },
+      "ThresholdRule": {
+        "properties": {
+          "status": {
+            "enum": [
+              "NEUTRAL",
+              "OK",
+              "WARNING",
+              "ISSUE"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "description": "Null marks the default rule.",
+            "type": "number"
           }
         },
         "type": "object"
@@ -17608,6 +18337,627 @@
         ]
       }
     },
+    "/networks/{networkId}/adjacent-networks": {
+      "get": {
+        "operationId": "getAdjacentNetworks",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "adjacentNetworks": [
+                    {
+                      "connections": [
+                        {
+                          "name": "partner-link",
+                          "subnetAutoDiscovery": "NONE",
+                          "subnets": [
+                            "192.0.2.0/24"
+                          ],
+                          "uplinkPort": {
+                            "device": "dc1-edge-01",
+                            "port": "GigabitEthernet0/1"
+                          }
+                        }
+                      ],
+                      "name": "partner-net",
+                      "ownedSubnets": [
+                        "192.0.2.0/24"
+                      ]
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AdjacentNetworkList"
+                }
+              }
+            },
+            "description": "The adjacent networks."
+          }
+        },
+        "summary": "The network's adjacent networks",
+        "tags": [
+          "Adjacent Networks"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Applies any adjacent network changes made since the network's most recent snapshot to the given snapshot and every newer one. Invalidates those snapshots, which then need reprocessing. Requires both the collection source and snapshot invalidation permissions.",
+        "operationId": "backdateAdjacentNetworks",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The earliest snapshot the staged changes should apply to.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Applied."
+          }
+        },
+        "summary": "Apply recent adjacent network changes to an existing snapshot",
+        "tags": [
+          "Adjacent Networks"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "op",
+            "backdate"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "computeAdjacentNetworkConnections",
+            "summary": "Preview the connections an NQE query would produce",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "computeNqeBasedConnections"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "put": {
+        "operationId": "putAdjacentNetworks",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "adjacentNetworks": [
+                  {
+                    "connections": [
+                      {
+                        "name": "partner-link",
+                        "subnetAutoDiscovery": "NONE",
+                        "subnets": [
+                          "192.0.2.0/24"
+                        ],
+                        "uplinkPort": {
+                          "device": "dc1-edge-01",
+                          "port": "GigabitEthernet0/1"
+                        }
+                      }
+                    ],
+                    "name": "partner-net",
+                    "ownedSubnets": [
+                      "192.0.2.0/24"
+                    ]
+                  }
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/AdjacentNetworkList"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Replaced."
+          }
+        },
+        "summary": "Replace all of the network's adjacent networks",
+        "tags": [
+          "Adjacent Networks"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/adjacent-networks/{deviceName}": {
+      "delete": {
+        "operationId": "deleteAdjacentNetwork",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete an adjacent network",
+        "tags": [
+          "Adjacent Networks"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "operationId": "getAdjacentNetwork",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "connections": [
+                    {
+                      "name": "partner-link",
+                      "subnetAutoDiscovery": "NONE",
+                      "subnets": [
+                        "192.0.2.0/24"
+                      ],
+                      "uplinkPort": {
+                        "device": "dc1-edge-01",
+                        "port": "GigabitEthernet0/1"
+                      }
+                    }
+                  ],
+                  "name": "partner-net",
+                  "ownedSubnets": [
+                    "192.0.2.0/24"
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AdjacentNetwork"
+                }
+              }
+            },
+            "description": "The adjacent network."
+          }
+        },
+        "summary": "One adjacent network",
+        "tags": [
+          "Adjacent Networks"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Omitted fields are unchanged. Renaming rewrites the device name inside its connections too.",
+        "operationId": "patchAdjacentNetwork",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "ownedSubnets": [
+                  "192.0.2.0/24",
+                  "198.51.100.0/24"
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/AdjacentNetworkPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "connections": [
+                    {
+                      "name": "partner-link",
+                      "subnetAutoDiscovery": "NONE",
+                      "subnets": [
+                        "192.0.2.0/24"
+                      ],
+                      "uplinkPort": {
+                        "device": "dc1-edge-01",
+                        "port": "GigabitEthernet0/1"
+                      }
+                    }
+                  ],
+                  "name": "partner-net",
+                  "ownedSubnets": [
+                    "192.0.2.0/24"
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AdjacentNetwork"
+                }
+              }
+            },
+            "description": "The adjacent network after the change."
+          }
+        },
+        "summary": "Change an adjacent network",
+        "tags": [
+          "Adjacent Networks"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "put": {
+        "description": "The body's name must equal the one in the path.",
+        "operationId": "putAdjacentNetwork",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "connections": [
+                  {
+                    "name": "partner-link",
+                    "subnetAutoDiscovery": "NONE",
+                    "subnets": [
+                      "192.0.2.0/24"
+                    ],
+                    "uplinkPort": {
+                      "device": "dc1-edge-01",
+                      "port": "GigabitEthernet0/1"
+                    }
+                  }
+                ],
+                "name": "partner-net",
+                "ownedSubnets": [
+                  "192.0.2.0/24"
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/AdjacentNetwork"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Saved."
+          }
+        },
+        "summary": "Create or replace an adjacent network",
+        "tags": [
+          "Adjacent Networks"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/adjacent-networks/{deviceName}/connections": {
+      "delete": {
+        "description": "With no filter, removes them all. Returns what was removed.",
+        "operationId": "deleteAdjacentNetworkConnections",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "uplinkDevice",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "uplinkPort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gatewayDevice",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gatewayPort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "vlan",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "connections": [
+                    {
+                      "name": "dc1-edge",
+                      "subnetAutoDiscovery": "NONE",
+                      "subnets": [
+                        "10.20.0.0/16"
+                      ],
+                      "uplinkPort": {
+                        "device": "dc1-edge-01",
+                        "port": "GigabitEthernet0/0"
+                      },
+                      "vlan": 100
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/L3SyntheticWanConnections"
+                }
+              }
+            },
+            "description": "The removed connections."
+          }
+        },
+        "summary": "Remove the connections matching every given filter",
+        "tags": [
+          "Adjacent Networks"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "Each filter is a glob; vlan is a range such as 100-200.",
+        "operationId": "getAdjacentNetworkConnections",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "uplinkDevice",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "uplinkPort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gatewayDevice",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gatewayPort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "vlan",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "connections": [
+                    {
+                      "name": "dc1-edge",
+                      "subnetAutoDiscovery": "NONE",
+                      "subnets": [
+                        "10.20.0.0/16"
+                      ],
+                      "uplinkPort": {
+                        "device": "dc1-edge-01",
+                        "port": "GigabitEthernet0/0"
+                      },
+                      "vlan": 100
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/L3SyntheticWanConnections"
+                }
+              }
+            },
+            "description": "The matching connections."
+          }
+        },
+        "summary": "An adjacent network's connections, optionally filtered",
+        "tags": [
+          "Adjacent Networks"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "operationId": "addAdjacentNetworkConnection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "partner-link-2",
+                "subnetAutoDiscovery": "NONE",
+                "subnets": [
+                  "198.51.100.0/24"
+                ],
+                "uplinkPort": {
+                  "device": "dc1-edge-02",
+                  "port": "GigabitEthernet0/1"
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/L3SyntheticWanConnection"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Added."
+          }
+        },
+        "summary": "Add one connection to an adjacent network",
+        "tags": [
+          "Adjacent Networks"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/atlas": {
       "get": {
         "description": "The response is a JSON object that maps device names to their location ids.\n\nSample response: `{\"atl-edge-fw01\": \"2\", \"ny-edge-fw2\": \"1\"}`",
@@ -21748,6 +23098,358 @@
         "x-position": 1
       }
     },
+    "/networks/{networkId}/dashboards": {
+      "get": {
+        "operationId": "listDashboards",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": "3",
+                    "layout": [
+                      {
+                        "h": 4,
+                        "id": 1,
+                        "panelId": "NQE_PANEL_7",
+                        "type": "PANEL",
+                        "w": 6,
+                        "x": 0,
+                        "y": 0
+                      }
+                    ],
+                    "name": "Operations",
+                    "type": "COMPOSED"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Dashboard"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The dashboards."
+          }
+        },
+        "summary": "A network's composed dashboards",
+        "tags": [
+          "Dashboards"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "listDefaultDashboards",
+            "summary": "The dashboards Forward ships, which cannot be changed",
+            "x-forward-fixed-query": [
+              [
+                "type",
+                "DEFAULT"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Returns the new dashboard's id as a bare JSON string. Names are unique, case-insensitively.",
+        "operationId": "createDashboard",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "description": "Site health at a glance",
+                "name": "Operations"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/DashboardDefinition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": "3",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The new dashboard's id."
+          }
+        },
+        "summary": "Create an empty dashboard",
+        "tags": [
+          "Dashboards"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "removePanelsFromDashboards",
+            "summary": "Remove every embedding of the given panels from every dashboard in the network",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "removePanels"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/dashboards/{dashboardId}": {
+      "delete": {
+        "operationId": "deleteDashboard",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dashboardId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted. No body."
+          }
+        },
+        "summary": "Delete a dashboard and its display settings",
+        "tags": [
+          "Dashboards"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "operationId": "getDashboard",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dashboardId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "3",
+                  "layout": [],
+                  "name": "Operations",
+                  "type": "COMPOSED"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Dashboard"
+                }
+              }
+            },
+            "description": "The dashboard."
+          }
+        },
+        "summary": "One dashboard with its layout",
+        "tags": [
+          "Dashboards"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "A layout, when present, replaces the whole layout; an explicit null clears it. Each NQE panel widget carries a server-assigned id after the first save; echo it to keep that embedding's identity, or omit it to create a new one. Default dashboards refuse with 400.",
+        "operationId": "updateDashboard",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dashboardId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "layout": [
+                  {
+                    "h": 1,
+                    "title": "Core",
+                    "type": "ROW",
+                    "w": 12,
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "h": 4,
+                    "panelId": "NQE_PANEL_7",
+                    "type": "PANEL",
+                    "w": 6,
+                    "x": 0,
+                    "y": 1
+                  }
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/DashboardPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated. No body."
+          }
+        },
+        "summary": "Rename a dashboard, change its description, or replace its layout",
+        "tags": [
+          "Dashboards"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/dashboards/{dashboardId}/display-settings": {
+      "get": {
+        "operationId": "getDashboardDisplaySettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dashboardId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "autoScrollEnabled": true,
+                  "autoScrollMode": "PAGE_BY_PAGE",
+                  "autoScrollSpeed": "MEDIUM"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardDisplaySettings"
+                }
+              }
+            },
+            "description": "The settings, or an empty object when never set."
+          }
+        },
+        "summary": "A dashboard's full-screen auto-scroll settings",
+        "tags": [
+          "Dashboards"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "operationId": "updateDashboardDisplaySettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dashboardId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "autoScrollEnabled": true,
+                "autoScrollIntervalSec": 30
+              },
+              "schema": {
+                "$ref": "#/components/schemas/DashboardDisplaySettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated."
+          }
+        },
+        "summary": "Change a dashboard's full-screen auto-scroll settings",
+        "tags": [
+          "Dashboards"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/data-connectors": {
       "get": {
         "operationId": "getDataConnectors",
@@ -22871,6 +24573,45 @@
           "Encryptors"
         ]
       },
+      "post": {
+        "description": "Applies any encryptor changes made since the network's most recent snapshot to the given snapshot and every newer one. Invalidates those snapshots, which then need reprocessing. Requires both the collection source and snapshot invalidation permissions.",
+        "operationId": "backdateEncryptors",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The earliest snapshot the staged changes should apply to.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Applied."
+          }
+        },
+        "summary": "Apply recent encryptor changes to an existing snapshot",
+        "tags": [
+          "Encryptors"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "op",
+            "backdate"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      },
       "put": {
         "operationId": "putEncryptors",
         "parameters": [
@@ -23828,6 +25569,57 @@
           "Internet Node"
         ]
       },
+      "post": {
+        "description": "Applies any internet node changes made since the network's most recent snapshot to the given snapshot and every newer one. Invalidates those snapshots, which then need reprocessing. Requires both the collection source and snapshot invalidation permissions.",
+        "operationId": "backdateInternetNode",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The earliest snapshot the staged changes should apply to.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Applied."
+          }
+        },
+        "summary": "Apply recent internet node changes to an existing snapshot",
+        "tags": [
+          "Internet Node"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "op",
+            "backdate"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "computeInternetNodeConnections",
+            "summary": "Preview the connections an NQE query would produce",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "computeNqeBasedConnections"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
       "put": {
         "operationId": "putInternetNode",
         "parameters": [
@@ -23865,6 +25657,48 @@
         "tags": [
           "Internet Node"
         ]
+      }
+    },
+    "/networks/{networkId}/internet-node/connection-suggestions": {
+      "get": {
+        "description": "Computed from the latest processed snapshot; 400 when the network has none. An empty object when nothing looks like an uplink.",
+        "operationId": "getInternetConnectionSuggestions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "suggestions": [
+                    {
+                      "gatewayInterface": "isp-a-pe:ge-0/0/1",
+                      "uplinkInterface": "dc1-edge-01:GigabitEthernet0/0",
+                      "uplinkInterfaceDescription": "ISP A"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternetConnectionSuggestions"
+                }
+              }
+            },
+            "description": "The suggestions."
+          }
+        },
+        "summary": "Interfaces that look like internet uplinks in the latest processed snapshot",
+        "tags": [
+          "Internet Node"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/internet-node/connections": {
@@ -24079,6 +25913,57 @@
         "tags": [
           "Intranet Nodes"
         ]
+      },
+      "post": {
+        "description": "Applies any intranet node changes made since the network's most recent snapshot to the given snapshot and every newer one. Invalidates those snapshots, which then need reprocessing. Requires both the collection source and snapshot invalidation permissions.",
+        "operationId": "backdateIntranetNodes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The earliest snapshot the staged changes should apply to.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Applied."
+          }
+        },
+        "summary": "Apply recent intranet node changes to an existing snapshot",
+        "tags": [
+          "Intranet Nodes"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "op",
+            "backdate"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "computeIntranetNodeConnections",
+            "summary": "Preview the connections an NQE query would produce",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "computeNqeBasedConnections"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
       },
       "put": {
         "operationId": "putIntranetNodes",
@@ -24716,6 +26601,84 @@
           "L2VPNs"
         ]
       },
+      "post": {
+        "description": "Each name must be new; the existing L2VPNs are kept.",
+        "operationId": "addL2Vpns",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": [
+                {
+                  "connections": [
+                    {
+                      "device": "site-a-sw1",
+                      "name": "site-a",
+                      "port": "Ethernet1",
+                      "vlan": 200
+                    }
+                  ],
+                  "name": "metro-a"
+                }
+              ],
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/L2Vpn"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Added."
+          }
+        },
+        "summary": "Add several L2VPNs at once",
+        "tags": [
+          "L2VPNs"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "addBatch"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "backdateL2Vpns",
+            "summary": "Apply recent L2VPN changes to an existing snapshot",
+            "x-forward-fixed-query": [
+              [
+                "op",
+                "backdate"
+              ]
+            ]
+          },
+          {
+            "operationId": "computeL2VpnConnections",
+            "summary": "Preview the connections an NQE query would produce",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "computeNqeBasedConnections"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
       "put": {
         "operationId": "putL2Vpns",
         "parameters": [
@@ -25142,6 +27105,57 @@
         "tags": [
           "L3VPNs"
         ]
+      },
+      "post": {
+        "description": "Applies any L3VPN changes made since the network's most recent snapshot to the given snapshot and every newer one. Invalidates those snapshots, which then need reprocessing. Requires both the collection source and snapshot invalidation permissions.",
+        "operationId": "backdateL3Vpns",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The earliest snapshot the staged changes should apply to.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Applied."
+          }
+        },
+        "summary": "Apply recent L3VPN changes to an existing snapshot",
+        "tags": [
+          "L3VPNs"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "op",
+            "backdate"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "computeL3VpnConnections",
+            "summary": "Preview the connections an NQE query would produce",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "computeNqeBasedConnections"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
       },
       "put": {
         "operationId": "putL3Vpns",
@@ -26519,6 +28533,18 @@
         "tags": [
           "NQE"
         ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getNqeExecutionResultKey",
+            "summary": "An execution's status with its result key",
+            "x-forward-fixed-query": [
+              [
+                "for",
+                "ui"
+              ]
+            ]
+          }
+        ],
         "x-position": 3
       }
     },
@@ -26650,6 +28676,82 @@
           "NQE"
         ],
         "x-position": 4
+      }
+    },
+    "/networks/{networkId}/nqe-panels": {
+      "post": {
+        "description": "resultKey is the execution's result key, R_ followed by twenty hex characters, from a completed execution of the panel's query. Only metric panels; a tabular one is refused.",
+        "operationId": "getNqePanelMetrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "resultKey",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "panelIds": [
+                  "9"
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NqePanelIds"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "results": [
+                    {
+                      "panelId": "9",
+                      "value": 42
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NqePanelMetrics"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "Metric panels' values over one query execution's result",
+        "tags": [
+          "NQE Panels"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "previewNqeMetric",
+            "summary": "Compute a metric over a result without saving a panel",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "preview"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/paths": {
@@ -27640,6 +29742,206 @@
         "x-position": 2
       }
     },
+    "/networks/{networkId}/tapi-network-containers": {
+      "delete": {
+        "operationId": "deleteTapiNetworkContainers",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete every container",
+        "tags": [
+          "TAPI Network Containers"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "operationId": "getTapiNetworkContainers",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "containers": [
+                    {
+                      "model": {},
+                      "name": "optical-core"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TapiNetworkContainerList"
+                }
+              }
+            },
+            "description": "The containers, each with its parsed T-API model."
+          }
+        },
+        "summary": "The network's T-API optical network containers",
+        "tags": [
+          "TAPI Network Containers"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Multipart: a name field and one or more file parts, each a T-API JSON document; several are merged into one model.",
+        "operationId": "putTapiNetworkContainer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "file": {
+                    "items": {
+                      "format": "binary",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Saved."
+          }
+        },
+        "summary": "Create or replace a container from T-API JSON files",
+        "tags": [
+          "TAPI Network Containers"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "backdateTapiNetworkContainers",
+            "summary": "Apply recent T-API container changes to an existing snapshot",
+            "x-forward-fixed-query": [
+              [
+                "op",
+                "backdate"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/tapi-network-containers/{containerName}": {
+      "delete": {
+        "operationId": "deleteTapiNetworkContainer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "containerName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a container",
+        "tags": [
+          "TAPI Network Containers"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "operationId": "getTapiNetworkContainer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "containerName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "model": {},
+                  "name": "optical-core"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TapiNetworkContainer"
+                }
+              }
+            },
+            "description": "The container."
+          }
+        },
+        "summary": "One container with its parsed T-API model",
+        "tags": [
+          "TAPI Network Containers"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/vulnerabilities": {
       "get": {
         "description": "Get the CVEs that may impact devices in the network.\n\nEach OsVulnerability corresponds to a distinct CVE-OS combination that could possibly impact devices in the\nnetwork. An OsVulnerability includes basic CVE information, an affected OS, the affected versions of that OS,\nand a vulnerability detection result for each possibly impacted device.\n\nThis operation\u2019s response can get quite large for large networks. Paging is supported via the `limit` and\n`offset` parameters.",
@@ -28078,6 +30380,45 @@
           "WAN Circuits"
         ]
       },
+      "post": {
+        "description": "Applies any WAN circuit changes made since the network's most recent snapshot to the given snapshot and every newer one. Invalidates those snapshots, which then need reprocessing. Requires both the collection source and snapshot invalidation permissions.",
+        "operationId": "backdateWanCircuits",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The earliest snapshot the staged changes should apply to.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Applied."
+          }
+        },
+        "summary": "Apply recent WAN circuit changes to an existing snapshot",
+        "tags": [
+          "WAN Circuits"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "op",
+            "backdate"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      },
       "put": {
         "operationId": "putWanCircuits",
         "parameters": [
@@ -28467,6 +30808,246 @@
           "NQE"
         ],
         "x-position": 6
+      }
+    },
+    "/nqe-panels": {
+      "get": {
+        "operationId": "listNqePanels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "panels": [
+                    {
+                      "config": {
+                        "columnOrder": [
+                          "device",
+                          "peer",
+                          "state"
+                        ],
+                        "type": "TABULAR",
+                        "visibleColumns": [
+                          {
+                            "name": "device",
+                            "width": 200
+                          },
+                          {
+                            "name": "state",
+                            "width": 100
+                          }
+                        ]
+                      },
+                      "displayName": "BGP sessions",
+                      "id": "7",
+                      "name": "bgp-sessions",
+                      "queryId": "Q_0123456789abcdef0123456789abcdef01234567",
+                      "usageCount": 1,
+                      "usages": [
+                        {
+                          "id": "3",
+                          "name": "Operations",
+                          "networkId": "115"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NqePanels"
+                }
+              }
+            },
+            "description": "The panels."
+          }
+        },
+        "summary": "The org's NQE panels, each with where it is used",
+        "tags": [
+          "NQE Panels"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "The query must exist at the head of the org library; otherwise 400 \"NQE panel references a query that does not exist\". Names are unique, case-insensitively.",
+        "operationId": "createNqePanel",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "config": {
+                  "columnOrder": [
+                    "device",
+                    "peer",
+                    "state"
+                  ],
+                  "type": "TABULAR",
+                  "visibleColumns": [
+                    {
+                      "name": "device",
+                      "width": 200
+                    }
+                  ]
+                },
+                "name": "bgp-sessions",
+                "queryId": "Q_0123456789abcdef0123456789abcdef01234567"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NqePanelDef"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "config": {
+                    "columnOrder": [
+                      "device",
+                      "peer",
+                      "state"
+                    ],
+                    "type": "TABULAR",
+                    "visibleColumns": [
+                      {
+                        "name": "device",
+                        "width": 200
+                      },
+                      {
+                        "name": "state",
+                        "width": 100
+                      }
+                    ]
+                  },
+                  "displayName": "BGP sessions",
+                  "id": "7",
+                  "name": "bgp-sessions",
+                  "queryId": "Q_0123456789abcdef0123456789abcdef01234567"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NqePanel"
+                }
+              }
+            },
+            "description": "The panel."
+          }
+        },
+        "summary": "Create an NQE panel",
+        "tags": [
+          "NQE Panels"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "deleteNqePanels",
+            "summary": "Delete several panels",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "delete"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/nqe-panels/{panelId}": {
+      "delete": {
+        "description": "Refused with 409 while any dashboard embeds it.",
+        "operationId": "deleteNqePanel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "panelId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a panel",
+        "tags": [
+          "NQE Panels"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Flat: configuration fields sit beside name and description rather than under config. A field for the other kind of panel is refused. The query and the kind cannot be changed.",
+        "operationId": "updateNqePanel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "panelId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "displayName": "BGP sessions by site",
+                "frozenColumns": [
+                  "device"
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NqePanelPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "config": {
+                    "columnOrder": [
+                      "device",
+                      "peer",
+                      "state"
+                    ],
+                    "type": "TABULAR",
+                    "visibleColumns": [
+                      {
+                        "name": "device",
+                        "width": 200
+                      },
+                      {
+                        "name": "state",
+                        "width": 100
+                      }
+                    ]
+                  },
+                  "displayName": "BGP sessions",
+                  "id": "7",
+                  "name": "bgp-sessions",
+                  "queryId": "Q_0123456789abcdef0123456789abcdef01234567"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NqePanel"
+                }
+              }
+            },
+            "description": "The updated panel."
+          }
+        },
+        "summary": "Change a panel's name, presentation or configuration",
+        "tags": [
+          "NQE Panels"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/nqe/queries": {
@@ -30651,6 +33232,16 @@
     {
       "description": "A snapshot-grounded assistant that answers questions about a network by calling Forward's own tools. Requires the AI_ALLOWED organization property, so an organization without it answers 403 to every operation here.",
       "name": "Forward AI"
+    },
+    {
+      "description": "Model networks Forward does not collect, reached over L3 WAN links.",
+      "name": "Adjacent Networks",
+      "x-parent": "Synthetic Devices"
+    },
+    {
+      "description": "Model optical networks from T-API topology documents.",
+      "name": "TAPI Network Containers",
+      "x-parent": "Synthetic Devices"
     }
   ]
 }

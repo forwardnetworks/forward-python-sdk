@@ -79,7 +79,10 @@ def sample_for(name: str, annotation: Any) -> Any:
         return QueryRef.inline("foreach d in network.devices select {n: d.name}")
     if origin in (list, tuple, Sequence) or annotation in (list, tuple):
         # A sequence of paths means file uploads; anything else can be empty.
-        return [SAMPLE_UPLOAD] if Path in get_args(annotation) else []
+        # The item may be a union such as ``Path | tuple[str, bytes]``.
+        items = get_args(annotation)
+        accepts_path = Path in items or any(Path in get_args(item) for item in items)
+        return [SAMPLE_UPLOAD] if accepts_path else []
     if annotation is bool:
         return False
     if annotation is int:

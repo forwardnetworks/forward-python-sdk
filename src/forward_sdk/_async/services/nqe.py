@@ -178,6 +178,21 @@ class AsyncNqeExecution:
         self._service._transport.counters.increment("nqe_polls")
         return NqeExecutionStatus.model_validate(self._status)
 
+    async def result_key(self) -> str | None:
+        """The key naming this execution's result, once it has one.
+
+        Forward's published status omits it; the variant its UI reads carries
+        it as ``resultKey``, ``R_`` and twenty hex characters. It is what
+        NQE panel metrics (``client.nqe_panels``) and cached result reads take.
+        ``None`` until the execution completes with an ``OK`` or ``USER_ERROR``
+        outcome, so call :meth:`wait` first.
+        """
+        payload = await self._service._send_json(
+            ops.execution_status_with_result_key(network_id=self.network_id, execution_key=self.key)
+        )
+        key = (payload or {}).get("resultKey")
+        return str(key) if key else None
+
     async def wait(
         self,
         *,

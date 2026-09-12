@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from forward_sdk._sync.services._generated.adjacent_networks import AdjacentNetworksService
 from forward_sdk._sync.services._generated.aliases import AliasesService
 from forward_sdk._sync.services._generated.bgp_advertisements import BGPAdvertisementsService
 from forward_sdk._sync.services._generated.change_set_directories import (
@@ -25,6 +26,7 @@ from forward_sdk._sync.services._generated.collector_binding import CollectorBin
 from forward_sdk._sync.services._generated.collector_tasks import CollectorTasksService
 from forward_sdk._sync.services._generated.configuration import ConfigurationService
 from forward_sdk._sync.services._generated.credentials import CredentialsService
+from forward_sdk._sync.services._generated.dashboards import DashboardsService
 from forward_sdk._sync.services._generated.data_connectors import DataConnectorsService
 from forward_sdk._sync.services._generated.data_files import DataFilesService
 from forward_sdk._sync.services._generated.encryptors import EncryptorsService
@@ -39,6 +41,7 @@ from forward_sdk._sync.services._generated.legacy_collection import LegacyCollec
 from forward_sdk._sync.services._generated.network_endpoints import NetworkEndpointsService
 from forward_sdk._sync.services._generated.network_locations import NetworkLocationsService
 from forward_sdk._sync.services._generated.network_topology import NetworkTopologyService
+from forward_sdk._sync.services._generated.nqe_panels import NQEPanelsService
 from forward_sdk._sync.services._generated.path_search import PathSearchService
 from forward_sdk._sync.services._generated.predict_assist import PredictAssistService
 from forward_sdk._sync.services._generated.snapshot_diff_details import (
@@ -59,6 +62,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from forward_sdk._sync.transport import Transport
 
 __all__ = [
+    "AdjacentNetworksService",
     "AliasesService",
     "BGPAdvertisementsService",
     "ChangeSetDirectoriesService",
@@ -70,6 +74,7 @@ __all__ = [
     "CollectorTasksService",
     "ConfigurationService",
     "CredentialsService",
+    "DashboardsService",
     "DataConnectorsService",
     "DataFilesService",
     "EncryptorsService",
@@ -82,6 +87,7 @@ __all__ = [
     "L2vpnsService",
     "L3vpnsService",
     "LegacyCollectionService",
+    "NQEPanelsService",
     "NetworkEndpointsService",
     "NetworkLocationsService",
     "NetworkTopologyService",
@@ -104,6 +110,7 @@ class GeneratedServices:
     checkers and editors can see them.
     """
 
+    adjacent_networks: AdjacentNetworksService
     aliases: AliasesService
     bgp_advertisements: BGPAdvertisementsService
     change_set_directories: ChangeSetDirectoriesService
@@ -115,6 +122,7 @@ class GeneratedServices:
     collector_tasks: CollectorTasksService
     configuration: ConfigurationService
     credentials: CredentialsService
+    dashboards: DashboardsService
     data_connectors: DataConnectorsService
     data_files: DataFilesService
     encryptors: EncryptorsService
@@ -126,6 +134,7 @@ class GeneratedServices:
     l2vpns: L2vpnsService
     l3vpns: L3vpnsService
     legacy_collection: LegacyCollectionService
+    nqe_panels: NQEPanelsService
     network_endpoints: NetworkEndpointsService
     network_locations: NetworkLocationsService
     network_topology: NetworkTopologyService
@@ -140,6 +149,7 @@ class GeneratedServices:
     webhooks: WebhooksService
 
     def _attach_generated_services(self, transport: Transport) -> None:
+        self.adjacent_networks = AdjacentNetworksService(transport)
         self.aliases = AliasesService(transport)
         self.bgp_advertisements = BGPAdvertisementsService(transport)
         self.change_set_directories = ChangeSetDirectoriesService(transport)
@@ -151,6 +161,7 @@ class GeneratedServices:
         self.collector_tasks = CollectorTasksService(transport)
         self.configuration = ConfigurationService(transport)
         self.credentials = CredentialsService(transport)
+        self.dashboards = DashboardsService(transport)
         self.data_connectors = DataConnectorsService(transport)
         self.data_files = DataFilesService(transport)
         self.encryptors = EncryptorsService(transport)
@@ -162,6 +173,7 @@ class GeneratedServices:
         self.l2vpns = L2vpnsService(transport)
         self.l3vpns = L3vpnsService(transport)
         self.legacy_collection = LegacyCollectionService(transport)
+        self.nqe_panels = NQEPanelsService(transport)
         self.network_endpoints = NetworkEndpointsService(transport)
         self.network_locations = NetworkLocationsService(transport)
         self.network_topology = NetworkTopologyService(transport)
@@ -178,6 +190,7 @@ class GeneratedServices:
 
 #: API group name to the client attribute carrying its service.
 SERVICE_TAGS: dict[str, str] = {
+    "Adjacent Networks": "adjacent_networks",
     "Aliases": "aliases",
     "BGP Advertisements": "bgp_advertisements",
     "Change Set Directories": "change_set_directories",
@@ -189,6 +202,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Collector Tasks": "collector_tasks",
     "Configuration": "configuration",
     "Credentials": "credentials",
+    "Dashboards": "dashboards",
     "Data Connectors": "data_connectors",
     "Data Files": "data_files",
     "Encryptors": "encryptors",
@@ -200,6 +214,7 @@ SERVICE_TAGS: dict[str, str] = {
     "L2VPNs": "l2vpns",
     "L3VPNs": "l3vpns",
     "Legacy Collection": "legacy_collection",
+    "NQE Panels": "nqe_panels",
     "Network Endpoints": "network_endpoints",
     "Network Locations": "network_locations",
     "Network Topology": "network_topology",

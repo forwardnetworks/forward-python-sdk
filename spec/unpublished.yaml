@@ -43,6 +43,12 @@ tags:
       calling Forward's own tools. Requires the AI_ALLOWED organization
       property, so an organization without it answers 403 to every operation
       here.
+  - name: Adjacent Networks
+    parent: Synthetic Devices
+    description: Model networks Forward does not collect, reached over L3 WAN links.
+  - name: TAPI Network Containers
+    parent: Synthetic Devices
+    description: Model optical networks from T-API topology documents.
 paths:
   /nqe/repos/{repository}/commits/{commitId}/queries:
     get:
@@ -3239,6 +3245,855 @@ paths:
       responses:
         "200": { description: Cleared. No body. }
 
+  # ------------------------------------------------------------- NQE panels ---
+  # Saved NQE queries with a presentation, embedded in dashboards. A panel
+  # references a committed library query by id; query text is not accepted.
+  # Creating and editing need the NQE_DASHBOARD_PANELS org property; metric
+  # values need NQE_DASHBOARD_METRIC_PANELS as well.
+  /nqe-panels:
+    get:
+      operationId: listNqePanels
+      summary: The org's NQE panels, each with where it is used
+      x-forward-stability: unpublished
+      tags: [NQE Panels]
+      responses:
+        "200":
+          description: The panels.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NqePanels" }
+              example: { panels: [ { usageCount: 1, usages: [ { networkId: "115", id: "3", name: Operations } ], id: "7", name: bgp-sessions, displayName: "BGP sessions", queryId: Q_0123456789abcdef0123456789abcdef01234567, config: { type: TABULAR, columnOrder: [device, peer, state], visibleColumns: [ { name: device, width: 200 }, { name: state, width: 100 } ] } } ] }
+    post:
+      operationId: createNqePanel
+      summary: Create an NQE panel
+      description: >-
+        The query must exist at the head of the org library; otherwise 400
+        "NQE panel references a query that does not exist". Names are unique,
+        case-insensitively.
+      x-forward-stability: unpublished
+      tags: [NQE Panels]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NqePanelDef" }
+            example: { name: bgp-sessions, queryId: Q_0123456789abcdef0123456789abcdef01234567, config: { type: TABULAR, columnOrder: [device, peer, state], visibleColumns: [ { name: device, width: 200 } ] } }
+      responses:
+        "201":
+          description: The panel.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NqePanel" }
+              example: { id: "7", name: bgp-sessions, displayName: "BGP sessions", queryId: Q_0123456789abcdef0123456789abcdef01234567, config: { type: TABULAR, columnOrder: [device, peer, state], visibleColumns: [ { name: device, width: 200 }, { name: state, width: 100 } ] } }
+
+  /nqe-panels?action=delete:
+    post:
+      operationId: deleteNqePanels
+      summary: Delete several panels
+      description: All or nothing; refused with 409 if any is embedded in a dashboard.
+      x-forward-stability: unpublished
+      tags: [NQE Panels]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NqePanelIds" }
+            example: { panelIds: ["7", "8"] }
+      responses:
+        "204": { description: Deleted. }
+
+  /nqe-panels/{panelId}:
+    patch:
+      operationId: updateNqePanel
+      summary: Change a panel's name, presentation or configuration
+      description: >-
+        Flat: configuration fields sit beside name and description rather
+        than under config. A field for the other kind of panel is refused. The
+        query and the kind cannot be changed.
+      x-forward-stability: unpublished
+      tags: [NQE Panels]
+      parameters:
+        - { name: panelId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NqePanelPatch" }
+            example: { displayName: "BGP sessions by site", frozenColumns: [device] }
+      responses:
+        "200":
+          description: The updated panel.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NqePanel" }
+              example: { id: "7", name: bgp-sessions, displayName: "BGP sessions", queryId: Q_0123456789abcdef0123456789abcdef01234567, config: { type: TABULAR, columnOrder: [device, peer, state], visibleColumns: [ { name: device, width: 200 }, { name: state, width: 100 } ] } }
+    delete:
+      operationId: deleteNqePanel
+      summary: Delete a panel
+      description: Refused with 409 while any dashboard embeds it.
+      x-forward-stability: unpublished
+      tags: [NQE Panels]
+      parameters:
+        - { name: panelId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted. }
+
+  # Dispatched by the presence of resultKey, which is a required parameter here.
+  /networks/{networkId}/nqe-panels:
+    post:
+      operationId: getNqePanelMetrics
+      summary: Metric panels' values over one query execution's result
+      description: >-
+        resultKey is the execution's result key, R_ followed by twenty hex
+        characters, from a completed execution of the panel's query. Only
+        metric panels; a tabular one is refused.
+      x-forward-stability: unpublished
+      tags: [NQE Panels]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: resultKey, in: query, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NqePanelIds" }
+            example: { panelIds: ["9"] }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NqePanelMetrics" }
+              example: { results: [ { panelId: "9", value: 42 } ] }
+
+  /networks/{networkId}/nqe-panels?action=preview:
+    post:
+      operationId: previewNqeMetric
+      summary: Compute a metric over a result without saving a panel
+      x-forward-stability: unpublished
+      tags: [NQE Panels]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: resultKey, in: query, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NqeMetricPreview" }
+            example: { columnName: sessions, aggregation: SUM }
+      responses:
+        "200":
+          description: The value, or an empty object when it is undefined.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NqeMetricPreviewResult" }
+              example: { value: 42 }
+
+  # ------------------------------------------------------------- dashboards ---
+  # A dashboard is a layout of widgets over panels. Forward also ships fixed
+  # default dashboards with negative ids, which cannot be edited or deleted.
+  /networks/{networkId}/dashboards:
+    get:
+      operationId: listDashboards
+      summary: A network's composed dashboards
+      x-forward-stability: unpublished
+      tags: [Dashboards]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The dashboards.
+          content:
+            application/json:
+              schema: 
+                type: array
+                items: { $ref: "#/components/schemas/Dashboard" }
+              example: [ { id: "3", name: Operations, type: COMPOSED, layout: [ { type: PANEL, x: 0, y: 0, w: 6, h: 4, panelId: NQE_PANEL_7, id: 1 } ] } ]
+    post:
+      operationId: createDashboard
+      summary: Create an empty dashboard
+      description: Returns the new dashboard's id as a bare JSON string. Names are unique, case-insensitively.
+      x-forward-stability: unpublished
+      tags: [Dashboards]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DashboardDefinition" }
+            example: { name: Operations, description: "Site health at a glance" }
+      responses:
+        "200":
+          description: The new dashboard's id.
+          content:
+            application/json:
+              schema: { type: string }
+              example: "3"
+
+  /networks/{networkId}/dashboards?type=DEFAULT:
+    get:
+      operationId: listDefaultDashboards
+      summary: The dashboards Forward ships, which cannot be changed
+      x-forward-stability: unpublished
+      tags: [Dashboards]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The default dashboards.
+          content:
+            application/json:
+              schema: 
+                type: array
+                items: { $ref: "#/components/schemas/Dashboard" }
+              example: [ { id: "-1", name: Insights, type: DEFAULT } ]
+
+  /networks/{networkId}/dashboards?action=removePanels:
+    post:
+      operationId: removePanelsFromDashboards
+      summary: Remove every embedding of the given panels from every dashboard in the network
+      x-forward-stability: unpublished
+      tags: [Dashboards]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NqePanelIds" }
+            example: { panelIds: ["7"] }
+      responses:
+        "204": { description: Removed. }
+
+  /networks/{networkId}/dashboards/{dashboardId}:
+    get:
+      operationId: getDashboard
+      summary: One dashboard with its layout
+      x-forward-stability: unpublished
+      tags: [Dashboards]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: dashboardId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The dashboard.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Dashboard" }
+              example: { id: "3", name: Operations, type: COMPOSED, layout: [] }
+    patch:
+      operationId: updateDashboard
+      summary: Rename a dashboard, change its description, or replace its layout
+      description: >-
+        A layout, when present, replaces the whole layout; an explicit null
+        clears it. Each NQE panel widget carries a server-assigned id after
+        the first save; echo it to keep that embedding's identity, or omit it
+        to create a new one. Default dashboards refuse with 400.
+      x-forward-stability: unpublished
+      tags: [Dashboards]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: dashboardId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DashboardPatch" }
+            example: { layout: [ { type: ROW, x: 0, y: 0, w: 12, h: 1, title: Core }, { type: PANEL, x: 0, y: 1, w: 6, h: 4, panelId: NQE_PANEL_7 } ] }
+      responses:
+        "200": { description: Updated. No body. }
+    delete:
+      operationId: deleteDashboard
+      summary: Delete a dashboard and its display settings
+      x-forward-stability: unpublished
+      tags: [Dashboards]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: dashboardId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Deleted. No body. }
+
+  /networks/{networkId}/dashboards/{dashboardId}/display-settings:
+    get:
+      operationId: getDashboardDisplaySettings
+      summary: A dashboard's full-screen auto-scroll settings
+      x-forward-stability: unpublished
+      tags: [Dashboards]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: dashboardId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The settings, or an empty object when never set.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DashboardDisplaySettings" }
+              example: { autoScrollEnabled: true, autoScrollMode: PAGE_BY_PAGE, autoScrollSpeed: MEDIUM }
+    patch:
+      operationId: updateDashboardDisplaySettings
+      summary: Change a dashboard's full-screen auto-scroll settings
+      x-forward-stability: unpublished
+      tags: [Dashboards]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: dashboardId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DashboardDisplaySettings" }
+            example: { autoScrollEnabled: true, autoScrollIntervalSec: 30 }
+      responses:
+        "204": { description: Updated. }
+
+  # ------------------------------------------------- synthetic devices, more ---
+  # Beyond the published CRUD for each synthetic device family: applying staged
+  # changes to an existing snapshot, previewing NQE-derived connections, batch
+  # adds, connection suggestions, and two families with no published surface
+  # at all (adjacent networks and T-API optical containers).
+
+  /networks/{networkId}/internet-node?op=backdate:
+    post:
+      operationId: backdateInternetNode
+      summary: Apply recent internet node changes to an existing snapshot
+      description: >-
+        Applies any internet node changes made since the network's most recent
+        snapshot to the given snapshot and every newer one. Invalidates those
+        snapshots, which then need reprocessing. Requires both the collection
+        source and snapshot invalidation permissions.
+      x-forward-stability: unpublished
+      tags: [Internet Node]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: true, schema: { type: string }, description: "The earliest snapshot the staged changes should apply to." }
+      responses:
+        "204": { description: Applied. }
+
+  /networks/{networkId}/internet-node?action=computeNqeBasedConnections:
+    post:
+      operationId: computeInternetNodeConnections
+      summary: Preview the connections an NQE query would produce
+      description: >-
+        Runs the query on the network's latest processed snapshot and returns
+        the connections its rows describe, without saving anything. The same
+        computation happens when a device carries a queryId; this previews it.
+        A failure is reported in the body's error, not as an HTTP error.
+      x-forward-stability: unpublished
+      tags: [Internet Node]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: queryId, in: query, required: true, schema: { type: string }, description: "A committed library query id, Q_ or FQ_ followed by 40 hex characters." }
+      responses:
+        "200":
+          description: The connections, or why they could not be computed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/L3DynamicConnectionsComputeResult" }
+              example: { connections: [ { name: dc1-edge, uplinkPort: { device: dc1-edge-01, port: GigabitEthernet0/0 }, vlan: 100, subnetAutoDiscovery: NONE, subnets: ["10.20.0.0/16"] } ] }
+
+  /networks/{networkId}/internet-node/connection-suggestions:
+    get:
+      operationId: getInternetConnectionSuggestions
+      summary: Interfaces that look like internet uplinks in the latest processed snapshot
+      description: >-
+        Computed from the latest processed snapshot; 400 when the network has
+        none. An empty object when nothing looks like an uplink.
+      x-forward-stability: unpublished
+      tags: [Internet Node]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The suggestions.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InternetConnectionSuggestions" }
+              example: { suggestions: [ { uplinkInterface: "dc1-edge-01:GigabitEthernet0/0", uplinkInterfaceDescription: "ISP A", gatewayInterface: "isp-a-pe:ge-0/0/1" } ] }
+
+  /networks/{networkId}/intranet-nodes?op=backdate:
+    post:
+      operationId: backdateIntranetNodes
+      summary: Apply recent intranet node changes to an existing snapshot
+      description: >-
+        Applies any intranet node changes made since the network's most recent
+        snapshot to the given snapshot and every newer one. Invalidates those
+        snapshots, which then need reprocessing. Requires both the collection
+        source and snapshot invalidation permissions.
+      x-forward-stability: unpublished
+      tags: [Intranet Nodes]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: true, schema: { type: string }, description: "The earliest snapshot the staged changes should apply to." }
+      responses:
+        "204": { description: Applied. }
+
+  /networks/{networkId}/intranet-nodes?action=computeNqeBasedConnections:
+    post:
+      operationId: computeIntranetNodeConnections
+      summary: Preview the connections an NQE query would produce
+      description: >-
+        Runs the query on the network's latest processed snapshot and returns
+        the connections its rows describe, without saving anything. The same
+        computation happens when a device carries a queryId; this previews it.
+        A failure is reported in the body's error, not as an HTTP error.
+      x-forward-stability: unpublished
+      tags: [Intranet Nodes]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: queryId, in: query, required: true, schema: { type: string }, description: "A committed library query id, Q_ or FQ_ followed by 40 hex characters." }
+      responses:
+        "200":
+          description: The connections, or why they could not be computed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/L3DynamicConnectionsComputeResult" }
+              example: { connections: [ { name: dc1-edge, uplinkPort: { device: dc1-edge-01, port: GigabitEthernet0/0 }, vlan: 100, subnetAutoDiscovery: NONE, subnets: ["10.20.0.0/16"] } ] }
+
+  /networks/{networkId}/l2-vpns?action=addBatch:
+    post:
+      operationId: addL2Vpns
+      summary: Add several L2VPNs at once
+      description: Each name must be new; the existing L2VPNs are kept.
+      x-forward-stability: unpublished
+      tags: [L2VPNs]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: "#/components/schemas/L2Vpn" }
+            example: [ { name: metro-a, connections: [ { name: site-a, device: site-a-sw1, port: Ethernet1, vlan: 200 } ] } ]
+      responses:
+        "204": { description: Added. }
+
+  /networks/{networkId}/l2-vpns?op=backdate:
+    post:
+      operationId: backdateL2Vpns
+      summary: Apply recent L2VPN changes to an existing snapshot
+      description: >-
+        Applies any L2VPN changes made since the network's most recent
+        snapshot to the given snapshot and every newer one. Invalidates those
+        snapshots, which then need reprocessing. Requires both the collection
+        source and snapshot invalidation permissions.
+      x-forward-stability: unpublished
+      tags: [L2VPNs]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: true, schema: { type: string }, description: "The earliest snapshot the staged changes should apply to." }
+      responses:
+        "204": { description: Applied. }
+
+  /networks/{networkId}/l2-vpns?action=computeNqeBasedConnections:
+    post:
+      operationId: computeL2VpnConnections
+      summary: Preview the connections an NQE query would produce
+      description: >-
+        Runs the query on the network's latest processed snapshot and returns
+        the connections its rows describe, without saving anything. The same
+        computation happens when a device carries a queryId; this previews it.
+        A failure is reported in the body's error, not as an HTTP error.
+      x-forward-stability: unpublished
+      tags: [L2VPNs]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: queryId, in: query, required: true, schema: { type: string }, description: "A committed library query id, Q_ or FQ_ followed by 40 hex characters." }
+      responses:
+        "200":
+          description: The connections, or why they could not be computed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/L2VpnDynamicConnectionsComputeResult" }
+              example: { connections: [ { name: site-a, device: site-a-sw1, port: Ethernet1, vlan: 200 } ] }
+
+  /networks/{networkId}/l3-vpns?op=backdate:
+    post:
+      operationId: backdateL3Vpns
+      summary: Apply recent L3VPN changes to an existing snapshot
+      description: >-
+        Applies any L3VPN changes made since the network's most recent
+        snapshot to the given snapshot and every newer one. Invalidates those
+        snapshots, which then need reprocessing. Requires both the collection
+        source and snapshot invalidation permissions.
+      x-forward-stability: unpublished
+      tags: [L3VPNs]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: true, schema: { type: string }, description: "The earliest snapshot the staged changes should apply to." }
+      responses:
+        "204": { description: Applied. }
+
+  /networks/{networkId}/l3-vpns?action=computeNqeBasedConnections:
+    post:
+      operationId: computeL3VpnConnections
+      summary: Preview the connections an NQE query would produce
+      description: >-
+        Runs the query on the network's latest processed snapshot and returns
+        the connections its rows describe, without saving anything. The same
+        computation happens when a device carries a queryId; this previews it.
+        A failure is reported in the body's error, not as an HTTP error.
+      x-forward-stability: unpublished
+      tags: [L3VPNs]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: queryId, in: query, required: true, schema: { type: string }, description: "A committed library query id, Q_ or FQ_ followed by 40 hex characters." }
+      responses:
+        "200":
+          description: The connections, or why they could not be computed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/L3DynamicConnectionsComputeResult" }
+              example: { connections: [ { name: dc1-edge, uplinkPort: { device: dc1-edge-01, port: GigabitEthernet0/0 }, vlan: 100, subnetAutoDiscovery: NONE, subnets: ["10.20.0.0/16"] } ] }
+
+  /networks/{networkId}/wan-circuits?op=backdate:
+    post:
+      operationId: backdateWanCircuits
+      summary: Apply recent WAN circuit changes to an existing snapshot
+      description: >-
+        Applies any WAN circuit changes made since the network's most recent
+        snapshot to the given snapshot and every newer one. Invalidates those
+        snapshots, which then need reprocessing. Requires both the collection
+        source and snapshot invalidation permissions.
+      x-forward-stability: unpublished
+      tags: [WAN Circuits]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: true, schema: { type: string }, description: "The earliest snapshot the staged changes should apply to." }
+      responses:
+        "204": { description: Applied. }
+
+  /networks/{networkId}/encryptors?op=backdate:
+    post:
+      operationId: backdateEncryptors
+      summary: Apply recent encryptor changes to an existing snapshot
+      description: >-
+        Applies any encryptor changes made since the network's most recent
+        snapshot to the given snapshot and every newer one. Invalidates those
+        snapshots, which then need reprocessing. Requires both the collection
+        source and snapshot invalidation permissions.
+      x-forward-stability: unpublished
+      tags: [Encryptors]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: true, schema: { type: string }, description: "The earliest snapshot the staged changes should apply to." }
+      responses:
+        "204": { description: Applied. }
+
+  /networks/{networkId}/adjacent-networks:
+    get:
+      operationId: getAdjacentNetworks
+      summary: The network's adjacent networks
+      x-forward-stability: unpublished
+      tags: [Adjacent Networks]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The adjacent networks.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdjacentNetworkList" }
+              example: { adjacentNetworks: [ { name: partner-net, connections: [ { name: partner-link, uplinkPort: { device: dc1-edge-01, port: GigabitEthernet0/1 }, subnetAutoDiscovery: NONE, subnets: ["192.0.2.0/24"] } ], ownedSubnets: ["192.0.2.0/24"] } ] }
+    put:
+      operationId: putAdjacentNetworks
+      summary: Replace all of the network's adjacent networks
+      x-forward-stability: unpublished
+      tags: [Adjacent Networks]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdjacentNetworkList" }
+            example: { adjacentNetworks: [ { name: partner-net, connections: [ { name: partner-link, uplinkPort: { device: dc1-edge-01, port: GigabitEthernet0/1 }, subnetAutoDiscovery: NONE, subnets: ["192.0.2.0/24"] } ], ownedSubnets: ["192.0.2.0/24"] } ] }
+      responses:
+        "204": { description: Replaced. }
+
+  /networks/{networkId}/adjacent-networks?op=backdate:
+    post:
+      operationId: backdateAdjacentNetworks
+      summary: Apply recent adjacent network changes to an existing snapshot
+      description: >-
+        Applies any adjacent network changes made since the network's most recent
+        snapshot to the given snapshot and every newer one. Invalidates those
+        snapshots, which then need reprocessing. Requires both the collection
+        source and snapshot invalidation permissions.
+      x-forward-stability: unpublished
+      tags: [Adjacent Networks]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: true, schema: { type: string }, description: "The earliest snapshot the staged changes should apply to." }
+      responses:
+        "204": { description: Applied. }
+
+  /networks/{networkId}/adjacent-networks?action=computeNqeBasedConnections:
+    post:
+      operationId: computeAdjacentNetworkConnections
+      summary: Preview the connections an NQE query would produce
+      description: >-
+        Runs the query on the network's latest processed snapshot and returns
+        the connections its rows describe, without saving anything. The same
+        computation happens when a device carries a queryId; this previews it.
+        A failure is reported in the body's error, not as an HTTP error.
+      x-forward-stability: unpublished
+      tags: [Adjacent Networks]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: queryId, in: query, required: true, schema: { type: string }, description: "A committed library query id, Q_ or FQ_ followed by 40 hex characters." }
+      responses:
+        "200":
+          description: The connections, or why they could not be computed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/L3DynamicConnectionsComputeResult" }
+              example: { connections: [ { name: dc1-edge, uplinkPort: { device: dc1-edge-01, port: GigabitEthernet0/0 }, vlan: 100, subnetAutoDiscovery: NONE, subnets: ["10.20.0.0/16"] } ] }
+
+  /networks/{networkId}/adjacent-networks/{deviceName}:
+    get:
+      operationId: getAdjacentNetwork
+      summary: One adjacent network
+      x-forward-stability: unpublished
+      tags: [Adjacent Networks]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The adjacent network.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdjacentNetwork" }
+              example: { name: partner-net, connections: [ { name: partner-link, uplinkPort: { device: dc1-edge-01, port: GigabitEthernet0/1 }, subnetAutoDiscovery: NONE, subnets: ["192.0.2.0/24"] } ], ownedSubnets: ["192.0.2.0/24"] }
+    put:
+      operationId: putAdjacentNetwork
+      summary: Create or replace an adjacent network
+      description: The body's name must equal the one in the path.
+      x-forward-stability: unpublished
+      tags: [Adjacent Networks]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdjacentNetwork" }
+            example: { name: partner-net, connections: [ { name: partner-link, uplinkPort: { device: dc1-edge-01, port: GigabitEthernet0/1 }, subnetAutoDiscovery: NONE, subnets: ["192.0.2.0/24"] } ], ownedSubnets: ["192.0.2.0/24"] }
+      responses:
+        "204": { description: Saved. }
+    patch:
+      operationId: patchAdjacentNetwork
+      summary: Change an adjacent network
+      description: >-
+        Omitted fields are unchanged. Renaming rewrites the device name inside
+        its connections too.
+      x-forward-stability: unpublished
+      tags: [Adjacent Networks]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdjacentNetworkPatch" }
+            example: { ownedSubnets: ["192.0.2.0/24", "198.51.100.0/24"] }
+      responses:
+        "200":
+          description: The adjacent network after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdjacentNetwork" }
+              example: { name: partner-net, connections: [ { name: partner-link, uplinkPort: { device: dc1-edge-01, port: GigabitEthernet0/1 }, subnetAutoDiscovery: NONE, subnets: ["192.0.2.0/24"] } ], ownedSubnets: ["192.0.2.0/24"] }
+    delete:
+      operationId: deleteAdjacentNetwork
+      summary: Delete an adjacent network
+      x-forward-stability: unpublished
+      tags: [Adjacent Networks]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted. }
+
+  /networks/{networkId}/adjacent-networks/{deviceName}/connections:
+    get:
+      operationId: getAdjacentNetworkConnections
+      summary: An adjacent network's connections, optionally filtered
+      description: Each filter is a glob; vlan is a range such as 100-200.
+      x-forward-stability: unpublished
+      tags: [Adjacent Networks]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+        - { name: uplinkDevice, in: query, schema: { type: string } }
+        - { name: uplinkPort, in: query, schema: { type: string } }
+        - { name: gatewayDevice, in: query, schema: { type: string } }
+        - { name: gatewayPort, in: query, schema: { type: string } }
+        - { name: vlan, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: The matching connections.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/L3SyntheticWanConnections" }
+              example: { connections: [ { name: dc1-edge, uplinkPort: { device: dc1-edge-01, port: GigabitEthernet0/0 }, vlan: 100, subnetAutoDiscovery: NONE, subnets: ["10.20.0.0/16"] } ] }
+    post:
+      operationId: addAdjacentNetworkConnection
+      summary: Add one connection to an adjacent network
+      x-forward-stability: unpublished
+      tags: [Adjacent Networks]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/L3SyntheticWanConnection" }
+            example: { name: partner-link-2, uplinkPort: { device: dc1-edge-02, port: GigabitEthernet0/1 }, subnetAutoDiscovery: NONE, subnets: ["198.51.100.0/24"] }
+      responses:
+        "204": { description: Added. }
+    delete:
+      operationId: deleteAdjacentNetworkConnections
+      summary: Remove the connections matching every given filter
+      description: With no filter, removes them all. Returns what was removed.
+      x-forward-stability: unpublished
+      tags: [Adjacent Networks]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+        - { name: uplinkDevice, in: query, schema: { type: string } }
+        - { name: uplinkPort, in: query, schema: { type: string } }
+        - { name: gatewayDevice, in: query, schema: { type: string } }
+        - { name: gatewayPort, in: query, schema: { type: string } }
+        - { name: vlan, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: The removed connections.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/L3SyntheticWanConnections" }
+              example: { connections: [ { name: dc1-edge, uplinkPort: { device: dc1-edge-01, port: GigabitEthernet0/0 }, vlan: 100, subnetAutoDiscovery: NONE, subnets: ["10.20.0.0/16"] } ] }
+
+  /networks/{networkId}/tapi-network-containers:
+    get:
+      operationId: getTapiNetworkContainers
+      summary: The network's T-API optical network containers
+      x-forward-stability: unpublished
+      tags: [TAPI Network Containers]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The containers, each with its parsed T-API model.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TapiNetworkContainerList" }
+              example: { containers: [ { name: optical-core, model: { } } ] }
+    post:
+      operationId: putTapiNetworkContainer
+      summary: Create or replace a container from T-API JSON files
+      description: >-
+        Multipart: a name field and one or more file parts, each a T-API JSON
+        document; several are merged into one model.
+      x-forward-stability: unpublished
+      tags: [TAPI Network Containers]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name, file]
+              properties:
+                name: { type: string }
+                file:
+                  type: array
+                  items: { type: string, format: binary }
+      responses:
+        "204": { description: Saved. }
+    delete:
+      operationId: deleteTapiNetworkContainers
+      summary: Delete every container
+      x-forward-stability: unpublished
+      tags: [TAPI Network Containers]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted. }
+
+  /networks/{networkId}/tapi-network-containers?op=backdate:
+    post:
+      operationId: backdateTapiNetworkContainers
+      summary: Apply recent T-API container changes to an existing snapshot
+      description: >-
+        Applies any T-API container changes made since the network's most recent
+        snapshot to the given snapshot and every newer one. Invalidates those
+        snapshots, which then need reprocessing. Requires both the collection
+        source and snapshot invalidation permissions.
+      x-forward-stability: unpublished
+      tags: [TAPI Network Containers]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: true, schema: { type: string }, description: "The earliest snapshot the staged changes should apply to." }
+      responses:
+        "204": { description: Applied. }
+
+  /networks/{networkId}/tapi-network-containers/{containerName}:
+    get:
+      operationId: getTapiNetworkContainer
+      summary: One container with its parsed T-API model
+      x-forward-stability: unpublished
+      tags: [TAPI Network Containers]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: containerName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The container.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TapiNetworkContainer" }
+              example: { name: optical-core, model: { } }
+    delete:
+      operationId: deleteTapiNetworkContainer
+      summary: Delete a container
+      x-forward-stability: unpublished
+      tags: [TAPI Network Containers]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: containerName, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted. }
+
+  /networks/{networkId}/nqe-executions/{executionKey}?for=ui:
+    get:
+      operationId: getNqeExecutionResultKey
+      summary: An execution's status with its result key
+      description: >-
+        The same status as the published operation, plus resultKey once the
+        outcome is OK or USER_ERROR: R_ followed by twenty hex characters,
+        which names the result for NQE panel metrics and query-result reads.
+      x-forward-stability: unpublished
+      tags: [NQE]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: executionKey, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The status.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NqeExecutionStatusWithResultKey" }
+              example: { status: COMPLETED, outcome: OK, resultKey: R_0123456789abcdef0123, millisExecuting: 16, timeoutMinutes: 20 }
+
 components:
   schemas:
     RepositoryCommit:
@@ -4958,3 +5813,321 @@ components:
       type: object
       description: Property name to value, one entry per property.
       additionalProperties: true
+
+    ColumnInfo:
+      type: object
+      required: [name, width]
+      properties:
+        name: { type: string }
+        width: { type: integer, description: Positive. }
+
+    ThresholdRule:
+      type: object
+      properties:
+        value: { type: number, description: Null marks the default rule. }
+        status: { type: string, enum: [NEUTRAL, OK, WARNING, ISSUE] }
+
+    PanelConfig:
+      type: object
+      description: >-
+        Selected by type. TABULAR takes columnOrder and visibleColumns, both
+        non-empty, and optional frozenColumns; the latter two are subsets of
+        columnOrder. METRIC takes
+        columnName, aggregation, and optional unit, decimalPrecision and
+        thresholds.
+      required: [type]
+      properties:
+        type: { type: string, enum: [TABULAR, METRIC] }
+        columnOrder: { type: array, items: { type: string } }
+        visibleColumns: { type: array, items: { $ref: "#/components/schemas/ColumnInfo" } }
+        frozenColumns: { type: array, items: { type: string } }
+        columnName: { type: string }
+        aggregation: { type: string, enum: [COUNT, COUNT_DISTINCT, SUM, MIN, MAX, AVERAGE, MEDIAN, COUNT_TRUE, COUNT_FALSE, COUNT_NULL] }
+        unit: { type: string }
+        decimalPrecision: { type: integer }
+        thresholds: { type: array, items: { $ref: "#/components/schemas/ThresholdRule" } }
+
+    NqePanelDef:
+      type: object
+      required: [name, queryId, config]
+      properties:
+        name: { type: string }
+        displayName: { type: string }
+        description: { type: string }
+        queryId: { type: string, description: "A committed library query id, Q_ or FQ_ followed by 40 hex characters. Query text is not accepted." }
+        queryParams: { type: object, additionalProperties: true }
+        config: { $ref: "#/components/schemas/PanelConfig" }
+
+    NqePanelPatch:
+      type: object
+      description: >-
+        Every field optional; omitted means unchanged. Flat: configuration
+        fields sit beside name and description. Tabular panels take
+        columnOrder, visibleColumns and frozenColumns; metric panels take
+        columnName, aggregation, unit, decimalPrecision and thresholds.
+      properties:
+        name: { type: string }
+        displayName: { type: string }
+        description: { type: string }
+        queryParams: { type: object, additionalProperties: true }
+        columnOrder: { type: array, items: { type: string } }
+        visibleColumns: { type: array, items: { $ref: "#/components/schemas/ColumnInfo" } }
+        frozenColumns: { type: array, items: { type: string } }
+        columnName: { type: string }
+        aggregation: { type: string }
+        unit: { type: string }
+        decimalPrecision: { type: integer }
+        thresholds: { type: array, items: { $ref: "#/components/schemas/ThresholdRule" } }
+
+    NqePanel:
+      type: object
+      description: A panel with its attribution flat beside it. The kind is config.type.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        displayName: { type: string }
+        description: { type: string }
+        queryId: { type: string }
+        queryParams: { type: object, additionalProperties: true }
+        config: { $ref: "#/components/schemas/PanelConfig" }
+        usageCount: { type: integer, description: Present on the listing only. }
+        usages:
+          type: array
+          description: Present on the listing only; dashboards the caller may see.
+          items:
+            type: object
+            properties:
+              networkId: { type: string }
+              id: { type: string }
+              name: { type: string }
+        createdById: { type: string }
+        createdBy: { type: string }
+        createdAt: { type: string }
+        updatedById: { type: string }
+        updatedBy: { type: string }
+        updatedAt: { type: string }
+
+    NqePanels:
+      type: object
+      properties:
+        panels:
+          type: array
+          items: { $ref: "#/components/schemas/NqePanel" }
+
+    NqePanelIds:
+      type: object
+      required: [panelIds]
+      properties:
+        panelIds: { type: array, items: { type: string } }
+
+    NqePanelMetrics:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              panelId: { type: string }
+              value: { type: number, description: Null when undefined. }
+
+    NqeMetricPreview:
+      type: object
+      required: [columnName, aggregation]
+      properties:
+        columnName: { type: string }
+        aggregation: { type: string, enum: [COUNT, COUNT_DISTINCT, SUM, MIN, MAX, AVERAGE, MEDIAN, COUNT_TRUE, COUNT_FALSE, COUNT_NULL] }
+
+    NqeMetricPreviewResult:
+      type: object
+      properties:
+        value: { type: number, description: Absent when undefined. }
+
+    DashboardWidget:
+      type: object
+      description: >-
+        Selected by type. A ROW has a title and children, which must not be
+        rows. A PANEL has a panelId such as NQE_PANEL_7, DEFINED_3 or
+        CUSTOM_SCORECARD_2; an NQE panel may also carry an override and a
+        server-assigned id that identifies the embedding across saves.
+      required: [type, x, y, w, h]
+      properties:
+        type: { type: string, enum: [ROW, PANEL] }
+        x: { type: integer }
+        y: { type: integer }
+        w: { type: integer }
+        h: { type: integer }
+        title: { type: string }
+        children:
+          type: array
+          items: { type: object, additionalProperties: true }
+        panelId: { type: string }
+        id: { type: integer, description: Server-assigned per embedding; echo it to keep the embedding, omit it to create a new one. }
+        override:
+          type: object
+          description: displayName, queryParams, or a config override; at least one.
+          additionalProperties: true
+        createdById: { type: string }
+        createdBy: { type: string }
+        createdAt: { type: string }
+        updatedById: { type: string }
+        updatedBy: { type: string }
+        updatedAt: { type: string }
+
+    Dashboard:
+      type: object
+      description: type DEFAULT for the fixed dashboards Forward ships, COMPOSED for yours.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [DEFAULT, COMPOSED] }
+        description: { type: string }
+        layout:
+          type: array
+          items: { $ref: "#/components/schemas/DashboardWidget" }
+        createdById: { type: string }
+        createdBy: { type: string }
+        createdAt: { type: string }
+        updatedById: { type: string }
+        updatedBy: { type: string }
+        updatedAt: { type: string }
+
+    DashboardDefinition:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        description: { type: string }
+
+    DashboardPatch:
+      type: object
+      description: Omitted means unchanged. A present layout replaces the whole layout.
+      properties:
+        name: { type: string }
+        description: { type: string }
+        layout:
+          type: array
+          items: { $ref: "#/components/schemas/DashboardWidget" }
+
+    DashboardDisplaySettings:
+      type: object
+      description: Every field optional; a never-customised dashboard reads as an empty object.
+      properties:
+        autoScrollEnabled: { type: boolean }
+        autoScrollMode: { type: string, enum: [PAGE_BY_PAGE, CONTINUOUS] }
+        autoScrollSpeed: { type: string, enum: [SLOW, MEDIUM, FAST] }
+        autoScrollIntervalSec: { type: integer }
+        attribution: { type: object, additionalProperties: true }
+
+    DynamicConnectionsComputeError:
+      type: object
+      required: [errorMsg, status]
+      properties:
+        errorMsg: { type: string }
+        status:
+          type: string
+          enum: [NO_LATEST_SNAPSHOT, QUERY_MISSING, QUERY_RUN_ERROR, MISSING_REQUIRED_COLUMNS, COLUMN_DATATYPE_MISMATCH, INVALID_IDENTIFIER]
+
+    L3DynamicConnectionsComputeResult:
+      type: object
+      description: connections is absent when empty; error is present only on failure.
+      properties:
+        connections:
+          type: array
+          items: { $ref: "#/components/schemas/L3SyntheticWanConnection" }
+        error: { $ref: "#/components/schemas/DynamicConnectionsComputeError" }
+
+    L2VpnDynamicConnectionsComputeResult:
+      type: object
+      description: connections is absent when empty; error is present only on failure.
+      properties:
+        connections:
+          type: array
+          items: { $ref: "#/components/schemas/L2VpnConnection" }
+        error: { $ref: "#/components/schemas/DynamicConnectionsComputeError" }
+
+    InternetConnectionSuggestion:
+      type: object
+      required: [uplinkInterface]
+      properties:
+        uplinkInterface: { type: string, description: "device:interface" }
+        uplinkInterfaceDescription: { type: string }
+        vlan: { type: integer }
+        gatewayInterface: { type: string, description: "device:interface" }
+        gatewayInterfaceDescription: { type: string }
+
+    InternetConnectionSuggestions:
+      type: object
+      description: An empty object when there are none.
+      properties:
+        suggestions:
+          type: array
+          items: { $ref: "#/components/schemas/InternetConnectionSuggestion" }
+
+    AdjacentNetwork:
+      type: object
+      description: >-
+        A network Forward does not collect, reached over L3 WAN connections.
+        queryId, when set, names a committed library query whose rows define
+        the connections dynamically; queryResult holds the last computation.
+      required: [name, connections]
+      properties:
+        name: { type: string }
+        connections:
+          type: array
+          items: { $ref: "#/components/schemas/L3SyntheticWanConnection" }
+        ownedSubnets:
+          type: array
+          items: { type: string }
+        queryId: { type: string }
+        queryResult: { $ref: "#/components/schemas/L3DynamicConnectionsComputeResult" }
+
+    AdjacentNetworkList:
+      type: object
+      required: [adjacentNetworks]
+      properties:
+        adjacentNetworks:
+          type: array
+          items: { $ref: "#/components/schemas/AdjacentNetwork" }
+
+    AdjacentNetworkPatch:
+      type: object
+      description: Omitted means unchanged; an explicit null queryId clears it.
+      properties:
+        name: { type: string }
+        connections:
+          type: array
+          items: { $ref: "#/components/schemas/L3SyntheticWanConnection" }
+        ownedSubnets:
+          type: array
+          items: { type: string }
+        queryId: { type: string }
+
+    TapiNetworkContainer:
+      type: object
+      required: [name, model]
+      properties:
+        name: { type: string }
+        model:
+          type: object
+          description: The merged T-API model as Forward parsed it.
+          additionalProperties: true
+
+    TapiNetworkContainerList:
+      type: object
+      required: [containers]
+      properties:
+        containers:
+          type: array
+          items: { $ref: "#/components/schemas/TapiNetworkContainer" }
+
+    NqeExecutionStatusWithResultKey:
+      type: object
+      description: NqeExecutionStatus plus the result key. Fields beyond these follow the published status.
+      properties:
+        status: { type: string }
+        outcome: { type: string }
+        resultKey: { type: string, description: "R_ followed by twenty hex characters; present once the outcome is OK or USER_ERROR." }
+        millisExecuting: { type: integer }
+        timeoutMinutes: { type: integer }
+        rowsProduced: { type: integer }

@@ -388,3 +388,173 @@ def test_publishing_an_unchanged_query_is_a_no_op(client: ForwardClient) -> None
     assert report.committed_paths == ()
     assert report.skipped_paths == (target,)
     assert not report.changed
+
+
+class TestSyntheticDevicesAndDashboards:
+    """Adjacent networks, T-API containers, NQE panels and dashboards.
+
+    All unpublished. Reads run everywhere; the writes need
+    ``FORWARD_LIVE_WRITES=1`` and clean up after themselves: the synthetic
+    devices go into a scratch network that is deleted at the end, and the
+    dashboard and panel are deleted by name.
+    """
+
+    def test_reads_have_the_declared_envelopes(
+        self, client: ForwardClient, network_id: str
+    ) -> None:
+        adjacent = client.adjacent_networks.get_adjacent_networks(network_id=network_id)
+        assert isinstance(adjacent.adjacent_networks, list)
+        assert isinstance(client.tapi_network_containers.list(network_id), list)
+        for dashboard in client.dashboards.list_dashboards(network_id=network_id):
+            assert dashboard.type == "COMPOSED"
+        defaults = client.dashboards.list_default_dashboards(network_id=network_id)
+        assert defaults and all(int(d.id or "0") < 0 for d in defaults)
+        for panel in client.nqe_panels.list_nqe_panels().panels or []:
+            assert panel.config is not None and panel.config.type in ("TABULAR", "METRIC")
+            assert panel.usage_count is not None
+
+    @pytest.mark.skipif(
+        os.environ.get("FORWARD_LIVE_WRITES") != "1",
+        reason="writing tests need FORWARD_LIVE_WRITES=1",
+    )
+    def test_synthetic_devices_round_trip_in_a_scratch_network(self, client: ForwardClient) -> None:
+        scratch = client.networks.create("forward-sdk-live-synthetic")
+        nid = str(scratch.id)
+        try:
+            an = {
+                "name": "partner-net",
+                "connections": [
+                    {
+                        "name": "partner-link",
+                        "uplinkPort": {"device": "edge-01", "port": "Ethernet1"},
+                        "subnetAutoDiscovery": "NONE",
+                        "subnets": ["192.0.2.0/24"],
+                    }
+                ],
+                "ownedSubnets": ["192.0.2.0/24"],
+            }
+            client.adjacent_networks.put_adjacent_network(
+                network_id=nid, device_name="partner-net", body=an
+            )
+            patched = client.adjacent_networks.patch_adjacent_network(
+                network_id=nid,
+                device_name="partner-net",
+                body={"ownedSubnets": ["198.51.100.0/24"]},
+            )
+            assert patched.owned_subnets == ["198.51.100.0/24"]
+            removed = client.adjacent_networks.delete_adjacent_network_connections(
+                network_id=nid, device_name="partner-net", uplink_device="edge-01"
+            )
+            assert [c.name for c in removed.connections] == ["partner-link"]
+            client.adjacent_networks.delete_adjacent_network(
+                network_id=nid, device_name="partner-net"
+            )
+            assert (
+                client.adjacent_networks.get_adjacent_networks(network_id=nid).adjacent_networks
+                == []
+            )
+
+            client.l2vpns.add_l2_vpns(
+                network_id=nid,
+                body=[
+                    {
+                        "name": "metro-a",
+                        "connections": [
+                            {"name": "a", "device": "sw1", "port": "Ethernet1", "vlan": 200}
+                        ],
+                    }
+                ],
+            )
+            assert [v.name for v in client.l2vpns.get_l2_vpns(network_id=nid).l2_vpns] == [
+                "metro-a"
+            ]
+
+            client.tapi_network_containers.put("optical-core", [("t.json", b"{}")], network_id=nid)
+            assert client.tapi_network_containers.get("optical-core", network_id=nid).model == {}
+            client.tapi_network_containers.delete_all(network_id=nid)
+            assert client.tapi_network_containers.list(network_id=nid) == []
+        finally:
+            client.networks.delete(nid)
+
+    @pytest.mark.skipif(
+        os.environ.get("FORWARD_LIVE_WRITES") != "1",
+        reason="writing tests need FORWARD_LIVE_WRITES=1",
+    )
+    def test_dashboard_and_panel_round_trip(self, client: ForwardClient, network_id: str) -> None:
+        queries = [q for q in client.nqe.repo.queries() if (q.query_id or "").startswith("Q_")]
+        if not queries:
+            pytest.skip("org library has no committed queries")
+        query_id = queries[0].query_id
+        assert query_id
+        execution = client.nqe.execute(QueryRef.by_id(query_id), network_id=network_id)
+        execution.wait(timeout=300)
+        result_key = execution.result_key()
+        assert result_key and result_key.startswith("R_") and len(result_key) == 22
+        rows = list(execution.rows())
+        columns = list(rows[0]) if rows else ["name"]
+
+        panel_name = "forward-sdk-live-panel"
+        dashboard_name = "forward-sdk-live-dashboard"
+        for stale in client.nqe_panels.list_nqe_panels().panels or []:
+            if stale.name == panel_name:
+                client.nqe_panels.delete_nqe_panel(panel_id=str(stale.id))
+        for stale_dashboard in client.dashboards.list_dashboards(network_id=network_id):
+            if stale_dashboard.name == dashboard_name:
+                client.dashboards.delete_dashboard(
+                    network_id=network_id, dashboard_id=str(stale_dashboard.id)
+                )
+
+        panel = client.nqe_panels.create_nqe_panel(
+            body={
+                "name": panel_name,
+                "queryId": query_id,
+                "config": {
+                    "type": "TABULAR",
+                    "columnOrder": columns,
+                    "visibleColumns": [{"name": columns[0], "width": 150}],
+                },
+            }
+        )
+        dashboard_id = None
+        try:
+            assert panel.id
+            renamed = client.nqe_panels.update_nqe_panel(
+                panel_id=str(panel.id), body={"displayName": "Live test"}
+            )
+            assert renamed.display_name == "Live test"
+            dashboard_id = client.dashboards.create_dashboard(
+                network_id=network_id, body={"name": dashboard_name}
+            )
+            assert isinstance(dashboard_id, str)
+            client.dashboards.update_dashboard(
+                network_id=network_id,
+                dashboard_id=dashboard_id,
+                body={
+                    "layout": [
+                        {
+                            "type": "PANEL",
+                            "x": 0,
+                            "y": 0,
+                            "w": 6,
+                            "h": 4,
+                            "panelId": f"NQE_PANEL_{panel.id}",
+                        }
+                    ]
+                },
+            )
+            saved = client.dashboards.get_dashboard(
+                network_id=network_id, dashboard_id=dashboard_id
+            )
+            assert saved.layout and saved.layout[0].panel_id == f"NQE_PANEL_{panel.id}"
+            assert saved.layout[0].id is not None, "Forward assigns each embedding an id"
+            client.dashboards.remove_panels_from_dashboards(
+                network_id=network_id, body={"panelIds": [str(panel.id)]}
+            )
+            cleared = client.dashboards.get_dashboard(
+                network_id=network_id, dashboard_id=dashboard_id
+            )
+            assert not cleared.layout
+        finally:
+            if dashboard_id:
+                client.dashboards.delete_dashboard(network_id=network_id, dashboard_id=dashboard_id)
+            client.nqe_panels.delete_nqe_panels(body={"panelIds": [str(panel.id)]})

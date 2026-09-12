@@ -1221,6 +1221,18 @@ class ColumnFilter2(BetweenColumnFilter):
     operator: Literal["IS_BETWEEN"]
 
 
+class ColumnInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    name: str
+    width: int
+    """
+    Positive.
+    """
+
+
 class CommandValidationRequest(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -1622,6 +1634,85 @@ class Severity(OpenEnum):
     medium = "MEDIUM"
     high = "HIGH"
     critical = "CRITICAL"
+
+
+class Type16(OpenEnum):
+    default = "DEFAULT"
+    composed = "COMPOSED"
+
+
+class DashboardDefinition(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    description: str | None = None
+    name: str
+
+
+class AutoScrollMode(OpenEnum):
+    page_by_page = "PAGE_BY_PAGE"
+    continuous = "CONTINUOUS"
+
+
+class AutoScrollSpeed(OpenEnum):
+    slow = "SLOW"
+    medium = "MEDIUM"
+    fast = "FAST"
+
+
+class DashboardDisplaySettings(ForwardModel):
+    """
+    Every field optional; a never-customised dashboard reads as an empty object.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    attribution: dict[str, Any] | None = None
+    auto_scroll_enabled: Annotated[bool | None, Field(alias="autoScrollEnabled")] = None
+    auto_scroll_interval_sec: Annotated[int | None, Field(alias="autoScrollIntervalSec")] = None
+    auto_scroll_mode: Annotated[AutoScrollMode | None, Field(alias="autoScrollMode")] = None
+    auto_scroll_speed: Annotated[AutoScrollSpeed | None, Field(alias="autoScrollSpeed")] = None
+
+
+class Type17(OpenEnum):
+    row = "ROW"
+    panel = "PANEL"
+
+
+class DashboardWidget(ForwardModel):
+    """
+    Selected by type. A ROW has a title and children, which must not be rows. A PANEL has a panelId such as NQE_PANEL_7, DEFINED_3 or CUSTOM_SCORECARD_2; an NQE panel may also carry an override and a server-assigned id that identifies the embedding across saves.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    children: list[dict[str, Any]] | None = None
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    created_by_id: Annotated[str | None, Field(alias="createdById")] = None
+    h: int
+    id: int | None = None
+    """
+    Server-assigned per embedding; echo it to keep the embedding
+    """
+    override: dict[str, Any] | None = None
+    """
+    displayName, queryParams, or a config override; at least one.
+    """
+    panel_id: Annotated[str | None, Field(alias="panelId")] = None
+    title: str | None = None
+    type: Type17
+    updated_at: Annotated[str | None, Field(alias="updatedAt")] = None
+    updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
+    updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
+    w: int
+    x: int
+    y: int
 
 
 class DefaultColumnFilter(ForwardModel):
@@ -2130,6 +2221,24 @@ class DraftChangePage(ForwardModel):
     changes: list[DraftChange] | None = None
 
 
+class Status4(OpenEnum):
+    no_latest_snapshot = "NO_LATEST_SNAPSHOT"
+    query_missing = "QUERY_MISSING"
+    query_run_error = "QUERY_RUN_ERROR"
+    missing_required_columns = "MISSING_REQUIRED_COLUMNS"
+    column_datatype_mismatch = "COLUMN_DATATYPE_MISMATCH"
+    invalid_identifier = "INVALID_IDENTIFIER"
+
+
+class DynamicConnectionsComputeError(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    error_msg: Annotated[str, Field(alias="errorMsg")]
+    status: Status4
+
+
 class EncryptorConnection(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -2273,7 +2382,7 @@ class TransitType(OpenEnum):
     egress = "egress"
 
 
-class Type16(OpenEnum):
+class Type18(OpenEnum):
     device_filter = "DeviceFilter"
     interface_filter = "InterfaceFilter"
     tunnel_interface_filter = "TunnelInterfaceFilter"
@@ -2524,6 +2633,40 @@ class InterfacesAliasBuilder(ForwardModel):
     vlan_intf_types: Annotated[list[VlanIntfType] | None, Field(alias="vlanIntfTypes")] = None
 
 
+class InternetConnectionSuggestion(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    gateway_interface: Annotated[str | None, Field(alias="gatewayInterface")] = None
+    """
+    device:interface
+    """
+    gateway_interface_description: Annotated[
+        str | None, Field(alias="gatewayInterfaceDescription")
+    ] = None
+    uplink_interface: Annotated[str, Field(alias="uplinkInterface")]
+    """
+    device:interface
+    """
+    uplink_interface_description: Annotated[
+        str | None, Field(alias="uplinkInterfaceDescription")
+    ] = None
+    vlan: int | None = None
+
+
+class InternetConnectionSuggestions(ForwardModel):
+    """
+    An empty object when there are none.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    suggestions: list[InternetConnectionSuggestion] | None = None
+
+
 class InventoryDeviceInfo(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -2626,6 +2769,19 @@ class L2VpnConnections(ForwardModel):
         populate_by_name=True,
     )
     connections: list[L2VpnConnection]
+
+
+class L2VpnDynamicConnectionsComputeResult(ForwardModel):
+    """
+    connections is absent when empty; error is present only on failure.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    connections: list[L2VpnConnection] | None = None
+    error: DynamicConnectionsComputeError | None = None
 
 
 class L2VpnPatch(ForwardModel):
@@ -2944,7 +3100,7 @@ class LocationConnDiffStat(ForwardModel):
     outgoing: ConnChangeStats | None = None
 
 
-class Type25(OpenEnum):
+class Type27(OpenEnum):
     host_filter = "HostFilter"
     device_filter = "DeviceFilter"
     interface_filter = "InterfaceFilter"
@@ -3071,7 +3227,7 @@ class DiscoveryMethod(OpenEnum):
     ospf = "OSPF"
 
 
-class Type37(OpenEnum):
+class Type39(OpenEnum):
     """
     Detected device type. Absent if undetermined. Never `"unknown"`.
     """
@@ -3164,7 +3320,7 @@ class MissingDevice(ForwardModel):
     """
     The names of the modeled devices from which this device was discovered.
     """
-    type: Annotated[Type37 | None, Field(examples=["cisco_ios_ssh"])] = None
+    type: Annotated[Type39 | None, Field(examples=["cisco_ios_ssh"])] = None
     """
     Detected device type. Absent if undetermined. Never `"unknown"`.
     """
@@ -3735,7 +3891,7 @@ class NqeCheckDiffStats(ForwardModel):
     checks: list[NqeCheckDiffStat] | None = None
 
 
-class Type42(OpenEnum):
+class Type44(OpenEnum):
     """
     Describes the type of difference between `before` and `after`:
     * If `MODIFIED`, then both `before` and `after` will be present, but will differ in at least one property;
@@ -3759,7 +3915,7 @@ class NqeDiffEntry(ForwardModel):
     )
     after: dict[str, Any] | None = None
     before: dict[str, Any] | None = None
-    type: Type42 | None = None
+    type: Type44 | None = None
     """
     Describes the type of difference between `before` and `after`:
     * If `MODIFIED`, then both `before` and `after` will be present, but will differ in at least one property;
@@ -3810,7 +3966,7 @@ class Outcome(OpenEnum):
     user_error = "USER_ERROR"
 
 
-class Status4(OpenEnum):
+class Status5(OpenEnum):
     """
     The current state of the query execution:
     - `SUBMITTED`: the query has been accepted and is queued, but execution has not yet begun.
@@ -3821,6 +3977,97 @@ class Status4(OpenEnum):
     submitted = "SUBMITTED"
     executing = "EXECUTING"
     completed = "COMPLETED"
+
+
+class NqeExecutionStatusWithResultKey(ForwardModel):
+    """
+    NqeExecutionStatus plus the result key. Fields beyond these follow the published status.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    millis_executing: Annotated[int | None, Field(alias="millisExecuting")] = None
+    outcome: str | None = None
+    result_key: Annotated[str | None, Field(alias="resultKey")] = None
+    """
+    R_ followed by twenty hex characters; present once the outcome is OK or USER_ERROR.
+    """
+    rows_produced: Annotated[int | None, Field(alias="rowsProduced")] = None
+    status: str | None = None
+    timeout_minutes: Annotated[int | None, Field(alias="timeoutMinutes")] = None
+
+
+class Aggregation(OpenEnum):
+    count_ = "COUNT"
+    count_distinct = "COUNT_DISTINCT"
+    sum = "SUM"
+    min = "MIN"
+    max = "MAX"
+    average = "AVERAGE"
+    median = "MEDIAN"
+    count_true = "COUNT_TRUE"
+    count_false = "COUNT_FALSE"
+    count_null = "COUNT_NULL"
+
+
+class NqeMetricPreview(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    aggregation: Aggregation
+    column_name: Annotated[str, Field(alias="columnName")]
+
+
+class NqeMetricPreviewResult(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    value: float | None = None
+    """
+    Absent when undefined.
+    """
+
+
+class Usage(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    id: str | None = None
+    name: str | None = None
+    network_id: Annotated[str | None, Field(alias="networkId")] = None
+
+
+class NqePanelIds(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    panel_ids: Annotated[list[str], Field(alias="panelIds")]
+
+
+class Result(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    panel_id: Annotated[str | None, Field(alias="panelId")] = None
+    value: float | None = None
+    """
+    Null when undefined.
+    """
+
+
+class NqePanelMetrics(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    results: list[Result] | None = None
 
 
 class Repository(OpenEnum):
@@ -4013,7 +4260,7 @@ class PacketFilter(ForwardModel):
     values: Annotated[dict[str, list[str]], Field(examples=[{"ipv4_dst": ["10.10.10.0/24"]}])]
 
 
-class Type43(OpenEnum):
+class Type45(OpenEnum):
     packet_filter = "PacketFilter"
     packet_alias_filter = "PacketAliasFilter"
     not_filter = "NotFilter"
@@ -4049,10 +4296,15 @@ class PaginationMode(OpenEnum):
     enable_pagination = "ENABLE_PAGINATION"
 
 
-class Type46(OpenEnum):
+class Type48(OpenEnum):
     offset = "OFFSET"
     url_cursor = "URL_CURSOR"
     parameter_cursor = "PARAMETER_CURSOR"
+
+
+class Type51(OpenEnum):
+    tabular = "TABULAR"
+    metric = "METRIC"
 
 
 class ParameterCursorBasedPagination(ForwardModel):
@@ -5271,6 +5523,26 @@ class SyntheticNatEntry(ForwardModel):
     """
 
 
+class TapiNetworkContainer(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    model: dict[str, Any]
+    """
+    The merged T-API model as Forward parsed it.
+    """
+    name: str
+
+
+class TapiNetworkContainerList(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    containers: list[TapiNetworkContainer]
+
+
 class TextPosition(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -5298,6 +5570,25 @@ class TextRegion(ForwardModel):
     start: TextPosition | None = None
     """
     The region's starting position (starting at (0, 0)).
+    """
+
+
+class Status6(OpenEnum):
+    neutral = "NEUTRAL"
+    ok = "OK"
+    warning = "WARNING"
+    issue = "ISSUE"
+
+
+class ThresholdRule(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    status: Status6 | None = None
+    value: float | None = None
+    """
+    Null marks the default rule.
     """
 
 
@@ -5369,7 +5660,7 @@ class TopologyLink(ForwardModel):
     target_port: Annotated[str | None, Field(alias="targetPort")] = None
 
 
-class Type49(OpenEnum):
+class Type52(OpenEnum):
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -5394,7 +5685,7 @@ class TotalHits(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    type: Type49 | None = None
+    type: Type52 | None = None
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -5842,7 +6133,7 @@ class VulnerabilityDevice(ForwardModel):
     """
 
 
-class Status5(OpenEnum):
+class Status7(OpenEnum):
     """
     The device’s vulnerability status for the CVE.
     """
@@ -5874,7 +6165,7 @@ class VulnerabilityDeviceWithResult(VulnerabilityDevice):
     The device’s [detection result](https://docs.fwd.app/latest/application/security/vulnerability/#detection-results)
     for the CVE.
     """
-    status: Annotated[Status5 | None, Field(examples=["VULNERABLE"])] = None
+    status: Annotated[Status7 | None, Field(examples=["VULNERABLE"])] = None
     """
     The device’s vulnerability status for the CVE.
     """
@@ -6038,7 +6329,7 @@ class WanCircuitPatch(ForwardModel):
     name: Annotated[str | None, Field(examples=["wan-circuit-01"])] = None
 
 
-class Type50(OpenEnum):
+class Type53(OpenEnum):
     basic_auth = "BASIC_AUTH"
 
 
@@ -6052,11 +6343,11 @@ class WebhookCredential(ForwardModel):
         populate_by_name=True,
     )
     password: str | None = None
-    type: Type50 | None = None
+    type: Type53 | None = None
     username: str | None = None
 
 
-class Type51(OpenEnum):
+class Type54(OpenEnum):
     snapshot_ready = "SNAPSHOT_READY"
     nqe_verification_failure = "NQE_VERIFICATION_FAILURE"
     intent_verification_failure = "INTENT_VERIFICATION_FAILURE"
@@ -6072,7 +6363,7 @@ class WebhookEventParams(ForwardModel):
         populate_by_name=True,
     )
     network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
-    type: Type51
+    type: Type54
 
 
 class PayloadFormat(OpenEnum):
@@ -6112,6 +6403,21 @@ class AddressObjectCollection(ForwardModel):
     address_objects: Annotated[list[ScopedAddressObject] | None, Field(alias="addressObjects")] = (
         None
     )
+
+
+class AdjacentNetworkPatch(ForwardModel):
+    """
+    Omitted means unchanged; an explicit null queryId clears it.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    connections: list[L3SyntheticWanConnection] | None = None
+    name: str | None = None
+    owned_subnets: Annotated[list[str] | None, Field(alias="ownedSubnets")] = None
+    query_id: Annotated[str | None, Field(alias="queryId")] = None
 
 
 class AiMessage(ForwardModel):
@@ -7535,6 +7841,42 @@ class CveOsInfoWithDevices(CveOsInfo):
     """
 
 
+class Dashboard(ForwardModel):
+    """
+    type DEFAULT for the fixed dashboards Forward ships, COMPOSED for yours.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    created_by_id: Annotated[str | None, Field(alias="createdById")] = None
+    description: str | None = None
+    id: str | None = None
+    layout: list[DashboardWidget] | None = None
+    name: str | None = None
+    type: Type16 | None = None
+    updated_at: Annotated[str | None, Field(alias="updatedAt")] = None
+    updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
+    updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
+
+
+class DashboardPatch(ForwardModel):
+    """
+    Omitted means unchanged. A present layout replaces the whole layout.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    description: str | None = None
+    layout: list[DashboardWidget] | None = None
+    name: str | None = None
+
+
 class Status3(ForwardModel):
     """
     How the most recent collection from this connector went. Absent unless `?with=status` is used, and absent then
@@ -8095,6 +8437,19 @@ class L2VpnList(ForwardModel):
         populate_by_name=True,
     )
     l2_vpns: Annotated[list[L2Vpn], Field(alias="l2Vpns")]
+
+
+class L3DynamicConnectionsComputeResult(ForwardModel):
+    """
+    connections is absent when empty; error is present only on failure.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    connections: list[L3SyntheticWanConnection] | None = None
+    error: DynamicConnectionsComputeError | None = None
 
 
 class LocationFilter4(HopLocationFilter3):
@@ -8674,6 +9029,29 @@ class NqeExecutionRequest(ForwardModel):
     """
 
 
+class NqePanelPatch(ForwardModel):
+    """
+    Every field optional; omitted means unchanged. Flat: configuration fields sit beside name and description. Tabular panels take columnOrder, visibleColumns and frozenColumns; metric panels take columnName, aggregation, unit, decimalPrecision and thresholds.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    aggregation: str | None = None
+    column_name: Annotated[str | None, Field(alias="columnName")] = None
+    column_order: Annotated[list[str] | None, Field(alias="columnOrder")] = None
+    decimal_precision: Annotated[int | None, Field(alias="decimalPrecision")] = None
+    description: str | None = None
+    display_name: Annotated[str | None, Field(alias="displayName")] = None
+    frozen_columns: Annotated[list[str] | None, Field(alias="frozenColumns")] = None
+    name: str | None = None
+    query_params: Annotated[dict[str, Any] | None, Field(alias="queryParams")] = None
+    thresholds: list[ThresholdRule] | None = None
+    unit: str | None = None
+    visible_columns: Annotated[list[ColumnInfo] | None, Field(alias="visibleColumns")] = None
+
+
 class NqeQueryError(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -8991,6 +9369,26 @@ class PaginationModel3(ParameterCursorBasedPagination):
     Maximum number of pages to collect. Defaults to 1000.
     """
     type: Literal["PARAMETER_CURSOR"]
+
+
+class PanelConfig(ForwardModel):
+    """
+    Selected by type. TABULAR takes columnOrder and visibleColumns, both non-empty, and optional frozenColumns; the latter two are subsets of columnOrder. METRIC takes columnName, aggregation, and optional unit, decimalPrecision and thresholds.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    aggregation: Aggregation | None = None
+    column_name: Annotated[str | None, Field(alias="columnName")] = None
+    column_order: Annotated[list[str] | None, Field(alias="columnOrder")] = None
+    decimal_precision: Annotated[int | None, Field(alias="decimalPrecision")] = None
+    frozen_columns: Annotated[list[str] | None, Field(alias="frozenColumns")] = None
+    thresholds: list[ThresholdRule] | None = None
+    type: Type51
+    unit: str | None = None
+    visible_columns: Annotated[list[ColumnInfo] | None, Field(alias="visibleColumns")] = None
 
 
 class PathHop(ForwardModel):
@@ -9678,6 +10076,32 @@ class AddressGroupCollection(ForwardModel):
     address_groups: Annotated[list[ScopedAddressGroup] | None, Field(alias="addressGroups")] = None
 
 
+class AdjacentNetwork(ForwardModel):
+    """
+    A network Forward does not collect, reached over L3 WAN connections. queryId, when set, names a committed library query whose rows define the connections dynamically; queryResult holds the last computation.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    connections: list[L3SyntheticWanConnection]
+    name: str
+    owned_subnets: Annotated[list[str] | None, Field(alias="ownedSubnets")] = None
+    query_id: Annotated[str | None, Field(alias="queryId")] = None
+    query_result: Annotated[
+        L3DynamicConnectionsComputeResult | None, Field(alias="queryResult")
+    ] = None
+
+
+class AdjacentNetworkList(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    adjacent_networks: Annotated[list[AdjacentNetwork], Field(alias="adjacentNetworks")]
+
+
 class ApplicationGroupCollection(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -10205,7 +10629,7 @@ class NqeExecutionStatus(ForwardModel):
     The number of rows produced by the query so far. This count may increase as execution progresses. Absent when
     `status` is `SUBMITTED`.
     """
-    status: Status4
+    status: Status5
     """
     The current state of the query execution:
     - `SUBMITTED`: the query has been accepted and is queued, but execution has not yet begun.
@@ -10217,6 +10641,62 @@ class NqeExecutionStatus(ForwardModel):
     The maximum duration, in minutes, that the query is allowed to run before it is automatically
     terminated. If execution exceeds this limit, the query completes with `outcome` `TIMED_OUT`.
     """
+
+
+class NqePanel(ForwardModel):
+    """
+    A panel with its attribution flat beside it. The kind is config.type.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    config: PanelConfig | None = None
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    created_by_id: Annotated[str | None, Field(alias="createdById")] = None
+    description: str | None = None
+    display_name: Annotated[str | None, Field(alias="displayName")] = None
+    id: str | None = None
+    name: str | None = None
+    query_id: Annotated[str | None, Field(alias="queryId")] = None
+    query_params: Annotated[dict[str, Any] | None, Field(alias="queryParams")] = None
+    updated_at: Annotated[str | None, Field(alias="updatedAt")] = None
+    updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
+    updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
+    usage_count: Annotated[int | None, Field(alias="usageCount")] = None
+    """
+    Present on the listing only.
+    """
+    usages: list[Usage] | None = None
+    """
+    Present on the listing only; dashboards the caller may see.
+    """
+
+
+class NqePanelDef(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    config: PanelConfig
+    description: str | None = None
+    display_name: Annotated[str | None, Field(alias="displayName")] = None
+    name: str
+    query_id: Annotated[str, Field(alias="queryId")]
+    """
+    A committed library query id, Q_ or FQ_ followed by 40 hex characters. Query text is not accepted.
+    """
+    query_params: Annotated[dict[str, Any] | None, Field(alias="queryParams")] = None
+
+
+class NqePanels(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    panels: list[NqePanel] | None = None
 
 
 class Path(ForwardModel):

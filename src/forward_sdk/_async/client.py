@@ -16,6 +16,7 @@ from forward_sdk._async.services.events import AsyncUserEventsService
 from forward_sdk._async.services.networks import AsyncNetworksService
 from forward_sdk._async.services.nqe import AsyncNqeService
 from forward_sdk._async.services.snapshots import AsyncSnapshotsService
+from forward_sdk._async.services.tapi import AsyncTapiNetworkContainersService
 from forward_sdk._async.throttle import Throttle
 from forward_sdk._async.transport import AsyncTransport
 from forward_sdk.config import ClientConfig, RetryPolicy, build_config, config_from_env
@@ -114,6 +115,7 @@ class AsyncForwardClient(AsyncGeneratedServices):
         self.snapshot_diffs = AsyncSnapshotDiffsService(self._transport)
         self.change_sets = AsyncChangeSetsService(self._transport, self.snapshots)
         self.user_events = AsyncUserEventsService(self._transport)
+        self.tapi_network_containers = AsyncTapiNetworkContainersService(self._transport)
 
         # The rest of the API, one attribute per group; see scripts/gen_services.py.
         self._attach_generated_services(self._transport)

@@ -19,6 +19,7 @@ from forward_sdk._sync.services.events import UserEventsService
 from forward_sdk._sync.services.networks import NetworksService
 from forward_sdk._sync.services.nqe import NqeService
 from forward_sdk._sync.services.snapshots import SnapshotsService
+from forward_sdk._sync.services.tapi import TapiNetworkContainersService
 from forward_sdk._sync.throttle import Throttle
 from forward_sdk._sync.transport import Transport
 from forward_sdk.config import ClientConfig, RetryPolicy, build_config, config_from_env
@@ -117,6 +118,7 @@ class ForwardClient(GeneratedServices):
         self.snapshot_diffs = SnapshotDiffsService(self._transport)
         self.change_sets = ChangeSetsService(self._transport, self.snapshots)
         self.user_events = UserEventsService(self._transport)
+        self.tapi_network_containers = TapiNetworkContainersService(self._transport)
 
         # The rest of the API, one attribute per group; see scripts/gen_services.py.
         self._attach_generated_services(self._transport)

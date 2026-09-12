@@ -22,13 +22,17 @@ from pathlib import Path
 from typing import Any, get_args, get_origin
 
 import pytest
+from jsonschema import Draft202012Validator  # type: ignore[import-untyped]
 from openapi_core import OpenAPI
 from openapi_core.testing import MockRequest
+from referencing import Registry
+from referencing.jsonschema import DRAFT202012
 
 from forward_sdk._generated._defs import OpDef
 from forward_sdk._generated.operations import OPERATIONS
 from forward_sdk._http import encode_query
 from forward_sdk._ops import REGISTRY, RequestSpec
+from forward_sdk._ops import rest as _rest
 from forward_sdk._ops._generic import snake
 from forward_sdk.nqe.query_ref import QueryRef
 
@@ -205,11 +209,6 @@ def test_fixed_query_is_not_overridable() -> None:
 # declared enumerations. Generic builders pass a caller's body through and are
 # the caller's responsibility.
 
-from jsonschema import Draft202012Validator
-from referencing import Registry, Resource
-from referencing.jsonschema import DRAFT202012
-
-from forward_sdk._ops import rest as _rest
 
 _HAND_WRITTEN_WITH_BODY = sorted(
     op_id for op_id in REGISTRY if op_id not in _rest.BUILDERS and OPERATIONS[op_id].request_media
@@ -228,9 +227,7 @@ def body_schemas() -> tuple[dict[str, Any], Registry[Any]]:
             json_body = content.get("application/json")
             if json_body and "schema" in json_body:
                 schemas[operation["operationId"]] = json_body["schema"]
-    registry = Registry().with_resource(
-        SPEC_URI, Resource(contents=document, specification=DRAFT202012)
-    )
+    registry = Registry().with_resource(SPEC_URI, DRAFT202012.create_resource(document))
     return schemas, registry
 
 
@@ -282,11 +279,11 @@ def test_hand_written_body_matches_the_declared_shape(
         # mapping through: the sampler hands over an empty mapping, which
         # cannot satisfy anything, and that says nothing about the builder.
         if error.validator == "required":
-            return error.instance != {}
+            return bool(error.instance != {})
         # An enum failure is the builder's unless the value is the sampler's
         # placeholder, which no schema will accept and no builder wrote.
         if error.validator == "enum":
-            return error.instance != "example"
+            return bool(error.instance != "example")
         return False
 
     problems = [

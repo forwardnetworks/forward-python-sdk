@@ -190,3 +190,108 @@ def test_fixed_query_is_not_overridable() -> None:
     operation = OPERATIONS["getVulnerabilities"]
     params = encode_query({"v": "1"}, operation.fixed_query)
     assert params[0] == ("v", "2")
+
+
+# --- request bodies of hand-written builders ---------------------------------
+#
+# The module docstring explains why bodies are not validated in general: a
+# synthesized payload proves only that the generator and the validator agree.
+# That holds for content. It does not hold for structure. A body that is a
+# bare array where the description declares an object is wrong whatever the
+# array contains, and that is exactly what addDeviceTagToDevices sent for
+# thirteen releases while its test asserted the bare array back. So the bodies
+# that hand-written builders produce from sample arguments are checked against
+# the declared request schema, structurally: type, required keys, and any
+# declared enumerations. Generic builders pass a caller's body through and are
+# the caller's responsibility.
+
+from jsonschema import Draft202012Validator
+from referencing import Registry, Resource
+from referencing.jsonschema import DRAFT202012
+
+from forward_sdk._ops import rest as _rest
+
+_HAND_WRITTEN_WITH_BODY = sorted(
+    op_id for op_id in REGISTRY if op_id not in _rest.BUILDERS and OPERATIONS[op_id].request_media
+)
+
+
+@pytest.fixture(scope="module")
+def body_schemas() -> tuple[dict[str, Any], Registry[Any]]:
+    document = json.loads(SPEC_PATH.read_text(encoding="utf-8"))
+    schemas: dict[str, Any] = {}
+    for path_item in document["paths"].values():
+        for operation in path_item.values():
+            if not isinstance(operation, dict) or "operationId" not in operation:
+                continue
+            content = (operation.get("requestBody") or {}).get("content") or {}
+            json_body = content.get("application/json")
+            if json_body and "schema" in json_body:
+                schemas[operation["operationId"]] = json_body["schema"]
+    registry = Registry().with_resource(
+        SPEC_URI, Resource(contents=document, specification=DRAFT202012)
+    )
+    return schemas, registry
+
+
+SPEC_URI = "urn:forward-openapi"
+
+
+def rooted(schema: Any) -> Any:
+    """Point a schema's local references at the registered document.
+
+    A request schema is usually just ``{"$ref": "#/components/schemas/X"}``,
+    and ``#`` in a bare fragment refers to the fragment itself, which has no
+    components. Prefixing with the document's URI sends the lookup there;
+    references inside the document already resolve against it.
+    """
+    if isinstance(schema, dict):
+        return {
+            key: (
+                SPEC_URI + value
+                if key == "$ref" and isinstance(value, str) and value.startswith("#")
+                else rooted(value)
+            )
+            for key, value in schema.items()
+        }
+    if isinstance(schema, list):
+        return [rooted(item) for item in schema]
+    return schema
+
+
+@pytest.mark.parametrize("operation_id", _HAND_WRITTEN_WITH_BODY)
+def test_hand_written_body_matches_the_declared_shape(
+    body_schemas: tuple[dict[str, Any], Registry[Any]], operation_id: str
+) -> None:
+    schemas, registry = body_schemas
+    schema = schemas.get(operation_id)
+    if schema is None:
+        pytest.skip("operation takes a non-JSON body")
+    spec = build(operation_id)
+    assert spec is not None
+    if spec.json is None:
+        pytest.skip("builder sends no JSON body for these sample arguments")
+    validator = Draft202012Validator(rooted(schema), registry=registry)
+
+    def is_the_builders_fault(error: Any) -> bool:
+        # Type and key-name mismatches are structural: the builder chose them.
+        if error.validator in {"type", "additionalProperties"}:
+            return True
+        # A missing required key is the builder's when it assembled the body
+        # from typed arguments, and the caller's when the builder passed a
+        # mapping through: the sampler hands over an empty mapping, which
+        # cannot satisfy anything, and that says nothing about the builder.
+        if error.validator == "required":
+            return error.instance != {}
+        # An enum failure is the builder's unless the value is the sampler's
+        # placeholder, which no schema will accept and no builder wrote.
+        if error.validator == "enum":
+            return error.instance != "example"
+        return False
+
+    problems = [
+        f"{'/'.join(str(p) for p in error.absolute_path) or '<root>'}: {error.message}"
+        for error in validator.iter_errors(spec.json)
+        if is_the_builders_fault(error)
+    ]
+    assert not problems, f"{operation_id} body does not match its declared schema: {problems}"

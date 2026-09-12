@@ -29,6 +29,10 @@ class AsyncDeviceTagsService(AsyncService):
             else ops.list_device_tags(network_id=resolved)
         )
         payload = await self._send_json(spec)
+        # Forward wraps the list: {"tags": [...]}. Reading the payload as a
+        # list returned its keys, so callers got ["tags"].
+        if isinstance(payload, dict):
+            return list(payload.get("tags") or [])
         return list(payload or [])
 
     async def get(

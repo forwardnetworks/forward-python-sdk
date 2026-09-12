@@ -66,9 +66,10 @@ are comma-separated", no drafts left; restore → committed, source matches the 
 for one release. The publisher is one call. `apply_forward_sources.py` uses
 `upsert_classic` and logs what Forward stored rather than what was sent.
 
-One small thing is open after 0.1.12: the deployment-config scope, below.
+Round 4, below, is open after 0.1.13: two services the dashboard work needs, and two
+rough edges in `device_tags`.
 
-## Open after 0.1.12: deployment configuration
+## Closed in 0.1.13: deployment configuration
 
 `GET/PUT/DELETE /api/deployment-config/{PROPERTY}` (`DeploymentConfigController`) has no
 SDK service. `configuration` covers org and global properties; deployment properties are
@@ -89,11 +90,93 @@ DELETE /api/deployment-config/{PROPERTY}           -> back to the default
 `set_deployment_config_value(name, value)` / `clear_deployment_config_value(name)`, with
 the same typed errors the org and global scopes have.
 
-**How we are handling it:** a one-time documented curl in `DEMO-PREDICT.md`
+**Closed in 0.1.13**, same day: `configuration.get_deployment_config()` /
+`get_deployment_config_value(property=)` / `set_deployment_config_value(property=, value=)` /
+`clear_deployment_config_value(property=)`. Verified live: the read returns
+`{'PROBE_LLM_AVAILABILITY': True}`, and the property is now in
+`apply_predict_feature_flags.py`'s managed set, so `make forward-flags` reports and sets it.
+The curl it replaced was the last raw request in any runbook here.
+
+**How it was handled before:** a one-time documented curl in `DEMO-PREDICT.md`
 (`PUT .../PROBE_LLM_AVAILABILITY?value=true`, 2026-09-12); the value persists in the
 management store, so nothing in the repo needs it and no raw HTTP was added.
 
-## For the record
+## Round 4 — open after 0.1.13
+
+Written 2026-09-12 while adding a Forward Dashboard, device tags and a collection
+schedule to the demo.
+
+### 1. No `dashboards` / `nqe_panels` services
+
+A Forward Dashboard is NQE panels embedded in a per-network dashboard; both are plain
+REST (`DashboardController.java`, `NqePanelController.java`) and neither has an SDK
+service, so the demo's dashboard was built by hand in the UI.
+
+```
+GET    /api/nqe-panels                                  -> [NqePanel]
+POST   /api/nqe-panels                                  NqePanelDef -> NqePanel (201)
+PATCH  /api/nqe-panels/{panelId}                        NqePanelPatch
+DELETE /api/nqe-panels/{panelId}
+POST   /api/nqe-panels?action=delete                    {panelIds: [...]}
+POST   /api/networks/{net}/nqe-panels?resultKey=...     metrics for a panel on a snapshot
+POST   /api/networks/{net}/nqe-panels?action=preview    preview a definition
+
+GET    /api/networks/{net}/dashboards[?type=DEFAULT]    -> [Dashboard]
+GET    /api/networks/{net}/dashboards/{id}
+POST   /api/networks/{net}/dashboards                   {name, description?} -> id
+PATCH  /api/networks/{net}/dashboards/{id}              {name?, description?, layout?: [widget]}  (layout replaces all)
+POST   /api/networks/{net}/dashboards?action=removePanels {panelIds}
+DELETE /api/networks/{net}/dashboards/{id}
+GET/PATCH /api/networks/{net}/dashboards/{id}/display-settings
+```
+
+`NqePanelDef`: `name` (required), `displayName?`, `description?`, `queryId` (a
+GlobalQueryId -- an org-library `Q_...` or a Forward-library `FQ_...`; query *text* is
+not accepted), `queryParams?`, `config` polymorphic on `type`:
+`{"type":"TABULAR","columnOrder":[...],"visibleColumns":[{"name","width"}],
+"frozenColumns":[...]}` or `{"type":"METRIC","columnName","aggregation","unit?",
+"decimalPrecision?","thresholds?":[...]}`.
+
+Widgets: `{"type":"ROW","x","y","w","h","title","children":[...]}` and
+`{"type":"PANEL","x","y","w","h","panelId":"NQE_PANEL_<id>"}`; the NQE panel widget
+also takes `override` (`displayName`, `queryParams`, `config`) and echoes a
+server-assigned per-embedding `id`. Panels are gated on the org property
+`NQE_DASHBOARD_PANELS` (default false).
+
+**Ask:** `nqe_panels.list/create/update/delete/preview/metrics` and
+`dashboards.list/get/create/update/delete` with the widget shapes typed. The demo
+then replaces a hand-built dashboard with `scripts/apply_forward_dashboard.py`,
+idempotent by dashboard name and panel name, with query ids from the publisher's index.
+
+### 2. `device_tags.list` returns the response wrapper's keys
+
+`GET /networks/{net}/device-tags` answers `{"tags": [...]}` (`DeviceTags`); the SDK does
+`list(payload or [])` and returns `['tags']`. Same for `with_devices=True`
+(`DeviceTagsWithDevices`). `get(tag_name)` is correct, so the demo checks each tag it
+wants by name.
+
+### 3. `device_tags.add_to_devices` sends the wrong body
+
+It posts a bare JSON array to `POST /networks/{net}/device-tags/{tag}`; Forward wants
+`DeviceSet`, `{"devices": [...]}`, and answers 400 "Cannot deserialize value of type
+DeviceSet from Array value". The batch `add_tags_to_devices(body={"devices": [...],
+"tags": [...]})` (`?action=addBatchTo`, `DevicesAndTags`) works and is what the demo uses.
+`remove_from_devices` likely shares the bug (not exercised).
+
+### 4. For the record: internet exposure needs an Internet node, and TEST-NET-3 is not "public"
+
+Not an SDK gap, a Forward modelling fact met on the way. `vulnerability_analysis.
+get_vulnerabilities(internet_addressable=True)` answers 400 `INTERNET_NODE_NOT_DEFINED`
+until `internet_node.add_internet_node_connection` has been called. A connection on
+the firewall's untrust port with `subnets: ["0.0.0.0/0"]` swallowed the `internet`
+host at 203.0.113.10 (paths became `DELIVERED_TO_INCORRECT_LOCATION`, 20 intents red);
+`subnetsToExclude: ["203.0.113.0/24"]` is refused -- "can only contain public
+addresses", and RFC 5737 space is not public -- and the 24-prefix complement did not
+help either. The demo keeps its host-based internet intents and no Internet node.
+Also: `add_internet_node_connection` with `subnetAutoDiscovery: "NONE"` requires
+`subnets`, and `advertisesDefaultRoute` is only valid with `IP_ROUTES`.
+
+
 
 - `snapshots.latest_processed_id` documents the `REPROCESS`-vs-`COLLECTION` trap in its
   own docstring now, in the same words this repo used to carry. The wrapper here keeps

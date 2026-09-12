@@ -719,31 +719,45 @@ class TestDevices:
 
 
 class TestDeviceTags:
-    async def test_list_tags(self, recorder: Recorder) -> None:
-        recorder.add("GET", "/api/networks/101/device-tags", json_response([{"name": "core"}]))
+    async def test_list_tags_unwraps_forwards_envelope(self, recorder: Recorder) -> None:
+        """Forward answers {"tags": [...]}; reading it as a list gave ["tags"].
+
+        The earlier fixture was a bare list, the shape the parser believed,
+        so the two agreed while both were wrong. This is the published shape.
+        """
+        recorder.add(
+            "GET", "/api/networks/101/device-tags", json_response({"tags": [{"name": "core"}]})
+        )
         async with make_client(recorder) as client:
             tags = await client.device_tags.list()
 
-        assert tags[0]["name"] == "core"
+        assert tags == [{"name": "core"}]
 
     async def test_list_with_devices_uses_the_dispatch_parameter(self, recorder: Recorder) -> None:
-        recorder.add("GET", "/api/networks/101/device-tags", json_response([]))
+        recorder.add(
+            "GET",
+            "/api/networks/101/device-tags",
+            json_response({"tags": [{"name": "core", "devices": ["sw1"]}]}),
+        )
         async with make_client(recorder) as client:
-            await client.device_tags.list(with_devices=True)
+            tags = await client.device_tags.list(with_devices=True)
 
         assert recorder.query_for()["with"] == ["devices"]
+        assert tags[0]["devices"] == ["sw1"]
 
-    async def test_add_tag_to_devices(self, recorder: Recorder) -> None:
+    async def test_add_tag_to_devices_sends_a_device_set(self, recorder: Recorder) -> None:
+        """Forward wants {"devices": [...]}; a bare array is a 400."""
         recorder.add("POST", "/api/networks/101/device-tags/core", json_response({}))
         async with make_client(recorder) as client:
             await client.device_tags.add_to_devices("core", ["sw1", "sw2"])
 
         assert recorder.query_for()["action"] == ["addTo"]
-        assert recorder.body_for() == ["sw1", "sw2"]
+        assert recorder.body_for() == {"devices": ["sw1", "sw2"]}
 
-    async def test_remove_tag_from_devices(self, recorder: Recorder) -> None:
+    async def test_remove_tag_from_devices_sends_a_device_set(self, recorder: Recorder) -> None:
         recorder.add("POST", "/api/networks/101/device-tags/core", json_response({}))
         async with make_client(recorder) as client:
             await client.device_tags.remove_from_devices("core", ["sw1"])
 
         assert recorder.query_for()["action"] == ["removeFrom"]
+        assert recorder.body_for() == {"devices": ["sw1"]}

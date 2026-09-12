@@ -3,6 +3,35 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Fixed
+
+- `device_tags.list()` returned `["tags"]`. Forward wraps the listing as
+  `{"tags": [...]}`, published in the description, and the SDK read the payload
+  as a list, which yielded the envelope's keys. Both forms, with and without
+  devices, now return the tag records.
+- `device_tags.add_to_devices()` and `remove_from_devices()` sent a bare array.
+  Forward takes `{"devices": [...]}`, also published, and refused with "Cannot
+  deserialize value of type DeviceSet from Array value". Both reported by the
+  change-demo integration in its fourth report. Verified live with a tag
+  created, applied to a device, removed and deleted.
+
+  Both had tests, and both tests asserted the wrong shape, because fixture and
+  parser were written from one assumption. The description had the right shape
+  all along; nothing compared the SDK's bodies to it.
+
+### Changed
+
+- The conformance test now validates the request bodies that hand-written
+  builders assemble against the declared schema, structurally: type, key
+  names, required keys the builder is responsible for, and enumerations the
+  builder chose. Bodies had been excluded on the grounds that a synthesized
+  payload proves nothing about content, which is true and beside the point: an
+  array where the description declares an object is wrong whatever it holds.
+  Reverting the device-tag builder makes the new check fail, so it would have
+  caught this on the first release.
+
 ## [0.1.13] - 2026-09-12
 
 ### Added

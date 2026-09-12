@@ -32,6 +32,10 @@ class DeviceTagsService(Service):
             else ops.list_device_tags(network_id=resolved)
         )
         payload = self._send_json(spec)
+        # Forward wraps the list: {"tags": [...]}. Reading the payload as a
+        # list returned its keys, so callers got ["tags"].
+        if isinstance(payload, dict):
+            return list(payload.get("tags") or [])
         return list(payload or [])
 
     def get(

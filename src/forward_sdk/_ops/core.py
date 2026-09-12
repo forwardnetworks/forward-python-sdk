@@ -312,10 +312,16 @@ def delete_device_tag(*, network_id: str, tag_name: str) -> RequestSpec:
 
 @op("addDeviceTagToDevices")
 def add_tag_to_devices(*, network_id: str, tag_name: str, devices: Sequence[str]) -> RequestSpec:
+    """Forward takes a DeviceSet, ``{"devices": [...]}``, not a bare array.
+
+    A bare array is refused with "Cannot deserialize value of type DeviceSet
+    from Array value", which the SDK sent for its first thirteen releases
+    because the test fixture had been written from the same assumption.
+    """
     return spec_for(
         "addDeviceTagToDevices",
         path_params={"networkId": network_id, "tagName": tag_name},
-        json=list(devices),
+        json={"devices": list(devices)},
     )
 
 
@@ -326,7 +332,7 @@ def remove_tag_from_devices(
     return spec_for(
         "removeDeviceTagFromDevices",
         path_params={"networkId": network_id, "tagName": tag_name},
-        json=list(devices),
+        json={"devices": list(devices)},
     )
 
 

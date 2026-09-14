@@ -72,7 +72,7 @@ jobs:
 
       - name: Report a failure as an issue
         if: failure() && steps.creds.outputs.present == 'true' && github.event_name == 'schedule'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const title = 'Live tests failed against the Forward instance';

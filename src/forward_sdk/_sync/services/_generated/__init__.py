@@ -26,6 +26,7 @@ from forward_sdk._sync.services._generated.collection_schedules import (
 from forward_sdk._sync.services._generated.collector_binding import CollectorBindingService
 from forward_sdk._sync.services._generated.collector_tasks import CollectorTasksService
 from forward_sdk._sync.services._generated.configuration import ConfigurationService
+from forward_sdk._sync.services._generated.connectivity_tests import ConnectivityTestsService
 from forward_sdk._sync.services._generated.credentials import CredentialsService
 from forward_sdk._sync.services._generated.dashboards import DashboardsService
 from forward_sdk._sync.services._generated.data_connectors import DataConnectorsService
@@ -82,6 +83,7 @@ __all__ = [
     "CollectorBindingService",
     "CollectorTasksService",
     "ConfigurationService",
+    "ConnectivityTestsService",
     "CredentialsService",
     "DashboardsService",
     "DataConnectorsService",
@@ -136,6 +138,7 @@ class GeneratedServices:
     collector_binding: CollectorBindingService
     collector_tasks: CollectorTasksService
     configuration: ConfigurationService
+    connectivity_tests: ConnectivityTestsService
     credentials: CredentialsService
     dashboards: DashboardsService
     data_connectors: DataConnectorsService
@@ -181,6 +184,7 @@ class GeneratedServices:
         self.collector_binding = CollectorBindingService(transport)
         self.collector_tasks = CollectorTasksService(transport)
         self.configuration = ConfigurationService(transport)
+        self.connectivity_tests = ConnectivityTestsService(transport)
         self.credentials = CredentialsService(transport)
         self.dashboards = DashboardsService(transport)
         self.data_connectors = DataConnectorsService(transport)
@@ -228,6 +232,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Collector Binding": "collector_binding",
     "Collector Tasks": "collector_tasks",
     "Configuration": "configuration",
+    "Connectivity Tests": "connectivity_tests",
     "Credentials": "credentials",
     "Dashboards": "dashboards",
     "Data Connectors": "data_connectors",

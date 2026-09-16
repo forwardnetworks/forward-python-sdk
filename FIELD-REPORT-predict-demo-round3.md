@@ -66,8 +66,8 @@ are comma-separated", no drafts left; restore → committed, source matches the 
 for one release. The publisher is one call. `apply_forward_sources.py` uses
 `upsert_classic` and logs what Forward stored rather than what was sent.
 
-Round 4, below, is open after 0.1.13: two services the dashboard work needs, and two
-rough edges in `device_tags`.
+Round 4, below, closed the same day: two services the dashboard work needed, two rough
+edges in `device_tags`, and a status read for advanced reachability.
 
 ## Closed in 0.1.13: deployment configuration
 
@@ -101,81 +101,79 @@ The curl it replaced was the last raw request in any runbook here.
 (`PUT .../PROBE_LLM_AVAILABILITY?value=true`, 2026-09-12); the value persists in the
 management store, so nothing in the repo needs it and no raw HTTP was added.
 
-## Round 4 — open after 0.1.13
+## Closed in 0.1.14: dashboards, NQE panels, device tags, internet exposure
 
-Written 2026-09-12 while adding a Forward Dashboard, device tags and a collection
-schedule to the demo.
+Written 2026-09-12 after adding a Forward Dashboard, device tags and a collection
+schedule to the demo; closed the same day.
 
-### 1. No `dashboards` / `nqe_panels` services
+**`dashboards` / `nqe_panels`.** A Forward Dashboard is NQE panels embedded in a
+per-network dashboard; both are now typed services (`client.dashboards`,
+`client.nqe_panels`) matching the shapes this repo asked for -- `NqePanelDef.queryId` a
+library `Q_`/`FQ_` id, `config` polymorphic on `TABULAR`/`METRIC`, dashboard `layout` a
+whole-replace list of `ROW`/`PANEL` widgets. `scripts/apply_forward_dashboard.py`
+replaces the hand-built dashboard: idempotent by dashboard name and panel name, query
+ids from the NQE library index, and it normalizes the layout Forward echoes back
+(server-assigned `id`/`createdAt`/`createdBy` on every widget, child order not
+guaranteed to match position) before comparing, or a correct dashboard would look
+changed on every run.
 
-A Forward Dashboard is NQE panels embedded in a per-network dashboard; both are plain
-REST (`DashboardController.java`, `NqePanelController.java`) and neither has an SDK
-service, so the demo's dashboard was built by hand in the UI.
+**`device_tags.list()`** now returns the tags (`{"tags": [...]}` unwrapped), not the
+response envelope's keys -- `scripts/apply_device_tags.py` and the pre-flight now check
+the whole tag set in one call instead of one `get()` per tag.
 
-```
-GET    /api/nqe-panels                                  -> [NqePanel]
-POST   /api/nqe-panels                                  NqePanelDef -> NqePanel (201)
-PATCH  /api/nqe-panels/{panelId}                        NqePanelPatch
-DELETE /api/nqe-panels/{panelId}
-POST   /api/nqe-panels?action=delete                    {panelIds: [...]}
-POST   /api/networks/{net}/nqe-panels?resultKey=...     metrics for a panel on a snapshot
-POST   /api/networks/{net}/nqe-panels?action=preview    preview a definition
+**`device_tags.add_to_devices()`** now sends `{"devices": [...]}`, not a bare array --
+the batch `add_tags_to_devices` workaround is gone.
 
-GET    /api/networks/{net}/dashboards[?type=DEFAULT]    -> [Dashboard]
-GET    /api/networks/{net}/dashboards/{id}
-POST   /api/networks/{net}/dashboards                   {name, description?} -> id
-PATCH  /api/networks/{net}/dashboards/{id}              {name?, description?, layout?: [widget]}  (layout replaces all)
-POST   /api/networks/{net}/dashboards?action=removePanels {panelIds}
-DELETE /api/networks/{net}/dashboards/{id}
-GET/PATCH /api/networks/{net}/dashboards/{id}/display-settings
-```
+**Internet exposure has a status to read.** `internet_exposure.get_internet_exposure`
+answers `{"error": None, "trafficReceivingInterfaces": [...]}` once the advanced-
+reachability DAG has run, or `{"error": "PENDING_ADVANCED_REACHABILITY"}` (also
+`INTERNET_NODE_NOT_DEFINED`, `REACHABILITY_COMPUTATION_DISABLED`) while it has not --
+exactly the three states `InternetExposureError` names in Forward's own source.
+`scripts/compute_internet_exposure.py` polls this instead of treating any
+`vulnerability_analysis.get_vulnerabilities(internet_addressable=True)` exception as
+"pending", which could not tell a real error from one.
 
-`NqePanelDef`: `name` (required), `displayName?`, `description?`, `queryId` (a
-GlobalQueryId -- an org-library `Q_...` or a Forward-library `FQ_...`; query *text* is
-not accepted), `queryParams?`, `config` polymorphic on `type`:
-`{"type":"TABULAR","columnOrder":[...],"visibleColumns":[{"name","width"}],
-"frozenColumns":[...]}` or `{"type":"METRIC","columnName","aggregation","unit?",
-"decimalPrecision?","thresholds?":[...]}`.
+**Security matrix and blast radius, used in anger.** `security_matrix.
+get_anonymous_security_matrix(body={"name", "resourcePools", "timeoutMins"})` and
+`blast_radius.get_blast_radius(body={"source": LocationFilter, "dstSubnets",
+"timeoutSecs"})` are what `scripts/segmentation_delta.py` publishes on every prediction.
+Shapes worth knowing: an ON_PREM pool needs `devices: []` and `vrfs: []` present even
+when empty; a DEVICE_ZONE pool's `name` is computed by Forward ("<device> <zone>") and
+ignored on write, so match results by position; `matrix[i][j].sampleQuery` is absent on
+PARTIAL/NO_ROUTE cells and, on ACL_BLOCKED cells, names the destination as an
+`InterfaceFilter` with no `ipv4_dst`, so a caller wanting a concrete flow fills the
+missing side itself; blast radius returns only the *delivered* header regions
+(`details[].headers.ipv4_dst`, comma-separated), so "reaches nothing" is an empty
+list, not an error. Both need `ProcessingStage.REACHABILITY`, which predicted snapshots
+reach; neither needs the DAG. Under a second each on 26 devices.
 
-Widgets: `{"type":"ROW","x","y","w","h","title","children":[...]}` and
-`{"type":"PANEL","x","y","w","h","panelId":"NQE_PANEL_<id>"}`; the NQE panel widget
-also takes `override` (`displayName`, `queryParams`, `config`) and echoes a
-server-assigned per-embedding `id`. Panels are gated on the org property
-`NQE_DASHBOARD_PANELS` (default false).
+### Internet-node facts, for the record
 
-**Ask:** `nqe_panels.list/create/update/delete/preview/metrics` and
-`dashboards.list/get/create/update/delete` with the widget shapes typed. The demo
-then replaces a hand-built dashboard with `scripts/apply_forward_dashboard.py`,
-idempotent by dashboard name and panel name, with query ids from the publisher's index.
+Not a gap -- `internet_node` / `intranet_nodes` were already complete as of round 3 --
+but Forward semantics that took a day to learn, because the API docs do not say them and
+every one changes what goes in the body:
 
-### 2. `device_tags.list` returns the response wrapper's keys
-
-`GET /networks/{net}/device-tags` answers `{"tags": [...]}` (`DeviceTags`); the SDK does
-`list(payload or [])` and returns `['tags']`. Same for `with_devices=True`
-(`DeviceTagsWithDevices`). `get(tag_name)` is correct, so the demo checks each tag it
-wants by name.
-
-### 3. `device_tags.add_to_devices` sends the wrong body
-
-It posts a bare JSON array to `POST /networks/{net}/device-tags/{tag}`; Forward wants
-`DeviceSet`, `{"devices": [...]}`, and answers 400 "Cannot deserialize value of type
-DeviceSet from Array value". The batch `add_tags_to_devices(body={"devices": [...],
-"tags": [...]})` (`?action=addBatchTo`, `DevicesAndTags`) works and is what the demo uses.
-`remove_from_devices` likely shares the bug (not exercised).
-
-### 4. For the record: internet exposure needs an Internet node, and TEST-NET-3 is not "public"
-
-Not an SDK gap, a Forward modelling fact met on the way. `vulnerability_analysis.
-get_vulnerabilities(internet_addressable=True)` answers 400 `INTERNET_NODE_NOT_DEFINED`
-until `internet_node.add_internet_node_connection` has been called. A connection on
-the firewall's untrust port with `subnets: ["0.0.0.0/0"]` swallowed the `internet`
-host at 203.0.113.10 (paths became `DELIVERED_TO_INCORRECT_LOCATION`, 20 intents red);
-`subnetsToExclude: ["203.0.113.0/24"]` is refused -- "can only contain public
-addresses", and RFC 5737 space is not public -- and the 24-prefix complement did not
-help either. The demo keeps its host-based internet intents and no Internet node.
-Also: `add_internet_node_connection` with `subnetAutoDiscovery: "NONE"` requires
-`subnets`, and `advertisesDefaultRoute` is only valid with `IP_ROUTES`.
-
+- **`subnets` are what the site advertises to the internet**, not the internet's ranges
+  (`L3SyntheticWanConnection`: "subnets advertised by the gateway device"). The node
+  forwards traffic *to* those prefixes down the uplink and treats everything else public
+  as itself. `["0.0.0.0/0"]` therefore means "this site is the whole internet".
+- **Public only.** `subnets` and `subnetsToExclude` refuse RFC 1918, CGNAT
+  (100.64.0.0/10) *and* the RFC 5737 documentation ranges (198.51.100.0/24,
+  203.0.113.0/24): "'subnets' can only contain public addresses".
+- **`subnetAutoDiscovery: "NONE"` requires `subnets`; `advertisesDefaultRoute` is only
+  valid with `IP_ROUTES`; `peerIps` only with `BGP_ROUTES`.**
+- **The node drops private sources** (implicit "Drop private addresses" rules on the
+  synthetic device), so an outbound intent from a private range is only true once
+  something NATs it -- which is also what the internet does.
+- **The uplink port stops being a segment.** A host learned on that port leaves the
+  model; a next-hop *address* on the segment ends a path at the device that answers for
+  it, an interface-only default route reaches the node.
+- **Once stored, a synthetic device named after the node appears in every snapshot**
+  (vendor `FORWARD_CUSTOM`) and cannot be removed by API. Estate reports filter
+  `device.platform.vendor != Vendor.FORWARD_CUSTOM`.
+- Checks can name the node: `{"type": "DeviceFilter", "value": "internet"}` is a valid
+  `filters.from.location` / `.to.location` -- "from the internet" should be that, not a
+  `SubnetLocationFilter` on the perimeter segment, which a rule could permit by name.
 
 
 - `snapshots.latest_processed_id` documents the `REPROCESS`-vs-`COLLECTION` trap in its
@@ -190,3 +188,35 @@ Also: `add_internet_node_connection` with `subnetAutoDiscovery: "NONE"` requires
   network are in different orgs". It is now `collector.usernameEnv`, resolved from
   `.state/collector/binding.env`, because which collector serves a network is a fact
   about the instance, not the lab.
+
+## Round 4 (2026-09-16)
+
+- **A stored credential secret cannot be read back, and the SDK gives no way to know
+  it has drifted.** `snmp_credentials.list_snmp_credentials` (and the CLI equivalent)
+  echoes only the secret's numeric id, never its value, so an `apply` that matches an
+  existing credential by name and leaves it alone has no way to notice the stored value
+  no longer matches the manifest -- which is exactly what happened here: every
+  SNMP-enabled device read "invalid snmp credentials" in the GUI while answering the
+  manifest's community fine over the wire. There is no drift check possible client-side;
+  the only safe idempotent behavior is to *rewrite* the credential on every apply
+  (`update_snmp_credential`/the CLI equivalent), which is itself idempotent from
+  Forward's side. `ensure_snmp_credentials` in `apply_forward_sources.py` now does this.
+- **A device or endpoint's connectivity-test result is not exposed anywhere in the SDK.**
+  The GUI's "Test connectivity" column reads from `POST .../connectivityTests/bulkStart`
+  and `GET .../connectivityTests`, neither of which forward-sdk 0.1.14 wraps; and the
+  `testResult`/`test_result` field that *is* on `ClassicDevice` and the `NetworkEndpoint*`
+  read models is never populated by `get_classic_devices`/`get_network_endpoints` no
+  matter how recently a test ran (confirmed live: field stays `None` across a bulk test
+  covering all 26 devices, before and after). The only working proxy is a real
+  collection: zero `collectionErrors` in the pre-flight, or an actual value where the
+  credential is used, is stronger evidence than the GUI's own connectivity-test button.
+- **`network_endpoints` and `endpoint_profiles` are complete in 0.1.14** -- create/get/
+  delete/patch, CLI/HTTP/SNMP -- and needed no SDK changes to onboard the lab's Alpine
+  "endpoint"-role hosts as Network Endpoints (a `CLI` profile naming `commandSets:
+  ["UNIX"]`, one endpoint per host). One body-shape trap: `create_cli_network_endpoints`
+  deserializes its body as a bare `ArrayList<NewCliNetworkEndpoint>` -- pass the list
+  directly, not `{"endpoints": [...]}` (a natural guess from the read shape, and a 400
+  with a Jackson stack trace if you get it wrong). Bulk `patch_network_endpoints` takes
+  `{names, update}` -- one `update` object applied to every named endpoint -- which does
+  not fit per-endpoint field differences (different hosts); delete-then-recreate by name
+  is simpler and just as idempotent for that case.

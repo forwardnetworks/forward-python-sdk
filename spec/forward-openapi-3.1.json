@@ -593,6 +593,68 @@
         },
         "type": "object"
       },
+      "AuthenticationPhaseResult": {
+        "properties": {
+          "discoveredCliCredentialId": {
+            "type": "string"
+          },
+          "discoveredHttpCredentialId": {
+            "type": "string"
+          },
+          "discoveredSnmpCredentialId": {
+            "type": "string"
+          },
+          "discoveredType": {
+            "description": "A device connection type or endpoint profile id.",
+            "type": "string"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ConnectivityTestError"
+          },
+          "failedCredentialIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "phase": {
+            "const": "AUTHENTICATION"
+          }
+        },
+        "required": [
+          "phase"
+        ],
+        "type": "object"
+      },
+      "AuthorizationPhaseResult": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ConnectivityTestError"
+          },
+          "phase": {
+            "const": "AUTHORIZATION"
+          },
+          "remedyToken": {
+            "type": "string"
+          },
+          "unauthorizedCommands": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "unauthorizedProjectIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "phase"
+        ],
+        "type": "object"
+      },
       "AutoDiscoverySource": {
         "enum": [
           "NONE",
@@ -3021,6 +3083,36 @@
         ],
         "type": "object"
       },
+      "CloudDiscoveryResult": {
+        "properties": {
+          "agency": {
+            "type": "string"
+          },
+          "errorMsg": {
+            "description": "Present when this account could not be discovered.",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mission": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
       "CloudExistingAccountDiscovery": {
         "additionalProperties": true,
         "description": "Only GCP takes a field, projectIds.",
@@ -3795,6 +3887,38 @@
         },
         "type": "object"
       },
+      "ConnectionPhaseResult": {
+        "properties": {
+          "availableProtocols": {
+            "items": {
+              "$ref": "#/components/schemas/Protocol"
+            },
+            "type": "array"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ConnectivityTestError"
+          },
+          "hostIps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "phase": {
+            "const": "CONNECTION"
+          },
+          "serverFingerprint": {
+            "type": "string"
+          },
+          "usedConservativeMode": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "phase"
+        ],
+        "type": "object"
+      },
       "ConnectionType": {
         "enum": [
           "CLI",
@@ -3933,6 +4057,25 @@
           "OTHER"
         ],
         "type": "string"
+      },
+      "ConnectivityTestResult": {
+        "allOf": [
+          {
+            "properties": {
+              "deviceName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "deviceName"
+            ],
+            "type": "object"
+          },
+          {
+            "$ref": "#/components/schemas/SourceConnectivityResult"
+          }
+        ],
+        "description": "A SourceConnectivityResult plus which source it is for."
       },
       "CoveredTopology": {
         "description": "A minimal topology sketch scoped to one zone's devices.",
@@ -5503,6 +5646,45 @@
         },
         "type": "object"
       },
+      "DeviceNeighbor": {
+        "properties": {
+          "discoverySources": {
+            "description": "Devices that reported this neighbor.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "neighborAddress": {
+            "type": "string"
+          },
+          "neighborCount": {
+            "description": "len(discoverySources).",
+            "type": "integer"
+          },
+          "neighborName": {
+            "type": "string"
+          },
+          "neighborType": {
+            "description": "A DeviceConnType name",
+            "e.g. CISCO_IOS_SSH.": null,
+            "type": "string"
+          },
+          "vendor": {
+            "$ref": "#/components/schemas/Vendor"
+          },
+          "vendorSpecificDeviceNeighbor": {
+            "additionalProperties": true,
+            "description": "Present only for vendors with extra neighbor protocol data; shape varies by vendor.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "neighborType",
+          "discoverySources"
+        ],
+        "type": "object"
+      },
       "DevicePort": {
         "properties": {
           "device": {
@@ -5630,6 +5812,57 @@
             "type": "array"
           }
         },
+        "type": "object"
+      },
+      "DeviceTestPhaseResult": {
+        "description": "One phase of a connectivity test. error is absent when the phase passed; the fields beyond phase and error vary by phase, since each phase discovers something different.",
+        "discriminator": {
+          "mapping": {
+            "AUTHENTICATION": "#/components/schemas/AuthenticationPhaseResult",
+            "AUTHORIZATION": "#/components/schemas/AuthorizationPhaseResult",
+            "CONNECTION": "#/components/schemas/ConnectionPhaseResult",
+            "QUERY": "#/components/schemas/QueryPhaseResult",
+            "SETUP": "#/components/schemas/SetupPhaseResult",
+            "TYPE_DISCOVERY": "#/components/schemas/TypeDiscoveryPhaseResult"
+          },
+          "propertyName": "phase"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ConnectionPhaseResult"
+          },
+          {
+            "$ref": "#/components/schemas/AuthenticationPhaseResult"
+          },
+          {
+            "$ref": "#/components/schemas/TypeDiscoveryPhaseResult"
+          },
+          {
+            "$ref": "#/components/schemas/SetupPhaseResult"
+          },
+          {
+            "$ref": "#/components/schemas/AuthorizationPhaseResult"
+          },
+          {
+            "$ref": "#/components/schemas/QueryPhaseResult"
+          }
+        ],
+        "properties": {
+          "phase": {
+            "enum": [
+              "CONNECTION",
+              "AUTHENTICATION",
+              "TYPE_DISCOVERY",
+              "SETUP",
+              "AUTHORIZATION",
+              "QUERY"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "phase"
+        ],
         "type": "object"
       },
       "DeviceType": {
@@ -8878,6 +9111,18 @@
               "$ref": "#/components/schemas/MissingDevice"
             },
             "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "NameAndIpAddress": {
+        "description": "At least one of name or ipAddress is present.",
+        "properties": {
+          "ipAddress": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
           }
         },
         "type": "object"
@@ -12477,6 +12722,50 @@
         ],
         "type": "string"
       },
+      "QueryPhaseResult": {
+        "properties": {
+          "controllerInfos": {
+            "items": {
+              "$ref": "#/components/schemas/NameAndIpAddress"
+            },
+            "type": "array"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ConnectivityTestError"
+          },
+          "managedDevices": {
+            "items": {
+              "$ref": "#/components/schemas/NameAndIpAddress"
+            },
+            "type": "array"
+          },
+          "nameAliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "neighbors": {
+            "items": {
+              "$ref": "#/components/schemas/DeviceNeighbor"
+            },
+            "type": "array"
+          },
+          "peerControllers": {
+            "items": {
+              "$ref": "#/components/schemas/NameAndIpAddress"
+            },
+            "type": "array"
+          },
+          "phase": {
+            "const": "QUERY"
+          }
+        },
+        "required": [
+          "phase"
+        ],
+        "type": "object"
+      },
       "QueryStringCheck": {
         "properties": {
           "checkType": {
@@ -13388,6 +13677,52 @@
             "type": "array"
           }
         },
+        "type": "object"
+      },
+      "SetupPhaseResult": {
+        "properties": {
+          "dependentNameAndAliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "dependentsFromMaster": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "deviceSubCategory": {
+            "enum": [
+              "NONE",
+              "MASTER",
+              "DEPENDENT"
+            ],
+            "type": "string"
+          },
+          "discoveredCliCredential2Id": {
+            "type": "string"
+          },
+          "discoveredCliCredential3Id": {
+            "type": "string"
+          },
+          "discoveredEntities": {
+            "items": {
+              "$ref": "#/components/schemas/CloudDiscoveryResult"
+            },
+            "type": "array"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ConnectivityTestError"
+          },
+          "phase": {
+            "const": "SETUP"
+          }
+        },
+        "required": [
+          "phase"
+        ],
         "type": "object"
       },
       "SnapshotExportParams": {
@@ -14751,6 +15086,24 @@
         "required": [
           "type",
           "value"
+        ],
+        "type": "object"
+      },
+      "TypeDiscoveryPhaseResult": {
+        "properties": {
+          "discoveredType": {
+            "description": "A device connection type or endpoint profile id.",
+            "type": "string"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ConnectivityTestError"
+          },
+          "phase": {
+            "const": "TYPE_DISCOVERY"
+          }
+        },
+        "required": [
+          "phase"
         ],
         "type": "object"
       },
@@ -23994,6 +24347,327 @@
           "Legacy Collection"
         ],
         "x-position": 1
+      }
+    },
+    "/networks/{networkId}/connectivityTests": {
+      "get": {
+        "operationId": "getConnectivityTestResults",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "deviceName": "fw01",
+                    "endTime": "2026-09-16T00:31:58.160Z",
+                    "savedAt": "2026-09-16T00:31:58.161Z",
+                    "startTime": "2026-09-16T00:31:27.254Z"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectivityTestResult"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The results."
+          }
+        },
+        "summary": "Every source's most recent connectivity test result",
+        "tags": [
+          "Connectivity Tests"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/connectivityTests/bulkStart": {
+      "post": {
+        "operationId": "bulkStartConnectivityTests",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "devices": [
+                  "fw01",
+                  "fw02"
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/DeviceSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Started."
+          }
+        },
+        "summary": "Start a connectivity test for the given classic devices",
+        "tags": [
+          "Connectivity Tests"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "bulkStartNetworkEndpointConnectivityTests",
+            "summary": "Start a connectivity test for the given network endpoints",
+            "x-forward-fixed-query": [
+              [
+                "type",
+                "endpoint"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/connectivityTests/bulkStop": {
+      "post": {
+        "operationId": "bulkStopConnectivityTests",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "devices": [
+                  "fw01"
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/DeviceSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Stopped."
+          }
+        },
+        "summary": "Stop the connectivity tests running for the given sources",
+        "tags": [
+          "Connectivity Tests"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/connectivityTests/start": {
+      "post": {
+        "operationId": "startConnectivityTests",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Started."
+          }
+        },
+        "summary": "Start a connectivity test for every classic device in the network",
+        "tags": [
+          "Connectivity Tests"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/connectivityTests/stop": {
+      "post": {
+        "operationId": "stopConnectivityTests",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Stopped."
+          }
+        },
+        "summary": "Stop every running connectivity test in the network",
+        "tags": [
+          "Connectivity Tests"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/connectivityTests/{deviceName}": {
+      "get": {
+        "operationId": "getConnectivityTestResult",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "endTime": "2026-09-16T00:31:58.160Z",
+                  "savedAt": "2026-09-16T00:31:58.161Z",
+                  "startTime": "2026-09-16T00:31:27.254Z"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SourceConnectivityResult"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "One source's most recent connectivity test result",
+        "tags": [
+          "Connectivity Tests"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getConnectivityTestPhaseResults",
+            "summary": "The same result, broken out by phase",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "phaseResults"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/connectivityTests/{deviceName}/start": {
+      "post": {
+        "operationId": "startConnectivityTest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Started."
+          }
+        },
+        "summary": "Start a connectivity test for one classic device",
+        "tags": [
+          "Connectivity Tests"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "startNetworkEndpointConnectivityTest",
+            "summary": "Start a connectivity test for one network endpoint",
+            "x-forward-fixed-query": [
+              [
+                "type",
+                "endpoint"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/connectivityTests/{deviceName}/stop": {
+      "post": {
+        "operationId": "stopConnectivityTest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Stopped."
+          }
+        },
+        "summary": "Stop the connectivity test running for one source",
+        "tags": [
+          "Connectivity Tests"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/dashboards": {
@@ -34887,6 +35561,11 @@
       "description": "Model optical networks from T-API topology documents.",
       "name": "TAPI Network Containers",
       "x-parent": "Synthetic Devices"
+    },
+    {
+      "description": "Probe whether Forward can reach and authenticate to a classic device or network endpoint.",
+      "name": "Connectivity Tests",
+      "x-parent": "Collection Sources"
     },
     {
       "description": "The security zones a snapshot's devices belong to.",

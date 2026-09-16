@@ -74,6 +74,7 @@ Forward's API documentation: `getLocations` becomes `get_locations`.
 | `client.resource_pools` | Resource Pools | Unpublished; `VIEW_SECURITY_ANALYSIS` |
 | `client.blast_radius` | Blast Radius | Unpublished; `VIEW_SECURITY_ANALYSIS` |
 | `client.internet_exposure` | Internet Exposure | Unpublished; `VIEW_SECURITY_ANALYSIS` |
+| `client.connectivity_tests` | Connectivity Tests | Unpublished; `TEST_COLLECTION_SOURCES` |
 
 "Notes" says what is known to gate a group. It is a hint for interpreting a
 refusal, not a guarantee; see [availability](gating.md).
@@ -243,6 +244,35 @@ Things the shapes do not say:
   a live instance.
 - Forward's own dashboards (`list_default_dashboards`) have negative ids and
   refuse edits.
+
+## Connectivity tests
+
+Probe whether Forward can reach and authenticate to a classic device or
+network endpoint right now, rather than waiting for the next scheduled
+collection -- what the GUI's "Test connectivity" button does.
+
+```python
+client.connectivity_tests.start_connectivity_test(device_name="fw01")
+result = client.connectivity_tests.get_connectivity_test_result(device_name="fw01")
+# result.end_time is set once the test has finished; poll until it is.
+```
+
+- `start_connectivity_tests()` / `stop_connectivity_tests()` run against every
+  classic device in the network; the `*_test`/`bulk_*` variants take one name
+  or a `{"devices": [...]}` set. Each has a `*_network_endpoint_*` twin,
+  dispatched on the same path by a fixed query -- pass an endpoint name to the
+  endpoint variant, a device name to the device one; the wrong one 404s.
+- There is no job handle. `get_connectivity_test_result()` reads the same
+  `SourceConnectivityResult` shape used for scheduled collection; the test is
+  still running until `end_time` is set.
+- `get_connectivity_test_phase_results()` breaks the same result into its six
+  phases in order -- connection, authentication, type discovery, setup,
+  authorization, query -- each phase discovering something different (a
+  discovered credential id, a neighbor list, and so on) and each generated as
+  a discriminated union: `phase_result.root` gets the concrete phase, exactly
+  like [`security_zones.get_security_zones()`](#security-analysis)'s map. A
+  phase absent from the list was never reached, typically because an earlier
+  one failed; `error` is absent on a phase that passed.
 
 ## Path search
 

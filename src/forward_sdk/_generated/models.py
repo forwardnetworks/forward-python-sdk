@@ -965,6 +965,22 @@ class CloudConnectivityTest(ForwardModel):
     type: Type8
 
 
+class CloudDiscoveryResult(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    agency: str | None = None
+    error_msg: Annotated[str | None, Field(alias="errorMsg")] = None
+    """
+    Present when this account could not be discovered.
+    """
+    id: str
+    mission: str | None = None
+    name: str | None = None
+    roles: list[str] | None = None
+
+
 class Type14(OpenEnum):
     aws = "AWS"
     azure = "AZURE"
@@ -2063,6 +2079,15 @@ class DeviceTagsWithDevices(ForwardModel):
         populate_by_name=True,
     )
     tags: list[DeviceTagWithDevices] | None = None
+
+
+class Phase(OpenEnum):
+    connection = "CONNECTION"
+    authentication = "AUTHENTICATION"
+    type_discovery = "TYPE_DISCOVERY"
+    setup = "SETUP"
+    authorization = "AUTHORIZATION"
+    query = "QUERY"
 
 
 class DeviceType(OpenEnum):
@@ -3419,6 +3444,19 @@ class MissingDevices(ForwardModel):
         populate_by_name=True,
     )
     devices: list[MissingDevice] | None = None
+
+
+class NameAndIpAddress(ForwardModel):
+    """
+    At least one of name or ipAddress is present.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    ip_address: Annotated[str | None, Field(alias="ipAddress")] = None
+    name: str | None = None
 
 
 class NatType(OpenEnum):
@@ -5141,6 +5179,37 @@ class ServiceDefinition(ForwardModel):
     source_ports: Annotated[list[PortRange] | None, Field(alias="sourcePorts")] = None
 
 
+class DeviceSubCategory(OpenEnum):
+    none = "NONE"
+    master = "MASTER"
+    dependent = "DEPENDENT"
+
+
+class SetupPhaseResult(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    dependent_name_and_aliases: Annotated[
+        list[str] | None, Field(alias="dependentNameAndAliases")
+    ] = None
+    dependents_from_master: Annotated[list[str] | None, Field(alias="dependentsFromMaster")] = None
+    device_sub_category: Annotated[DeviceSubCategory | None, Field(alias="deviceSubCategory")] = (
+        None
+    )
+    discovered_cli_credential2_id: Annotated[
+        str | None, Field(alias="discoveredCliCredential2Id")
+    ] = None
+    discovered_cli_credential3_id: Annotated[
+        str | None, Field(alias="discoveredCliCredential3Id")
+    ] = None
+    discovered_entities: Annotated[
+        list[CloudDiscoveryResult] | None, Field(alias="discoveredEntities")
+    ] = None
+    error: ConnectivityTestError | None = None
+    phase: Literal["SETUP"]
+
+
 class SnapshotExportParams(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -5975,6 +6044,19 @@ class TunnelInterfaceFilter(ForwardModel):
     value: Annotated[str, Field(examples=["nyc-dc01-rtr-01 ge3"])]
 
 
+class TypeDiscoveryPhaseResult(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    discovered_type: Annotated[str | None, Field(alias="discoveredType")] = None
+    """
+    A device connection type or endpoint profile id.
+    """
+    error: ConnectivityTestError | None = None
+    phase: Literal["TYPE_DISCOVERY"]
+
+
 class UnrecognizedValues(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -6799,6 +6881,43 @@ class AnalyzedResourcePool(ForwardModel):
         Field(alias="resourcePools"),
     ] = None
     timed_out: Annotated[bool | None, Field(alias="timedOut")] = None
+
+
+class AuthenticationPhaseResult(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    discovered_cli_credential_id: Annotated[
+        str | None, Field(alias="discoveredCliCredentialId")
+    ] = None
+    discovered_http_credential_id: Annotated[
+        str | None, Field(alias="discoveredHttpCredentialId")
+    ] = None
+    discovered_snmp_credential_id: Annotated[
+        str | None, Field(alias="discoveredSnmpCredentialId")
+    ] = None
+    discovered_type: Annotated[str | None, Field(alias="discoveredType")] = None
+    """
+    A device connection type or endpoint profile id.
+    """
+    error: ConnectivityTestError | None = None
+    failed_credential_ids: Annotated[list[str] | None, Field(alias="failedCredentialIds")] = None
+    phase: Literal["AUTHENTICATION"]
+
+
+class AuthorizationPhaseResult(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    error: ConnectivityTestError | None = None
+    phase: Literal["AUTHORIZATION"]
+    remedy_token: Annotated[str | None, Field(alias="remedyToken")] = None
+    unauthorized_commands: Annotated[list[str] | None, Field(alias="unauthorizedCommands")] = None
+    unauthorized_project_ids: Annotated[list[str] | None, Field(alias="unauthorizedProjectIds")] = (
+        None
+    )
 
 
 class AvailablePredefinedCheck(ForwardModel):
@@ -7938,6 +8057,21 @@ class CommittedChangeSet(ForwardModel):
     updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
 
 
+class ConnectionPhaseResult(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    available_protocols: Annotated[
+        list[ProtocolModel] | None, Field(alias="availableProtocols")
+    ] = None
+    error: ConnectivityTestError | None = None
+    host_ips: Annotated[list[str] | None, Field(alias="hostIps")] = None
+    phase: Literal["CONNECTION"]
+    server_fingerprint: Annotated[str | None, Field(alias="serverFingerprint")] = None
+    used_conservative_mode: Annotated[bool | None, Field(alias="usedConservativeMode")] = None
+
+
 class ConnectivityDetailsRequest(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -7958,6 +8092,18 @@ class ConnectivityDetailsRequest(ForwardModel):
     """
     A named group of endpoints, for the security matrix and blast radius.
     """
+
+
+class ConnectivityTestResult(SourceConnectivityResult):
+    """
+    A SourceConnectivityResult plus which source it is for.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_name: Annotated[str, Field(alias="deviceName")]
 
 
 class CoveredTopology(ForwardModel):
@@ -8355,6 +8501,94 @@ class DeviceFilesDiff(ForwardModel):
     os_version: Annotated[str | None, Field(alias="osVersion")] = None
     tags: list[str] | None = None
     vendor: str | None = None
+
+
+class DeviceNeighbor(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    discovery_sources: Annotated[list[str], Field(alias="discoverySources")]
+    """
+    Devices that reported this neighbor.
+    """
+    neighbor_address: Annotated[str | None, Field(alias="neighborAddress")] = None
+    neighbor_count: Annotated[int | None, Field(alias="neighborCount")] = None
+    """
+    len(discoverySources).
+    """
+    neighbor_name: Annotated[str | None, Field(alias="neighborName")] = None
+    neighbor_type: Annotated[str, Field(alias="neighborType")]
+    """
+    A DeviceConnType name
+    """
+    vendor: Vendor | None = None
+    vendor_specific_device_neighbor: Annotated[
+        dict[str, Any] | None, Field(alias="vendorSpecificDeviceNeighbor")
+    ] = None
+    """
+    Present only for vendors with extra neighbor protocol data; shape varies by vendor.
+    """
+
+
+class DeviceTestPhaseResult1(ConnectionPhaseResult):
+    """
+    One phase of a connectivity test. error is absent when the phase passed; the fields beyond phase and error vary by phase, since each phase discovers something different.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    phase: Literal["CONNECTION"]
+
+
+class DeviceTestPhaseResult2(AuthenticationPhaseResult):
+    """
+    One phase of a connectivity test. error is absent when the phase passed; the fields beyond phase and error vary by phase, since each phase discovers something different.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    phase: Literal["AUTHENTICATION"]
+
+
+class DeviceTestPhaseResult3(TypeDiscoveryPhaseResult):
+    """
+    One phase of a connectivity test. error is absent when the phase passed; the fields beyond phase and error vary by phase, since each phase discovers something different.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    phase: Literal["TYPE_DISCOVERY"]
+
+
+class DeviceTestPhaseResult4(SetupPhaseResult):
+    """
+    One phase of a connectivity test. error is absent when the phase passed; the fields beyond phase and error vary by phase, since each phase discovers something different.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    phase: Literal["SETUP"]
+
+
+class DeviceTestPhaseResult5(AuthorizationPhaseResult):
+    """
+    One phase of a connectivity test. error is absent when the phase passed; the fields beyond phase and error vary by phase, since each phase discovers something different.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    phase: Literal["AUTHORIZATION"]
 
 
 class DeviceVlanInfo(ForwardModel):
@@ -9884,6 +10118,24 @@ class PredefinedCheck(ForwardModel):
     ] = None
 
 
+class QueryPhaseResult(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    controller_infos: Annotated[list[NameAndIpAddress] | None, Field(alias="controllerInfos")] = (
+        None
+    )
+    error: ConnectivityTestError | None = None
+    managed_devices: Annotated[list[NameAndIpAddress] | None, Field(alias="managedDevices")] = None
+    name_aliases: Annotated[list[str] | None, Field(alias="nameAliases")] = None
+    neighbors: list[DeviceNeighbor] | None = None
+    peer_controllers: Annotated[list[NameAndIpAddress] | None, Field(alias="peerControllers")] = (
+        None
+    )
+    phase: Literal["QUERY"]
+
+
 class ScopedAddressGroup(ForwardModel):
     """
     description repeats name on the wire; Forward populates it from the name.
@@ -10620,6 +10872,42 @@ class CveAnalyses(ForwardModel):
     analyses: list[CveAnalysis]
     """
     The custom vulnerability analyses defined for the CVE.
+    """
+
+
+class DeviceTestPhaseResult6(QueryPhaseResult):
+    """
+    One phase of a connectivity test. error is absent when the phase passed; the fields beyond phase and error vary by phase, since each phase discovers something different.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    phase: Literal["QUERY"]
+
+
+class DeviceTestPhaseResult(
+    RootModel[
+        DeviceTestPhaseResult1
+        | DeviceTestPhaseResult2
+        | DeviceTestPhaseResult3
+        | DeviceTestPhaseResult4
+        | DeviceTestPhaseResult5
+        | DeviceTestPhaseResult6
+    ]
+):
+    root: Annotated[
+        DeviceTestPhaseResult1
+        | DeviceTestPhaseResult2
+        | DeviceTestPhaseResult3
+        | DeviceTestPhaseResult4
+        | DeviceTestPhaseResult5
+        | DeviceTestPhaseResult6,
+        Field(discriminator="phase"),
+    ]
+    """
+    One phase of a connectivity test. error is absent when the phase passed; the fields beyond phase and error vary by phase, since each phase discovers something different.
     """
 
 

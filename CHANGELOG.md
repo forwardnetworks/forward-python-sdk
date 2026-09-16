@@ -3,6 +3,24 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Added
+
+- Connectivity tests, unpublished: `client.connectivity_tests` starts and stops
+  an on-demand reachability/authentication probe against a classic device or a
+  network endpoint (`start`/`stop`, one name or a `DeviceSet`, dispatched to
+  the endpoint variant by a fixed query on the same path), reads the result
+  Forward already publishes for scheduled collection (`SourceConnectivityResult`),
+  and reads the same result broken into its six phases -- connection,
+  authentication, type discovery, setup, authorization, query -- each a
+  discriminated union generated as a `RootModel`, so `phase.root` gets the
+  concrete phase. Requested by the change-demo integration, which found the
+  GUI's "Test connectivity" button backed by no SDK surface at all. Verified
+  live: a device tested end to end through all six phases, an endpoint tested
+  through the dispatched variant, both singly and in bulk; nothing is left
+  behind since starting or stopping a test never touches a snapshot.
+
 ## [0.1.14] - 2026-09-12
 
 ### Added

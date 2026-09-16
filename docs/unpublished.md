@@ -83,6 +83,7 @@ operation table, so nothing lands here by accident.
 | Resource pool analysis and connectivity | `/networks/{id}/resource-pools?action=analyze`, `/networks/{id}/resource-pool-connectivity-details` | `client.resource_pools` |
 | Blast radius, host-centric variant, XLSX report | `/networks/{id}/blast-radius[-report]?type=host-centric` | `client.blast_radius` |
 | Internet exposure and exposed hosts | `/networks/{id}/internet-exposure`, `/snapshots/{id}/internetNode/exposed-hosts[/{id}]` | `client.internet_exposure` |
+| Connectivity tests: start, stop, results, phase breakdown | `/networks/{id}/connectivityTests[/{name}][/start\|/stop]`, `?type=endpoint` | `client.connectivity_tests` |
 | Org, global and deployment configuration | `/config/{p}`, `/global-config/{p}`, `/orgs/{org}/config/{p}`, `/deployment-config[/{p}]` | `client.configuration`, `config_value()` |
 
 The published `POST /snapshots/{id}?action=computeAdvancedReachability` does the

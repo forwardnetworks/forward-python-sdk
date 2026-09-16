@@ -17,6 +17,7 @@ draft area, which is discarded afterwards.
 from __future__ import annotations
 
 import os
+import time
 from collections.abc import Iterator
 
 import pytest
@@ -644,3 +645,54 @@ class TestSecurityAnalysis:
             client.security_matrix_filters.delete_security_matrix_filter(
                 network_id=network_id, filter_id=str(created.id)
             )
+
+
+class TestConnectivityTests:
+    """Probing a classic device or network endpoint on demand. Unpublished.
+    Starting and stopping a test never invalidates a snapshot, so this runs
+    without ``FORWARD_LIVE_WRITES``; it leaves nothing behind either way.
+    """
+
+    def test_single_device_round_trip(self, client: ForwardClient, network_id: str) -> None:
+        devices = client.devices.list(network_id)
+        if not devices:
+            pytest.skip("network has no devices")
+        device_name = devices[0].name
+        assert device_name is not None
+
+        client.connectivity_tests.start_connectivity_test(
+            network_id=network_id, device_name=device_name
+        )
+        deadline = time.monotonic() + 30
+        result = None
+        while time.monotonic() < deadline:
+            result = client.connectivity_tests.get_connectivity_test_result(
+                network_id=network_id, device_name=device_name
+            )
+            if result.end_time:
+                break
+            time.sleep(1)
+        assert result is not None and result.start_time is not None
+
+        phases = client.connectivity_tests.get_connectivity_test_phase_results(
+            network_id=network_id, device_name=device_name
+        )
+        assert phases
+        first = phases[0].root
+        assert first.phase == "CONNECTION"
+
+        results = client.connectivity_tests.get_connectivity_test_results(network_id=network_id)
+        assert any(r.device_name == device_name for r in results)
+
+    def test_bulk_start_and_stop_do_not_error(self, client: ForwardClient, network_id: str) -> None:
+        devices = client.devices.list(network_id)
+        if not devices:
+            pytest.skip("network has no devices")
+        device_name = devices[0].name
+        assert device_name is not None
+        client.connectivity_tests.bulk_start_connectivity_tests(
+            network_id=network_id, body={"devices": [device_name]}
+        )
+        client.connectivity_tests.bulk_stop_connectivity_tests(
+            network_id=network_id, body={"devices": [device_name]}
+        )

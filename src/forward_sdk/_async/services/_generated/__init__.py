@@ -23,6 +23,7 @@ from forward_sdk._async.services._generated.collection_schedules import (
 from forward_sdk._async.services._generated.collector_binding import AsyncCollectorBindingService
 from forward_sdk._async.services._generated.collector_tasks import AsyncCollectorTasksService
 from forward_sdk._async.services._generated.configuration import AsyncConfigurationService
+from forward_sdk._async.services._generated.connectivity_tests import AsyncConnectivityTestsService
 from forward_sdk._async.services._generated.credentials import AsyncCredentialsService
 from forward_sdk._async.services._generated.dashboards import AsyncDashboardsService
 from forward_sdk._async.services._generated.data_connectors import AsyncDataConnectorsService
@@ -79,6 +80,7 @@ __all__ = [
     "AsyncCollectorBindingService",
     "AsyncCollectorTasksService",
     "AsyncConfigurationService",
+    "AsyncConnectivityTestsService",
     "AsyncCredentialsService",
     "AsyncDashboardsService",
     "AsyncDataConnectorsService",
@@ -133,6 +135,7 @@ class AsyncGeneratedServices:
     collector_binding: AsyncCollectorBindingService
     collector_tasks: AsyncCollectorTasksService
     configuration: AsyncConfigurationService
+    connectivity_tests: AsyncConnectivityTestsService
     credentials: AsyncCredentialsService
     dashboards: AsyncDashboardsService
     data_connectors: AsyncDataConnectorsService
@@ -178,6 +181,7 @@ class AsyncGeneratedServices:
         self.collector_binding = AsyncCollectorBindingService(transport)
         self.collector_tasks = AsyncCollectorTasksService(transport)
         self.configuration = AsyncConfigurationService(transport)
+        self.connectivity_tests = AsyncConnectivityTestsService(transport)
         self.credentials = AsyncCredentialsService(transport)
         self.dashboards = AsyncDashboardsService(transport)
         self.data_connectors = AsyncDataConnectorsService(transport)
@@ -225,6 +229,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Collector Binding": "collector_binding",
     "Collector Tasks": "collector_tasks",
     "Configuration": "configuration",
+    "Connectivity Tests": "connectivity_tests",
     "Credentials": "credentials",
     "Dashboards": "dashboards",
     "Data Connectors": "data_connectors",

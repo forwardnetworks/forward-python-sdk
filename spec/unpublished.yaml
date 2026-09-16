@@ -49,6 +49,9 @@ tags:
   - name: TAPI Network Containers
     parent: Synthetic Devices
     description: Model optical networks from T-API topology documents.
+  - name: Connectivity Tests
+    parent: Collection Sources
+    description: Probe whether Forward can reach and authenticate to a classic device or network endpoint.
   - name: Security Zones
     parent: Network Analysis
     description: The security zones a snapshot's devices belong to.
@@ -4442,6 +4445,187 @@ paths:
               schema: { $ref: "#/components/schemas/ConnectivityDetails" }
               example: { details: [], timedOut: false }
 
+  # -------------------------------------------------------- connectivity tests ---
+  # Whether Forward can reach and authenticate to a classic device or network
+  # endpoint, run on demand rather than waiting for the next scheduled
+  # collection. Results are per source; there is no job handle to poll, so the
+  # published SourceConnectivityResult is read again once it settles.
+  /networks/{networkId}/connectivityTests/start:
+    post:
+      operationId: startConnectivityTests
+      summary: Start a connectivity test for every classic device in the network
+      x-forward-stability: unpublished
+      tags: [Connectivity Tests]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Started. }
+
+  /networks/{networkId}/connectivityTests/stop:
+    post:
+      operationId: stopConnectivityTests
+      summary: Stop every running connectivity test in the network
+      x-forward-stability: unpublished
+      tags: [Connectivity Tests]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Stopped. }
+
+  /networks/{networkId}/connectivityTests/bulkStart:
+    post:
+      operationId: bulkStartConnectivityTests
+      summary: Start a connectivity test for the given classic devices
+      x-forward-stability: unpublished
+      tags: [Connectivity Tests]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeviceSet" }
+            example: { devices: [fw01, fw02] }
+      responses:
+        "204": { description: Started. }
+
+  /networks/{networkId}/connectivityTests/bulkStart?type=endpoint:
+    post:
+      operationId: bulkStartNetworkEndpointConnectivityTests
+      summary: Start a connectivity test for the given network endpoints
+      x-forward-stability: unpublished
+      tags: [Connectivity Tests]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeviceSet" }
+            example: { devices: [app01-endpoint] }
+      responses:
+        "204": { description: Started. }
+
+  /networks/{networkId}/connectivityTests/bulkStop:
+    post:
+      operationId: bulkStopConnectivityTests
+      summary: Stop the connectivity tests running for the given sources
+      x-forward-stability: unpublished
+      tags: [Connectivity Tests]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeviceSet" }
+            example: { devices: [fw01] }
+      responses:
+        "204": { description: Stopped. }
+
+  /networks/{networkId}/connectivityTests/{deviceName}/start:
+    post:
+      operationId: startConnectivityTest
+      summary: Start a connectivity test for one classic device
+      x-forward-stability: unpublished
+      tags: [Connectivity Tests]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Started. }
+
+  /networks/{networkId}/connectivityTests/{deviceName}/start?type=endpoint:
+    post:
+      operationId: startNetworkEndpointConnectivityTest
+      summary: Start a connectivity test for one network endpoint
+      x-forward-stability: unpublished
+      tags: [Connectivity Tests]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Started. }
+
+  /networks/{networkId}/connectivityTests/{deviceName}/stop:
+    post:
+      operationId: stopConnectivityTest
+      summary: Stop the connectivity test running for one source
+      x-forward-stability: unpublished
+      tags: [Connectivity Tests]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Stopped. }
+
+  /networks/{networkId}/connectivityTests:
+    get:
+      operationId: getConnectivityTestResults
+      summary: Every source's most recent connectivity test result
+      x-forward-stability: unpublished
+      tags: [Connectivity Tests]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The results.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ConnectivityTestResult" }
+              example:
+                - deviceName: fw01
+                  startTime: "2026-09-16T00:31:27.254Z"
+                  endTime: "2026-09-16T00:31:58.160Z"
+                  savedAt: "2026-09-16T00:31:58.161Z"
+
+  /networks/{networkId}/connectivityTests/{deviceName}:
+    get:
+      operationId: getConnectivityTestResult
+      summary: One source's most recent connectivity test result
+      x-forward-stability: unpublished
+      tags: [Connectivity Tests]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SourceConnectivityResult" }
+              example: { startTime: "2026-09-16T00:31:27.254Z", endTime: "2026-09-16T00:31:58.160Z", savedAt: "2026-09-16T00:31:58.161Z" }
+
+  /networks/{networkId}/connectivityTests/{deviceName}?view=phaseResults:
+    get:
+      operationId: getConnectivityTestPhaseResults
+      summary: The same result, broken out by phase
+      description: >-
+        Six phases in order: connection, authentication, type discovery, setup,
+        authorization, query. A phase absent from the list was never reached,
+        typically because an earlier one failed.
+      x-forward-stability: unpublished
+      tags: [Connectivity Tests]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The phase results.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DeviceTestPhaseResult" }
+              example:
+                - phase: CONNECTION
+                  usedConservativeMode: false
+                  availableProtocols: [SSH]
+                - phase: AUTHENTICATION
+                  discoveredCliCredentialId: L-3
+
 components:
   schemas:
     RepositoryCommit:
@@ -6848,3 +7032,170 @@ components:
           items: { type: integer }
           description: "Length 3, non-increasing: [vulnerable per scanner, also found by Forward, also exposed here]."
         scanType: { type: string, description: Absent when no scanner is configured. }
+
+    ConnectivityTestResult:
+      description: A SourceConnectivityResult plus which source it is for.
+      allOf:
+        - type: object
+          required: [deviceName]
+          properties:
+            deviceName: { type: string }
+        - { $ref: "#/components/schemas/SourceConnectivityResult" }
+
+    NameAndIpAddress:
+      type: object
+      description: At least one of name or ipAddress is present.
+      properties:
+        name: { type: string }
+        ipAddress: { type: string }
+
+    DeviceNeighbor:
+      type: object
+      required: [neighborType, discoverySources]
+      properties:
+        neighborName: { type: string }
+        neighborType: { type: string, description: A DeviceConnType name, e.g. CISCO_IOS_SSH. }
+        vendor: { $ref: "#/components/schemas/Vendor" }
+        neighborAddress: { type: string }
+        discoverySources:
+          type: array
+          items: { type: string }
+          description: Devices that reported this neighbor.
+        neighborCount: { type: integer, description: "len(discoverySources)." }
+        vendorSpecificDeviceNeighbor:
+          type: object
+          description: Present only for vendors with extra neighbor protocol data; shape varies by vendor.
+          additionalProperties: true
+
+    CloudDiscoveryResult:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        agency: { type: string }
+        mission: { type: string }
+        roles:
+          type: array
+          items: { type: string }
+        errorMsg: { type: string, description: Present when this account could not be discovered. }
+
+    ConnectionPhaseResult:
+      type: object
+      required: [phase]
+      properties:
+        phase: { const: CONNECTION }
+        error: { $ref: "#/components/schemas/ConnectivityTestError" }
+        serverFingerprint: { type: string }
+        usedConservativeMode: { type: boolean }
+        availableProtocols:
+          type: array
+          items: { $ref: "#/components/schemas/Protocol" }
+        hostIps:
+          type: array
+          items: { type: string }
+
+    AuthenticationPhaseResult:
+      type: object
+      required: [phase]
+      properties:
+        phase: { const: AUTHENTICATION }
+        error: { $ref: "#/components/schemas/ConnectivityTestError" }
+        discoveredCliCredentialId: { type: string }
+        discoveredHttpCredentialId: { type: string }
+        discoveredSnmpCredentialId: { type: string }
+        failedCredentialIds:
+          type: array
+          items: { type: string }
+        discoveredType: { type: string, description: A device connection type or endpoint profile id. }
+
+    TypeDiscoveryPhaseResult:
+      type: object
+      required: [phase]
+      properties:
+        phase: { const: TYPE_DISCOVERY }
+        error: { $ref: "#/components/schemas/ConnectivityTestError" }
+        discoveredType: { type: string, description: A device connection type or endpoint profile id. }
+
+    SetupPhaseResult:
+      type: object
+      required: [phase]
+      properties:
+        phase: { const: SETUP }
+        error: { $ref: "#/components/schemas/ConnectivityTestError" }
+        dependentsFromMaster:
+          type: array
+          items: { type: string }
+        dependentNameAndAliases:
+          type: array
+          items: { type: string }
+        deviceSubCategory: { type: string, enum: [NONE, MASTER, DEPENDENT] }
+        discoveredCliCredential2Id: { type: string }
+        discoveredCliCredential3Id: { type: string }
+        discoveredEntities:
+          type: array
+          items: { $ref: "#/components/schemas/CloudDiscoveryResult" }
+
+    AuthorizationPhaseResult:
+      type: object
+      required: [phase]
+      properties:
+        phase: { const: AUTHORIZATION }
+        error: { $ref: "#/components/schemas/ConnectivityTestError" }
+        unauthorizedCommands:
+          type: array
+          items: { type: string }
+        unauthorizedProjectIds:
+          type: array
+          items: { type: string }
+        remedyToken: { type: string }
+
+    QueryPhaseResult:
+      type: object
+      required: [phase]
+      properties:
+        phase: { const: QUERY }
+        error: { $ref: "#/components/schemas/ConnectivityTestError" }
+        neighbors:
+          type: array
+          items: { $ref: "#/components/schemas/DeviceNeighbor" }
+        nameAliases:
+          type: array
+          items: { type: string }
+        controllerInfos:
+          type: array
+          items: { $ref: "#/components/schemas/NameAndIpAddress" }
+        managedDevices:
+          type: array
+          items: { $ref: "#/components/schemas/NameAndIpAddress" }
+        peerControllers:
+          type: array
+          items: { $ref: "#/components/schemas/NameAndIpAddress" }
+
+    DeviceTestPhaseResult:
+      description: >-
+        One phase of a connectivity test. error is absent when the phase
+        passed; the fields beyond phase and error vary by phase, since each
+        phase discovers something different.
+      discriminator:
+        propertyName: phase
+        mapping:
+          CONNECTION: "#/components/schemas/ConnectionPhaseResult"
+          AUTHENTICATION: "#/components/schemas/AuthenticationPhaseResult"
+          TYPE_DISCOVERY: "#/components/schemas/TypeDiscoveryPhaseResult"
+          SETUP: "#/components/schemas/SetupPhaseResult"
+          AUTHORIZATION: "#/components/schemas/AuthorizationPhaseResult"
+          QUERY: "#/components/schemas/QueryPhaseResult"
+      oneOf:
+        - { $ref: "#/components/schemas/ConnectionPhaseResult" }
+        - { $ref: "#/components/schemas/AuthenticationPhaseResult" }
+        - { $ref: "#/components/schemas/TypeDiscoveryPhaseResult" }
+        - { $ref: "#/components/schemas/SetupPhaseResult" }
+        - { $ref: "#/components/schemas/AuthorizationPhaseResult" }
+        - { $ref: "#/components/schemas/QueryPhaseResult" }
+      properties:
+        phase:
+          type: string
+          enum: [CONNECTION, AUTHENTICATION, TYPE_DISCOVERY, SETUP, AUTHORIZATION, QUERY]
+      required: [phase]
+      type: object

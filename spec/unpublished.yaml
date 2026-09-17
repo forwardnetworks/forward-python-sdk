@@ -4626,6 +4626,46 @@ paths:
                 - phase: AUTHENTICATION
                   discoveredCliCredentialId: L-3
 
+  # ------------------------------------------------- raw snapshot artifacts ---
+  # Every file Forward stored while collecting a snapshot, independent of any
+  # modeled device -- what a device's own file list (published) cannot reach,
+  # since a raw file need not belong to one, such as a cloud provider's
+  # metadata for an object no device represents.
+  /snapshots/{snapshotId}/files:
+    get:
+      operationId: getSnapshotFiles
+      summary: Every raw file stored for a snapshot
+      description: Exposed files only; Forward keeps some internal ones out of this list.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The file names.
+          content:
+            application/json:
+              schema: { type: array, items: { type: string } }
+              example: ["rdu-br-rtr01,interface_details.txt", "ash-dc-fw01,acl_policy_addresses.txt"]
+
+  /snapshots/{snapshotId}/files/{fileName}:
+    get:
+      operationId: getSnapshotFileContent
+      summary: One raw file's content
+      description: 404 when the snapshot has no such file.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+        - { name: fileName, in: path, required: true, schema: { type: string } }
+        - { name: download, in: query, schema: { type: boolean }, description: Add a Content-Disposition header for direct download. }
+      responses:
+        "200":
+          description: The content.
+          content:
+            text/plain: {}
+            application/octet-stream: {}
+
 components:
   schemas:
     RepositoryCommit:

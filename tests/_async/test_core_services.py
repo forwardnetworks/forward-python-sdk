@@ -16,7 +16,7 @@ from forward_sdk.errors import (
     ForwardResponseError,
     ForwardTimeoutError,
 )
-from tests.conftest import Recorder, json_response
+from tests.conftest import Recorder, error_response, json_response
 
 pytestmark = pytest.mark.anyio
 
@@ -651,6 +651,30 @@ class TestSnapshotsContinued:
             status = await job.wait()
 
         assert status["status"] == "COMPLETED"
+
+    async def test_files_lists_raw_snapshot_files(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET", "/api/snapshots/9/files", json_response(["fw01,acl.txt", "fw01,arp.txt"])
+        )
+        async with make_client(recorder) as client:
+            files = await client.snapshots.files("9")
+
+        assert files == ["fw01,acl.txt", "fw01,arp.txt"]
+
+    async def test_file_returns_its_content(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET", "/api/snapshots/9/files/fw01,acl.txt", httpx.Response(200, text="permit any")
+        )
+        async with make_client(recorder) as client:
+            content = await client.snapshots.file("9", "fw01,acl.txt")
+
+        assert content == "permit any"
+
+    async def test_file_not_found_raises(self, recorder: Recorder) -> None:
+        recorder.add("GET", "/api/snapshots/9/files/missing.txt", error_response(404, "not found"))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError):
+                await client.snapshots.file("9", "missing.txt")
 
 
 class TestDevices:

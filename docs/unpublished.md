@@ -43,6 +43,7 @@ operation table, so nothing lands here by accident.
 | Poll reachability | `GET /networks/{id}/snapshots/{id}/reachability/{jobKey}` | `job.wait()` |
 | Current user and roles | `GET /users/current` | `client.user_accounts.get_current_user()` |
 | Network data files | `GET /networks/{id}/data-files` | `client.data_files.get_data_files()` |
+| Raw snapshot artifacts | `GET /snapshots/{id}/files[/{fileName}]` | `client.snapshots.files()`, `.file()` |
 | List chats | `GET /ai-chats` | `client.ai.list()` |
 | Start a chat | `POST /ai-chats` | `client.ai.start()` |
 | Get a chat | `GET /ai-chats/{id}` | `client.ai.get()` |

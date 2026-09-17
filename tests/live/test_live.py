@@ -78,6 +78,20 @@ def test_snapshot_metrics(client: ForwardClient, network_id: str) -> None:
     assert isinstance(client.snapshots.metrics(snapshot.id), dict)
 
 
+def test_snapshot_raw_files_are_readable(client: ForwardClient, network_id: str) -> None:
+    snapshot = client.snapshots.latest_processed(network_id)
+    if snapshot is None or not snapshot.id:
+        pytest.skip("no processed snapshot")
+    files = client.snapshots.files(snapshot.id)
+    if not files:
+        pytest.skip("snapshot has no raw files")
+    content = client.snapshots.file(snapshot.id, files[0])
+    assert isinstance(content, str)
+
+    with pytest.raises(ForwardNotFoundError):
+        client.snapshots.file(snapshot.id, "definitely-not-a-real-file.txt")
+
+
 def test_lists_devices(client: ForwardClient, network_id: str) -> None:
     devices = client.devices.list(network_id, limit=5)
     assert all(device.name for device in devices)

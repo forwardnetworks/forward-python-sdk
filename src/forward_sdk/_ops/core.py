@@ -110,6 +110,26 @@ def compute_advanced_reachability(*, snapshot_id: str) -> RequestSpec:
     )
 
 
+@op("getSnapshotFiles")
+def list_snapshot_files(*, snapshot_id: str) -> RequestSpec:
+    """List every raw file Forward stored for a snapshot.
+
+    Unlike a device's own files, these need not belong to one -- a cloud
+    provider's metadata for an object no device represents, for instance.
+    """
+    return spec_for("getSnapshotFiles", path_params={"snapshotId": snapshot_id})
+
+
+@op("getSnapshotFileContent")
+def get_snapshot_file(*, snapshot_id: str, file_name: str) -> RequestSpec:
+    """Fetch one raw file stored for a snapshot."""
+    return spec_for(
+        "getSnapshotFileContent",
+        path_params={"snapshotId": snapshot_id, "fileName": file_name},
+        accept="text/plain, application/json;q=0.5",
+    )
+
+
 @op("exportSnapshot")
 def export_snapshot(*, snapshot_id: str, only: str | None = None) -> RequestSpec:
     """Download a snapshot as a zip archive."""

@@ -372,6 +372,24 @@ class AsyncSnapshotsService(AsyncService):
         self.clear_cache()
         return SnapshotInfo.model_validate(payload or {})
 
+    async def files(self, snapshot_id: str) -> Sequence[str]:
+        """List every raw file Forward stored for a snapshot.
+
+        Unlike a device's own files (``client.devices.files()``), a raw file
+        need not belong to a modeled device -- a cloud provider's metadata for
+        an object no device represents, for instance. Useful for an
+        integration that needs artifacts a device-scoped read cannot reach.
+        """
+        payload = await self._send_json(ops.list_snapshot_files(snapshot_id=snapshot_id))
+        return list(payload or [])
+
+    async def file(self, snapshot_id: str, file_name: str) -> str:
+        """Fetch one raw file stored for a snapshot. Raises 404 if it has none by that name."""
+        response = await self._transport.send(
+            ops.get_snapshot_file(snapshot_id=snapshot_id, file_name=file_name)
+        )
+        return response.text
+
     async def export(self, snapshot_id: str, *, only: str | None = None) -> AsyncIterator[bytes]:
         """Download a snapshot archive in chunks.
 

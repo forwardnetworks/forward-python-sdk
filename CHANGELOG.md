@@ -3,6 +3,19 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Added
+
+- Raw snapshot artifacts, unpublished: `client.snapshots.files(snapshot_id)`
+  lists every file Forward stored for a snapshot, and `.file(snapshot_id,
+  file_name)` reads one -- unlike a device's own files, these need not belong
+  to a modeled device, useful for cloud integrations needing artifacts such as
+  GCP's `cloud_instances.gen`. Closes a gap `docs/snapshots.md` had documented
+  by name (`client.snapshots.files`/`.file`) since it was written; verified
+  live by listing and reading a real collected file, and confirming an unknown
+  name 404s as `ForwardNotFoundError`.
+
 ## [0.1.15] - 2026-09-16
 
 ### Added

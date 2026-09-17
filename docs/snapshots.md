@@ -74,6 +74,26 @@ for chunk in client.snapshots.export(snapshot_id):
     ...
 ```
 
+## Raw snapshot artifacts
+
+Use the device service for files collected from a known device:
+
+```python
+files = client.devices.files("edge-01", snapshot_id=snapshot_id)
+running_config = client.devices.file("edge-01", "configuration.txt", snapshot_id=snapshot_id)
+```
+
+For an artifact not owned by one modeled device -- a cloud provider's metadata
+for an object no device represents, such as GCP `cloud_instances.gen` -- read
+the snapshot's own file list instead. Unpublished:
+
+```python
+files = client.snapshots.files(snapshot_id)
+content = client.snapshots.file(snapshot_id, files[0])
+```
+
+`file` raises `ForwardNotFoundError` for a name the snapshot has none of.
+
 ## Advanced reachability
 
 ```python

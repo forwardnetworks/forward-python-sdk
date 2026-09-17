@@ -34357,6 +34357,92 @@
         ]
       }
     },
+    "/snapshots/{snapshotId}/files": {
+      "get": {
+        "description": "Exposed files only; Forward keeps some internal ones out of this list.",
+        "operationId": "getSnapshotFiles",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  "rdu-br-rtr01,interface_details.txt",
+                  "ash-dc-fw01,acl_policy_addresses.txt"
+                ],
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The file names."
+          }
+        },
+        "summary": "Every raw file stored for a snapshot",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/snapshots/{snapshotId}/files/{fileName}": {
+      "get": {
+        "description": "404 when the snapshot has no such file.",
+        "operationId": "getSnapshotFileContent",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "fileName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Add a Content-Disposition header for direct download.",
+            "in": "query",
+            "name": "download",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {},
+              "text/plain": {}
+            },
+            "description": "The content."
+          }
+        },
+        "summary": "One raw file's content",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/snapshots/{snapshotId}/internetNode/exposed-hosts": {
       "get": {
         "operationId": "getInternetExposedHosts",

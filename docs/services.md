@@ -192,9 +192,9 @@ The rest of the surface is unpublished and sits on the same services:
   uploaded T-API topology documents: `put(name, files)` takes paths or
   `(filename, bytes)` pairs and merges them into one model.
 
-Not covered: the internet exposed-hosts reads under
-`/snapshots/{id}/internetNode/exposed-hosts`, which belong to the security
-analysis family (blast radius, security zones, exposure) and will land with it.
+The internet exposed-hosts reads under
+`/snapshots/{id}/internetNode/exposed-hosts` belong to the security analysis
+family instead; see [Security analysis](#security-analysis).
 
 ## Dashboards and NQE panels
 

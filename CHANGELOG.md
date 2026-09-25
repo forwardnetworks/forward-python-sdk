@@ -3,6 +3,19 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [0.1.18] - 2026-09-25
+
+### Added
+
+- `client.collectors.create_collector_account(body={"collectorName": ...})` and
+  `.delete_collector_account(collector_name=...)`, unpublished: registers/removes a
+  collector account for the org -- the same call Settings > Collectors > Add collector
+  makes in the UI. There was previously no way to provision a collector from the SDK at
+  all; a first-time registration required a human in the UI. The response's
+  `authorizationKey` is the one-time install key (`username:password` when the org is on
+  the V2 auth-key format, a base64 protobuf blob on V3) and cannot be fetched again after
+  creation.
+
 ## [0.1.17] - 2026-09-25
 
 ### Added

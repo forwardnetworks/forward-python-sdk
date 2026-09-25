@@ -950,6 +950,17 @@ OPERATIONS: dict[str, OpDef] = {
         response_model="CloudAccount",
         summary="Add a cloud account",
     ),
+    "createCollectorAccount": OpDef(
+        operation_id="createCollectorAccount",
+        method="post",
+        path="/collectors",
+        tag="Collectors",
+        request_media=('application/json',),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="CollectorWithAuthKey",
+        summary="Register a new collector account for the org",
+    ),
     "createDashboard": OpDef(
         operation_id="createDashboard",
         method="post",
@@ -1399,6 +1410,17 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Network Collection",
         summary="Delete a network collection schedule",
+    ),
+    "deleteCollectorAccount": OpDef(
+        operation_id="deleteCollectorAccount",
+        method="delete",
+        path="/collectors/{collectorName}",
+        tag="Collectors",
+        parameters=(
+            ParamDef(name="collectorName", location="path", required=True, schema_type="string"),
+        ),
+        stability="unpublished",
+        summary="Delete a collector account and all related state",
     ),
     "deleteCveAnalysis": OpDef(
         operation_id="deleteCveAnalysis",

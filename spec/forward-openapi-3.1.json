@@ -3574,6 +3574,38 @@
         },
         "type": "object"
       },
+      "CollectorWithAuthKey": {
+        "additionalProperties": true,
+        "description": "A newly created collector account, plus the one-time key its installer needs. The key is returned only from creation -- it cannot be fetched again afterwards.",
+        "properties": {
+          "authorizationKey": {
+            "description": "Opaque install key for the collector's fwd.properties/installer. V2 format is literally `username:password`; V3 is a base64-encoded protobuf that also carries the app server URL.",
+            "type": "string"
+          },
+          "createdAt": {
+            "description": "Epoch milliseconds.",
+            "type": "integer"
+          },
+          "createdBy": {
+            "description": "A user id",
+            "not a name.": null,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "orgId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "CollectorWithStatus": {
         "additionalProperties": true,
         "description": "The collector's own fields sit flat beside its status. Empty when no collector is bound to the network.",
@@ -16851,6 +16883,84 @@
             ""
           ]
         ]
+      }
+    },
+    "/collectors": {
+      "post": {
+        "operationId": "createCollectorAccount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "collectorName": "wells-demo-collector"
+              },
+              "schema": {
+                "properties": {
+                  "collectorName": {
+                    "description": "Unique per org.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "collectorName"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "authorizationKey": "collector-a1b2c3d4:9f8e7d6c5b4a3210",
+                  "createdAt": 1788949865425,
+                  "createdBy": "100",
+                  "id": "77",
+                  "name": "wells-demo-collector",
+                  "orgId": "12",
+                  "username": "collector-a1b2c3d4"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CollectorWithAuthKey"
+                }
+              }
+            },
+            "description": "The new collector account, with its one-time install auth key."
+          }
+        },
+        "summary": "Register a new collector account for the org",
+        "tags": [
+          "Collectors"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/collectors/{collectorName}": {
+      "delete": {
+        "operationId": "deleteCollectorAccount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectorName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a collector account and all related state",
+        "tags": [
+          "Collectors"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/config/{property}": {

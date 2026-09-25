@@ -25,6 +25,7 @@ from forward_sdk._sync.services._generated.collection_schedules import (
 )
 from forward_sdk._sync.services._generated.collector_binding import CollectorBindingService
 from forward_sdk._sync.services._generated.collector_tasks import CollectorTasksService
+from forward_sdk._sync.services._generated.collectors import CollectorsService
 from forward_sdk._sync.services._generated.configuration import ConfigurationService
 from forward_sdk._sync.services._generated.connectivity_tests import ConnectivityTestsService
 from forward_sdk._sync.services._generated.credentials import CredentialsService
@@ -82,6 +83,7 @@ __all__ = [
     "CollectionSchedulesService",
     "CollectorBindingService",
     "CollectorTasksService",
+    "CollectorsService",
     "ConfigurationService",
     "ConnectivityTestsService",
     "CredentialsService",
@@ -137,6 +139,7 @@ class GeneratedServices:
     collection_schedules: CollectionSchedulesService
     collector_binding: CollectorBindingService
     collector_tasks: CollectorTasksService
+    collectors: CollectorsService
     configuration: ConfigurationService
     connectivity_tests: ConnectivityTestsService
     credentials: CredentialsService
@@ -183,6 +186,7 @@ class GeneratedServices:
         self.collection_schedules = CollectionSchedulesService(transport)
         self.collector_binding = CollectorBindingService(transport)
         self.collector_tasks = CollectorTasksService(transport)
+        self.collectors = CollectorsService(transport)
         self.configuration = ConfigurationService(transport)
         self.connectivity_tests = ConnectivityTestsService(transport)
         self.credentials = CredentialsService(transport)
@@ -231,6 +235,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Collection Schedules": "collection_schedules",
     "Collector Binding": "collector_binding",
     "Collector Tasks": "collector_tasks",
+    "Collectors": "collectors",
     "Configuration": "configuration",
     "Connectivity Tests": "connectivity_tests",
     "Credentials": "credentials",

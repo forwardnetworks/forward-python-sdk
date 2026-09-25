@@ -22,6 +22,7 @@ from forward_sdk._async.services._generated.collection_schedules import (
 )
 from forward_sdk._async.services._generated.collector_binding import AsyncCollectorBindingService
 from forward_sdk._async.services._generated.collector_tasks import AsyncCollectorTasksService
+from forward_sdk._async.services._generated.collectors import AsyncCollectorsService
 from forward_sdk._async.services._generated.configuration import AsyncConfigurationService
 from forward_sdk._async.services._generated.connectivity_tests import AsyncConnectivityTestsService
 from forward_sdk._async.services._generated.credentials import AsyncCredentialsService
@@ -79,6 +80,7 @@ __all__ = [
     "AsyncCollectionSchedulesService",
     "AsyncCollectorBindingService",
     "AsyncCollectorTasksService",
+    "AsyncCollectorsService",
     "AsyncConfigurationService",
     "AsyncConnectivityTestsService",
     "AsyncCredentialsService",
@@ -134,6 +136,7 @@ class AsyncGeneratedServices:
     collection_schedules: AsyncCollectionSchedulesService
     collector_binding: AsyncCollectorBindingService
     collector_tasks: AsyncCollectorTasksService
+    collectors: AsyncCollectorsService
     configuration: AsyncConfigurationService
     connectivity_tests: AsyncConnectivityTestsService
     credentials: AsyncCredentialsService
@@ -180,6 +183,7 @@ class AsyncGeneratedServices:
         self.collection_schedules = AsyncCollectionSchedulesService(transport)
         self.collector_binding = AsyncCollectorBindingService(transport)
         self.collector_tasks = AsyncCollectorTasksService(transport)
+        self.collectors = AsyncCollectorsService(transport)
         self.configuration = AsyncConfigurationService(transport)
         self.connectivity_tests = AsyncConnectivityTestsService(transport)
         self.credentials = AsyncCredentialsService(transport)
@@ -228,6 +232,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Collection Schedules": "collection_schedules",
     "Collector Binding": "collector_binding",
     "Collector Tasks": "collector_tasks",
+    "Collectors": "collectors",
     "Configuration": "configuration",
     "Connectivity Tests": "connectivity_tests",
     "Credentials": "credentials",

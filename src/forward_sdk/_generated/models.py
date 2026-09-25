@@ -1188,6 +1188,33 @@ class CollectorTask(ForwardModel):
     """
 
 
+class CollectorWithAuthKey(ForwardModel):
+    """
+    A newly created collector account, plus the one-time key its installer needs. The key is returned only from creation -- it cannot be fetched again afterwards.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    authorization_key: Annotated[str | None, Field(alias="authorizationKey")] = None
+    """
+    Opaque install key for the collector's fwd.properties/installer. V2 format is literally `username:password`; V3 is a base64-encoded protobuf that also carries the app server URL.
+    """
+    created_at: Annotated[int | None, Field(alias="createdAt")] = None
+    """
+    Epoch milliseconds.
+    """
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    """
+    A user id
+    """
+    id: str | None = None
+    name: str | None = None
+    org_id: Annotated[str | None, Field(alias="orgId")] = None
+    username: str | None = None
+
+
 class ConnectionStatus(OpenEnum):
     never_connected = "NEVER_CONNECTED"
     connected = "CONNECTED"

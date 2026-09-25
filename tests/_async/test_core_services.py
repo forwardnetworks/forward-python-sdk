@@ -103,6 +103,28 @@ class TestNetworks:
         assert network.note == "from the SDK"
         assert recorder.body_for() == {"note": "from the SDK"}
 
+    async def test_create_workspace_scopes_to_the_given_devices(self, recorder: Recorder) -> None:
+        """Without `devices`, a workspace forks every source in the parent network."""
+        recorder.add(
+            "POST",
+            "/api/networks/101/workspaces",
+            json_response({"id": "9", "name": "Change window", "orgId": "7", "parentId": "101"}),
+        )
+        async with make_client(recorder) as client:
+            workspace = await client.networks.create_workspace(
+                "101",
+                name="Change window",
+                devices=["dc-core01"],
+                omissions=["NQE_CHECKS"],
+            )
+
+        assert workspace.parent_id == "101"
+        assert recorder.body_for() == {
+            "name": "Change window",
+            "devices": ["dc-core01"],
+            "omissions": ["NQE_CHECKS"],
+        }
+
     async def test_version(self, recorder: Recorder) -> None:
         recorder.add("GET", "/api/version", json_response({"version": "26.4.1", "build": "abc"}))
         async with make_client(recorder) as client:

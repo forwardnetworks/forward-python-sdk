@@ -46,13 +46,28 @@ def delete_network(*, network_id: str) -> RequestSpec:
 
 @op("createWorkspaceNetwork")
 def create_workspace(
-    *, network_id: str, name: str | None = None, retention_days: int | None = None
+    *,
+    network_id: str,
+    name: str | None = None,
+    retention_days: int | None = None,
+    devices: Sequence[str] | None = None,
+    cloud_accounts: Sequence[str] | None = None,
+    vcenters: Sequence[str] | None = None,
+    omissions: Sequence[str] | None = None,
 ) -> RequestSpec:
     body: dict[str, Any] = {}
     if name is not None:
         body["name"] = name
     if retention_days is not None:
         body["retentionDays"] = retention_days
+    if devices is not None:
+        body["devices"] = list(devices)
+    if cloud_accounts is not None:
+        body["cloudAccounts"] = list(cloud_accounts)
+    if vcenters is not None:
+        body["vcenters"] = list(vcenters)
+    if omissions is not None:
+        body["omissions"] = list(omissions)
     return spec_for(
         "createWorkspaceNetwork",
         path_params={"networkId": network_id},

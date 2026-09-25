@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from forward_sdk._async.services._base import AsyncService
@@ -60,13 +60,27 @@ class AsyncNetworksService(AsyncService):
         *,
         name: str | None = None,
         retention_days: int | None = None,
+        devices: Sequence[str] | None = None,
+        cloud_accounts: Sequence[str] | None = None,
+        vcenters: Sequence[str] | None = None,
+        omissions: Sequence[str] | None = None,
     ) -> Network:
-        """Fork a network into a workspace for what-if changes."""
+        """Fork a network into a workspace for what-if changes.
+
+        Omit ``devices``, ``cloud_accounts`` and ``vcenters`` to fork every source in the
+        parent network. Pass any of them to scope the workspace to a subset instead --
+        useful for a change window that only touches a handful of devices. At least one
+        of the three is required by the API if any is passed at all.
+        """
         payload = await self._send_json(
             ops.create_workspace(
                 network_id=self._network(network_id),
                 name=name,
                 retention_days=retention_days,
+                devices=devices,
+                cloud_accounts=cloud_accounts,
+                vcenters=vcenters,
+                omissions=omissions,
             )
         )
         return Network.model_validate(payload or {})

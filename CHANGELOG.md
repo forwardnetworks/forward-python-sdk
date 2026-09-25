@@ -3,6 +3,16 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [0.1.17] - 2026-09-25
+
+### Added
+
+- `networks.create_workspace()` now accepts `devices`, `cloud_accounts`, `vcenters` and
+  `omissions`, matching the full `POST /networks/{networkId}/workspaces` request body.
+  Previously only `name` and `retention_days` were exposed, so every workspace forked the
+  parent network's *entire* device set -- there was no way to scope a workspace to the
+  handful of devices actually in a change window, which is the feature's whole point.
+
 ## [0.1.16] - 2026-09-17
 
 ### Added

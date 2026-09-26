@@ -3,6 +3,18 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Added
+
+- `busy_timeout` on `ai.start()`, `ai.ask()` and a conversation's `ask()` /
+  `ask_and_wait()`. Forward answers one question per user at a time and refuses the
+  next with a 429 ("Please wait until 'conversation-212' is done processing"); the
+  question was never accepted, so it is safe to repeat, but the transport retries no
+  POST. With `busy_timeout` the SDK waits its turn (every five seconds, or after
+  `Retry-After`) instead of raising `ForwardRateLimitError`. Default `0`: unchanged.
+  Found when a webhook's remediation chat landed while a research chat was thinking.
+
 ## [0.1.18] - 2026-09-25
 
 ### Added

@@ -16,6 +16,15 @@ state should read the error, not a second vocabulary invented here.
 Answers are produced asynchronously. Starting a chat returns immediately with
 the chat in ``PROCESSING``; :meth:`AsyncAiConversation.wait` polls until it is ``DONE``,
 following the same idiom as an NQE execution.
+
+**One question at a time per user.** While any of your chats is still answering,
+Forward refuses a new question -- in that chat or any other -- with a 429 naming
+the busy one ("Please wait until 'conversation-212' is done processing"). The
+question was not accepted, so asking again is safe, but the transport does not
+retry a POST on its own. Pass ``busy_timeout`` to wait for your turn instead of
+raising :class:`~forward_sdk.errors.ForwardRateLimitError`. Anything that asks
+while something else might be asking -- a webhook hook, a second script, a
+dashboard -- needs it.
 """
 
 from __future__ import annotations
@@ -27,8 +36,9 @@ from typing import Any
 
 from forward_sdk._async.services._base import AsyncService
 from forward_sdk._generated.models import AiChat, AiMessage, AiMessageAnswer
+from forward_sdk._ops import RequestSpec
 from forward_sdk._ops import ai as ops
-from forward_sdk.errors import ForwardTimeoutError
+from forward_sdk.errors import ForwardRateLimitError, ForwardTimeoutError
 
 __all__ = ["AsyncAiConversation", "AsyncAiService", "answer_of"]
 
@@ -39,6 +49,8 @@ PROCESSING = "PROCESSING"
 POLL_INTERVAL = 3.0
 INITIAL_POLL_INTERVAL = 1.0
 DEFAULT_TIMEOUT = 600.0
+#: How often to try again while another of your chats is still answering.
+BUSY_POLL_INTERVAL = 5.0
 
 
 def answer_of(message: AiMessage) -> AiMessageAnswer | None:
@@ -58,6 +70,23 @@ def answer_of(message: AiMessage) -> AiMessageAnswer | None:
     if reason:
         return AiMessageAnswer(summary=str(reason), outOfScope=True)
     return None
+
+
+async def _send_when_not_busy(service: AsyncService, spec: RequestSpec, busy_timeout: float) -> Any:
+    """Send ``spec``, again each time Forward says another chat is still answering.
+
+    A 429 here means the question was refused, not queued, so repeating it
+    cannot leave a second one behind. ``busy_timeout=0`` sends exactly once.
+    """
+    deadline = time.monotonic() + busy_timeout
+    while True:
+        try:
+            return await service._send_json(spec)
+        except ForwardRateLimitError as exc:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise
+            await asyncio.sleep(min(exc.retry_after or BUSY_POLL_INTERVAL, remaining))
 
 
 def _status_of(chat: AiChat | Mapping[str, Any]) -> str:
@@ -146,12 +175,16 @@ class AsyncAiConversation:
         rows = (payload or {}).get("messages") or []
         return [AiMessage.model_validate(row) for row in rows]
 
-    async def ask(self, prompt: str) -> None:
+    async def ask(self, prompt: str, *, busy_timeout: float = 0.0) -> None:
         """Ask a follow-up question.
 
         Returns as soon as Forward accepts it. Call :meth:`wait` for the answer.
+        ``busy_timeout`` is how long to wait while another chat is answering;
+        see the module docstring.
         """
-        await self._service._send_json(ops.add_message(chat_id=self.id, prompt=prompt))
+        await _send_when_not_busy(
+            self._service, ops.add_message(chat_id=self.id, prompt=prompt), busy_timeout
+        )
         self._chat = self._chat.model_copy(update={"status": PROCESSING})
 
     async def latest_answer(self) -> AiMessageAnswer | None:
@@ -160,10 +193,14 @@ class AsyncAiConversation:
         return answer_of(messages[-1]) if messages else None
 
     async def ask_and_wait(
-        self, prompt: str, *, timeout: float | None = DEFAULT_TIMEOUT
+        self,
+        prompt: str,
+        *,
+        timeout: float | None = DEFAULT_TIMEOUT,
+        busy_timeout: float = 0.0,
     ) -> AiMessage | None:
         """Ask a follow-up and return the answer, or ``None`` if there is none."""
-        await self.ask(prompt)
+        await self.ask(prompt, busy_timeout=busy_timeout)
         await self.wait(timeout=timeout)
         messages = await self.messages()
         return messages[-1] if messages else None
@@ -207,6 +244,7 @@ class AsyncAiService(AsyncService):
         *,
         network_id: str | None = None,
         snapshot_id: str | None = None,
+        busy_timeout: float = 0.0,
     ) -> AsyncAiConversation:
         """Start a chat and ask its first question.
 
@@ -214,16 +252,20 @@ class AsyncAiService(AsyncService):
         ``PROCESSING``. Call :meth:`AsyncAiConversation.wait` for the answer, or use
         :meth:`ask` to do both.
 
+        ``busy_timeout`` is how long to wait for your turn if another of your
+        chats is still answering; ``0`` raises
+        :class:`~forward_sdk.errors.ForwardRateLimitError` at once. See the module
+        docstring.
+
         Note this creates something: a chat is stored against your user until
         deleted.
         """
-        payload = await self._send_json(
-            ops.start_chat(
-                network_id=self._network(network_id),
-                prompt=prompt,
-                snapshot_id=self._snapshot(snapshot_id),
-            )
+        spec = ops.start_chat(
+            network_id=self._network(network_id),
+            prompt=prompt,
+            snapshot_id=self._snapshot(snapshot_id),
         )
+        payload = await _send_when_not_busy(self, spec, busy_timeout)
         return AsyncAiConversation(self, AiChat.model_validate(payload or {}))
 
     async def ask(
@@ -233,6 +275,7 @@ class AsyncAiService(AsyncService):
         network_id: str | None = None,
         snapshot_id: str | None = None,
         timeout: float | None = DEFAULT_TIMEOUT,
+        busy_timeout: float = 0.0,
     ) -> AiMessage | None:
         """Ask one question and wait for the answer.
 
@@ -240,7 +283,9 @@ class AsyncAiService(AsyncService):
         :meth:`start` when you want to keep asking follow-ups in the same
         conversation, which keeps them grounded in the same snapshot.
         """
-        chat = await self.start(prompt, network_id=network_id, snapshot_id=snapshot_id)
+        chat = await self.start(
+            prompt, network_id=network_id, snapshot_id=snapshot_id, busy_timeout=busy_timeout
+        )
         await chat.wait(timeout=timeout)
         messages = await chat.messages()
         return messages[-1] if messages else None

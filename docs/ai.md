@@ -99,3 +99,26 @@ Starting a chat creates something that persists against your user until deleted.
 and raises `ForwardTimeoutError` if your deadline passes first. Forward keeps
 working when that happens and the handle stays usable, so a timeout is a
 decision to stop waiting rather than a cancellation.
+
+## One question at a time
+
+Forward answers one question per user at a time. While any of your chats is
+still answering, a new question -- a new chat or a follow-up in any chat -- is
+refused with a 429 naming the busy one:
+
+```
+Please wait until 'conversation-212' is done processing
+```
+
+The question was refused, not queued, so asking again cannot leave a second
+chat behind. The transport still does not retry it on its own, because it
+retries no POST. Opt in with `busy_timeout`, in seconds:
+
+```python
+chat = client.ai.start(prompt, busy_timeout=300)   # also ai.ask(), chat.ask()
+```
+
+It retries every five seconds, or after `Retry-After` when Forward sends one,
+and raises the last `ForwardRateLimitError` once the time is up. The default,
+`0`, raises at once, as before. Anything that asks while something else might
+be asking -- a webhook hook, a second script, a dashboard -- needs it.

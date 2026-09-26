@@ -19,6 +19,15 @@ state should read the error, not a second vocabulary invented here.
 Answers are produced asynchronously. Starting a chat returns immediately with
 the chat in ``PROCESSING``; :meth:`AiConversation.wait` polls until it is ``DONE``,
 following the same idiom as an NQE execution.
+
+**One question at a time per user.** While any of your chats is still answering,
+Forward refuses a new question -- in that chat or any other -- with a 429 naming
+the busy one ("Please wait until 'conversation-212' is done processing"). The
+question was not accepted, so asking again is safe, but the transport does not
+retry a POST on its own. Pass ``busy_timeout`` to wait for your turn instead of
+raising :class:`~forward_sdk.errors.ForwardRateLimitError`. Anything that asks
+while something else might be asking -- a webhook hook, a second script, a
+dashboard -- needs it.
 """
 
 from __future__ import annotations
@@ -28,9 +37,10 @@ from collections.abc import Mapping
 from typing import Any
 
 from forward_sdk._generated.models import AiChat, AiMessage, AiMessageAnswer
+from forward_sdk._ops import RequestSpec
 from forward_sdk._ops import ai as ops
 from forward_sdk._sync.services._base import Service
-from forward_sdk.errors import ForwardTimeoutError
+from forward_sdk.errors import ForwardRateLimitError, ForwardTimeoutError
 
 __all__ = ["AiConversation", "AiService", "answer_of"]
 
@@ -41,6 +51,8 @@ PROCESSING = "PROCESSING"
 POLL_INTERVAL = 3.0
 INITIAL_POLL_INTERVAL = 1.0
 DEFAULT_TIMEOUT = 600.0
+#: How often to try again while another of your chats is still answering.
+BUSY_POLL_INTERVAL = 5.0
 
 
 def answer_of(message: AiMessage) -> AiMessageAnswer | None:
@@ -60,6 +72,23 @@ def answer_of(message: AiMessage) -> AiMessageAnswer | None:
     if reason:
         return AiMessageAnswer(summary=str(reason), outOfScope=True)
     return None
+
+
+def _send_when_not_busy(service: Service, spec: RequestSpec, busy_timeout: float) -> Any:
+    """Send ``spec``, again each time Forward says another chat is still answering.
+
+    A 429 here means the question was refused, not queued, so repeating it
+    cannot leave a second one behind. ``busy_timeout=0`` sends exactly once.
+    """
+    deadline = time.monotonic() + busy_timeout
+    while True:
+        try:
+            return service._send_json(spec)
+        except ForwardRateLimitError as exc:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise
+            time.sleep(min(exc.retry_after or BUSY_POLL_INTERVAL, remaining))
 
 
 def _status_of(chat: AiChat | Mapping[str, Any]) -> str:
@@ -148,12 +177,16 @@ class AiConversation:
         rows = (payload or {}).get("messages") or []
         return [AiMessage.model_validate(row) for row in rows]
 
-    def ask(self, prompt: str) -> None:
+    def ask(self, prompt: str, *, busy_timeout: float = 0.0) -> None:
         """Ask a follow-up question.
 
         Returns as soon as Forward accepts it. Call :meth:`wait` for the answer.
+        ``busy_timeout`` is how long to wait while another chat is answering;
+        see the module docstring.
         """
-        self._service._send_json(ops.add_message(chat_id=self.id, prompt=prompt))
+        _send_when_not_busy(
+            self._service, ops.add_message(chat_id=self.id, prompt=prompt), busy_timeout
+        )
         self._chat = self._chat.model_copy(update={"status": PROCESSING})
 
     def latest_answer(self) -> AiMessageAnswer | None:
@@ -162,10 +195,14 @@ class AiConversation:
         return answer_of(messages[-1]) if messages else None
 
     def ask_and_wait(
-        self, prompt: str, *, timeout: float | None = DEFAULT_TIMEOUT
+        self,
+        prompt: str,
+        *,
+        timeout: float | None = DEFAULT_TIMEOUT,
+        busy_timeout: float = 0.0,
     ) -> AiMessage | None:
         """Ask a follow-up and return the answer, or ``None`` if there is none."""
-        self.ask(prompt)
+        self.ask(prompt, busy_timeout=busy_timeout)
         self.wait(timeout=timeout)
         messages = self.messages()
         return messages[-1] if messages else None
@@ -207,6 +244,7 @@ class AiService(Service):
         *,
         network_id: str | None = None,
         snapshot_id: str | None = None,
+        busy_timeout: float = 0.0,
     ) -> AiConversation:
         """Start a chat and ask its first question.
 
@@ -214,16 +252,20 @@ class AiService(Service):
         ``PROCESSING``. Call :meth:`AiConversation.wait` for the answer, or use
         :meth:`ask` to do both.
 
+        ``busy_timeout`` is how long to wait for your turn if another of your
+        chats is still answering; ``0`` raises
+        :class:`~forward_sdk.errors.ForwardRateLimitError` at once. See the module
+        docstring.
+
         Note this creates something: a chat is stored against your user until
         deleted.
         """
-        payload = self._send_json(
-            ops.start_chat(
-                network_id=self._network(network_id),
-                prompt=prompt,
-                snapshot_id=self._snapshot(snapshot_id),
-            )
+        spec = ops.start_chat(
+            network_id=self._network(network_id),
+            prompt=prompt,
+            snapshot_id=self._snapshot(snapshot_id),
         )
+        payload = _send_when_not_busy(self, spec, busy_timeout)
         return AiConversation(self, AiChat.model_validate(payload or {}))
 
     def ask(
@@ -233,6 +275,7 @@ class AiService(Service):
         network_id: str | None = None,
         snapshot_id: str | None = None,
         timeout: float | None = DEFAULT_TIMEOUT,
+        busy_timeout: float = 0.0,
     ) -> AiMessage | None:
         """Ask one question and wait for the answer.
 
@@ -240,7 +283,9 @@ class AiService(Service):
         :meth:`start` when you want to keep asking follow-ups in the same
         conversation, which keeps them grounded in the same snapshot.
         """
-        chat = self.start(prompt, network_id=network_id, snapshot_id=snapshot_id)
+        chat = self.start(
+            prompt, network_id=network_id, snapshot_id=snapshot_id, busy_timeout=busy_timeout
+        )
         chat.wait(timeout=timeout)
         messages = chat.messages()
         return messages[-1] if messages else None

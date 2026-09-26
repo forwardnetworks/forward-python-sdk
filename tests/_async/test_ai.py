@@ -13,7 +13,7 @@ import httpx
 import pytest
 
 from forward_sdk._async.client import AsyncForwardClient
-from forward_sdk.errors import ForwardPermissionError, ForwardTimeoutError
+from forward_sdk.errors import ForwardPermissionError, ForwardRateLimitError, ForwardTimeoutError
 from tests.conftest import Recorder, error_response, json_response
 
 pytestmark = pytest.mark.anyio
@@ -224,3 +224,90 @@ class TestUnavailable:
                 await client.ai.start("why?")
 
         assert recorder.count("POST", CHATS) == 1
+
+
+BUSY = "Please wait until 'conversation-212' is done processing"
+
+
+class TestOneQuestionAtATime:
+    """Forward answers one question per user at a time and refuses the rest with 429.
+
+    Seen live: a webhook's remediation chat landing while a research chat was
+    still thinking. The refused question was never accepted, so asking again
+    cannot leave a second chat behind -- but only if the caller opts in.
+    """
+
+    async def test_refused_at_once_by_default(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add("POST", CHATS, error_response(429, BUSY, method="POST"))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardRateLimitError, match="conversation-212"):
+                await client.ai.start("q")
+
+        assert recorder.count("POST", CHATS) == 1
+
+    async def test_busy_timeout_waits_for_the_other_chat(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add(
+            "POST",
+            CHATS,
+            error_response(429, BUSY, method="POST"),
+            error_response(429, BUSY, method="POST"),
+            json_response(THINKING, status=201),
+        )
+        async with make_client(recorder) as client:
+            chat = await client.ai.start("q", busy_timeout=60)
+
+        assert chat.id == "42"
+        assert recorder.count("POST", CHATS) == 3
+        assert no_sleep == [5.0, 5.0]
+
+    async def test_busy_timeout_gives_up_with_the_last_refusal(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add("POST", CHATS, *[error_response(429, BUSY, method="POST")] * 5)
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardRateLimitError, match="conversation-212"):
+                await client.ai.start("q", busy_timeout=12)
+
+        assert sum(no_sleep) <= 12
+        assert recorder.count("POST", CHATS) == 4
+
+    async def test_retry_after_is_honoured(self, recorder: Recorder, no_sleep: list[float]) -> None:
+        recorder.add(
+            "POST",
+            CHATS,
+            error_response(429, BUSY, method="POST", headers={"Retry-After": "2"}),
+            json_response(THINKING, status=201),
+        )
+        async with make_client(recorder) as client:
+            await client.ai.start("q", busy_timeout=60)
+
+        assert no_sleep == [2.0]
+
+    async def test_ask_passes_it_through(self, recorder: Recorder, no_sleep: list[float]) -> None:
+        recorder.add(
+            "POST",
+            CHATS,
+            error_response(429, BUSY, method="POST"),
+            json_response(ANSWERED, status=201),
+        )
+        recorder.add("GET", MESSAGES, json_response({"messages": [message()]}))
+        async with make_client(recorder) as client:
+            answer = await client.ai.ask("q", busy_timeout=60)
+
+        assert answer is not None
+        assert recorder.count("POST", CHATS) == 2
+
+    async def test_a_follow_up_waits_too(self, recorder: Recorder, no_sleep: list[float]) -> None:
+        recorder.add("POST", CHATS, json_response(ANSWERED, status=201))
+        recorder.add(
+            "POST", MESSAGES, error_response(429, BUSY, method="POST"), httpx.Response(202)
+        )
+        async with make_client(recorder) as client:
+            chat = await client.ai.start("first")
+            await chat.ask("follow up", busy_timeout=60)
+
+        assert recorder.count("POST", MESSAGES) == 2

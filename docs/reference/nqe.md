@@ -12,4 +12,6 @@
 
 ::: forward_sdk.nqe.files
 
+::: forward_sdk.nqe.bundle
+
 ::: forward_sdk.nqe.where

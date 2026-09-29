@@ -5288,6 +5288,19 @@ class SnapshotState(OpenEnum):
     restore_failed = "RESTORE_FAILED"
 
 
+class SnapshotStateChange(ForwardModel):
+    """
+    A snapshot's processing state before and after a request.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    previous_state: Annotated[SnapshotState | None, Field(alias="previousState")] = None
+    state: SnapshotState | None = None
+
+
 class AuthType(OpenEnum):
     md5 = "MD5"
     sha = "SHA"

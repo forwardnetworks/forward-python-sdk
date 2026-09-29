@@ -21,7 +21,7 @@ import httpx
 from forward_sdk._http import RETRYABLE_STATUS, backoff_delay, parse_retry_after, raise_for_response
 from forward_sdk._ops import RequestSpec
 from forward_sdk._sync.throttle import RateLimiter, Throttle
-from forward_sdk.config import ClientConfig
+from forward_sdk.config import ClientConfig, tls_verify
 from forward_sdk.errors import ForwardTransportError
 from forward_sdk.telemetry import Counters, Hooks
 
@@ -54,7 +54,7 @@ class Transport:
         self._client = httpx.Client(
             base_url=config.base_url,
             auth=config.auth,
-            verify=config.verify,
+            verify=tls_verify(config.verify),
             timeout=config.timeout,
             transport=transport,
             trust_env=config.trust_env,

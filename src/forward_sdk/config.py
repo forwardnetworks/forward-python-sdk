@@ -10,6 +10,7 @@ reliably. See ``docs/gating.md``.
 from __future__ import annotations
 
 import os
+import ssl
 from dataclasses import dataclass, field, replace
 from typing import Any, Literal
 from urllib.parse import urlsplit
@@ -89,7 +90,9 @@ class ClientConfig:
         base_url: API root, always ending in ``/api``.
         username: API token access key, or a login name.
         password: API token secret, or a password.
-        verify: TLS verification, as ``httpx`` accepts it.
+        verify: TLS verification: ``True`` (the system trust store), ``False``
+            (disabled), or the path to a CA bundle file or directory for a
+            deployment whose certificate chains to a private root.
         timeout: Per-request timeouts.
         stream_read_timeout: Read timeout for streaming responses.
         retries: Retry policy.
@@ -206,11 +209,48 @@ def _env(name: str, environ: dict[str, str]) -> str | None:
     return value.strip() if value and value.strip() else None
 
 
-def _env_bool(name: str, environ: dict[str, str], default: bool) -> bool:
-    raw = _env(name, environ)
-    if raw is None:
-        return default
-    return raw.lower() not in {"0", "false", "no", "off"}
+_FALSE = frozenset({"0", "false", "no", "off"})
+_TRUE = frozenset({"1", "true", "yes", "on"})
+
+
+def _env_verify(environ: dict[str, str]) -> bool | str:
+    """``FORWARD_VERIFY_TLS``: a boolean, or the path to a CA bundle.
+
+    A self-hosted deployment usually presents a certificate from a private CA.
+    The fix is to trust that CA, not to turn verification off, so the variable
+    also takes a path. Anything that is neither a recognised boolean nor an
+    existing path is refused: reading ``/etc/fwd/ca.pem`` with a typo as "true"
+    would silently verify against the wrong trust store.
+    """
+    raw = _env("VERIFY_TLS", environ)
+    if raw is None or raw.lower() in _TRUE:
+        return True
+    if raw.lower() in _FALSE:
+        return False
+    return _ca_path(raw, source="FORWARD_VERIFY_TLS")
+
+
+def _ca_path(value: str, *, source: str) -> str:
+    path = os.path.expanduser(value)
+    if not os.path.exists(path):
+        expected = "true/false or " if source.startswith("FORWARD_") else ""
+        raise ForwardConfigurationError(
+            f"{source}={value!r} is not {expected}an existing CA bundle file or directory"
+        )
+    return path
+
+
+def tls_verify(verify: bool | str | ssl.SSLContext) -> bool | ssl.SSLContext:
+    """Turn a ``verify`` setting into what ``httpx`` accepts without a deprecation.
+
+    httpx 0.28 deprecates a string ``verify``; a CA path becomes an
+    :class:`ssl.SSLContext` here, once, so callers can keep passing a path.
+    """
+    if isinstance(verify, (bool, ssl.SSLContext)):
+        return verify
+    if os.path.isdir(verify):
+        return ssl.create_default_context(capath=verify)
+    return ssl.create_default_context(cafile=verify)
 
 
 def config_from_env(environ: dict[str, str] | None = None, **overrides: Any) -> dict[str, Any]:
@@ -235,7 +275,7 @@ def config_from_env(environ: dict[str, str] | None = None, **overrides: Any) -> 
         "network_id": _env("NETWORK_ID", environ),
         "snapshot_id": _env("SNAPSHOT_ID", environ),
         "user_agent": _env("USER_AGENT", environ),
-        "verify": _env_bool("VERIFY_TLS", environ, True),
+        "verify": _env_verify(environ),
     }
 
     timeout = _env("TIMEOUT", environ)
@@ -286,6 +326,8 @@ def build_config(
             "username and password must be provided together "
             "(use an API token's access key and secret)"
         )
+    if isinstance(verify, str):
+        verify = _ca_path(verify, source="verify")
 
     config = ClientConfig(
         base_url=normalized,

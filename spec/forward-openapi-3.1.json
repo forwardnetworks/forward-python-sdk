@@ -14038,6 +14038,18 @@
         ],
         "type": "string"
       },
+      "SnapshotStateChange": {
+        "description": "A snapshot's processing state before and after a request.",
+        "properties": {
+          "previousState": {
+            "$ref": "#/components/schemas/SnapshotState"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SnapshotState"
+          }
+        },
+        "type": "object"
+      },
       "SnmpAuthSettings": {
         "description": "SNMPv3 settings. The security level is implied by what is present: username alone, plus authType and password, plus privacyProtocol and privacyPassword. Passwords must be at least 8 bytes, are accepted on input, and come back as the numeric id of the stored secret.",
         "properties": {
@@ -16935,6 +16947,18 @@
         "tags": [
           "Collectors"
         ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "upgradeCollectors",
+            "summary": "Upgrade every online collector in the org that supports it",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "upgrade"
+              ]
+            ]
+          }
+        ],
         "x-forward-stability": "unpublished"
       }
     },
@@ -16959,6 +16983,36 @@
         "summary": "Delete a collector account and all related state",
         "tags": [
           "Collectors"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Refused with 400 when the collector is offline, never connected, not remotely upgradeable or already current, and with 409 when an upgrade is already running. upgradeCollectors skips such collectors instead.",
+        "operationId": "upgradeCollector",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectorName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Upgrade started."
+          }
+        },
+        "summary": "Upgrade one collector, if it is online and supports it",
+        "tags": [
+          "Collectors"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "upgrade"
+          ]
         ],
         "x-forward-stability": "unpublished"
       }
@@ -33927,6 +33981,26 @@
                 "computeAdvancedReachability"
               ]
             ]
+          },
+          {
+            "operationId": "invalidateSnapshot",
+            "summary": "Discard a snapshot's model so its collected data is processed again",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "invalidate"
+              ]
+            ]
+          },
+          {
+            "operationId": "reprocessSnapshot",
+            "summary": "Request processing of a snapshot that was already invalidated",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "reprocess"
+              ]
+            ]
           }
         ]
       }
@@ -34888,6 +34962,46 @@
           "Network Topology"
         ],
         "x-position": 10
+      }
+    },
+    "/software/client": {
+      "get": {
+        "operationId": "getClientPackage",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "default": "MANUAL_ZIP",
+              "enum": [
+                "MANUAL_ZIP",
+                "WINDOWS_X64",
+                "HEADLESS_WINDOWS_X64",
+                "OSX",
+                "LINUX",
+                "HEADLESS_LINUX",
+                "UPDATES_XML"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/gzip": {},
+              "application/octet-stream": {},
+              "application/zip": {}
+            },
+            "description": "The package, streamed."
+          }
+        },
+        "summary": "Download a Forward client package",
+        "tags": [
+          "Client Software"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/users": {

@@ -105,5 +105,8 @@ HAND_WRITTEN_TAGS: frozenset[str] = frozenset(
         # A Server-Sent Events stream that never ends; parsing it into typed
         # events is a loop, not a method per endpoint.
         "User Events",
+        # A binary download whose useful form is "save it and tell me its name and
+        # digest", which a generated method returning bare chunks cannot say.
+        "Client Software",
     }
 )

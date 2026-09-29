@@ -27,6 +27,14 @@ from forward_sdk.errors import (
     ForwardConflictError,
     ForwardNotFoundError,
 )
+from forward_sdk.nqe.bundle import (
+    FWD_IMPORT_PREFIX,
+    NqeBundle,
+    NqeBundleError,
+    bundle_sources,
+    import_paths,
+    module_path,
+)
 from forward_sdk.nqe.query_ref import sanitize_commit_id
 from forward_sdk.nqe.repository import (
     INVALID_CHANGE_PATH,
@@ -196,6 +204,91 @@ class NqeRepository(Service):
         raise ForwardNotFoundError(
             f"query {normalized!r} exists at commit {entry.commit_id} but Forward "
             "returned no source for it",
+            status=404,
+        )
+
+    def bundle(
+        self,
+        entry: str,
+        *,
+        commit_id: str,
+        overrides: Mapping[str, str] | None = None,
+        repository: str = "org",
+    ) -> NqeBundle:
+        """One self-contained query: ``entry`` and its imports, some replaced.
+
+        Every module is read at ``commit_id`` unless ``overrides`` supplies its
+        source, so an edit to a deeply imported helper can be run -- and
+        compared with the commit it came from -- before anything is committed.
+        Pass the result's ``source`` to ``QueryRef.inline``. Forward resolves an
+        inline query's imports against the library's head, or not at all, so a
+        bundle imports nothing. See :mod:`forward_sdk.nqe.bundle`.
+
+        ``"head"`` is accepted and resolved once, and the resolved commit is
+        recorded on the bundle, so two bundles built minutes apart cannot
+        silently read different versions of the same module.
+
+        Args:
+            entry: Library path of the query to run.
+            commit_id: The library commit to read every other module at.
+            overrides: Replacement source keyed by library path. A path that
+                is not already imported may be added this way only if a
+                replaced module imports it.
+
+        Raises:
+            NqeBundleError: If the modules cannot be merged safely, an override
+                names a module the query never imports, or a module imports
+                Forward's own library, whose commit this does not pin.
+            ForwardNotFoundError: If a module is missing at that commit.
+        """
+        pinned = sanitize_commit_id(commit_id)
+        if pinned is None:
+            pinned = self.head_commit_id()
+            if pinned is None:
+                raise ForwardNotFoundError(
+                    f"the {repository} repository has no commit to read from", status=404
+                )
+        replaced = {module_path(path): text for path, text in (overrides or {}).items()}
+        sources = dict(replaced)
+        pending = [module_path(entry)]
+        visited: set[str] = set()
+        while pending:
+            path = pending.pop()
+            if path in visited:
+                continue
+            visited.add(path)
+            if path not in sources:
+                if path.startswith(FWD_IMPORT_PREFIX):
+                    raise NqeBundleError(
+                        f"{path} is in Forward's library; bundling it needs that library's "
+                        "commit as well, which is not supported yet"
+                    )
+                sources[path] = self._source_at(path, pinned, repository)
+            # An override's own imports still have to be read from the library.
+            pending.extend(p for p in import_paths(sources[path]) if p not in visited)
+        bundle = bundle_sources(entry, sources)
+        unused = sorted(set(replaced) - set(bundle.modules))
+        if unused:
+            raise NqeBundleError(
+                f"overrides for modules the query never imports: {', '.join(unused)}"
+            )
+        return replace(
+            bundle,
+            overridden=tuple(p for p in bundle.modules if p in replaced),
+            commit_id=pinned,
+        )
+
+    def _source_at(self, path: str, commit_id: str, repository: str) -> str:
+        found = self.queries(
+            repository=repository, commit_id=commit_id, path=path, with_source=True
+        )
+        # Forward answers a path-filtered lookup with the path left empty, so an
+        # entry is rejected only when it names a different query outright.
+        for candidate in found:
+            if candidate.path in (None, "", path) and candidate.source is not None:
+                return candidate.source
+        raise ForwardNotFoundError(
+            f"query {path!r} has no source at commit {commit_id} in the {repository} repository",
             status=404,
         )
 

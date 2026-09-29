@@ -12,6 +12,7 @@ import httpx
 from forward_sdk._sync.services._generated import GeneratedServices
 from forward_sdk._sync.services.ai import AiService
 from forward_sdk._sync.services.change_sets import ChangeSetsService
+from forward_sdk._sync.services.client_software import ClientSoftwareService
 from forward_sdk._sync.services.device_tags import DeviceTagsService
 from forward_sdk._sync.services.devices import DevicesService
 from forward_sdk._sync.services.diffs import SnapshotDiffsService
@@ -119,6 +120,7 @@ class ForwardClient(GeneratedServices):
         self.change_sets = ChangeSetsService(self._transport, self.snapshots)
         self.user_events = UserEventsService(self._transport)
         self.tapi_network_containers = TapiNetworkContainersService(self._transport)
+        self.client_software = ClientSoftwareService(self._transport)
 
         # The rest of the API, one attribute per group; see scripts/gen_services.py.
         self._attach_generated_services(self._transport)

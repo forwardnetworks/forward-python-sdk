@@ -24,6 +24,7 @@ from forward_sdk.errors import (
     ForwardTimeoutError,
 )
 from forward_sdk.nqe.where import tag_scope
+from forward_sdk.snapshot_state import SnapshotStateChange
 
 __all__ = ["AsyncSnapshotsService"]
 
@@ -330,6 +331,39 @@ class AsyncSnapshotsService(AsyncService):
                 "numProcessingFailureEndpoints",
             )
         )
+
+    async def invalidate(self, snapshot_id: str, *, reprocess: bool = False) -> SnapshotStateChange:
+        """Discard a snapshot's model so its collected data is processed again.
+
+        The snapshot keeps its id: reprocessing rebuilds it in place under the
+        org's current settings, which is how a parser or modelling change
+        reaches data already collected. Until processing finishes it cannot
+        answer queries, and if it is the network's only processed snapshot the
+        network has none in the meantime. Nothing here waits; follow with
+        :meth:`wait_until_processed`.
+
+        Args:
+            reprocess: Request processing now rather than when the snapshot is
+                next needed.
+        """
+        payload = await self._send_json(
+            ops.invalidate_snapshot(snapshot_id=snapshot_id, reprocess=reprocess or None)
+        )
+        self.clear_cache()
+        return SnapshotStateChange.from_payload(payload)
+
+    async def reprocess(self, snapshot_id: str, *, invalidate: bool = True) -> SnapshotStateChange:
+        """Rebuild a snapshot's model in place from its collected data.
+
+        By default this invalidates and requests processing in one call. Pass
+        ``invalidate=False`` for a snapshot already invalidated; Forward refuses
+        to reprocess one that is not.
+        """
+        if invalidate:
+            return await self.invalidate(snapshot_id, reprocess=True)
+        payload = await self._send_json(ops.reprocess_snapshot(snapshot_id=snapshot_id))
+        self.clear_cache()
+        return SnapshotStateChange.from_payload(payload)
 
     async def delete(self, snapshot_id: str) -> None:
         await self._send_json(ops.delete_snapshot(snapshot_id=snapshot_id))

@@ -28,7 +28,7 @@ client = ForwardClient(
 | `FORWARD_PASSWORD` | API token secret, or a password. |
 | `FORWARD_NETWORK_ID` | Default network. |
 | `FORWARD_SNAPSHOT_ID` | Default snapshot. |
-| `FORWARD_VERIFY_TLS` | `false` disables certificate verification. |
+| `FORWARD_VERIFY_TLS` | `false` disables certificate verification; a path to a CA bundle file or directory verifies against that CA instead of the system trust store (the usual fix for a private CA). |
 | `FORWARD_TIMEOUT` | Read timeout in seconds. |
 | `FORWARD_RETRIES` | Retry count. |
 | `FORWARD_RATE_LIMIT_RPM` | Requests per minute. |

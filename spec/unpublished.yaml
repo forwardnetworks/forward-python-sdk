@@ -2887,6 +2887,38 @@ paths:
       responses:
         "204": { description: Deleted. }
 
+  /collectors/{collectorName}?action=upgrade:
+    post:
+      operationId: upgradeCollector
+      summary: Upgrade one collector, if it is online and supports it
+      description: >-
+        Refused with 400 when the collector is offline, never connected, not
+        remotely upgradeable or already current, and with 409 when an upgrade is
+        already running. upgradeCollectors skips such collectors instead.
+      x-forward-stability: unpublished
+      tags: [Collectors]
+      parameters:
+        - { name: collectorName, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Upgrade started. }
+
+  /collectors?action=upgrade:
+    post:
+      operationId: upgradeCollectors
+      summary: Upgrade every online collector in the org that supports it
+      description: >-
+        Only collectors that support remote upgrade and auto-start are queued.
+        Returns the names of the collectors that will be upgraded.
+      x-forward-stability: unpublished
+      tags: [Collectors]
+      responses:
+        "200":
+          description: Collector names queued for upgrade.
+          content:
+            application/json:
+              schema: { type: array, items: { type: string } }
+              example: ["wells-demo-collector"]
+
   # ------------------------------------------------------ collector binding ---
   # Which collector serves a network, and how it is doing. The published
   # /collector/status is the deprecated busy flag; this is the one a pre-flight
@@ -4717,8 +4749,90 @@ paths:
             text/plain: {}
             application/octet-stream: {}
 
+  # Reprocessing rebuilds a snapshot's model in place: the id is kept and the
+  # collected data is processed again under the org's current settings, which is
+  # how a parser or modelling change reaches an existing snapshot. Forward
+  # dispatches both on ?action= against the same path as exportSnapshotSubset.
+  /snapshots/{snapshotId}?action=invalidate:
+    post:
+      operationId: invalidateSnapshot
+      summary: Discard a snapshot's model so its collected data is processed again
+      description: >-
+        The snapshot keeps its id. With reprocess=true, processing is requested
+        at once; otherwise it is rebuilt when next needed. A draft snapshot is
+        promoted first. Needs the network's INVALIDATE_SNAPSHOTS permission, or
+        a Forward administrator. Until processing finishes the snapshot cannot
+        answer queries, so a network whose only processed snapshot this is has
+        none in the meantime.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+        - { name: reprocess, in: query, schema: { type: boolean }, description: Request processing immediately. }
+      responses:
+        "200":
+          description: The snapshot's state before and after.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SnapshotStateChange" }
+              example: { previousState: PROCESSED, state: UNPROCESSED }
+
+  /snapshots/{snapshotId}?action=reprocess:
+    post:
+      operationId: reprocessSnapshot
+      summary: Request processing of a snapshot that was already invalidated
+      description: >-
+        Refused unless the snapshot is invalidated ("Snapshot ID must be
+        invalidated before reprocessing"). Needs view access and the org's
+        minimum role for reprocessing.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The snapshot's state before and after.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SnapshotStateChange" }
+              example: { previousState: UNPROCESSED, state: UNPROCESSED }
+
+  # -------------------------------------------------------- client software ---
+  # The Forward client packages, including the headless collector. Served to a
+  # signed-in user (any role) on fwd.app; an on-prem appserver answers only for
+  # WINDOWS_X64, LINUX and UPDATES_XML (OnpremClientSoftwareService) and 400s
+  # the rest ("Unsupported package type"). The file name in Content-Disposition
+  # carries the server's release, e.g. fwd-unix-26.9.0-18.tar.gz.
+  /software/client:
+    get:
+      operationId: getClientPackage
+      summary: Download a Forward client package
+      x-forward-stability: unpublished
+      tags: [Client Software]
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [MANUAL_ZIP, WINDOWS_X64, HEADLESS_WINDOWS_X64, OSX, LINUX, HEADLESS_LINUX, UPDATES_XML]
+            default: MANUAL_ZIP
+      responses:
+        "200":
+          description: The package, streamed.
+          content:
+            application/gzip: {}
+            application/zip: {}
+            application/octet-stream: {}
+
 components:
   schemas:
+    SnapshotStateChange:
+      type: object
+      description: A snapshot's processing state before and after a request.
+      properties:
+        previousState: { $ref: "#/components/schemas/SnapshotState" }
+        state: { $ref: "#/components/schemas/SnapshotState" }
     RepositoryCommit:
       type: object
       description: A commit in the NQE query library.

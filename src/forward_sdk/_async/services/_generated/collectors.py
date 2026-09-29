@@ -44,3 +44,27 @@ class AsyncCollectorsService(AsyncService):
             ops.BUILDERS["deleteCollectorAccount"](collector_name=collector_name)
         )
         return payload
+
+    async def upgrade_collector(
+        self,
+        *,
+        collector_name: str,
+    ) -> Any:
+        """Upgrade one collector, if it is online and supports it.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["upgradeCollector"](collector_name=collector_name)
+        )
+        return payload
+
+    async def upgrade_collectors(
+        self,
+    ) -> Any:
+        """Upgrade every online collector in the org that supports it.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(ops.BUILDERS["upgradeCollectors"]())
+        return payload

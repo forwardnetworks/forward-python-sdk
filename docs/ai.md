@@ -115,7 +115,7 @@ chat behind. The transport still does not retry it on its own, because it
 retries no POST. Opt in with `busy_timeout`, in seconds:
 
 ```python
-chat = client.ai.start(prompt, busy_timeout=300)   # also ai.ask(), chat.ask()
+chat = client.ai.start(prompt, busy_timeout=300)  # also ai.ask(), chat.ask()
 ```
 
 It retries every five seconds, or after `Retry-After` when Forward sends one,

@@ -44,6 +44,7 @@ operation table, so nothing lands here by accident.
 | Current user and roles | `GET /users/current` | `client.user_accounts.get_current_user()` |
 | Network data files | `GET /networks/{id}/data-files` | `client.data_files.get_data_files()` |
 | Raw snapshot artifacts | `GET /snapshots/{id}/files[/{fileName}]` | `client.snapshots.files()`, `.file()` |
+| Reprocess a snapshot in place | `POST /snapshots/{id}?action=invalidate[&reprocess=true]`, `?action=reprocess` | `client.snapshots.invalidate()`, `.reprocess()` |
 | List chats | `GET /ai-chats` | `client.ai.list()` |
 | Start a chat | `POST /ai-chats` | `client.ai.start()` |
 | Get a chat | `GET /ai-chats/{id}` | `client.ai.get()` |
@@ -86,6 +87,7 @@ operation table, so nothing lands here by accident.
 | Internet exposure and exposed hosts | `/networks/{id}/internet-exposure`, `/snapshots/{id}/internetNode/exposed-hosts[/{id}]` | `client.internet_exposure` |
 | Connectivity tests: start, stop, results, phase breakdown | `/networks/{id}/connectivityTests[/{name}][/start\|/stop]`, `?type=endpoint` | `client.connectivity_tests` |
 | Org, global and deployment configuration | `/config/{p}`, `/global-config/{p}`, `/orgs/{org}/config/{p}`, `/deployment-config[/{p}]` | `client.configuration`, `config_value()` |
+| Client packages (headless collector) | `GET /software/client?type=` | `client.client_software.download()`, `get_client_package()` |
 
 The published `POST /snapshots/{id}?action=computeAdvancedReachability` does the
 same work as the reachability job without progress polling; prefer it when you

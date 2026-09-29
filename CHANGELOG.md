@@ -3,32 +3,10 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
-## [Unreleased]
+## [0.1.19] - 2026-09-29
 
-### Added
-
-- `busy_timeout` on `ai.start()`, `ai.ask()` and a conversation's `ask()` /
-  `ask_and_wait()`. Forward answers one question per user at a time and refuses the
-  next with a 429 ("Please wait until 'conversation-212' is done processing"); the
-  question was never accepted, so it is safe to repeat, but the transport retries no
-  POST. With `busy_timeout` the SDK waits its turn (every five seconds, or after
-  `Retry-After`) instead of raising `ForwardRateLimitError`. Default `0`: unchanged.
-  Found when a webhook's remediation chat landed while a research chat was thinking.
-
-## [0.1.18] - 2026-09-25
-
-### Added
-
-- `client.collectors.create_collector_account(body={"collectorName": ...})` and
-  `.delete_collector_account(collector_name=...)`, unpublished: registers/removes a
-  collector account for the org -- the same call Settings > Collectors > Add collector
-  makes in the UI. There was previously no way to provision a collector from the SDK at
-  all; a first-time registration required a human in the UI. The response's
-  `authorizationKey` is the one-time install key (`username:password` when the org is on
-  the V2 auth-key format, a base64 protobuf blob on V3) and cannot be fetched again after
-  creation.
-
-## [0.1.17] - 2026-09-25
+Versions 0.1.17 and 0.1.18 were numbered in the repository but never published;
+everything they held is here.
 
 ### Added
 
@@ -37,6 +15,67 @@ All notable changes to this project are documented here. The format follows
   Previously only `name` and `retention_days` were exposed, so every workspace forked the
   parent network's *entire* device set -- there was no way to scope a workspace to the
   handful of devices actually in a change window, which is the feature's whole point.
+- `client.collectors.create_collector_account(body={"collectorName": ...})` and
+  `.delete_collector_account(collector_name=...)`, unpublished: registers/removes a
+  collector account for the org -- the same call Settings > Collectors > Add collector
+  makes in the UI. There was previously no way to provision a collector from the SDK at
+  all; a first-time registration required a human in the UI. The response's
+  `authorizationKey` is the one-time install key (`username:password` when the org is on
+  the V2 auth-key format, a base64 protobuf blob on V3) and cannot be fetched again after
+  creation.
+- `client.collectors.upgrade_collector(collector_name=...)` and
+  `.upgrade_collectors()`, unpublished: start a remote upgrade of one collector, or of
+  every online collector in the org that supports remote upgrade and auto-start (the
+  latter returns the names it queued). Needs `MANAGE_COLLECTORS`. The single form
+  refuses a collector it cannot upgrade -- 400 when it is offline, never connected, not
+  remotely upgradeable or already current, 409 when an upgrade is already running --
+  while the org-wide form skips those and upgrades the rest.
+- `client.client_software.download(destination, type="HEADLESS_LINUX")` and
+  `get_client_package(type)`, unpublished: download a Forward client package -- the
+  headless collector above all -- as the signed-in user, so a network-scoped API token
+  can fetch its own collector instead of a person clicking through Software Central.
+  `download` saves to a file (or into a directory under the server's file name, e.g.
+  `fwd-unix-26.9.0-18.tar.gz`), writes through a `.part` file so a failed download never
+  leaves a truncated archive, and returns a `ClientPackage` with the name, size and
+  SHA-256 of what it saved. It reports the release it got rather than checking a pinned
+  one: the package is whatever the server runs. fwd.app serves every type; an on-prem
+  appserver serves only the Windows and Linux installers and 400s the headless ones.
+- `snapshots.invalidate(snapshot_id, reprocess=...)` and `snapshots.reprocess(snapshot_id)`,
+  unpublished: rebuild a snapshot's model in place from its collected data under the
+  org's current settings, the way a parser or modelling change (a new data-model
+  feature, a parsing mode) reaches data already collected. The snapshot keeps its id
+  and cannot answer queries until processing finishes; both return a
+  `SnapshotStateChange` and do not wait, so follow with `wait_until_processed()`.
+- `nqe.repo.bundle(entry, commit_id=..., overrides=...)` and the pure
+  `forward_sdk.nqe.bundle_sources()`: run a library query with some of its imported
+  modules replaced, before committing anything. Every other module is read at the
+  pinned commit and the whole closure is merged into one self-contained inline
+  query, with each module's top-level names prefixed so private helpers that share a
+  name stay distinct. Inline source could not do this before: Forward resolves an
+  inline query's imports against head (sync) or not at all (async), with no way to
+  pin them. Anything the token-level rewrite cannot rename safely raises
+  `NqeBundleError`. Found when a hierarchy fix three imports deep had to be
+  performance-tested against its baseline without committing it; a bundle of the
+  unchanged commit returned rows byte-identical to that commit run by ID.
+- `busy_timeout` on `ai.start()`, `ai.ask()` and a conversation's `ask()` /
+  `ask_and_wait()`. Forward answers one question per user at a time and refuses the
+  next with a 429 ("Please wait until 'conversation-212' is done processing"); the
+  question was never accepted, so it is safe to repeat, but the transport retries no
+  POST. With `busy_timeout` the SDK waits its turn (every five seconds, or after
+  `Retry-After`) instead of raising `ForwardRateLimitError`. Default `0`: unchanged.
+  Found when a webhook's remediation chat landed while a research chat was thinking.
+
+### Fixed
+
+- `FORWARD_VERIFY_TLS` now also takes the path to a CA bundle file or directory,
+  which is what a self-hosted deployment with a private CA needs; it was read as a
+  boolean only, so a path silently meant "verify against the system trust store"
+  and failed on the private root. `true`/`false` (and `1`/`0`, `yes`/`no`,
+  `on`/`off`) keep their meaning; any other value must be an existing path, or
+  `from_env()` raises `ForwardConfigurationError` instead of guessing. A CA path
+  passed as `verify=` is checked for existence at construction too.
+- A CA path in `verify` is handed to httpx as an `ssl.SSLContext`, so it no longer
+  raises httpx 0.28's `` `verify=<str>` is deprecated `` warning.
 
 ## [0.1.16] - 2026-09-17
 

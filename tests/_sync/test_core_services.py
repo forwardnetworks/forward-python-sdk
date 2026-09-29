@@ -17,6 +17,7 @@ from forward_sdk.errors import (
     ForwardExecutionError,
     ForwardNotFoundError,
     ForwardResponseError,
+    ForwardServerError,
     ForwardTimeoutError,
 )
 from tests.conftest import Recorder, error_response, json_response
@@ -686,6 +687,58 @@ class TestSnapshotsContinued:
             content = client.snapshots.file("9", "fw01,acl.txt")
 
         assert content == "permit any"
+
+    def test_reprocess_invalidates_and_requests_processing_in_one_call(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add(
+            "POST",
+            "/api/snapshots/9",
+            json_response({"previousState": "PROCESSED", "state": "PROCESSING"}),
+        )
+        with make_client(recorder) as client:
+            change = client.snapshots.reprocess("9")
+
+        sent = recorder.requests[-1]
+        assert sent.url.params["action"] == "invalidate"
+        assert sent.url.params["reprocess"] == "true"
+        assert change.previous_state == "PROCESSED"
+        assert change.to_api() == {"previousState": "PROCESSED", "state": "PROCESSING"}
+
+    def test_invalidate_alone_does_not_request_processing(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            "/api/snapshots/9",
+            json_response({"previousState": "PROCESSED", "state": "UNPROCESSED"}),
+        )
+        with make_client(recorder) as client:
+            client.snapshots.invalidate("9")
+
+        sent = recorder.requests[-1]
+        assert sent.url.params["action"] == "invalidate"
+        assert "reprocess" not in sent.url.params
+
+    def test_reprocess_of_an_invalidated_snapshot_uses_the_reprocess_action(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add(
+            "POST",
+            "/api/snapshots/9",
+            json_response({"previousState": "UNPROCESSED", "state": "PROCESSING"}),
+        )
+        with make_client(recorder) as client:
+            client.snapshots.reprocess("9", invalidate=False)
+
+        assert recorder.requests[-1].url.params["action"] == "reprocess"
+
+    def test_reprocessing_is_not_retried(self, recorder: Recorder) -> None:
+        """A POST that changes server state must not be repeated on a transient error."""
+        recorder.add("POST", "/api/snapshots/9", error_response(503, "unavailable"))
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardServerError):
+                client.snapshots.reprocess("9")
+
+        assert recorder.count("POST", "/api/snapshots/9") == 1
 
     def test_file_not_found_raises(self, recorder: Recorder) -> None:
         recorder.add("GET", "/api/snapshots/9/files/missing.txt", error_response(404, "not found"))

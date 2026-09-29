@@ -125,6 +125,22 @@ def compute_advanced_reachability(*, snapshot_id: str) -> RequestSpec:
     )
 
 
+@op("invalidateSnapshot")
+def invalidate_snapshot(*, snapshot_id: str, reprocess: bool | None = None) -> RequestSpec:
+    """Discard a snapshot's model; with ``reprocess``, rebuild it at once."""
+    return spec_for(
+        "invalidateSnapshot",
+        path_params={"snapshotId": snapshot_id},
+        query={"reprocess": reprocess},
+    )
+
+
+@op("reprocessSnapshot")
+def reprocess_snapshot(*, snapshot_id: str) -> RequestSpec:
+    """Rebuild a snapshot that was already invalidated."""
+    return spec_for("reprocessSnapshot", path_params={"snapshotId": snapshot_id})
+
+
 @op("getSnapshotFiles")
 def list_snapshot_files(*, snapshot_id: str) -> RequestSpec:
     """List every raw file Forward stored for a snapshot.

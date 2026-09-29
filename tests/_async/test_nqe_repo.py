@@ -21,6 +21,7 @@ from forward_sdk.errors import (
     ForwardNotFoundError,
     ForwardServerError,
 )
+from forward_sdk.nqe import NqeBundleError
 from tests.conftest import Recorder, error_response, json_response
 
 pytestmark = pytest.mark.anyio
@@ -689,3 +690,126 @@ class TestPublishing:
             await client.nqe.repo.index()
 
         assert recorder.count("GET", QUERIES) == 2
+
+
+class TestBundle:
+    """Assembling a self-contained query from the library, with local edits."""
+
+    LIBRARY = {
+        "/Lib/Main": 'import "Lib/Helper";\n@query\nmain() = helper(1);',
+        "/Lib/Helper": 'import "Lib/Deep";\nexport helper(x) = deep(x);',
+        "/Lib/Deep": "export deep(x) = x;",
+    }
+
+    def serve(self, recorder: Recorder, commit: str = COMMIT) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.url.path == f"/api/nqe/repos/org/commits/{commit}/queries"
+            path = request.url.params["path"]
+            assert request.url.params["with"] == "sourceCode"
+            # Forward leaves "path" empty when the lookup was filtered by path.
+            return json_response({"queries": [{"path": "", "sourceCode": self.LIBRARY[path]}]})
+
+        recorder.default = handler
+
+    async def test_every_module_is_read_at_the_pinned_commit(self, recorder: Recorder) -> None:
+        self.serve(recorder)
+        async with make_client(recorder) as client:
+            bundle = await client.nqe.repo.bundle("/Lib/Main", commit_id=COMMIT)
+
+        assert bundle.modules == ("/Lib/Deep", "/Lib/Helper", "/Lib/Main")
+        assert bundle.commit_id == COMMIT
+        assert bundle.overridden == ()
+        assert "import" not in bundle.source
+        assert {r.url.params["path"] for r in recorder.requests} == set(self.LIBRARY)
+
+    async def test_an_override_replaces_a_module_without_fetching_it(
+        self, recorder: Recorder
+    ) -> None:
+        self.serve(recorder)
+        edited = "export deep(x) = x + 1;"
+        async with make_client(recorder) as client:
+            bundle = await client.nqe.repo.bundle(
+                "Lib/Main", commit_id=COMMIT, overrides={"Lib/Deep": edited}
+            )
+
+        assert bundle.overridden == ("/Lib/Deep",)
+        assert "= x + 1;" in bundle.source
+        assert "/Lib/Deep" not in {r.url.params["path"] for r in recorder.requests}
+
+    async def test_an_overridden_module_still_has_its_imports_read(
+        self, recorder: Recorder
+    ) -> None:
+        """The override replaces one module, not the subtree beneath it."""
+        self.serve(recorder)
+        async with make_client(recorder) as client:
+            bundle = await client.nqe.repo.bundle(
+                "/Lib/Main",
+                commit_id=COMMIT,
+                overrides={"/Lib/Helper": 'import "Lib/Deep";\nexport helper(x) = deep(x) + 1;'},
+            )
+
+        assert bundle.modules == ("/Lib/Deep", "/Lib/Helper", "/Lib/Main")
+        assert "/Lib/Deep" in {r.url.params["path"] for r in recorder.requests}
+
+    async def test_an_override_can_add_an_import(self, recorder: Recorder) -> None:
+        self.serve(recorder)
+        async with make_client(recorder) as client:
+            bundle = await client.nqe.repo.bundle(
+                "/Lib/Main",
+                commit_id=COMMIT,
+                overrides={
+                    "/Lib/Deep": 'import "Lib/New";\nexport deep(x) = extra(x);',
+                    "/Lib/New": "export extra(x) = x;",
+                },
+            )
+
+        assert bundle.modules[0] == "/Lib/New"
+
+    async def test_an_override_the_query_never_imports_is_refused(self, recorder: Recorder) -> None:
+        """A typo in an override path would otherwise test the unedited module."""
+        self.serve(recorder)
+        async with make_client(recorder) as client:
+            with pytest.raises(NqeBundleError, match="never imports: /Lib/Dep"):
+                await client.nqe.repo.bundle(
+                    "/Lib/Main", commit_id=COMMIT, overrides={"/Lib/Dep": "export deep(x) = x;"}
+                )
+
+    async def test_head_is_resolved_once_and_recorded(self, recorder: Recorder) -> None:
+        recorder.add("GET", HEAD, json_response({"id": COMMIT}))
+        self.serve(recorder)
+        async with make_client(recorder) as client:
+            bundle = await client.nqe.repo.bundle("/Lib/Main", commit_id="head")
+
+        assert bundle.commit_id == COMMIT
+        assert recorder.count("GET", HEAD) == 1
+
+    async def test_an_abbreviated_commit_is_refused(self, recorder: Recorder) -> None:
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardConfigurationError, match="abbreviated"):
+                await client.nqe.repo.bundle("/Lib/Main", commit_id="abc123")
+
+        assert recorder.requests == []
+
+    async def test_forwards_own_library_is_not_silently_floated(self, recorder: Recorder) -> None:
+        self.serve(recorder)
+        async with make_client(recorder) as client:
+            with pytest.raises(NqeBundleError, match="Forward's library"):
+                await client.nqe.repo.bundle(
+                    "/Lib/Main",
+                    commit_id=COMMIT,
+                    overrides={"/Lib/Main": 'import "@fwd/Shared";\n@query\nmain() = 1;'},
+                )
+
+    async def test_an_entry_for_a_different_query_is_not_used(self, recorder: Recorder) -> None:
+        recorder.default = lambda request: json_response(
+            {"queries": [{"path": "/Other", "sourceCode": "export x = 1;"}]}
+        )
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError, match="no source at commit"):
+                await client.nqe.repo.bundle("/Lib/Main", commit_id=COMMIT)
+
+    async def test_a_module_missing_at_the_commit(self, recorder: Recorder) -> None:
+        recorder.default = lambda request: json_response({"queries": []})
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError, match="no source at commit"):
+                await client.nqe.repo.bundle("/Lib/Main", commit_id=COMMIT)

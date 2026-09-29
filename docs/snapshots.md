@@ -84,12 +84,13 @@ running_config = client.devices.file("edge-01", "configuration.txt", snapshot_id
 ```
 
 For an artifact not owned by one modeled device -- a cloud provider's metadata
-for an object no device represents, such as GCP `cloud_instances.gen` -- read
-the snapshot's own file list instead. Unpublished:
+for an object no device represents, such as GCP `cloud_instances.gen` -- use the
+snapshot-level file list and file methods:
 
 ```python
-files = client.snapshots.files(snapshot_id)
-content = client.snapshots.file(snapshot_id, files[0])
+for name in client.snapshots.files(snapshot_id):
+    if name.endswith(",cloud_instances.gen"):
+        content = client.snapshots.file(snapshot_id, name)
 ```
 
 `file` raises `ForwardNotFoundError` for a name the snapshot has none of.

@@ -9,13 +9,17 @@ and tested on their own.
 
 from __future__ import annotations
 
+from forward_sdk.nqe.bundle import NqeBundle, NqeBundleError, bundle_sources
 from forward_sdk.nqe.pagination import PageGuards, PageTracker
 from forward_sdk.nqe.query_ref import LATEST_PROCESSED, QueryRef, sanitize_commit_id
 
 __all__ = [
     "LATEST_PROCESSED",
+    "NqeBundle",
+    "NqeBundleError",
     "PageGuards",
     "PageTracker",
     "QueryRef",
+    "bundle_sources",
     "sanitize_commit_id",
 ]

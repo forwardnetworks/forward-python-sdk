@@ -9,6 +9,7 @@ import httpx
 from forward_sdk._async.services._generated import AsyncGeneratedServices
 from forward_sdk._async.services.ai import AsyncAiService
 from forward_sdk._async.services.change_sets import AsyncChangeSetsService
+from forward_sdk._async.services.client_software import AsyncClientSoftwareService
 from forward_sdk._async.services.device_tags import AsyncDeviceTagsService
 from forward_sdk._async.services.devices import AsyncDevicesService
 from forward_sdk._async.services.diffs import AsyncSnapshotDiffsService
@@ -116,6 +117,7 @@ class AsyncForwardClient(AsyncGeneratedServices):
         self.change_sets = AsyncChangeSetsService(self._transport, self.snapshots)
         self.user_events = AsyncUserEventsService(self._transport)
         self.tapi_network_containers = AsyncTapiNetworkContainersService(self._transport)
+        self.client_software = AsyncClientSoftwareService(self._transport)
 
         # The rest of the API, one attribute per group; see scripts/gen_services.py.
         self._attach_generated_services(self._transport)

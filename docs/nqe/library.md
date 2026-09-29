@@ -57,6 +57,48 @@ to do it anyway.
 Paths whose source is unchanged are reported as skipped rather than failing the
 commit: publishing a directory where some files are identical is the normal case.
 
+## Running an edit before committing it
+
+Forward runs committed queries by ID, and inline source cannot pin its imports:
+the synchronous endpoint resolves them against the library's head, and the
+asynchronous one does not resolve them at all. So an edit to a helper that the
+query imports several levels down cannot be tried without committing it, and a
+baseline cannot be rerun once head has moved past it.
+
+`bundle()` reads the query and everything it imports at one commit, replaces the
+modules you supply, and merges the result into a single query that imports
+nothing:
+
+```python
+from pathlib import Path
+
+from forward_sdk import QueryRef
+
+bundle = client.nqe.repo.bundle(
+    "/MyOrg/Firewall Rules",
+    commit_id=baseline_commit,
+    overrides={"/MyOrg/Helpers/Policy Engine": Path("policy_engine.nqe").read_text()},
+)
+rows = client.nqe.run(QueryRef.inline(bundle.source, Device_Name_Equals="fw1"))
+```
+
+Modules keep private helpers under the same names, so each module's top-level
+declarations are renamed with a per-module prefix and every reference is
+rewritten to what it resolved to before. Anything the rewrite cannot rename
+safely raises `NqeBundleError` rather than producing a query that means
+something different.
+
+Two things to check before trusting the numbers:
+
+* Build a bundle of the unchanged commit and compare its rows with that commit
+  run by ID. Identical rows show the merge preserved meaning on your query.
+* Compare timings bundle against bundle. Forward compiles inline source on every
+  request and caches the analysis of a committed query, so a bundle is slower
+  than the same commit run by ID even when the query is identical.
+
+Modules from Forward's own library (`@fwd/...`) are refused for now, because
+bundling them would need that library's commit too.
+
 ## Lower-level staging
 
 ```python

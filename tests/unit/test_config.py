@@ -2,15 +2,22 @@
 
 from __future__ import annotations
 
+import ssl
+import warnings
+from pathlib import Path
+
+import certifi
 import httpx
 import pytest
 
+from forward_sdk import ForwardClient
 from forward_sdk.config import (
     RetryPolicy,
     build_config,
     config_from_env,
     resolve_rate_limit,
     resolve_timeout,
+    tls_verify,
 )
 from forward_sdk.errors import ForwardConfigurationError
 
@@ -138,6 +145,52 @@ class TestEnvironment:
     def test_verify_tls_falsey_values(self, value: str) -> None:
         settings = config_from_env({"FORWARD_URL": "https://x", "FORWARD_VERIFY_TLS": value})
         assert settings["verify"] is False
+
+    @pytest.mark.parametrize("value", ["1", "true", "TRUE", "yes", "on"])
+    def test_verify_tls_truthy_values(self, value: str) -> None:
+        settings = config_from_env({"FORWARD_URL": "https://x", "FORWARD_VERIFY_TLS": value})
+        assert settings["verify"] is True
+
+    def test_verify_tls_unset_verifies(self) -> None:
+        assert config_from_env({"FORWARD_URL": "https://x"})["verify"] is True
+
+    def test_verify_tls_takes_a_ca_bundle_path(self) -> None:
+        settings = config_from_env(
+            {"FORWARD_URL": "https://x", "FORWARD_VERIFY_TLS": certifi.where()}
+        )
+        assert settings["verify"] == certifi.where()
+
+    def test_verify_tls_expands_home(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("HOME", str(tmp_path))
+        (tmp_path / "ca.pem").write_text("")
+        settings = config_from_env({"FORWARD_URL": "https://x", "FORWARD_VERIFY_TLS": "~/ca.pem"})
+        assert settings["verify"] == str(tmp_path / "ca.pem")
+
+    def test_verify_tls_rejects_a_value_that_is_neither(self) -> None:
+        # A mistyped path must not quietly mean "verify against the system store".
+        with pytest.raises(ForwardConfigurationError, match="FORWARD_VERIFY_TLS"):
+            config_from_env({"FORWARD_URL": "https://x", "FORWARD_VERIFY_TLS": "/no/such/ca.pem"})
+
+
+class TestTlsVerify:
+    def test_booleans_pass_through(self) -> None:
+        assert tls_verify(True) is True
+        assert tls_verify(False) is False
+
+    def test_a_bundle_file_becomes_a_context(self) -> None:
+        assert isinstance(tls_verify(certifi.where()), ssl.SSLContext)
+
+    def test_a_bundle_directory_becomes_a_context(self, tmp_path: Path) -> None:
+        assert isinstance(tls_verify(str(tmp_path)), ssl.SSLContext)
+
+    def test_missing_path_is_refused_at_construction(self) -> None:
+        with pytest.raises(ForwardConfigurationError, match="verify"):
+            build_config("https://fwd.app", verify="/no/such/ca.pem")
+
+    def test_a_path_raises_no_httpx_deprecation(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", DeprecationWarning)
+            ForwardClient("https://forward.test", verify=certifi.where()).close()
 
 
 def test_password_is_kept_out_of_repr() -> None:

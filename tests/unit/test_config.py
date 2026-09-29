@@ -161,7 +161,9 @@ class TestEnvironment:
         assert settings["verify"] == certifi.where()
 
     def test_verify_tls_expands_home(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        # expanduser reads HOME on POSIX and USERPROFILE on Windows.
         monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("USERPROFILE", str(tmp_path))
         (tmp_path / "ca.pem").write_text("")
         settings = config_from_env({"FORWARD_URL": "https://x", "FORWARD_VERIFY_TLS": "~/ca.pem"})
         assert settings["verify"] == str(tmp_path / "ca.pem")

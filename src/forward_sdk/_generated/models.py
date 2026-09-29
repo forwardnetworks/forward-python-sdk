@@ -5237,6 +5237,18 @@ class SetupPhaseResult(ForwardModel):
     phase: Literal["SETUP"]
 
 
+class SnapshotExceptionType(OpenEnum):
+    """
+    PARSING and MODELING are per device; the rest are snapshot-wide.
+    """
+
+    parsing = "PARSING"
+    modeling = "MODELING"
+    snapshot_generation = "SNAPSHOT_GENERATION"
+    reachability = "REACHABILITY"
+    sherlock_index = "SHERLOCK_INDEX"
+
+
 class SnapshotExportParams(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -10309,6 +10321,31 @@ class ServiceObjectCollection(ForwardModel):
     service_objects: Annotated[list[ScopedServiceObject] | None, Field(alias="serviceObjects")] = (
         None
     )
+
+
+class SnapshotException(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    devices: list[str]
+    """
+    The devices that raised it; empty for a snapshot-wide exception.
+    """
+    exception_type: Annotated[SnapshotExceptionType, Field(alias="exceptionType")]
+    occurrences: int
+    """
+    How many times this exact trace was raised.
+    """
+    stack_trace: Annotated[str, Field(alias="stackTrace")]
+
+
+class SnapshotExceptions(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    exceptions: list[SnapshotException]
 
 
 class SnapshotInfo(ForwardModel):

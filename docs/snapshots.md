@@ -42,6 +42,26 @@ metrics = client.snapshots.metrics(snapshot_id)
 client.snapshots.is_complete(snapshot_id)  # no collection or processing failures
 ```
 
+### Processing exceptions
+
+When a snapshot's numbers look wrong, the exceptions Forward raised while
+processing it usually say why. Unpublished, and it needs the network's
+`DEBUG_SNAPSHOTS` permission:
+
+```python
+for exc in client.snapshots.exceptions(snapshot_id):
+    print(exc.exception_type, exc.occurrences, exc.devices)
+    print(exc.stack_trace)
+
+client.snapshots.exceptions_text(snapshot_id)  # the same, as one plain-text dump
+```
+
+`exceptions()` merges identical stack traces and says how often each was raised
+and by which devices. `PARSING` and `MODELING` exceptions belong to devices;
+`SNAPSHOT_GENERATION`, `REACHABILITY` and `SHERLOCK_INDEX` are snapshot-wide and
+name no device. Parser-equivalence failures are reported here too. A snapshot
+with none returns an empty list.
+
 ## Uploading
 
 ```python

@@ -15,7 +15,12 @@ from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from forward_sdk._generated.models import SnapshotInfo, SnapshotState
+from forward_sdk._generated.models import (
+    SnapshotException,
+    SnapshotExceptions,
+    SnapshotInfo,
+    SnapshotState,
+)
 from forward_sdk._ops import core as ops
 from forward_sdk._ops import nqe_repo as repo_ops
 from forward_sdk._sync.services._base import Service
@@ -422,6 +427,28 @@ class SnapshotsService(Service):
         response = self._transport.send(
             ops.get_snapshot_file(snapshot_id=snapshot_id, file_name=file_name)
         )
+        return response.text
+
+    def exceptions(self, snapshot_id: str) -> Sequence[SnapshotException]:
+        """Exceptions Forward raised while processing a snapshot, grouped.
+
+        Identical stack traces are merged, with how often each was raised and
+        which devices raised it. ``PARSING`` and ``MODELING`` exceptions belong
+        to devices; the other types are snapshot-wide and name no device.
+        Parser-equivalence failures are reported here too.
+
+        Unpublished. Needs the network's ``DEBUG_SNAPSHOTS`` permission.
+        """
+        payload = self._send_json(ops.list_snapshot_exceptions(snapshot_id=snapshot_id))
+        return SnapshotExceptions.model_validate(payload or {"exceptions": []}).exceptions
+
+    def exceptions_text(self, snapshot_id: str) -> str:
+        """The same exceptions as one plain-text dump, ungrouped.
+
+        One stack trace per device failure and per snapshot-generation failure,
+        each headed by the device name or an index. Empty when there were none.
+        """
+        response = self._transport.send(ops.get_snapshot_exceptions_text(snapshot_id=snapshot_id))
         return response.text
 
     def export(self, snapshot_id: str, *, only: str | None = None) -> Iterator[bytes]:

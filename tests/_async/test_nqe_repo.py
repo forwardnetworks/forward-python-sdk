@@ -352,6 +352,43 @@ class TestReading:
         assert drafts[0].action == "addQuery"
 
 
+class TestPathFilteredLookup:
+    """A path-filtered lookup answers with Forward's CommittedNqeQuery on its own.
+
+    That response type has no path field at all, so the SDK must supply the
+    path the caller asked for; the entry otherwise comes back unnamed.
+    """
+
+    async def test_the_requested_path_is_filled_in(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            AT_COMMIT,
+            json_response(
+                {
+                    "queryId": "Q_1",
+                    "sourceCode": "foreach x",
+                    "commitCount": 3,
+                    "lastCommit": {"id": COMMIT},
+                    "firstCommit": {"id": COMMIT},
+                }
+            ),
+        )
+        async with make_client(recorder) as client:
+            found = await client.nqe.repo.queries(commit_id=COMMIT, path="/A/q", with_source=True)
+
+        assert [q.path for q in found] == ["/A/q"]
+        assert found[0].source == "foreach x"
+
+    async def test_a_path_forward_does_send_is_kept(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET", AT_COMMIT, json_response({"queries": [{"queryId": "Q_1", "path": "/A/q"}]})
+        )
+        async with make_client(recorder) as client:
+            found = await client.nqe.repo.queries(commit_id=COMMIT, path="/A/q")
+
+        assert [q.path for q in found] == ["/A/q"]
+
+
 class TestPublishing:
     async def test_publish_stages_adds_and_edits_then_commits(self, recorder: Recorder) -> None:
         recorder.add("GET", CHANGES, json_response(NO_DRAFTS))
@@ -511,6 +548,33 @@ class TestPublishing:
         assert report.committed_paths == ("/A",)
         assert report.skipped_paths == ("/B",)
         assert recorder.count("POST", COMMITS) == 2
+
+    async def test_dry_run_sends_only_paths_and_access_settings(self, recorder: Recorder) -> None:
+        """Forward's NqeCommitDryRunRequest takes exactly these two fields.
+
+        A dry run carrying the commit's message is refused, so the body must
+        not grow one.
+        """
+        recorder.add("POST", COMMITS, json_response({"newErrors": {}}))
+        async with make_client(recorder) as client:
+            await client.nqe.repo.dry_run(["/A/q"])
+
+        assert recorder.body_for() == {"paths": ["/A/q"], "accessSettings": []}
+        assert recorder.query_for()["dryRun"] == ["true"]
+
+    async def test_commit_reads_its_id_from_head_after_an_empty_reply(
+        self, recorder: Recorder
+    ) -> None:
+        """Forward's commit handler returns nothing; the new id is the head."""
+        recorder.add("POST", COMMITS, httpx.Response(200))
+        recorder.add("GET", HEAD, json_response({"id": COMMIT}))
+        async with make_client(recorder) as client:
+            report = await client.nqe.repo.commit(["/A/q"], title="Update")
+
+        assert report.committed_paths == ("/A/q",)
+        assert report.commit_id == COMMIT
+        body = json.loads(recorder.requests[0].content)
+        assert body["message"] == {"title": "Update", "body": ""}
 
     async def test_commit_with_nothing_changed_is_not_an_error(self, recorder: Recorder) -> None:
         recorder.add(

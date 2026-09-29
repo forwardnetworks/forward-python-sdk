@@ -111,7 +111,13 @@ class AsyncNqeRepository(AsyncService):
                 with_source=with_source,
             )
         )
-        return queries_from_payload(payload, repository)
+        found = queries_from_payload(payload, repository)
+        if path is None:
+            return found
+        # A path-filtered lookup answers with the query on its own, and that
+        # response type has no path field at all, so every entry came back
+        # with its path empty. The caller named the path; put it back.
+        return [entry if entry.path else replace(entry, path=path) for entry in found]
 
     async def index(
         self, *, repository: str = "org", refresh: bool = False

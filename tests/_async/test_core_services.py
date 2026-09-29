@@ -13,6 +13,7 @@ from forward_sdk.errors import (
     ForwardError,
     ForwardExecutionError,
     ForwardNotFoundError,
+    ForwardPermissionError,
     ForwardResponseError,
     ForwardServerError,
     ForwardTimeoutError,
@@ -750,6 +751,59 @@ class TestSnapshotsContinued:
         async with make_client(recorder) as client:
             with pytest.raises(ForwardNotFoundError):
                 await client.snapshots.file("9", "missing.txt")
+
+    async def test_exceptions_are_read_from_the_json_view(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/snapshots/9/exceptions",
+            json_response(
+                {
+                    "exceptions": [
+                        {
+                            "stackTrace": "java.lang.IllegalStateException: bad token",
+                            "occurrences": 2,
+                            "exceptionType": "PARSING",
+                            "devices": ["edge-01", "edge-02"],
+                        },
+                        {
+                            "stackTrace": "java.lang.RuntimeException: gen",
+                            "occurrences": 1,
+                            "exceptionType": "SNAPSHOT_GENERATION",
+                            "devices": [],
+                        },
+                    ]
+                }
+            ),
+        )
+        async with make_client(recorder) as client:
+            found = await client.snapshots.exceptions("9")
+
+        assert recorder.query_for()["view"] == ["json"]
+        assert [(e.exception_type, e.occurrences) for e in found] == [
+            ("PARSING", 2),
+            ("SNAPSHOT_GENERATION", 1),
+        ]
+        assert found[0].devices == ["edge-01", "edge-02"]
+
+    async def test_no_exceptions_is_an_empty_list(self, recorder: Recorder) -> None:
+        recorder.add("GET", "/api/snapshots/9/exceptions", json_response({"exceptions": []}))
+        async with make_client(recorder) as client:
+            assert list(await client.snapshots.exceptions("9")) == []
+
+    async def test_exceptions_text_is_the_plain_dump(self, recorder: Recorder) -> None:
+        dump = "Device exceptions:\n\nedge-01\njava.lang.IllegalStateException\n\n"
+        recorder.add("GET", "/api/snapshots/9/exceptions", httpx.Response(200, text=dump))
+        async with make_client(recorder) as client:
+            text = await client.snapshots.exceptions_text("9")
+
+        assert text == dump
+        assert "view" not in recorder.query_for()
+
+    async def test_exceptions_need_debug_permission(self, recorder: Recorder) -> None:
+        recorder.add("GET", "/api/snapshots/9/exceptions", error_response(403, "forbidden"))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardPermissionError):
+                await client.snapshots.exceptions("9")
 
 
 class TestDevices:

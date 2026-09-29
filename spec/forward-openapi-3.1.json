@@ -13757,6 +13757,59 @@
         ],
         "type": "object"
       },
+      "SnapshotException": {
+        "properties": {
+          "devices": {
+            "description": "The devices that raised it; empty for a snapshot-wide exception.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "exceptionType": {
+            "$ref": "#/components/schemas/SnapshotExceptionType"
+          },
+          "occurrences": {
+            "description": "How many times this exact trace was raised.",
+            "type": "integer"
+          },
+          "stackTrace": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "stackTrace",
+          "occurrences",
+          "exceptionType",
+          "devices"
+        ],
+        "type": "object"
+      },
+      "SnapshotExceptionType": {
+        "description": "PARSING and MODELING are per device; the rest are snapshot-wide.",
+        "enum": [
+          "PARSING",
+          "MODELING",
+          "SNAPSHOT_GENERATION",
+          "REACHABILITY",
+          "SHERLOCK_INDEX"
+        ],
+        "type": "string"
+      },
+      "SnapshotExceptions": {
+        "properties": {
+          "exceptions": {
+            "items": {
+              "$ref": "#/components/schemas/SnapshotException"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "exceptions"
+        ],
+        "type": "object"
+      },
       "SnapshotExportParams": {
         "properties": {
           "excludeDevices": {
@@ -34539,6 +34592,47 @@
         "tags": [
           "Checks"
         ]
+      }
+    },
+    "/snapshots/{snapshotId}/exceptions": {
+      "get": {
+        "description": "One stack trace per device failure and per snapshot-generation failure, headed by the device name or an index. An empty body when there were none.",
+        "operationId": "getSnapshotExceptionsText",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {}
+            },
+            "description": "The stack traces."
+          }
+        },
+        "summary": "Every exception raised while processing a snapshot, as text",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getSnapshotExceptions",
+            "summary": "Every exception raised while processing a snapshot, grouped",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "json"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/snapshots/{snapshotId}/files": {

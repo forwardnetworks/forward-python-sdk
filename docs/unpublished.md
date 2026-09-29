@@ -44,6 +44,7 @@ operation table, so nothing lands here by accident.
 | Current user and roles | `GET /users/current` | `client.user_accounts.get_current_user()` |
 | Network data files | `GET /networks/{id}/data-files` | `client.data_files.get_data_files()` |
 | Raw snapshot artifacts | `GET /snapshots/{id}/files[/{fileName}]` | `client.snapshots.files()`, `.file()` |
+| Processing exceptions | `GET /snapshots/{id}/exceptions`, `?view=json` | `client.snapshots.exceptions()`, `.exceptions_text()` |
 | Reprocess a snapshot in place | `POST /snapshots/{id}?action=invalidate[&reprocess=true]`, `?action=reprocess` | `client.snapshots.invalidate()`, `.reprocess()` |
 | List chats | `GET /ai-chats` | `client.ai.list()` |
 | Start a chat | `POST /ai-chats` | `client.ai.start()` |

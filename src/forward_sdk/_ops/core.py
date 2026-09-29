@@ -161,6 +161,22 @@ def get_snapshot_file(*, snapshot_id: str, file_name: str) -> RequestSpec:
     )
 
 
+@op("getSnapshotExceptions")
+def list_snapshot_exceptions(*, snapshot_id: str) -> RequestSpec:
+    """Exceptions raised while processing a snapshot, grouped by stack trace."""
+    return spec_for("getSnapshotExceptions", path_params={"snapshotId": snapshot_id})
+
+
+@op("getSnapshotExceptionsText")
+def get_snapshot_exceptions_text(*, snapshot_id: str) -> RequestSpec:
+    """The same exceptions as one plain-text dump of stack traces."""
+    return spec_for(
+        "getSnapshotExceptionsText",
+        path_params={"snapshotId": snapshot_id},
+        accept="text/plain, application/json;q=0.5",
+    )
+
+
 @op("exportSnapshot")
 def export_snapshot(*, snapshot_id: str, only: str | None = None) -> RequestSpec:
     """Download a snapshot as a zip archive."""

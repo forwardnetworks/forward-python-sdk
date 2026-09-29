@@ -3,6 +3,35 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [0.1.20] - 2026-09-29
+
+### Added
+
+- `snapshots.exceptions(snapshot_id)` and `snapshots.exceptions_text(snapshot_id)`,
+  unpublished: the exceptions Forward raised while processing a snapshot. The first
+  reads the JSON view, merging identical stack traces into `SnapshotException`
+  entries with their `exception_type`, `occurrences` and `devices`; the second is the
+  same as one plain-text dump. `PARSING` and `MODELING` exceptions belong to devices,
+  the other types are snapshot-wide. Parser-equivalence failures surface here, which
+  the Wells NQE work had been reading with raw requests. Needs
+  the network's `DEBUG_SNAPSHOTS` permission. Verified live on fwd.app (reachable
+  and empty on two snapshots; non-empty parsing is covered by unit tests).
+
+### Fixed
+
+- `nqe.repo.queries(path=...)` returned entries with an empty `path`. Forward answers
+  a path-filtered lookup with the query on its own (`CommittedNqeQuery`: `queryId`,
+  commit counts, first and last commit, and the source when asked), and that type has
+  no path field at all -- confirmed in the server source and on fwd.app. The SDK now
+  fills in the path the caller asked for. `bundle()` and `source()` already tolerated
+  the blank path; any other caller matching entries by path got nothing.
+
+Dry runs and commits were also reported as needing work: a dry run was seen to
+refuse a `title`, and a successful commit answers with an empty body. Forward's
+dry-run request takes only `paths` and `accessSettings`, and its commit handler
+returns nothing. The SDK already sends exactly those two fields and reads the new
+commit id from the head, so nothing changed there; both are now pinned by tests.
+
 ## [0.1.19] - 2026-09-29
 
 Versions 0.1.17 and 0.1.18 were numbered in the repository but never published;

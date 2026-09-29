@@ -4328,6 +4328,33 @@ OPERATIONS: dict[str, OpDef] = {
         response_model="AliasAndValue",
         summary="Get an Alias",
     ),
+    "getSnapshotExceptions": OpDef(
+        operation_id="getSnapshotExceptions",
+        method="get",
+        path="/snapshots/{snapshotId}/exceptions",
+        tag="Network Snapshots",
+        fixed_query=(('view', 'json'),),
+        parameters=(
+            ParamDef(name="snapshotId", location="path", required=True, schema_type="string"),
+        ),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="SnapshotExceptions",
+        summary="Every exception raised while processing a snapshot, grouped",
+    ),
+    "getSnapshotExceptionsText": OpDef(
+        operation_id="getSnapshotExceptionsText",
+        method="get",
+        path="/snapshots/{snapshotId}/exceptions",
+        tag="Network Snapshots",
+        parameters=(
+            ParamDef(name="snapshotId", location="path", required=True, schema_type="string"),
+        ),
+        response_media=('text/plain',),
+        stability="unpublished",
+        stream=True,
+        summary="Every exception raised while processing a snapshot, as text",
+    ),
     "getSnapshotFileContent": OpDef(
         operation_id="getSnapshotFileContent",
         method="get",

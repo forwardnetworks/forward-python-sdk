@@ -4797,6 +4797,49 @@ paths:
               schema: { $ref: "#/components/schemas/SnapshotStateChange" }
               example: { previousState: UNPROCESSED, state: UNPROCESSED }
 
+  # Exceptions Forward hit while processing a snapshot: per-device parsing and
+  # modelling failures, and snapshot-wide generation, reachability and index
+  # failures. The JSON view groups identical stack traces and counts them. Both
+  # need the network's DEBUG_SNAPSHOTS permission.
+  /snapshots/{snapshotId}/exceptions:
+    get:
+      operationId: getSnapshotExceptionsText
+      summary: Every exception raised while processing a snapshot, as text
+      description: >-
+        One stack trace per device failure and per snapshot-generation failure,
+        headed by the device name or an index. An empty body when there were
+        none.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The stack traces.
+          content:
+            text/plain: {}
+
+  /snapshots/{snapshotId}/exceptions?view=json:
+    get:
+      operationId: getSnapshotExceptions
+      summary: Every exception raised while processing a snapshot, grouped
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Identical stack traces grouped, with the devices that raised each.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SnapshotExceptions" }
+              example:
+                exceptions:
+                  - stackTrace: "java.lang.IllegalStateException: unexpected token\n\tat ..."
+                    occurrences: 2
+                    exceptionType: PARSING
+                    devices: [edge-01, edge-02]
+
   # -------------------------------------------------------- client software ---
   # The Forward client packages, including the headless collector. Served to a
   # signed-in user (any role) on fwd.app; an on-prem appserver answers only for
@@ -7425,3 +7468,28 @@ components:
           enum: [CONNECTION, AUTHENTICATION, TYPE_DISCOVERY, SETUP, AUTHORIZATION, QUERY]
       required: [phase]
       type: object
+
+    SnapshotException:
+      type: object
+      required: [stackTrace, occurrences, exceptionType, devices]
+      properties:
+        stackTrace: { type: string }
+        occurrences: { type: integer, description: How many times this exact trace was raised. }
+        exceptionType: { $ref: "#/components/schemas/SnapshotExceptionType" }
+        devices:
+          type: array
+          items: { type: string }
+          description: The devices that raised it; empty for a snapshot-wide exception.
+
+    SnapshotExceptions:
+      type: object
+      required: [exceptions]
+      properties:
+        exceptions:
+          type: array
+          items: { $ref: "#/components/schemas/SnapshotException" }
+
+    SnapshotExceptionType:
+      type: string
+      enum: [PARSING, MODELING, SNAPSHOT_GENERATION, REACHABILITY, SHERLOCK_INDEX]
+      description: PARSING and MODELING are per device; the rest are snapshot-wide.

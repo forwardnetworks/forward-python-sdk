@@ -166,7 +166,8 @@ class TestEnvironment:
         monkeypatch.setenv("USERPROFILE", str(tmp_path))
         (tmp_path / "ca.pem").write_text("")
         settings = config_from_env({"FORWARD_URL": "https://x", "FORWARD_VERIFY_TLS": "~/ca.pem"})
-        assert settings["verify"] == str(tmp_path / "ca.pem")
+        # Compared as paths: on Windows the "/" from the value survives expansion.
+        assert Path(settings["verify"]) == tmp_path / "ca.pem"
 
     def test_verify_tls_rejects_a_value_that_is_neither(self) -> None:
         # A mistyped path must not quietly mean "verify against the system store".

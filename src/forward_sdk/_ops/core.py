@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from forward_sdk._ops import RequestSpec, op, spec_for
+from forward_sdk._ops import FileUpload, RequestSpec, op, spec_for
 
 # Forward's file-serving endpoints answer 406 to a specific media type they do
 # not produce, and they declare none in the API description, so there is nothing
@@ -219,15 +219,19 @@ def upload_snapshot(
     note: str | None = None,
     process: bool = True,
     wait: bool = False,
+    on_bytes: Callable[[int], None] | None = None,
 ) -> RequestSpec:
     """Upload one or more snapshot archives.
 
     Several files are merged into one snapshot, so they must not describe the
     same device. Uploading is asynchronous by default: Forward answers 202 with
     the new snapshot's identity while unpacking continues.
+
+    The archives are streamed from disk when the request is sent, not read here,
+    so a multi-gigabyte archive costs no memory.
     """
     parts: list[tuple[str, Any]] = [
-        ("file", (path.name, path.read_bytes(), "application/zip")) for path in files
+        ("file", FileUpload(path, path.name, "application/zip", on_bytes)) for path in files
     ]
     data: dict[str, Any] = {"process": "true" if process else "false"}
     # `async` is Forward's parameter name; sending false makes it block.

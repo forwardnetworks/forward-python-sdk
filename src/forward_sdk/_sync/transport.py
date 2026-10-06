@@ -12,14 +12,15 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from typing import Any
 
 import httpx
 
+from forward_sdk._files import open_upload
 from forward_sdk._http import RETRYABLE_STATUS, backoff_delay, parse_retry_after, raise_for_response
-from forward_sdk._ops import RequestSpec
+from forward_sdk._ops import FileUpload, RequestSpec
 from forward_sdk._sync.throttle import RateLimiter, Throttle
 from forward_sdk.config import ClientConfig, tls_verify
 from forward_sdk.errors import ForwardTransportError
@@ -78,7 +79,29 @@ class Transport:
     def __exit__(self, *exc: object) -> None:
         self.close()
 
-    def _build(self, spec: RequestSpec) -> httpx.Request:
+    @staticmethod
+    def _open_files(spec: RequestSpec, opened: list[Any]) -> Sequence[tuple[str, Any]] | None:
+        """Open the upload files named in ``spec``, appending each handle to ``opened``.
+
+        The caller closes them. They are opened once per call and reused across
+        retries: httpx rewinds a file part before it sends, and a request is only
+        retried before its body has gone out.
+        """
+        if not spec.files:
+            return spec.files
+        parts: list[tuple[str, Any]] = []
+        for field_name, value in spec.files:
+            if isinstance(value, FileUpload):
+                handle = open_upload(value)
+                opened.append(handle)
+                parts.append((field_name, (value.filename, handle, value.content_type)))
+            else:
+                parts.append((field_name, value))
+        return parts
+
+    def _build(
+        self, spec: RequestSpec, files: Sequence[tuple[str, Any]] | None = None
+    ) -> httpx.Request:
         headers = {"Accept": spec.accept, **dict(spec.headers)}
         return self._client.build_request(
             spec.method,
@@ -86,7 +109,7 @@ class Transport:
             params=list(spec.params) or None,
             json=spec.json,
             content=spec.content,
-            files=spec.files,
+            files=spec.files if files is None else files,
             data=spec.data,
             headers=headers,
             timeout=spec.timeout if spec.timeout is not None else self.config.timeout,
@@ -142,13 +165,21 @@ class Transport:
         is retried only on a connection error, where the server demonstrably
         never received it.
         """
+        opened: list[Any] = []
+        try:
+            return self._send(spec, self._open_files(spec, opened))
+        finally:
+            for handle in opened:
+                handle.close()
+
+    def _send(self, spec: RequestSpec, files: Sequence[tuple[str, Any]] | None) -> httpx.Response:
         policy = self.config.retries
         last_error: Exception | None = None
 
         for attempt in range(policy.max_attempts):
             final = attempt == policy.max_attempts - 1
             self._pace()
-            request = self._build(spec)
+            request = self._build(spec, files)
             self._notify("on_request", spec.operation, request)
             self.counters.mark_attempt(time.time())
             started = time.monotonic()

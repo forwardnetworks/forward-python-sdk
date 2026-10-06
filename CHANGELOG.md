@@ -5,6 +5,30 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `snapshots.upload()` streams its archives from disk. It read each whole into memory,
+  and the multipart body then held them again, so a multi-gigabyte archive cost twice
+  its size. A 400 MiB upload now moves the process's peak memory by 3 MiB. Retries are
+  unchanged: an upload is still retried only on a connection error, before any of the
+  body has gone out.
+- Progress for the calls long enough to look hung, all optional, all plain functions
+  called synchronously, and a callback that raises is logged and ignored rather than
+  aborting the transfer: `upload(on_progress=)` and `export(on_progress=)` /
+  `download(on_progress=)` take `(bytes_done, total_or_None)`, and
+  `wait_until_processed(on_poll=)` takes `(snapshot, elapsed_seconds)`.
+- `snapshots.collect()`: start a network collection, wait for the task to succeed, and
+  return a `CollectionRun` with the new snapshot id. The collector task carries no
+  snapshot id, so it is found by comparing the network's newest snapshots before and
+  after, ignoring predictions. A failed, timed-out or cancelled task raises
+  `ForwardExecutionError`; `wait=False` returns once queued; `on_poll(task, elapsed)`
+  reports the task. Replaces the start-and-poll loop field scripts were writing.
+- `snapshots.export()` and `download()` take `include_devices`, `exclude_devices`,
+  `obfuscation_key` and `obfuscate_names`, selecting Forward's subset export. That
+  operation was in the API description and had a request builder, but nothing on the
+  client reached it. Verified live: one device's subset was a real 51 MB, 72-file
+  archive, and Forward's refusal of an empty subset surfaces as a 400.
+
 ### Fixed
 
 - `snapshots.export()` and `download()` failed with `HTTP 406: no response body` on some

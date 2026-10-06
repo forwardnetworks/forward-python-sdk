@@ -16,19 +16,35 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, TypeVar
 
 from forward_sdk._generated._defs import OpDef
 from forward_sdk._generated.operations import OPERATIONS
 from forward_sdk._http import build_path, encode_query
 
-__all__ = ["REGISTRY", "RequestSpec", "op", "spec_for"]
+__all__ = ["REGISTRY", "FileUpload", "RequestSpec", "op", "spec_for"]
 
 JSON_ACCEPT = "application/json"
 
 #: Prefer newline-delimited JSON for NQE results so rows can be streamed as they
 #: arrive, but accept plain JSON from older deployments.
 NDJSON_ACCEPT = "application/x-ndjson, application/jsonl;q=0.9, application/json;q=0.1"
+
+
+@dataclass(frozen=True, slots=True)
+class FileUpload:
+    """A file to send as a multipart part, named but not yet opened.
+
+    The transport opens it when it sends and streams it from disk, so a
+    multi-gigabyte archive is never held in memory. ``on_bytes`` is called with
+    the size of each chunk read, for progress reporting.
+    """
+
+    path: Path
+    filename: str
+    content_type: str = "application/octet-stream"
+    on_bytes: Callable[[int], None] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,7 +57,9 @@ class RequestSpec:
         params: Query parameters, already flattened to repeated pairs.
         json: Body to send as JSON.
         content: Raw body bytes, when not JSON.
-        files: Multipart parts, for snapshot upload.
+        files: Multipart parts, for snapshot upload. A part's value is a
+            ``(filename, bytes, type)`` tuple, or a :class:`FileUpload` that the
+            transport streams from disk.
         data: Multipart form fields.
         accept: Value for the ``Accept`` header.
         headers: Extra headers.

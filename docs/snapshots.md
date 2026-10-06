@@ -79,10 +79,53 @@ client.snapshots.upload(["site-a.zip", "site-b.zip"], network_id="101")
 By default Forward answers as soon as the upload lands and continues unpacking
 in the background. Pass `wait=True` to hold the request open instead.
 
+The archives are streamed from disk, so a multi-gigabyte one costs no memory (a
+400 MiB upload moved the process's peak memory by 3 MiB). To show progress, pass
+`on_progress`, called as `on_progress(bytes_sent, total_bytes)` across all the
+archives:
+
+```python
+client.snapshots.upload(
+    "capture.zip",
+    network_id="101",
+    on_progress=lambda sent, total: print(f"\r{sent / total:.0%}", end=""),
+)
+```
+
 `wait_until_processed` polls the network's snapshot listing, because Forward has
 no endpoint for a single snapshot. It raises `ForwardExecutionError` if
 processing fails, and `ForwardTimeoutError` if your deadline passes first, in
-which case processing continues on Forward.
+which case processing continues on Forward. Pass `on_poll` to see each look,
+called as `on_poll(snapshot, elapsed_seconds)`:
+
+```python
+client.snapshots.wait_until_processed(
+    info.id, on_poll=lambda snap, secs: print(f"{secs:5.0f}s  {snap.state}")
+)
+```
+
+A progress or poll callback that raises is logged and ignored. A bug in a status
+line must not abort a transfer that has been running for an hour.
+
+## Collecting
+
+`collect()` starts a network collection and waits for the snapshot it produces:
+
+```python
+run = client.snapshots.collect(network_id="101")
+run.snapshot_id  # the new snapshot; it may still be processing
+client.snapshots.wait_until_processed(run.snapshot_id)
+```
+
+This puts the collector-task calls (`collector_tasks.add_collector_task` and
+`get_collector_task`) together, since the task carries no snapshot id. The new
+snapshot is the one that appears in the network's listing once the task
+succeeds; predictions are ignored, since a change rehearsal may create one
+meanwhile. A task that fails, times out or is cancelled raises
+`ForwardExecutionError` with the task's status. Your own `timeout` raises
+`ForwardTimeoutError`, and the collection carries on in Forward. Pass
+`wait=False` to return as soon as the task is queued, and `on_poll` to watch the
+task: `on_poll(task, elapsed_seconds)`.
 
 ## Exporting
 
@@ -93,6 +136,26 @@ client.snapshots.download(snapshot_id, "configs.zip", only="CONFIG")
 for chunk in client.snapshots.export(snapshot_id):
     ...
 ```
+
+Export only some devices, or obfuscate sensitive data, with the subset arguments
+(they work on `download()` too):
+
+```python
+client.snapshots.download(snapshot_id, "two.zip", include_devices=["fw01", "pa*"])
+client.snapshots.download(snapshot_id, "all-but.zip", exclude_devices=["lab-*"])
+client.snapshots.download(snapshot_id, "safe.zip", obfuscation_key="k", obfuscate_names=True)
+```
+
+`include_devices` and `exclude_devices` are exclusive. Forward refuses a subset
+that would be empty (HTTP 400, "would result in an empty snapshot"). A subset
+limited with `only="CONFIG"` is an empty archive for a device with no CLI
+configuration files, such as a cloud account, which is not an error.
+
+`on_progress(bytes_received, total_bytes)` reports a download as it arrives. The
+total is `None` when Forward sends no length, which it may not for an archive
+built on the fly. A server that refuses the representation the client asks for
+answers 406; the SDK asks for any media type on exports, and a 406 now says which
+`Accept` header was refused.
 
 ## Raw snapshot artifacts
 

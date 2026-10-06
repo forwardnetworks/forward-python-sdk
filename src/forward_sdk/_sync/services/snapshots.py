@@ -10,30 +10,39 @@ omitting the parameter, so no extra request is needed to resolve it.
 
 from __future__ import annotations
 
+import logging
 import time
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
 from forward_sdk._generated.models import (
+    CollectorTask,
     SnapshotException,
     SnapshotExceptions,
     SnapshotInfo,
     SnapshotState,
+    StartCollectionResponse,
 )
 from forward_sdk._ops import core as ops
 from forward_sdk._ops import nqe_repo as repo_ops
+from forward_sdk._ops import rest
 from forward_sdk._sync.services._base import Service
 from forward_sdk._sync.services.nqe import NqeService
+from forward_sdk.collection import CollectionRun
 from forward_sdk.errors import (
+    ForwardConfigurationError,
     ForwardExecutionError,
     ForwardNotFoundError,
     ForwardTimeoutError,
 )
 from forward_sdk.nqe.where import tag_scope
+from forward_sdk.progress import ByteProgress, ProgressCallback
 from forward_sdk.snapshot_state import SnapshotStateChange
 
 __all__ = ["SnapshotsService"]
+
+logger = logging.getLogger("forward_sdk")
 
 PROCESSED = "PROCESSED"
 
@@ -99,6 +108,26 @@ def is_predicted(snapshot: SnapshotInfo) -> bool:
 
 def _state_of(snapshot: SnapshotInfo) -> str:
     return str(snapshot.state) if snapshot.state is not None else ""
+
+
+#: Collector task statuses that mean it will never produce a snapshot.
+_TASK_FAILED = frozenset({"FAILED", "TIMED_OUT", "CANCELED"})
+
+#: How many of a network's newest snapshots to compare before and after a collection.
+_RECENT = 50
+
+
+def _plain(value: Any) -> str:
+    """An enum-or-string field as its plain string, empty when absent."""
+    return str(getattr(value, "value", value) or "")
+
+
+def _notify_poll(callback: Callable[[Any, float], None], subject: Any, elapsed: float) -> None:
+    """Call a poll callback, never letting it abort the wait it reports on."""
+    try:
+        callback(subject, elapsed)
+    except Exception:
+        logger.warning("forward_sdk on_poll callback raised; ignoring", exc_info=True)
 
 
 class SnapshotsService(Service):
@@ -381,8 +410,12 @@ class SnapshotsService(Service):
         note: str | None = None,
         process: bool = True,
         wait: bool = False,
+        on_progress: ProgressCallback | None = None,
     ) -> SnapshotInfo:
         """Upload snapshot archives into a network.
+
+        The archives are streamed from disk, so their size does not matter to
+        memory.
 
         Args:
             files: One or more ``.zip`` archives. Several are merged into a
@@ -391,12 +424,17 @@ class SnapshotsService(Service):
             wait: Hold the request open until the import finishes. By default
                 Forward answers as soon as the upload lands and continues in the
                 background; poll with :meth:`wait_until_processed`.
+            on_progress: Called as ``on_progress(bytes_sent, total_bytes)``
+                while the archives go out, across all of them. It counts bytes
+                handed to the network, so it reaches the total slightly before
+                Forward finishes answering.
         """
         paths = [Path(files)] if isinstance(files, (str, Path)) else [Path(f) for f in files]
         missing = [str(p) for p in paths if not p.is_file()]
         if missing:
             raise FileNotFoundError(f"snapshot archive(s) not found: {', '.join(missing)}")
 
+        counter = ByteProgress(on_progress, sum(p.stat().st_size for p in paths))
         payload = self._send_json(
             ops.upload_snapshot(
                 network_id=self._network(network_id),
@@ -404,6 +442,7 @@ class SnapshotsService(Service):
                 note=note,
                 process=process,
                 wait=wait,
+                on_bytes=counter.add if on_progress is not None else None,
             )
         )
         # A new snapshot is exactly the event that makes a cached "latest"
@@ -451,15 +490,69 @@ class SnapshotsService(Service):
         response = self._transport.send(ops.get_snapshot_exceptions_text(snapshot_id=snapshot_id))
         return response.text
 
-    def export(self, snapshot_id: str, *, only: str | None = None) -> Iterator[bytes]:
+    def export(
+        self,
+        snapshot_id: str,
+        *,
+        only: str | None = None,
+        include_devices: Sequence[str] | None = None,
+        exclude_devices: Sequence[str] | None = None,
+        obfuscation_key: str | None = None,
+        obfuscate_names: bool | None = None,
+        on_progress: ProgressCallback | None = None,
+    ) -> Iterator[bytes]:
         """Download a snapshot archive in chunks.
+
+        With none of the device or obfuscation arguments this is the whole
+        snapshot. Any of them selects Forward's subset export instead.
 
         Args:
             only: Restrict the export, for example to ``CONFIG``.
+            include_devices: Export only these devices. Globs such as ``"pa*"``
+                are accepted. Exclusive with ``exclude_devices``.
+            exclude_devices: Export everything except these devices.
+            obfuscation_key: Obfuscate sensitive data, keyed by this value.
+            obfuscate_names: Also obfuscate names. Needs ``obfuscation_key``.
+            on_progress: Called as ``on_progress(bytes_received, total_bytes)``
+                after each chunk. The total is ``None`` when Forward sends no
+                length, which it may not for an archive built on the fly.
+
+        Raises:
+            ForwardConfigurationError: If the arguments contradict each other.
         """
-        spec = ops.export_snapshot(snapshot_id=snapshot_id, only=only)
+        subset = any(
+            value is not None
+            for value in (include_devices, exclude_devices, obfuscation_key, obfuscate_names)
+        )
+        if subset:
+            if include_devices is not None and exclude_devices is not None:
+                raise ForwardConfigurationError(
+                    "include_devices and exclude_devices are exclusive; pass one"
+                )
+            if obfuscate_names and obfuscation_key is None:
+                raise ForwardConfigurationError("obfuscate_names needs an obfuscation_key")
+            body: dict[str, Any] = {}
+            if include_devices is not None:
+                body["includeDevices"] = list(include_devices)
+            if exclude_devices is not None:
+                body["excludeDevices"] = list(exclude_devices)
+            if obfuscation_key is not None:
+                body["obfuscationKey"] = obfuscation_key
+            if obfuscate_names is not None:
+                body["obfuscateNames"] = obfuscate_names
+            spec = ops.export_snapshot_subset(snapshot_id=snapshot_id, body=body, only=only)
+        else:
+            spec = ops.export_snapshot(snapshot_id=snapshot_id, only=only)
         with self._transport.stream(spec) as response:
+            length = response.headers.get("content-length")
+            counter = ByteProgress(
+                on_progress, int(length) if length and length.isdigit() else None
+            )
             for chunk in response.iter_bytes():
+                # Reported on receipt, before the consumer has the chunk, so a
+                # caller that stops after the first one has still been told.
+                if on_progress is not None:
+                    counter.add(len(chunk))
                 yield chunk
 
     def download(self, snapshot_id: str, destination: str | Path, **kwargs: Any) -> Path:
@@ -477,11 +570,17 @@ class SnapshotsService(Service):
         network_id: str | None = None,
         poll_interval: float = DEFAULT_POLL_INTERVAL,
         timeout: float | None = 3600.0,
+        on_poll: Callable[[SnapshotInfo, float], None] | None = None,
     ) -> SnapshotInfo:
         """Poll until a snapshot finishes processing.
 
         Forward has no endpoint for a single snapshot, so this watches the
         network's snapshot listing.
+
+        Args:
+            on_poll: Called as ``on_poll(snapshot, elapsed_seconds)`` after each
+                look, with the snapshot as listed, so a script can print its
+                state instead of looking hung. Not called if the poll raises.
 
         Raises:
             ForwardExecutionError: Processing ended in a failure state.
@@ -491,9 +590,12 @@ class SnapshotsService(Service):
         resolved = self._network(network_id)
         deadline = None if timeout is None else time.monotonic() + timeout
 
+        started = time.monotonic()
         while True:
             snapshot = self._find(resolved, snapshot_id)
             state = _state_of(snapshot)
+            if on_poll is not None:
+                _notify_poll(on_poll, snapshot, time.monotonic() - started)
             if state == PROCESSED:
                 return snapshot
             if state in FAILED_STATES:
@@ -508,6 +610,93 @@ class SnapshotsService(Service):
                     f"{timeout}s; processing continues on Forward"
                 )
             time.sleep(poll_interval)
+
+    def collect(
+        self,
+        network_id: str | None = None,
+        *,
+        wait: bool = True,
+        timeout: float | None = 3600.0,
+        poll_interval: float = 10.0,
+        snapshot_timeout: float = 120.0,
+        on_poll: Callable[[CollectorTask, float], None] | None = None,
+    ) -> CollectionRun:
+        """Start a network collection and, by default, wait for its snapshot.
+
+        This is the collector-task API: ``collector_tasks.add_collector_task``
+        and ``get_collector_task`` put together. The task carries no snapshot id,
+        so the new snapshot is the one that appears in the network's listing
+        once the task succeeds; predictions are ignored, since a change
+        rehearsal may create one meanwhile.
+
+        Args:
+            wait: Poll until the task finishes. With ``False`` the call returns as
+                soon as the task is queued, with no snapshot id.
+            timeout: Give up waiting after this many seconds. The collection
+                carries on in Forward.
+            poll_interval: Seconds between looks at the task.
+            snapshot_timeout: After the task succeeds, how long to wait for its
+                snapshot to be listed.
+            on_poll: Called as ``on_poll(task, elapsed_seconds)`` after each look,
+                so a script can show the task's status.
+
+        Raises:
+            ForwardExecutionError: The task failed, timed out or was cancelled,
+                or it succeeded but no new snapshot appeared.
+            ForwardTimeoutError: ``timeout`` elapsed first.
+        """
+        resolved = self._network(network_id)
+        before = {s.id for s in self.list(resolved, limit=_RECENT) if s.id}
+        started = self._send_json(rest.BUILDERS["addCollectorTask"](network_id=resolved))
+        task_id = StartCollectionResponse.model_validate(started or {}).task_id
+        if not task_id:
+            raise ForwardExecutionError(
+                f"Forward started a collection on network {resolved} but returned no task id"
+            )
+        self.clear_cache()
+        if not wait:
+            return CollectionRun(task_id=task_id, status="QUEUED")
+
+        began = time.monotonic()
+        deadline = None if timeout is None else began + timeout
+        while True:
+            payload = self._send_json(rest.BUILDERS["getCollectorTask"](task_id=task_id))
+            task = CollectorTask.model_validate(payload or {})
+            status = _plain(task.status)
+            if on_poll is not None:
+                _notify_poll(on_poll, task, time.monotonic() - began)
+            if status == "SUCCEEDED":
+                break
+            if status in _TASK_FAILED:
+                raise ForwardExecutionError(
+                    f"collection task {task_id} ended {status}", status=status, outcome=status
+                )
+            if deadline is not None and time.monotonic() >= deadline:
+                raise ForwardTimeoutError(
+                    f"collection task {task_id} was still {status or 'unknown'} after "
+                    f"{timeout}s; it continues on Forward"
+                )
+            time.sleep(poll_interval)
+
+        snapshot_deadline = time.monotonic() + snapshot_timeout
+        while True:
+            fresh = [
+                s
+                for s in self.list(resolved, limit=_RECENT)
+                if s.id and s.id not in before and _trigger_of(s) != "PREDICT"
+            ]
+            if fresh:
+                newest = max(fresh, key=lambda s: str(s.created_at or ""))
+                self.clear_cache()
+                return CollectionRun(task_id=task_id, status="SUCCEEDED", snapshot_id=newest.id)
+            if time.monotonic() >= snapshot_deadline:
+                raise ForwardExecutionError(
+                    f"collection task {task_id} succeeded but no new snapshot appeared in "
+                    f"network {resolved} within {snapshot_timeout}s",
+                    status="SUCCEEDED",
+                    outcome="NO_SNAPSHOT",
+                )
+            time.sleep(min(poll_interval, 5.0))
 
     def compute_advanced_reachability(self, snapshot_id: str) -> Mapping[str, Any]:
         """Start advanced reachability computation for a snapshot."""

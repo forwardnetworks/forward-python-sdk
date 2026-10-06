@@ -3,6 +3,21 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Fixed
+
+- `snapshots.export()` and `download()` failed with `HTTP 406: no response body` on some
+  Forward builds. The SDK asked for `application/octet-stream`; those builds answer 406 to
+  that and to `application/zip`, and serve `*/*` or no Accept header. The API description
+  names no media type for the export, so the SDK now asks for anything. Found by the ATOS
+  field script, which had been patching the constant at runtime. The same fragility was in
+  the three raw-file reads (`snapshots.file()`, `snapshots.exceptions_text()` and
+  `devices.file()`), which asked for `text/plain` alone and would have been refused for any
+  file Forward serves under its own type; they now prefer text and accept anything.
+- A 406 with no body now says what was refused (`Accept: <header>`) instead of
+  "no response body".
+
 ## [0.1.20] - 2026-09-29
 
 ### Added

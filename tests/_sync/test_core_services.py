@@ -11,6 +11,7 @@ from typing import Any
 import httpx
 import pytest
 
+from forward_sdk._ops import core as ops
 from forward_sdk._sync.client import ForwardClient
 from forward_sdk.errors import (
     ForwardError,
@@ -642,6 +643,41 @@ class TestSnapshotsContinued:
 
         assert b"".join(chunks) == b"zipdata"
         assert recorder.query_for()["only"] == ["CONFIG"]
+
+    def test_export_accepts_any_media_type(self, recorder: Recorder) -> None:
+        """Forward answers 406 to `application/octet-stream` and `application/zip`
+        on the export endpoint and serves `*/*`; the API description names no
+        media type for it, so the SDK must not guess one."""
+        recorder.add("GET", "/api/snapshots/9", httpx.Response(200, content=b"zipdata"))
+        with make_client(recorder) as client:
+            _ = [c for c in client.snapshots.export("9")]
+
+        assert recorder.requests[0].headers["accept"] == "*/*"
+
+    def test_export_subset_builder_accepts_any_media_type(self) -> None:
+        # No client method reaches this operation yet; the builder is what it has.
+        spec = ops.export_snapshot_subset(snapshot_id="9", body={"devices": ["a"]})
+        assert spec.accept == "*/*"
+
+    def test_a_406_names_the_refused_accept_header(self, recorder: Recorder) -> None:
+        recorder.add("GET", "/api/snapshots/9/files/x.bin", httpx.Response(406))
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardError) as caught:
+                client.snapshots.file("9", "x.bin")
+
+        message = str(caught.value)
+        assert "406" in message and "Accept:" in message
+        assert "no response body" not in message
+
+    def test_raw_file_reads_do_not_demand_text(self, recorder: Recorder) -> None:
+        """A stored file is served under a type taken from its name, so a lone
+        `text/plain` fails on anything that is not text."""
+        recorder.add("GET", "/api/snapshots/9/files/x.json", httpx.Response(200, text="{}"))
+        with make_client(recorder) as client:
+            client.snapshots.file("9", "x.json")
+
+        accept = recorder.requests[0].headers["accept"]
+        assert accept.startswith("text/plain") and "*/*" in accept
 
     def test_download_writes_a_file(self, recorder: Recorder, tmp_path: Path) -> None:
         recorder.add("GET", "/api/snapshots/9", httpx.Response(200, content=b"zipdata"))

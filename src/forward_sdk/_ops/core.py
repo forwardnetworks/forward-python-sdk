@@ -8,7 +8,14 @@ from typing import Any
 
 from forward_sdk._ops import RequestSpec, op, spec_for
 
-BINARY_ACCEPT = "application/octet-stream"
+# Forward's file-serving endpoints answer 406 to a specific media type they do
+# not produce, and they declare none in the API description, so there is nothing
+# to match. An export refused `application/octet-stream` and `application/zip`
+# and served `*/*`, and a stored file is served under a type taken from its name,
+# so a request for `text/plain` alone fails on anything else. Ask for anything,
+# and for text first where text is the common case.
+BINARY_ACCEPT = "*/*"
+TEXT_ACCEPT = "text/plain, */*;q=0.5"
 
 
 @op("getApiVersion")
@@ -157,7 +164,7 @@ def get_snapshot_file(*, snapshot_id: str, file_name: str) -> RequestSpec:
     return spec_for(
         "getSnapshotFileContent",
         path_params={"snapshotId": snapshot_id, "fileName": file_name},
-        accept="text/plain, application/json;q=0.5",
+        accept=TEXT_ACCEPT,
     )
 
 
@@ -173,7 +180,7 @@ def get_snapshot_exceptions_text(*, snapshot_id: str) -> RequestSpec:
     return spec_for(
         "getSnapshotExceptionsText",
         path_params={"snapshotId": snapshot_id},
-        accept="text/plain, application/json;q=0.5",
+        accept=TEXT_ACCEPT,
     )
 
 
@@ -303,7 +310,7 @@ def get_device_file(
             "fileName": file_name,
         },
         query={"snapshotId": snapshot_id},
-        accept="text/plain, application/json;q=0.5",
+        accept=TEXT_ACCEPT,
     )
 
 

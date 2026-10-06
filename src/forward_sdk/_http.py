@@ -231,6 +231,13 @@ def error_message(response: httpx.Response, error_info: Any) -> str:
     reason = getattr(error_info, "reason", None)
     suffix = f" ({reason})" if reason else ""
     request = response.request
+    if not detail and response.status_code == 406:
+        # Forward sends no body with this, so the message would read as if
+        # nothing were known. What was refused is the Accept header.
+        detail = (
+            "Forward does not produce the representation requested "
+            f"(Accept: {request.headers.get('accept', 'unset')})"
+        )
     return (
         f"{request.method} {request.url.path} failed with HTTP "
         f"{response.status_code}: {detail or 'no response body'}{suffix}"

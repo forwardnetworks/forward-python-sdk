@@ -121,7 +121,13 @@ This puts the collector-task calls (`collector_tasks.add_collector_task` and
 `get_collector_task`) together, since the task carries no snapshot id. The new
 snapshot is the one that appears in the network's listing once the task
 succeeds; predictions are ignored, since a change rehearsal may create one
-meanwhile. A task that fails, times out or is cancelled raises
+meanwhile. Forward marks the task succeeded and then creates the snapshot in the
+same step, so there is a short gap, which `snapshot_timeout` (two minutes by
+default) covers. Forward can create a snapshot even when the task ended `FAILED`
+because every device failed; the error does not look for it, so check the listing.
+
+`collect()` has been checked against Forward's source and against recorded response
+shapes, not against a live collection. A task that fails, times out or is cancelled raises
 `ForwardExecutionError` with the task's status. Your own `timeout` raises
 `ForwardTimeoutError`, and the collection carries on in Forward. Pass
 `wait=False` to return as soon as the task is queued, and `on_poll` to watch the
@@ -149,7 +155,9 @@ client.snapshots.download(snapshot_id, "safe.zip", obfuscation_key="k", obfuscat
 `include_devices` and `exclude_devices` are exclusive. Forward refuses a subset
 that would be empty (HTTP 400, "would result in an empty snapshot"). A subset
 limited with `only="CONFIG"` is an empty archive for a device with no CLI
-configuration files, such as a cloud account, which is not an error.
+configuration files, such as a cloud account, which is not an error. Observed on
+one network: a cloud account's subset was empty, and a device with CLI
+configuration gave a real archive, so `only` does combine with the subset.
 
 `on_progress(bytes_received, total_bytes)` reports a download as it arrives. The
 total is `None` when Forward sends no length, which it may not for an archive

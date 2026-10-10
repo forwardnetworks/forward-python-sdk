@@ -22,7 +22,11 @@ All notable changes to this project are documented here. The format follows
   snapshot id, so it is found by comparing the network's newest snapshots before and
   after, ignoring predictions. A failed, timed-out or cancelled task raises
   `ForwardExecutionError`; `wait=False` returns once queued; `on_poll(task, elapsed)`
-  reports the task. Replaces the start-and-poll loop field scripts were writing.
+  reports the task. Replaces the start-and-poll loop field scripts were writing. Forward
+  marks the task succeeded and creates the snapshot in the same step, so the post-success
+  wait for the snapshot is short; it can create one even when every device failed and the
+  task ended `FAILED`, which the error does not look for. Checked against Forward's source
+  and recorded response shapes, not a live collection, which would change a real network.
 - A device's own collector, a preview: `collectorId` is declared on classic devices
   and on CLI, SNMP and HTTP endpoints (create, patch and read), so it is typed on a
   read and documented for a write. Forward binds it but leaves it out of its API
@@ -30,8 +34,9 @@ All notable changes to this project are documented here. The format follows
   collector's number, `"C3"` or `"3"`. To add fields to schemas Forward publishes
   without redefining them, `spec/unpublished.yaml` has an `x-extend-schemas`
   section, and the build fails if Forward ever publishes one of those fields, so an
-  entry cannot go stale. Read side confirmed only from source: no device on the
-  network I could read had a collector set.
+  entry cannot go stale. Reads carry it only when a collector is set (the read response unwraps a metadata
+  record that omits it when null; confirmed in source, not seen live because no device on
+  the network I could read had a collector set).
 - Listing properties, unpublished: `configuration.get_org_config_values()`,
   `get_global_config_values()` and `get_org_scoped_config_values(org_id=)`, each with
   the five filters Forward defines (`OFF`, `CONFIGURABLE`, `CONFIGURED`,
@@ -51,10 +56,11 @@ All notable changes to this project are documented here. The format follows
   Forward builds. The SDK asked for `application/octet-stream`; those builds answer 406 to
   that and to `application/zip`, and serve `*/*` or no Accept header. The API description
   names no media type for the export, so the SDK now asks for anything. Found by the ATOS
-  field script, which had been patching the constant at runtime. The same fragility was in
-  the three raw-file reads (`snapshots.file()`, `snapshots.exceptions_text()` and
-  `devices.file()`), which asked for `text/plain` alone and would have been refused for any
-  file Forward serves under its own type; they now prefer text and accept anything.
+  field script, which had been patching the constant at runtime. Reproduced only on their
+  build: the ADP network accepted either header. The three raw-file reads
+  (`snapshots.file()`, `snapshots.exceptions_text()` and `devices.file()`) asked for
+  `text/plain` with only JSON as the alternative; they now prefer text and accept
+  anything, as a precaution for the same reason. That was not seen to fail.
 - A 406 with no body now says what was refused (`Accept: <header>`) instead of
   "no response body".
 

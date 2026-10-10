@@ -629,7 +629,11 @@ class AsyncSnapshotsService(AsyncService):
         and ``get_collector_task`` put together. The task carries no snapshot id,
         so the new snapshot is the one that appears in the network's listing
         once the task succeeds; predictions are ignored, since a change
-        rehearsal may create one meanwhile.
+        rehearsal may create one meanwhile. Forward marks the task ``SUCCEEDED``
+        and then creates the snapshot in the same step, so it is listed within
+        moments (``snapshot_timeout`` allows two minutes). It can create one
+        even when the task ended ``FAILED``, because every device failed; the
+        error does not look for it.
 
         Args:
             wait: Poll until the task finishes. With ``False`` the call returns as

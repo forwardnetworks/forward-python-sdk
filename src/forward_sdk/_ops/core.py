@@ -8,12 +8,13 @@ from typing import Any
 
 from forward_sdk._ops import FileUpload, RequestSpec, op, spec_for
 
-# Forward's file-serving endpoints answer 406 to a specific media type they do
-# not produce, and they declare none in the API description, so there is nothing
-# to match. An export refused `application/octet-stream` and `application/zip`
-# and served `*/*`, and a stored file is served under a type taken from its name,
-# so a request for `text/plain` alone fails on anything else. Ask for anything,
-# and for text first where text is the common case.
+# The API description names no media type for the export, so there is nothing to
+# match. One Forward build (reported by ATOS) answered 406 to
+# `application/octet-stream` and to `application/zip` on the export and served
+# `*/*`, so exports ask for anything. The raw file reads are served under a type
+# taken from the file's name and used to ask for `text/plain` first with only JSON
+# as the alternative; they now accept anything too, as a precaution for the same
+# reason. That was not seen to fail.
 BINARY_ACCEPT = "*/*"
 TEXT_ACCEPT = "text/plain, */*;q=0.5"
 

@@ -274,6 +274,34 @@ result = client.connectivity_tests.get_connectivity_test_result(device_name="fw0
   phase absent from the list was never reached, typically because an earlier
   one failed; `error` is absent on a phase that passed.
 
+## A device's own collector
+
+By default every device in a network is collected by the network's collector. A
+device or endpoint can name another with `collectorId`, which Forward accepts and
+returns but leaves out of its API description. The SDK declares it, so it is typed
+on a read and a write takes it as given:
+
+```python
+client.classic_devices.put_classic_devices(
+    body=[
+        {"name": "edge-01", "host": "10.0.0.1", "type": "cisco_ios_ssh", "collectorId": "C3"},
+        {"name": "edge-02", "host": "10.0.0.2", "type": "cisco_ios_ssh"},  # the default collector
+    ]
+)
+device.collector_id  # "C3", or None when the network's default serves it
+```
+
+- The value is the collector's number, written `"C3"` by Forward and accepted as
+  `"C3"` or `"3"`. A UUID is refused with a 400.
+- Leave the field out to keep the default collector. The SDK never sends it as
+  null for you; build the body without it.
+- On a patch (`patch_classic_devices`, the endpoint patches), leave it out to leave
+  the setting alone and send `null` to return the source to the default.
+- It applies to classic devices and to CLI, SNMP and HTTP endpoints.
+
+This is a preview: it is taken from Forward's source and exercised by tests, not
+yet by a live write.
+
 ## Path search
 
 ```python

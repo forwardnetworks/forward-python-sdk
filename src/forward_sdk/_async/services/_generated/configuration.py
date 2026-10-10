@@ -94,6 +94,18 @@ class AsyncConfigurationService(AsyncService):
         payload = await self._send_json(ops.BUILDERS["getGlobalConfigValue"](property=property))
         return models.ConfigValue.model_validate(payload or {})
 
+    async def get_global_config_values(
+        self,
+        *,
+        filter: str | None = None,
+    ) -> models.ConfigValues:
+        """The global defaults, never an org's override.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(ops.BUILDERS["getGlobalConfigValues"](filter=filter))
+        return models.ConfigValues.model_validate(payload or {})
+
     async def get_org_config_value(
         self,
         *,
@@ -105,6 +117,18 @@ class AsyncConfigurationService(AsyncService):
         """
         payload = await self._send_json(ops.BUILDERS["getOrgConfigValue"](property=property))
         return models.ConfigValue.model_validate(payload or {})
+
+    async def get_org_config_values(
+        self,
+        *,
+        filter: str | None = None,
+    ) -> models.ConfigValues:
+        """The calling user's org properties, as they take effect.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(ops.BUILDERS["getOrgConfigValues"](filter=filter))
+        return models.ConfigValues.model_validate(payload or {})
 
     async def get_org_scoped_config_value(
         self,
@@ -120,6 +144,21 @@ class AsyncConfigurationService(AsyncService):
             ops.BUILDERS["getOrgScopedConfigValue"](org_id=org_id, property=property)
         )
         return models.ConfigValue.model_validate(payload or {})
+
+    async def get_org_scoped_config_values(
+        self,
+        *,
+        org_id: str,
+        filter: str | None = None,
+    ) -> models.ConfigValues:
+        """Any org's properties, for a Forward support account.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["getOrgScopedConfigValues"](org_id=org_id, filter=filter)
+        )
+        return models.ConfigValues.model_validate(payload or {})
 
     async def set_deployment_config_value(
         self,

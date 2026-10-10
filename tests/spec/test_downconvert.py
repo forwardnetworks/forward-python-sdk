@@ -221,3 +221,44 @@ def test_conversion_is_deterministic(source: dict[str, Any]) -> None:
     first, _ = downconvert(yaml.safe_load(SOURCE_PATH.read_text(encoding="utf-8")))
     second, _ = downconvert(yaml.safe_load(SOURCE_PATH.read_text(encoding="utf-8")))
     assert json.dumps(first, sort_keys=True) == json.dumps(second, sort_keys=True)
+
+
+class TestExtendingPublishedSchemas:
+    """Fields Forward binds but leaves out of its description (a device's own
+    collector) are added to schemas it does publish.
+
+    The addition must never quietly shadow a real definition, or the day Forward
+    publishes the field the SDK would keep describing it by hand.
+    """
+
+    def test_every_declared_extension_reaches_the_merged_spec(
+        self, derived: dict[str, Any]
+    ) -> None:
+        unpublished = yaml.safe_load(Path("spec/unpublished.yaml").read_text(encoding="utf-8"))
+        schemas = derived["components"]["schemas"]
+        extensions = unpublished["x-extend-schemas"]
+        assert extensions, "nothing is extended; remove this class if that is intended"
+        for name, extension in extensions.items():
+            for prop in extension["properties"]:
+                assert prop in schemas[name]["properties"], f"{name}.{prop} did not arrive"
+
+    def test_a_field_added_to_a_schema_is_kept_beside_the_published_ones(self) -> None:
+        schemas: dict[str, Any] = {"Device": {"properties": {"name": {"type": "string"}}}}
+        _load_converter().extend_schemas(
+            schemas, {"Device": {"properties": {"collectorId": {"type": "string"}}}}
+        )
+        assert set(schemas["Device"]["properties"]) == {"name", "collectorId"}
+
+    def test_a_field_forward_now_publishes_fails_the_build(self) -> None:
+        converter = _load_converter()
+        schemas: dict[str, Any] = {"Device": {"properties": {"collectorId": {"type": "string"}}}}
+        with pytest.raises(converter.UnsupportedSpecFeature, match="published now"):
+            converter.extend_schemas(
+                schemas, {"Device": {"properties": {"collectorId": {"type": "integer"}}}}
+            )
+        assert schemas["Device"]["properties"]["collectorId"] == {"type": "string"}
+
+    def test_an_unknown_schema_fails_the_build(self) -> None:
+        converter = _load_converter()
+        with pytest.raises(converter.UnsupportedSpecFeature, match="not published"):
+            converter.extend_schemas({}, {"Nope": {"properties": {"a": {"type": "string"}}}})

@@ -254,6 +254,32 @@ def _coerce_scalar(value: Any, declared: str) -> Any | None:
     return None
 
 
+def extend_schemas(schemas: dict[str, Any], extensions: dict[str, Any]) -> int:
+    """Add properties Forward binds but hides to schemas it publishes.
+
+    A few fields (a device's own collector) are accepted and returned by the
+    server but left out of its description, on schemas that are otherwise
+    published. Redefining such a schema would collide, so they are added to the
+    published one instead. Each addition is refused if the property has since
+    been published, so the entry is removed rather than quietly shadowing the
+    real definition.
+
+    Returns the number of properties added. They are not counted as operations.
+    """
+    for name, extension in extensions.items():
+        target = schemas.get(name)
+        if target is None:
+            raise UnsupportedSpecFeature(f"x-extend-schemas names {name!r}, which is not published")
+        properties = target.setdefault("properties", {})
+        for prop, definition in (extension.get("properties") or {}).items():
+            if prop in properties:
+                raise UnsupportedSpecFeature(
+                    f"{name}.{prop} is published now; remove it from x-extend-schemas"
+                )
+            properties[prop] = definition
+    return 0
+
+
 def merge_unpublished(doc: dict[str, Any], extra: dict[str, Any]) -> int:
     """Fold the hand-written description of unpublished endpoints into ``doc``.
 
@@ -268,6 +294,8 @@ def merge_unpublished(doc: dict[str, Any], extra: dict[str, Any]) -> int:
                 f"unpublished schema {name!r} collides with a published one; rename it"
             )
         schemas[name] = schema
+
+    merged += extend_schemas(schemas, extra.get("x-extend-schemas") or {})
 
     for path, item in (extra.get("paths") or {}).items():
         target = doc.setdefault("paths", {}).setdefault(path, {})

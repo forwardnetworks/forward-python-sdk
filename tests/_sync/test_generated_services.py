@@ -172,3 +172,82 @@ def test_licence_gated_group_is_documented_as_such(recorder: Recorder) -> None:
             client.vulnerability_analysis.get_vulnerabilities()
 
     assert caught.value.gating == ("license",)
+
+
+def test_org_properties_are_listed_with_a_filter(recorder: Recorder) -> None:
+    recorder.add("GET", "/api/config", json_response({"firewall_predict": True}))
+    with make_client(recorder) as client:
+        listing = client.configuration.get_org_config_values(filter="CONFIGURED")
+
+    assert recorder.query_for()["filter"] == ["CONFIGURED"]
+    assert listing.model_dump(by_alias=True) == {"firewall_predict": True}
+
+
+def test_global_properties_are_listed_from_their_own_route(recorder: Recorder) -> None:
+    """The global route reports defaults only, never an org's override."""
+    recorder.add("GET", "/api/global-config", json_response({"firewall_predict": False}))
+    with make_client(recorder) as client:
+        client.configuration.get_global_config_values(filter="CONFIGURED")
+
+    assert recorder.paths == ["/api/global-config"]
+
+
+def test_no_filter_is_left_to_forward_to_default(recorder: Recorder) -> None:
+    # The default differs by route (CONFIGURABLE here, OFF for a support account),
+    # so the SDK must not impose one.
+    recorder.add("GET", "/api/config", json_response({}))
+    with make_client(recorder) as client:
+        client.configuration.get_org_config_values()
+
+    assert "filter" not in recorder.query_for()
+
+
+def test_a_support_account_lists_another_orgs_properties(recorder: Recorder) -> None:
+    recorder.add("GET", "/api/orgs/42/config", json_response({"firewall_predict": True}))
+    with make_client(recorder) as client:
+        client.configuration.get_org_scoped_config_values(org_id="42")
+
+    assert recorder.paths == ["/api/orgs/42/config"]
+
+
+def test_a_devices_own_collector_is_read_and_sent_as_given(recorder: Recorder) -> None:
+    """Forward binds collectorId but leaves it out of its description; it is
+    declared here so it is typed on a read and survives a write unchanged."""
+    recorder.add(
+        "GET",
+        "/api/networks/101/classic-devices",
+        json_response(
+            {
+                "devices": [
+                    {
+                        "name": "r1",
+                        "host": "10.0.0.1",
+                        "type": "cisco_ios_ssh",
+                        "collectorId": "C3",
+                    },
+                    {"name": "r2", "host": "10.0.0.2", "type": "cisco_ios_ssh"},
+                ]
+            }
+        ),
+    )
+    with make_client(recorder) as client:
+        listing = client.classic_devices.get_classic_devices()
+
+    first, second = listing.devices or []
+    assert first.collector_id == "C3"
+    assert second.collector_id is None
+
+
+def test_a_collector_is_only_sent_when_the_caller_sets_one(recorder: Recorder) -> None:
+    recorder.add("POST", "/api/networks/101/classic-devices", json_response({}, status=201))
+    with make_client(recorder) as client:
+        client.classic_devices.put_classic_devices(
+            body=[
+                {"name": "r1", "host": "10.0.0.1", "type": "cisco_ios_ssh", "collectorId": "C3"},
+                {"name": "r2", "host": "10.0.0.2", "type": "cisco_ios_ssh"},
+            ]
+        )
+
+    sent = recorder.body_for()
+    assert sent[0]["collectorId"] == "C3"
+    assert "collectorId" not in sent[1], "an unset collector must not be sent as null"

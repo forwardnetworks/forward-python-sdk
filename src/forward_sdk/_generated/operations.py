@@ -3265,6 +3265,19 @@ OPERATIONS: dict[str, OpDef] = {
         response_model="ConfigValue",
         summary="An org property's global default",
     ),
+    "getGlobalConfigValues": OpDef(
+        operation_id="getGlobalConfigValues",
+        method="get",
+        path="/global-config",
+        tag="Configuration",
+        parameters=(
+            ParamDef(name="filter", location="query", schema_type="string", enum=('OFF', 'CONFIGURABLE', 'CONFIGURED', 'OVERRIDDEN', 'NONDEFAULT')),
+        ),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="ConfigValues",
+        summary="The global defaults, never an org's override",
+    ),
     "getHostCentricBlastRadius": OpDef(
         operation_id="getHostCentricBlastRadius",
         method="post",
@@ -3964,6 +3977,19 @@ OPERATIONS: dict[str, OpDef] = {
         response_model="ConfigValue",
         summary="An org property's effective value for the calling user's org",
     ),
+    "getOrgConfigValues": OpDef(
+        operation_id="getOrgConfigValues",
+        method="get",
+        path="/config",
+        tag="Configuration",
+        parameters=(
+            ParamDef(name="filter", location="query", schema_type="string", enum=('OFF', 'CONFIGURABLE', 'CONFIGURED', 'OVERRIDDEN', 'NONDEFAULT')),
+        ),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="ConfigValues",
+        summary="The calling user's org properties, as they take effect",
+    ),
     "getOrgHeadCommit": OpDef(
         operation_id="getOrgHeadCommit",
         method="get",
@@ -3987,6 +4013,20 @@ OPERATIONS: dict[str, OpDef] = {
         stability="unpublished",
         response_model="ConfigValue",
         summary="An org property's effective value for a named org",
+    ),
+    "getOrgScopedConfigValues": OpDef(
+        operation_id="getOrgScopedConfigValues",
+        method="get",
+        path="/orgs/{orgId}/config",
+        tag="Configuration",
+        parameters=(
+            ParamDef(name="orgId", location="path", required=True, schema_type="string"),
+            ParamDef(name="filter", location="query", schema_type="string", enum=('OFF', 'CONFIGURABLE', 'CONFIGURED', 'OVERRIDDEN', 'NONDEFAULT')),
+        ),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="ConfigValues",
+        summary="Any org's properties, for a Forward support account",
     ),
     "getOsVulnerabilities": OpDef(
         operation_id="getOsVulnerabilities",

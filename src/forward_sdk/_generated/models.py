@@ -774,6 +774,10 @@ class CliNetworkEndpoint(Attribution):
     The collection protocol to use. Defaults to SSH.
     """
     type: Literal["CLI"]
+    collector_id: Annotated[str | None, Field(alias="collectorId", examples=["C3"])] = None
+    """
+    The collector serving this source when one was set for it, in Forward's "C3" form. Absent when the source uses the network's default. Preview: Forward returns it but leaves it out of its API description.
+    """
 
 
 class Protocol1(OpenEnum):
@@ -795,6 +799,10 @@ class CliNetworkEndpointPatch(ForwardModel):
     """
     Whether to collect from this network endpoint. Defaults to true. Use `null` to clear. Omit to leave this
     property alone.
+    """
+    collector_id: Annotated[str | None, Field(alias="collectorId", examples=["C3"])] = None
+    """
+    The collector that serves this one source, overriding the network's default. The collector's numeric id, written "C3" by Forward and accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to leave the setting unchanged; null returns the source to the network's default collector. Preview: Forward binds it but leaves it out of its API description.
     """
     credential_id: Annotated[str | None, Field(alias="credentialId", examples=["L-3"])] = None
     """
@@ -2627,6 +2635,10 @@ class HttpNetworkEndpoint(Attribution):
     ID of the endpoint profile to use. Auto-detected during connectivity testing if unspecified.
     """
     type: Literal["HTTP"]
+    collector_id: Annotated[str | None, Field(alias="collectorId", examples=["C3"])] = None
+    """
+    The collector serving this source when one was set for it, in Forward's "C3" form. Absent when the source uses the network's default. Preview: Forward returns it but leaves it out of its API description.
+    """
 
 
 class HttpNetworkEndpointPatch(ForwardModel):
@@ -2638,6 +2650,10 @@ class HttpNetworkEndpointPatch(ForwardModel):
     """
     Whether to collect from this network endpoint. Defaults to true. Use `null` to clear. Omit to leave this
     property alone.
+    """
+    collector_id: Annotated[str | None, Field(alias="collectorId", examples=["C3"])] = None
+    """
+    The collector that serves this one source, overriding the network's default. The collector's numeric id, written "C3" by Forward and accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to leave the setting unchanged; null returns the source to the network's default collector. Preview: Forward binds it but leaves it out of its API description.
     """
     credential_id: Annotated[str | None, Field(alias="credentialId", examples=["H-5"])] = None
     """
@@ -3642,6 +3658,10 @@ class NewCliNetworkEndpoint(ForwardModel):
     """
     Whether to collect from this network endpoint. Defaults to true.
     """
+    collector_id: Annotated[str | None, Field(alias="collectorId", examples=["C3"])] = None
+    """
+    The collector that serves this one source, overriding the network's default. The collector's numeric id, written "C3" by Forward and accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to keep the network's default collector. Preview: Forward binds it but leaves it out of its API description.
+    """
     credential_id: Annotated[str | None, Field(alias="credentialId", examples=["L-3"])] = None
     """
     The `id` of a CliCredential of type `LOGIN`. Credential auto-association will be attempted using credentials
@@ -3745,6 +3765,10 @@ class NewHttpNetworkEndpoint(ForwardModel):
     collect: Annotated[bool | None, Field(examples=[True])] = None
     """
     Whether to collect from this network endpoint. Defaults to true.
+    """
+    collector_id: Annotated[str | None, Field(alias="collectorId", examples=["C3"])] = None
+    """
+    The collector that serves this one source, overriding the network's default. The collector's numeric id, written "C3" by Forward and accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to keep the network's default collector. Preview: Forward binds it but leaves it out of its API description.
     """
     credential_id: Annotated[str | None, Field(alias="credentialId", examples=["H-5"])] = None
     """
@@ -3897,6 +3921,10 @@ class NewSnmpNetworkEndpoint(ForwardModel):
     collect: Annotated[bool | None, Field(examples=[True])] = None
     """
     Whether to collect from this network endpoint. Defaults to true.
+    """
+    collector_id: Annotated[str | None, Field(alias="collectorId", examples=["C3"])] = None
+    """
+    The collector that serves this one source, overriding the network's default. The collector's numeric id, written "C3" by Forward and accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to keep the network's default collector. Preview: Forward binds it but leaves it out of its API description.
     """
     credential_id: Annotated[str | None, Field(alias="credentialId", examples=["S-1"])] = None
     """
@@ -5579,6 +5607,10 @@ class SnmpNetworkEndpoint(Attribution):
     ID of the endpoint profile to use. Auto-detected during connectivity testing if unspecified.
     """
     type: Literal["SNMP"]
+    collector_id: Annotated[str | None, Field(alias="collectorId", examples=["C3"])] = None
+    """
+    The collector serving this source when one was set for it, in Forward's "C3" form. Absent when the source uses the network's default. Preview: Forward returns it but leaves it out of its API description.
+    """
 
 
 class SnmpNetworkEndpointPatch(ForwardModel):
@@ -5590,6 +5622,10 @@ class SnmpNetworkEndpointPatch(ForwardModel):
     """
     Whether to collect from this network endpoint. Defaults to true. Use `null` to clear. Omit to leave this
     property alone.
+    """
+    collector_id: Annotated[str | None, Field(alias="collectorId", examples=["C3"])] = None
+    """
+    The collector that serves this one source, overriding the network's default. The collector's numeric id, written "C3" by Forward and accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to leave the setting unchanged; null returns the source to the network's default collector. Preview: Forward binds it but leaves it out of its API description.
     """
     credential_id: Annotated[str | None, Field(alias="credentialId", examples=["S-1"])] = None
     """
@@ -7419,6 +7455,10 @@ class ClassicDevice(Attribution):
     transferred over a separate connection. After the transfer is complete, the temporary file is deleted to
     prevent unnecessary disk usage on the device.
     """
+    collector_id: Annotated[str | None, Field(alias="collectorId", examples=["C3"])] = None
+    """
+    The collector serving this source when one was set for it, in Forward's "C3" form. Absent when the source uses the network's default. Preview: Forward returns it but leaves it out of its API description.
+    """
 
 
 class ClassicDevicePatch(ForwardModel):
@@ -7502,6 +7542,10 @@ class ClassicDevicePatch(ForwardModel):
     Whether BGP advertisements should be collected. Defaults to `false` unless advertisement collection is
     required to model a [synthetic device](https://docs.fwd.app/latest/api/synthetic-devices/) connected to this
     device. Use `null` to clear. Omit to leave the property alone.
+    """
+    collector_id: Annotated[str | None, Field(alias="collectorId", examples=["C3"])] = None
+    """
+    The collector that serves this one source, overriding the network's default. The collector's numeric id, written "C3" by Forward and accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to leave the setting unchanged; null returns the source to the network's default collector. Preview: Forward binds it but leaves it out of its API description.
     """
     disable_ipv6_collection: Annotated[
         bool | None, Field(alias="disableIpv6Collection", examples=[False])
@@ -9392,6 +9436,10 @@ class NewClassicDevice(ForwardModel):
     Whether BGP advertisements should be collected. Defaults to `false` unless advertisement collection is
     required to model a [synthetic device](https://docs.fwd.app/latest/api/synthetic-devices/) connected to this
     device.
+    """
+    collector_id: Annotated[str | None, Field(alias="collectorId", examples=["C3"])] = None
+    """
+    The collector that serves this one source, overriding the network's default. The collector's numeric id, written "C3" by Forward and accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to keep the network's default collector. Preview: Forward binds it but leaves it out of its API description.
     """
     disable_ipv6_collection: Annotated[
         bool | None, Field(alias="disableIpv6Collection", examples=[False])

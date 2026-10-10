@@ -87,6 +87,7 @@ operation table, so nothing lands here by accident.
 | Blast radius, host-centric variant, XLSX report | `/networks/{id}/blast-radius[-report]?type=host-centric` | `client.blast_radius` |
 | Internet exposure and exposed hosts | `/networks/{id}/internet-exposure`, `/snapshots/{id}/internetNode/exposed-hosts[/{id}]` | `client.internet_exposure` |
 | Connectivity tests: start, stop, results, phase breakdown | `/networks/{id}/connectivityTests[/{name}][/start\|/stop]`, `?type=endpoint` | `client.connectivity_tests` |
+| Listing org, global and support-scoped properties | `GET /config`, `/global-config`, `/orgs/{id}/config` (`?filter=`) | `client.configuration.get_*_config_values()`, `describe_properties()` |
 | Org, global and deployment configuration | `/config/{p}`, `/global-config/{p}`, `/orgs/{org}/config/{p}`, `/deployment-config[/{p}]` | `client.configuration`, `config_value()` |
 | Client packages (headless collector) | `GET /software/client?type=` | `client.client_software.download()`, `get_client_package()` |
 

@@ -47,8 +47,11 @@ and `draft()` returns what is staged or `None` when nothing is.
 
 **PAN-OS firewalls cannot be changed this way.** A change set of `set` lines on
 a PAN-OS device produces a predicted snapshot that fails to process with
-"Device dc-fw OS pan_os not supported". Firewall changes go through structured
-rule edits instead:
+"Device dc-fw OS pan_os not supported". Forward's own documentation lists CLI
+commands as unsupported for PAN-OS and a configuration file as supported, and its
+configuration generator has no PAN-OS vendor, so staging accepts the text and
+prediction is where it fails. Firewall changes go through structured rule edits
+instead:
 
 ```python
 fw = client.firewall_predict
@@ -148,6 +151,35 @@ keeps saying `False` after the org has been set to `True`. That is correct
 behaviour and easily mistaken for a failed write. The org-effective routes
 report what governs. Read from the scope you care about: `get_org_config_value`
 for the calling user's org, or `get_org_scoped_config_value` for a named one.
+
+To see everything at once rather than one property, list a scope. `filter` is
+`OFF` (every property), `CONFIGURABLE` (those an org administrator may change),
+`CONFIGURED` (those with a value set in this scope), `OVERRIDDEN` or `NONDEFAULT`.
+The routes disagree about the default, so the SDK sends none: it is
+`CONFIGURABLE` for `get_org_config_values()` and `get_global_config_values()`,
+and `OFF` for `get_org_scoped_config_values(org_id=...)`, which needs a Forward
+support account.
+
+Forward does not say where a value comes from, so `describe_properties()` works
+it out from three listings:
+
+```python
+from forward_sdk import describe_properties
+
+cfg = client.configuration
+sources = describe_properties(
+    cfg.get_org_config_values(filter="OFF"),  # what governs
+    cfg.get_org_config_values(filter="CONFIGURED"),  # what the org set
+    cfg.get_global_config_values(filter="CONFIGURED"),  # what an administrator changed
+)
+sources["firewall_predict"]  # PropertySource(value=True, source="org")
+```
+
+The org wins if it set the property, then the global scope; otherwise the value is
+the one compiled into Forward, which no route exposes on its own, so `default`
+means "nobody changed it". On one organization this gave 15 `org`, 6 `global` and
+175 `default` out of 196. The global scope had 11 set, but 5 of those were also
+set by the org, so they report as `org`.
 
 Deployment properties are a third scope, and the other routes cannot reach
 them. `OUTBOUND_CONNECTIONS` gates webhook creation and cloud tests;

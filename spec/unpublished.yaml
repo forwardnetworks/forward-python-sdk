@@ -70,6 +70,136 @@ tags:
   - name: Internet Exposure
     parent: Network Analysis
     description: What the network exposes to the internet, and to whom.
+x-extend-schemas:
+  NewClassicDevice:
+    properties:
+        collectorId:
+          type: string
+          description: >-
+            The collector that serves this one source, overriding the network's
+            default. The collector's numeric id, written "C3" by Forward and
+            accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to
+            keep the network's default collector. Preview: Forward binds it but
+            leaves it out of its API description.
+          examples: ["C3"]
+  NewCliNetworkEndpoint:
+    properties:
+        collectorId:
+          type: string
+          description: >-
+            The collector that serves this one source, overriding the network's
+            default. The collector's numeric id, written "C3" by Forward and
+            accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to
+            keep the network's default collector. Preview: Forward binds it but
+            leaves it out of its API description.
+          examples: ["C3"]
+  NewSnmpNetworkEndpoint:
+    properties:
+        collectorId:
+          type: string
+          description: >-
+            The collector that serves this one source, overriding the network's
+            default. The collector's numeric id, written "C3" by Forward and
+            accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to
+            keep the network's default collector. Preview: Forward binds it but
+            leaves it out of its API description.
+          examples: ["C3"]
+  NewHttpNetworkEndpoint:
+    properties:
+        collectorId:
+          type: string
+          description: >-
+            The collector that serves this one source, overriding the network's
+            default. The collector's numeric id, written "C3" by Forward and
+            accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to
+            keep the network's default collector. Preview: Forward binds it but
+            leaves it out of its API description.
+          examples: ["C3"]
+  ClassicDevicePatch:
+    properties:
+        collectorId:
+          type: string
+          description: >-
+            The collector that serves this one source, overriding the network's
+            default. The collector's numeric id, written "C3" by Forward and
+            accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to
+            leave the setting unchanged; null returns the source to the network's default collector. Preview: Forward binds it but
+            leaves it out of its API description.
+          examples: ["C3"]
+  CliNetworkEndpointPatch:
+    properties:
+        collectorId:
+          type: string
+          description: >-
+            The collector that serves this one source, overriding the network's
+            default. The collector's numeric id, written "C3" by Forward and
+            accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to
+            leave the setting unchanged; null returns the source to the network's default collector. Preview: Forward binds it but
+            leaves it out of its API description.
+          examples: ["C3"]
+  SnmpNetworkEndpointPatch:
+    properties:
+        collectorId:
+          type: string
+          description: >-
+            The collector that serves this one source, overriding the network's
+            default. The collector's numeric id, written "C3" by Forward and
+            accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to
+            leave the setting unchanged; null returns the source to the network's default collector. Preview: Forward binds it but
+            leaves it out of its API description.
+          examples: ["C3"]
+  HttpNetworkEndpointPatch:
+    properties:
+        collectorId:
+          type: string
+          description: >-
+            The collector that serves this one source, overriding the network's
+            default. The collector's numeric id, written "C3" by Forward and
+            accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to
+            leave the setting unchanged; null returns the source to the network's default collector. Preview: Forward binds it but
+            leaves it out of its API description.
+          examples: ["C3"]
+  ClassicDevice:
+    properties:
+        collectorId:
+          type: string
+          description: >-
+            The collector serving this source when one was set for it, in
+            Forward's "C3" form. Absent when the source uses the network's
+            default. Preview: Forward returns it but leaves it out of its API
+            description.
+          examples: ["C3"]
+  CliNetworkEndpoint:
+    properties:
+        collectorId:
+          type: string
+          description: >-
+            The collector serving this source when one was set for it, in
+            Forward's "C3" form. Absent when the source uses the network's
+            default. Preview: Forward returns it but leaves it out of its API
+            description.
+          examples: ["C3"]
+  SnmpNetworkEndpoint:
+    properties:
+        collectorId:
+          type: string
+          description: >-
+            The collector serving this source when one was set for it, in
+            Forward's "C3" form. Absent when the source uses the network's
+            default. Preview: Forward returns it but leaves it out of its API
+            description.
+          examples: ["C3"]
+  HttpNetworkEndpoint:
+    properties:
+        collectorId:
+          type: string
+          description: >-
+            The collector serving this source when one was set for it, in
+            Forward's "C3" form. Absent when the source uses the network's
+            default. Preview: Forward returns it but leaves it out of its API
+            description.
+          examples: ["C3"]
+
 paths:
   /nqe/repos/{repository}/commits/{commitId}/queries:
     get:
@@ -652,6 +782,71 @@ paths:
   # lower-cases it on the wire, so the key for FIREWALL_PREDICT is
   # firewall_predict. Values are typed per property: boolean, integer, string
   # or an enum name.
+  # Listing, as opposed to reading one property. The filter is one of OFF (every
+  # property), CONFIGURABLE (those an org administrator may change), CONFIGURED
+  # (those with a value set in this scope), OVERRIDDEN (set to something other
+  # than the default) and NONDEFAULT (effective value differs from the declared
+  # default). The routes disagree about the default filter, so it is stated on
+  # each.
+  /config:
+    get:
+      operationId: getOrgConfigValues
+      summary: The calling user's org properties, as they take effect
+      description: >-
+        With CONFIGURED, only the org's own overrides. Without a filter, only
+        the properties an org administrator may change.
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: filter, in: query, schema: { type: string, enum: ["OFF", CONFIGURABLE, CONFIGURED, OVERRIDDEN, NONDEFAULT], default: CONFIGURABLE } }
+      responses:
+        "200":
+          description: Property name to effective value.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigValues" }
+              example: { firewall_predict: true, session_timeout: 30 }
+
+  /global-config:
+    get:
+      operationId: getGlobalConfigValues
+      summary: The global defaults, never an org's override
+      description: >-
+        With CONFIGURED, only the defaults a Forward administrator changed from
+        the compiled value. Without a filter, only those an org administrator
+        may change.
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: filter, in: query, schema: { type: string, enum: ["OFF", CONFIGURABLE, CONFIGURED, OVERRIDDEN, NONDEFAULT], default: CONFIGURABLE } }
+      responses:
+        "200":
+          description: Property name to global default.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigValues" }
+              example: { firewall_predict: false }
+
+  /orgs/{orgId}/config:
+    get:
+      operationId: getOrgScopedConfigValues
+      summary: Any org's properties, for a Forward support account
+      description: >-
+        Needs Forward support access. Unlike the other two, the default filter is
+        OFF: every property.
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: string } }
+        - { name: filter, in: query, schema: { type: string, enum: ["OFF", CONFIGURABLE, CONFIGURED, OVERRIDDEN, NONDEFAULT], default: "OFF" } }
+      responses:
+        "200":
+          description: Property name to the org's effective value.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigValues" }
+              example: { firewall_predict: true }
+
   /config/{property}:
     get:
       operationId: getOrgConfigValue

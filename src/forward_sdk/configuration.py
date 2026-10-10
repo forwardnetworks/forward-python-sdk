@@ -8,9 +8,10 @@ property: a boolean, an integer, a string or an enum name.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
-__all__ = ["config_value"]
+__all__ = ["PropertySource", "config_value", "describe_properties"]
 
 
 def config_value(response: Any) -> Any:
@@ -34,3 +35,56 @@ def config_value(response: Any) -> Any:
     for value in data.values():
         return value
     return None
+
+
+@dataclass(frozen=True, slots=True)
+class PropertySource:
+    """A property's effective value and where it comes from.
+
+    Attributes:
+        value: What takes effect for the org.
+        source: ``org`` when the org sets it, ``global`` when a Forward
+            administrator changed the global default, ``default`` when it is the
+            value compiled into Forward. An org setting counts as ``org`` even
+            if it happens to equal the default.
+    """
+
+    value: Any
+    source: str
+
+
+def _entries(response: Any) -> dict[str, Any]:
+    if hasattr(response, "model_dump"):
+        return dict(response.model_dump(by_alias=True))
+    return dict(response or {})
+
+
+def describe_properties(
+    effective: Any, org_configured: Any, global_configured: Any
+) -> dict[str, PropertySource]:
+    """Say, for every property, what it is set to and which scope set it.
+
+    Forward has no route that reports a value's source, so it is derived from
+    three listings, each of which the client can fetch::
+
+        effective = client.configuration.get_org_config_values(filter="OFF")
+        org = client.configuration.get_org_config_values(filter="CONFIGURED")
+        glob = client.configuration.get_global_config_values(filter="CONFIGURED")
+        sources = describe_properties(effective, org, glob)
+
+    The org wins if it set the property, then the global scope, and otherwise the
+    value is the compiled default. No route exposes that default on its own, so
+    ``default`` means "nobody changed it", not a value you can read back.
+
+    Arguments may be the generated ``ConfigValues`` models or plain mappings.
+    Property names are compared case-insensitively, since Forward lower-cases
+    them on the wire and documents them in upper case.
+    """
+    org = {name.lower() for name in _entries(org_configured)}
+    glob = {name.lower() for name in _entries(global_configured)}
+    described: dict[str, PropertySource] = {}
+    for name, value in _entries(effective).items():
+        key = name.lower()
+        source = "org" if key in org else "global" if key in glob else "default"
+        described[name] = PropertySource(value=value, source=source)
+    return described

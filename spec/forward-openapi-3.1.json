@@ -1792,7 +1792,16 @@
           {
             "$ref": "#/components/schemas/Attribution"
           }
-        ]
+        ],
+        "properties": {
+          "collectorId": {
+            "description": "The collector serving this source when one was set for it, in Forward's \"C3\" form. Absent when the source uses the network's default. Preview: Forward returns it but leaves it out of its API description.",
+            "examples": [
+              "C3"
+            ],
+            "type": "string"
+          }
+        }
       },
       "ClassicDevicePatch": {
         "properties": {
@@ -1887,6 +1896,13 @@
               false
             ],
             "type": "boolean"
+          },
+          "collectorId": {
+            "description": "The collector that serves this one source, overriding the network's default. The collector's numeric id, written \"C3\" by Forward and accepted as \"C3\" or \"3\"; a UUID is refused with a 400. Omit it to leave the setting unchanged; null returns the source to the network's default collector. Preview: Forward binds it but leaves it out of its API description.",
+            "examples": [
+              "C3"
+            ],
+            "type": "string"
           },
           "disableIpv6Collection": {
             "description": "Disables collection of any IPv6 forwarding state on the device. Defaults to false. Use `null` to clear. Omit\nto leave the property alone.",
@@ -2795,7 +2811,16 @@
           {
             "$ref": "#/components/schemas/Attribution"
           }
-        ]
+        ],
+        "properties": {
+          "collectorId": {
+            "description": "The collector serving this source when one was set for it, in Forward's \"C3\" form. Absent when the source uses the network's default. Preview: Forward returns it but leaves it out of its API description.",
+            "examples": [
+              "C3"
+            ],
+            "type": "string"
+          }
+        }
       },
       "CliNetworkEndpointPatch": {
         "properties": {
@@ -2805,6 +2830,13 @@
               true
             ],
             "type": "boolean"
+          },
+          "collectorId": {
+            "description": "The collector that serves this one source, overriding the network's default. The collector's numeric id, written \"C3\" by Forward and accepted as \"C3\" or \"3\"; a UUID is refused with a 400. Omit it to leave the setting unchanged; null returns the source to the network's default collector. Preview: Forward binds it but leaves it out of its API description.",
+            "examples": [
+              "C3"
+            ],
+            "type": "string"
           },
           "credentialId": {
             "description": "The `id` of a CliCredential of type `LOGIN`. Credential auto-association will be attempted using credentials\nconfigured to allow it if this property is unspecified and collecting from this endpoint requires this kind\nof credential. Use `null` to clear. Omit to leave this property alone.",
@@ -7459,7 +7491,16 @@
           {
             "$ref": "#/components/schemas/Attribution"
           }
-        ]
+        ],
+        "properties": {
+          "collectorId": {
+            "description": "The collector serving this source when one was set for it, in Forward's \"C3\" form. Absent when the source uses the network's default. Preview: Forward returns it but leaves it out of its API description.",
+            "examples": [
+              "C3"
+            ],
+            "type": "string"
+          }
+        }
       },
       "HttpNetworkEndpointPatch": {
         "properties": {
@@ -7469,6 +7510,13 @@
               true
             ],
             "type": "boolean"
+          },
+          "collectorId": {
+            "description": "The collector that serves this one source, overriding the network's default. The collector's numeric id, written \"C3\" by Forward and accepted as \"C3\" or \"3\"; a UUID is refused with a 400. Omit it to leave the setting unchanged; null returns the source to the network's default collector. Preview: Forward binds it but leaves it out of its API description.",
+            "examples": [
+              "C3"
+            ],
+            "type": "string"
           },
           "credentialId": {
             "description": "The `id` of an HttpCredential. The type of the credential must match the HttpAuthStrategy of the endpoint\u2019s\nassigned or discovered profile (see `authType` in HttpEndpointProfileDef). Credential auto-association will\nbe attempted using credentials configured to allow it if this property is unspecified and collecting from\nthis endpoint requires this kind of credential. Use `null` to clear. Omit to leave this property alone.",
@@ -9772,6 +9820,13 @@
             ],
             "type": "boolean"
           },
+          "collectorId": {
+            "description": "The collector that serves this one source, overriding the network's default. The collector's numeric id, written \"C3\" by Forward and accepted as \"C3\" or \"3\"; a UUID is refused with a 400. Omit it to keep the network's default collector. Preview: Forward binds it but leaves it out of its API description.",
+            "examples": [
+              "C3"
+            ],
+            "type": "string"
+          },
           "disableIpv6Collection": {
             "description": "Disables collection of any IPv6 forwarding state on the device. Defaults to false.",
             "examples": [
@@ -10061,6 +10116,13 @@
             ],
             "type": "boolean"
           },
+          "collectorId": {
+            "description": "The collector that serves this one source, overriding the network's default. The collector's numeric id, written \"C3\" by Forward and accepted as \"C3\" or \"3\"; a UUID is refused with a 400. Omit it to keep the network's default collector. Preview: Forward binds it but leaves it out of its API description.",
+            "examples": [
+              "C3"
+            ],
+            "type": "string"
+          },
           "credentialId": {
             "description": "The `id` of a CliCredential of type `LOGIN`. Credential auto-association will be attempted using credentials\nconfigured to allow it if this property is unspecified and collecting from this endpoint requires this kind\nof credential.",
             "examples": [
@@ -10342,6 +10404,13 @@
               true
             ],
             "type": "boolean"
+          },
+          "collectorId": {
+            "description": "The collector that serves this one source, overriding the network's default. The collector's numeric id, written \"C3\" by Forward and accepted as \"C3\" or \"3\"; a UUID is refused with a 400. Omit it to keep the network's default collector. Preview: Forward binds it but leaves it out of its API description.",
+            "examples": [
+              "C3"
+            ],
+            "type": "string"
           },
           "credentialId": {
             "description": "The `id` of an HttpCredential. The type of the credential must match the HttpAuthStrategy of the endpoint\u2019s\nassigned or discovered profile (see `authType` in HttpEndpointProfileDef). Credential auto-association will\nbe attempted using credentials configured to allow it if this property is unspecified and collecting from\nthis endpoint requires this kind of credential.",
@@ -10664,6 +10733,13 @@
               true
             ],
             "type": "boolean"
+          },
+          "collectorId": {
+            "description": "The collector that serves this one source, overriding the network's default. The collector's numeric id, written \"C3\" by Forward and accepted as \"C3\" or \"3\"; a UUID is refused with a 400. Omit it to keep the network's default collector. Preview: Forward binds it but leaves it out of its API description.",
+            "examples": [
+              "C3"
+            ],
+            "type": "string"
           },
           "credentialId": {
             "description": "The `id` of an SnmpCredential. Credential auto-association will be attempted using credentials configured to\nallow it if this property is unspecified and collecting from this endpoint requires this kind of credential.",
@@ -14511,7 +14587,16 @@
           {
             "$ref": "#/components/schemas/Attribution"
           }
-        ]
+        ],
+        "properties": {
+          "collectorId": {
+            "description": "The collector serving this source when one was set for it, in Forward's \"C3\" form. Absent when the source uses the network's default. Preview: Forward returns it but leaves it out of its API description.",
+            "examples": [
+              "C3"
+            ],
+            "type": "string"
+          }
+        }
       },
       "SnmpNetworkEndpointPatch": {
         "properties": {
@@ -14521,6 +14606,13 @@
               true
             ],
             "type": "boolean"
+          },
+          "collectorId": {
+            "description": "The collector that serves this one source, overriding the network's default. The collector's numeric id, written \"C3\" by Forward and accepted as \"C3\" or \"3\"; a UUID is refused with a 400. Omit it to leave the setting unchanged; null returns the source to the network's default collector. Preview: Forward binds it but leaves it out of its API description.",
+            "examples": [
+              "C3"
+            ],
+            "type": "string"
           },
           "credentialId": {
             "description": "The `id` of an SnmpCredential. Credential auto-association will be attempted using credentials configured to\nallow it if this property is unspecified and collecting from this endpoint requires this kind of credential.\nUse `null` to clear. Omit to leave this property alone.",
@@ -17070,6 +17162,50 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/config": {
+      "get": {
+        "description": "With CONFIGURED, only the org's own overrides. Without a filter, only the properties an org administrator may change.",
+        "operationId": "getOrgConfigValues",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "filter",
+            "schema": {
+              "default": "CONFIGURABLE",
+              "enum": [
+                "OFF",
+                "CONFIGURABLE",
+                "CONFIGURED",
+                "OVERRIDDEN",
+                "NONDEFAULT"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "firewall_predict": true,
+                  "session_timeout": 30
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigValues"
+                }
+              }
+            },
+            "description": "Property name to effective value."
+          }
+        },
+        "summary": "The calling user's org properties, as they take effect",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/config/{property}": {
       "delete": {
         "operationId": "clearOrgConfigValue",
@@ -19414,6 +19550,49 @@
           "Endpoint Profiles"
         ],
         "x-position": 5
+      }
+    },
+    "/global-config": {
+      "get": {
+        "description": "With CONFIGURED, only the defaults a Forward administrator changed from the compiled value. Without a filter, only those an org administrator may change.",
+        "operationId": "getGlobalConfigValues",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "filter",
+            "schema": {
+              "default": "CONFIGURABLE",
+              "enum": [
+                "OFF",
+                "CONFIGURABLE",
+                "CONFIGURED",
+                "OVERRIDDEN",
+                "NONDEFAULT"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "firewall_predict": false
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigValues"
+                }
+              }
+            },
+            "description": "Property name to global default."
+          }
+        },
+        "summary": "The global defaults, never an org's override",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/global-config/{property}": {
@@ -33758,6 +33937,57 @@
         "summary": "List queries in a repository at a commit",
         "tags": [
           "NQE Repository"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/orgs/{orgId}/config": {
+      "get": {
+        "description": "Needs Forward support access. Unlike the other two, the default filter is OFF: every property.",
+        "operationId": "getOrgScopedConfigValues",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "filter",
+            "schema": {
+              "default": "OFF",
+              "enum": [
+                "OFF",
+                "CONFIGURABLE",
+                "CONFIGURED",
+                "OVERRIDDEN",
+                "NONDEFAULT"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "firewall_predict": true
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigValues"
+                }
+              }
+            },
+            "description": "Property name to the org's effective value."
+          }
+        },
+        "summary": "Any org's properties, for a Forward support account",
+        "tags": [
+          "Configuration"
         ],
         "x-forward-stability": "unpublished"
       }

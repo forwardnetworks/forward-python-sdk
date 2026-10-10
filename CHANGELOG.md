@@ -23,6 +23,22 @@ All notable changes to this project are documented here. The format follows
   after, ignoring predictions. A failed, timed-out or cancelled task raises
   `ForwardExecutionError`; `wait=False` returns once queued; `on_poll(task, elapsed)`
   reports the task. Replaces the start-and-poll loop field scripts were writing.
+- A device's own collector, a preview: `collectorId` is declared on classic devices
+  and on CLI, SNMP and HTTP endpoints (create, patch and read), so it is typed on a
+  read and documented for a write. Forward binds it but leaves it out of its API
+  description; the Go SDK session found it in the server source. The value is the
+  collector's number, `"C3"` or `"3"`. To add fields to schemas Forward publishes
+  without redefining them, `spec/unpublished.yaml` has an `x-extend-schemas`
+  section, and the build fails if Forward ever publishes one of those fields, so an
+  entry cannot go stale. Read side confirmed only from source: no device on the
+  network I could read had a collector set.
+- Listing properties, unpublished: `configuration.get_org_config_values()`,
+  `get_global_config_values()` and `get_org_scoped_config_values(org_id=)`, each with
+  the five filters Forward defines (`OFF`, `CONFIGURABLE`, `CONFIGURED`,
+  `OVERRIDDEN`, `NONDEFAULT`) and no default of their own, since the routes disagree
+  about it. `describe_properties()` combines three listings into each property's
+  effective value and its source (`org`, `global` or `default`); Forward reports no
+  source itself. Verified live: 15 org, 6 global and 175 default out of 196.
 - `snapshots.export()` and `download()` take `include_devices`, `exclude_devices`,
   `obfuscation_key` and `obfuscate_names`, selecting Forward's subset export. That
   operation was in the API description and had a request builder, but nothing on the

@@ -7,6 +7,12 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+    ignore:
+      # No openapi-core release accepts 0.9 yet (0.23.x needs <0.9), so
+      # proposing it makes the dev group unresolvable. Drop this and the cap
+      # in pyproject.toml once openapi-core allows it.
+      - dependency-name: openapi-spec-validator
+        versions: [">=0.9"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

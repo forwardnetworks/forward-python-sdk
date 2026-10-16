@@ -121,6 +121,12 @@ cfg.get_org_config_values(filter="OFF")  # {"ai_allowed": False, ...}
 ```
 
 An organization's own value wins over the global one (`describe_properties()`
-resolves this). `ai_allowed` is necessary for Forward AI, not sufficient: it also
-needs a provider. Checked on one hosted organization, where the org had it set to
-`False` and the global value was `True`.
+resolves this). `ai_allowed` is the only thing the chat endpoints check at the
+door (with the network's `VIEW_AI_CHATS` / `EDIT_AI_CHATS` permission), so with it
+off every one of them is refused with `denial.kind == "org_setting"`; this was
+seen live on one hosted organization, where it was `False` and the global value
+`True`. Whether a model is actually available is decided separately, from the
+`custom_ai_models` property and a configured provider, and Forward's source does
+not expose that as an endpoint. So `ai_allowed` on does not promise an answer,
+and the SDK cannot tell you in advance. That second half is from the source and
+has not been seen live, since no checked organization had `ai_allowed` on.

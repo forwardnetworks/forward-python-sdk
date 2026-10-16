@@ -106,3 +106,21 @@ undocumented gets. They are still prose. Use `denial` to tell someone what to
 fix, and not to decide what your code does next: `None` means the wording was
 not recognised, which is not the same as the refusal having no cause. Branch on
 the status code, and treat the kind as the explanation you show a human.
+
+## Reading a setting before you call
+
+`org_setting` refusals can be anticipated by reading the property. The config
+listings expose it by lowercase name, but only under some filters: the default
+(`CONFIGURABLE`) listing omits `ai_allowed`, while `filter="OFF"` lists every
+property with its effective value, and `CONFIGURED` or `NONDEFAULT` list it only
+when the organization has set it.
+
+```python
+cfg = client.configuration
+cfg.get_org_config_values(filter="OFF")  # {"ai_allowed": False, ...}
+```
+
+An organization's own value wins over the global one (`describe_properties()`
+resolves this). `ai_allowed` is necessary for Forward AI, not sufficient: it also
+needs a provider. Checked on one hosted organization, where the org had it set to
+`False` and the global value was `True`.

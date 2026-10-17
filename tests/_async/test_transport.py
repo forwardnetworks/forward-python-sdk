@@ -415,6 +415,30 @@ async def test_a_create_is_retried_after_a_429(recorder: Recorder, no_sleep: lis
     assert recorder.count("POST", "/api/networks") == 2
 
 
+async def test_a_create_is_not_retried_after_any_other_429(
+    recorder: Recorder, no_sleep: list[float]
+) -> None:
+    """Only the rate limiter's 429 is known to precede the handler.
+
+    The one-active-chat refusal is also a 429, and the caller decides what to do
+    about it.
+    """
+    spec = RequestSpec(
+        operation=OPERATIONS["createNetwork"],
+        path="/networks",
+        json={"name": "n"},
+        idempotent=False,
+    )
+    recorder.add(
+        "POST", "/api/networks", httpx.Response(429, json={"message": "Only one chat at a time"})
+    )
+    async with make_transport(recorder) as transport:
+        with pytest.raises(ForwardRateLimitError):
+            await transport.send(spec)
+
+    assert recorder.count("POST", "/api/networks") == 1
+
+
 async def test_a_create_is_not_retried_after_a_503(
     recorder: Recorder, no_sleep: list[float]
 ) -> None:

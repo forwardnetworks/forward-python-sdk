@@ -203,14 +203,14 @@ class Transport:
             self._notify("on_response", spec.operation, response, time.monotonic() - started)
             self.counters.record_status(response.status_code)
 
-            # A 429 comes from a filter that runs before the request reaches its
-            # handler (Forward's rate limiter, and the one-active-chat refusal), so
-            # repeating it cannot do the work twice -- even for a create. Every
-            # other retryable status may follow a request that was processed.
+            # Forward's rate limiter is a filter in front of the handler, so its
+            # 429 cannot follow a processed request and a create may be repeated.
+            # Every other retryable status, and any other 429 (the one-active-chat
+            # refusal is one, and callers handle that themselves), may not be.
             if (
                 response.status_code in RETRYABLE_STATUS
-                and (spec.idempotent or response.status_code == 429)
                 and not final
+                and (spec.idempotent or _is_rate_limit_refusal(response))
             ):
                 if response.status_code == 429:
                     self.counters.increment("http_429")
@@ -322,3 +322,11 @@ def _retry_on_transport_error(spec: RequestSpec, exc: httpx.TransportError) -> b
     if isinstance(exc, httpx.ConnectError | httpx.ConnectTimeout):
         return True
     return spec.idempotent
+
+
+def _is_rate_limit_refusal(response: httpx.Response) -> bool:
+    """Whether this is Forward's per-user rate-limit lockout (a 429 before any handler)."""
+    if response.status_code != 429:
+        return False
+    response.read()
+    return "rate limit exceeded" in response.text.lower()

@@ -32,10 +32,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
-- A create is retried after a 429. Forward's rate limiter refuses before the request
-  reaches its handler, so repeating it cannot do the work twice; only idempotent requests
-  were retried before, so a create under a rate-limit lockout failed at once. Other
-  retryable statuses still leave a create alone, since they may follow a processed request.
+- A create is retried after Forward's rate-limit 429 ("Rate limit exceeded"). That limiter
+  refuses before the request reaches its handler, so repeating it cannot do the work twice;
+  only idempotent requests were retried before, so a create under a lockout failed at once.
+  Any other 429 (the one-active-chat refusal is one) and every other retryable status still
+  leave a create alone, since they may follow a processed request.
 - A bare key in a dispatch string (`?action=duplicate&targetNetworkId`) is replaced by the
   caller's value instead of being sent twice.
 - The NQE schema model read a type's `deprecated` as a string; Forward sends a flag there

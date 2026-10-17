@@ -113,6 +113,64 @@ The API reference for each operation gives its shape.
 **Streaming.** Methods whose response is not JSON, such as exporting the CVE
 index, return an iterator of bytes.
 
+## Brought over from the Go SDK
+
+Forward's Go SDK covers a good deal of Forward's own surface that the published
+API description leaves out. Each call below was ported from it and checked
+against Forward's controllers; the calls marked *read* were also run against a
+read-only hosted account, and everything else is **from source, not run**, because
+that account cannot reach it or the call changes something. The calls are
+described by hand in `spec/unpublished.yaml` (see [unpublished endpoints](unpublished.md)).
+
+| Attribute | What it reaches | Seen live |
+| --- | --- | --- |
+| `client.access_control` | Access control groups, their network roles, device access labels | reads of the name lists |
+| `client.organizations` | The signed-in org, and the Forward-admin view of every org | current org |
+| `client.user_accounts` | Roles, API tokens, 2FA reset, bulk enable and disable | none (admin or own-account routes) |
+| `client.saml` | The org's SAML settings | read |
+| `client.audit_logs` | Which user called which mutating route | read |
+| `client.trusted_certificates` | Org-wide CA certificates for collectors | none |
+| `client.licensing` | Licences, tier and status, per-org licences | tier and status |
+| `client.jobs` | Backend jobs: list active and completed, cancel | none (403) |
+| `client.backups` | Backups and restore | none (not served on a hosted instance) |
+| `client.banners` | Custom banners, system announcement, critical states | reads |
+| `client.collection_settings` | Org and per-collector collection settings, performance collection | reads |
+| `client.collector_binding` | Listing collectors, a collector's own metrics, resetting its key | reads |
+| `client.network_collection` | A network's proxies, device statuses, collection metrics | metrics |
+| `client.system_administration` | Forward-admin views of every network and user; supported orgs | none (403) |
+| `client.endpoint_profiles` | The approved CLI commands | read |
+| `client.classic_devices` | Connection types, glob resolution, tags and connection type | connection types |
+| `client.cloud_accounts` | The AWS CAP credential | none |
+| `client.configuration` | Clearing a global property default | none |
+| `client.vulnerability_analysis` | Per-device vulnerabilities, deleting the CVE index | device list |
+| `client.path_search`, `client.synthetic_devices` | Interesting-path queries; compatible NQE queries | compatible queries |
+| `client.collection_sources` | Controller-managed and cloud-managed setups | reads |
+| `client.custom_command_groups` | Extra CLI commands and OIDs collection runs | reads |
+| `client.device_discovery` | Finding devices by scanning, including scheduled scans | reads |
+| `client.integrations` | Infoblox, ServiceNow (incidents and CMDB), Rapid7 | Infoblox status |
+| `client.data_files` | The org's data-file library and a network's use of it | reads |
+| `client.performance_metrics` | Device and interface utilization and health | reads |
+| `client.scorecards` | Scorecards, KPI categories and trends | reads |
+| `client.cloud_objects` | Cloud objects and the files collected for them | reads |
+| `client.checks` | The checks report (a spreadsheet) and the per-category report | both |
+| `client.snapshots` | Progress, estimate, queue, logs, notes, favourites, retention | most reads |
+| `client.change_sets` | Commits, restores, copies, whole-device configurations | none (403) |
+| `client.nqe`, `client.ai` | The NQE schema, slow-run metrics, and the four NQE assists | schema, metrics |
+| `client.client_software` | Deployment artifacts | none (403) |
+
+Three things to know before using them:
+
+- **Secrets can come back.** By Forward's source, the ServiceNow and Infoblox
+  settings and the AWS CAP credential carry passwords, tokens or a client
+  certificate in their GET responses. This has not been seen, since the account
+  had none of them configured. Treat those models as sensitive and keep them out
+  of logs.
+- **Some calls are destructive or admin-only.** Deleting an org, resetting 2FA,
+  restoring a backup and deleting a commit cannot be undone. Admin routes answer
+  403 unless the account holds the role; see [availability](gating.md).
+- **The retention preview cannot run the cleanup.** `snapshots.preview_retention()`
+  always sends `dryRun=true`, because the same route deletes snapshots without it.
+
 ## Security analysis
 
 Forward's blast-radius, security-matrix and internet-exposure views sit

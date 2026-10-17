@@ -227,3 +227,36 @@ predictions from a listing. Forward does not filter by trigger, so the SDK does,
 and when a `limit` is also given the listing is fetched without a server limit
 and cut afterwards, so you get up to `limit` matching snapshots rather than a
 short page. That costs a larger response.
+
+## Progress, logs and retention
+
+```python
+client.snapshots.progress(snapshot_id)          # a snapshot that is still processing
+client.snapshots.process_estimate(snapshot_id)  # Forward's estimate of how long
+client.snapshots.processing_queue()             # what is waiting for capacity
+client.snapshots.collection_exceptions(snapshot_id)
+
+for chunk in client.snapshots.logs(snapshot_id, device_name="edge-01", level="ERROR"):
+    ...
+for chunk in client.snapshots.collection_log(snapshot_id):
+    ...
+```
+
+The logs are large (one live snapshot's came to hundreds of megabytes), so they
+stream, and `device_name` and `level` narrow them on Forward's side.
+
+`favorite()` and `unfavorite()` keep a snapshot out of, or return it to, the
+network's automatic clean-up, and `set_note()` replaces its note. The clean-up
+itself is the retention policy:
+
+```python
+policy = client.snapshots.retention_policy()
+client.snapshots.set_retention_policy({**policy.model_dump(by_alias=True), "lastWeek": 10})
+client.snapshots.preview_retention()   # what the policy would delete; deletes nothing
+```
+
+Every field of the policy is required when you set it. The preview is the only
+call that reaches Forward's trigger route, and it always passes `dryRun=true`.
+Without that, the same route deletes the snapshots. These were checked against
+Forward's source and, for the reads, a live account. Setting the policy and
+favouriting were not run.

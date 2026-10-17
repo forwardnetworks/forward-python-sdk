@@ -5,8 +5,37 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- About two hundred operations that Forward's Go SDK covers and this one did not: access
+  control, organizations, user tokens and roles, SAML, audit logs, trusted certificates,
+  licensing, jobs, backups, banners, collectors and their settings, controller- and
+  cloud-managed setups, custom command groups, device discovery, Infoblox, ServiceNow and
+  Rapid7, org data files, performance metrics, scorecards, cloud objects, the checks
+  reports, snapshot progress, logs and retention, change-set commits and whole-device
+  configurations, the NQE schema and assists, and deployment artifacts. All are
+  unpublished and described by hand. Read calls were run against a read-only account;
+  everything else is from Forward's source and is documented as such.
+- Per-service methods for the hand-written groups among them: `snapshots.progress()`,
+  `process_estimate()`, `processing_queue()`, `logs()`, `collection_log()`,
+  `collection_exceptions()`, `favorite()`, `set_note()`, `retention_policy()`,
+  `set_retention_policy()` and `preview_retention()`; change-set handle
+  `commit_detail()`, `edit_commit_note()`, `restore_commit()`, `restore_commit_as_new()`,
+  `delete_commit()`, `duplicate()` and the four device-configuration calls; `ai`'s NQE
+  assists; `nqe.schema()` and `run_metrics()`; `nqe.repo.source_by_id()`; and
+  `client_software.deployment_artifacts()`.
+- Fields the Go SDK reads that were missing: who created and last updated a classic
+  device, the controllers and managed devices in a connectivity result, and the Azure,
+  GCP and AWS cloud-account fields.
+- `spec/unpublished.yaml` is checked for repeated keys. YAML keeps the last of two equal
+  keys, which had silently dropped operations when two drafts described one path.
+
 ### Fixed
 
+- A bare key in a dispatch string (`?action=duplicate&targetNetworkId`) is replaced by the
+  caller's value instead of being sent twice.
+- The NQE schema model read a type's `deprecated` as a string; Forward sends a flag there
+  and the advice only on fields.
 - A path parameter of `.` or `..` is refused. Dots are not percent-encoded, and the HTTP
   client collapses such a segment, so a device named `..` addressed its parent route (a
   per-device call went to the network). Names that merely contain dots are unaffected.

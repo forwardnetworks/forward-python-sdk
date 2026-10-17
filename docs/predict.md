@@ -226,3 +226,31 @@ unless `retain_change_sets` is passed as false.
 `handle.delete()` removes a change set. `client.change_sets.delete([...])`
 removes several, using the bulk action whose body key is `changeSetIds`; Forward
 refuses `ids`, which is the obvious guess.
+
+## Commits, copies and whole-device configurations
+
+A change-set handle also reads and manages what has been committed:
+
+```python
+handle = client.change_sets.handle("CHG-1")
+handle.commit_detail(commit_id)                 # a commit with its device changes
+handle.edit_commit_note(commit_id, "reviewed")
+handle.restore_commit(commit_id)                # draft matches the commit again
+handle.restore_commit_as_new(commit_id, name="redo")
+handle.delete_commit(commit_id)                 # also deletes the predicted snapshots
+handle.duplicate(name="copy")
+handle.duplicate(target_network_id="202", base_snapshot_id="55")
+```
+
+Beside staging commands, a device's whole configuration can be read and
+replaced, and a command list previewed without staging it:
+
+```python
+handle.draft_device_config("edge-1")
+handle.save_draft_device_config("edge-1", config_text)   # at most 2 MB
+handle.committed_device_config(commit_id, "edge-1")
+handle.preview_device_config("edge-1", "interface Ethernet1\n shutdown")
+```
+
+All of these are from Forward's source and its tests; the account used for live
+checks cannot list change sets (403), so none has been run.

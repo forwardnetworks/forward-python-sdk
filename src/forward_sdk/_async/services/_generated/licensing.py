@@ -17,7 +17,10 @@ __all__ = ["AsyncLicensingService"]
 
 
 class AsyncLicensingService(AsyncService):
-    """Licensing."""
+    """Licensing.
+
+    May be unavailable on your instance (admin); see docs/gating.md.
+    """
 
     async def apply_license(
         self,
@@ -27,6 +30,7 @@ class AsyncLicensingService(AsyncService):
         """Add a signed license key to this deployment.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["applyLicense"](body=body))
         return models.SysLicenseDetails.model_validate(payload or {})
@@ -39,6 +43,7 @@ class AsyncLicensingService(AsyncService):
         """Preview a signed license key without adding it.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["decodeLicense"](body=body))
         return models.SysDecodedLicenseKey.model_validate(payload or {})
@@ -49,6 +54,7 @@ class AsyncLicensingService(AsyncService):
         """The fingerprint this instance presents when a license is issued.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["getInstanceFingerprint"]())
         return models.SysInstanceFingerprint.model_validate(payload or {})
@@ -59,6 +65,7 @@ class AsyncLicensingService(AsyncService):
         """The license tier and the organization's license status.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["getLicenseTierAndStatus"]())
         return models.SysLicenseTierAndStatus.model_validate(payload or {})
@@ -72,6 +79,7 @@ class AsyncLicensingService(AsyncService):
         """Stop one license from being activated.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(
             ops.BUILDERS["invalidateOrganizationLicense"](org_id=org_id, license_id=license_id)
@@ -84,6 +92,7 @@ class AsyncLicensingService(AsyncService):
         """The organization's licenses with their status.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["listLicenses"]())
         return [models.SysLicenseDetailsWithStatus.model_validate(row) for row in payload or []]
@@ -96,6 +105,7 @@ class AsyncLicensingService(AsyncService):
         """An organization's licenses, for Forward support.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["listOrganizationLicenses"](org_id=org_id))
         return [models.SysLicenseDetailsWithStatus.model_validate(row) for row in payload or []]
@@ -108,6 +118,7 @@ class AsyncLicensingService(AsyncService):
         """Delete every license of an organization.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(
             ops.BUILDERS["removeAllOrganizationLicenses"](org_id=org_id)

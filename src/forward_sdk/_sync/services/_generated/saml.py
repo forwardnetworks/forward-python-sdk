@@ -20,7 +20,10 @@ __all__ = ["SAMLService"]
 
 
 class SAMLService(Service):
-    """SAML."""
+    """SAML.
+
+    May be unavailable on your instance (admin); see docs/gating.md.
+    """
 
     def get_saml_settings(
         self,
@@ -28,6 +31,7 @@ class SAMLService(Service):
         """Read the org's SAML settings.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["getSamlSettings"]())
         return models.SamlSettings.model_validate(payload or {})
@@ -40,6 +44,7 @@ class SAMLService(Service):
         """Write the org's SAML settings.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["putSamlSettings"](body=body))
         return payload

@@ -20,7 +20,10 @@ __all__ = ["OrganizationsService"]
 
 
 class OrganizationsService(Service):
-    """Organizations."""
+    """Organizations.
+
+    May be unavailable on your instance (admin); see docs/gating.md.
+    """
 
     def create_organization(
         self,
@@ -34,6 +37,7 @@ class OrganizationsService(Service):
         """Create an org.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = self._send_json(
             ops.BUILDERS["createOrganization"](
@@ -54,6 +58,7 @@ class OrganizationsService(Service):
         """Delete an org.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["deleteOrganization"](org_id=org_id))
         return models.Organization.model_validate(payload or {})
@@ -66,6 +71,7 @@ class OrganizationsService(Service):
         """Disable an org.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["disableOrganization"](org_id=org_id))
         return payload
@@ -78,6 +84,7 @@ class OrganizationsService(Service):
         """Enable an org.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["enableOrganization"](org_id=org_id))
         return payload
@@ -88,6 +95,7 @@ class OrganizationsService(Service):
         """The signed-in org.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["getCurrentOrganization"]())
         return models.Organization.model_validate(payload or {})
@@ -98,6 +106,7 @@ class OrganizationsService(Service):
         """List the orgs the caller supports.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["listAdminOrganizations"]())
         return [models.OrganizationWithAdditionalInfo.model_validate(row) for row in payload or []]
@@ -111,6 +120,7 @@ class OrganizationsService(Service):
         """Rename an org as a Forward admin.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["renameOrganization"](org_id=org_id, body=body))
         return payload
@@ -123,6 +133,7 @@ class OrganizationsService(Service):
         """Rename the signed-in org.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["updateCurrentOrganization"](body=body))
         return payload

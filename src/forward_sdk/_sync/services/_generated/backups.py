@@ -20,7 +20,10 @@ __all__ = ["BackupsService"]
 
 
 class BackupsService(Service):
-    """Backups."""
+    """Backups.
+
+    May be unavailable on your instance (admin, deployment); see docs/gating.md.
+    """
 
     def cancel_cluster_operation(
         self,
@@ -28,6 +31,7 @@ class BackupsService(Service):
         """Cancel the backup or restore that is running.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (deployment, admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["cancelClusterOperation"]())
         return payload
@@ -41,6 +45,7 @@ class BackupsService(Service):
         """Delete one stored backup.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (deployment, admin); see docs/gating.md.
         """
         payload = self._send_json(
             ops.BUILDERS["deleteClusterBackup"](backup_id=backup_id, storage_type=storage_type)
@@ -53,6 +58,7 @@ class BackupsService(Service):
         """The running or latest cluster backup or restore.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (deployment, admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["getClusterOperationProgress"]())
         return models.SysClusterOperation.model_validate(payload or {})
@@ -65,6 +71,7 @@ class BackupsService(Service):
         """Read the backup schedule and retention for one storage.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (deployment, admin); see docs/gating.md.
         """
         payload = self._send_json(
             ops.BUILDERS["getCommonBackupSettings"](storage_type=storage_type)
@@ -77,6 +84,7 @@ class BackupsService(Service):
         """How the last completed cluster restore went.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (deployment, admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["getLastRestoreResult"]())
         return models.SysClusterOperationResult.model_validate(payload or {})
@@ -90,6 +98,7 @@ class BackupsService(Service):
         """The last completed backup of one storage and trigger type.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (deployment, admin); see docs/gating.md.
         """
         payload = self._send_json(
             ops.BUILDERS["getLastScheduledBackupResult"](
@@ -104,6 +113,7 @@ class BackupsService(Service):
         """Read the S3 storage settings for backups.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (deployment, admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["getS3BackupStorage"]())
         return models.SysS3StorageSettings.model_validate(payload or {})
@@ -116,6 +126,7 @@ class BackupsService(Service):
         """How a snapshot restore is going.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (deployment, admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["getSnapshotRestoreStatus"](snapshot_id=snapshot_id))
         return models.SysRestoreStatus.model_validate(payload or {})
@@ -126,6 +137,7 @@ class BackupsService(Service):
         """List the stored application backups.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (deployment, admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["listClusterBackups"]())
         return [models.SysAppBackup.model_validate(row) for row in payload or []]
@@ -138,6 +150,7 @@ class BackupsService(Service):
         """Restore one snapshot from a backup.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (deployment, admin); see docs/gating.md.
         """
         payload = self._send_json(
             ops.BUILDERS["restoreSnapshotFromBackup"](snapshot_id=snapshot_id)
@@ -154,6 +167,7 @@ class BackupsService(Service):
         """Take an application backup now.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (deployment, admin); see docs/gating.md.
         """
         payload = self._send_json(
             ops.BUILDERS["runClusterBackup"](
@@ -171,6 +185,7 @@ class BackupsService(Service):
         """Take over an S3 bucket for this deployment.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (deployment, admin); see docs/gating.md.
         """
         payload = self._send_json(
             ops.BUILDERS["setS3BackupBucketOwner"](body=body, storage_type=storage_type)
@@ -186,6 +201,7 @@ class BackupsService(Service):
         """Change the backup schedule or retention for one storage.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (deployment, admin); see docs/gating.md.
         """
         payload = self._send_json(
             ops.BUILDERS["updateCommonBackupSettings"](body=body, storage_type=storage_type)
@@ -200,6 +216,7 @@ class BackupsService(Service):
         """Change the S3 storage settings for backups.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (deployment, admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["updateS3BackupStorage"](body=body))
         return models.SysS3StorageSettings.model_validate(payload or {})

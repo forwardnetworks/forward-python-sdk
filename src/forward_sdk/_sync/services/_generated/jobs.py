@@ -21,7 +21,10 @@ __all__ = ["JobsService"]
 
 
 class JobsService(Service):
-    """Jobs."""
+    """Jobs.
+
+    May be unavailable on your instance (admin); see docs/gating.md.
+    """
 
     def cancel_job(
         self,
@@ -31,6 +34,7 @@ class JobsService(Service):
         """Cancel a job or a group of jobs.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["cancelJob"](cancel_job_id=cancel_job_id))
         return payload
@@ -41,6 +45,7 @@ class JobsService(Service):
         """A point-in-time dump of the job scheduler.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         with self._transport.stream(ops.BUILDERS["getDebugJobsView"]()) as response:
             for chunk in response.iter_bytes():
@@ -52,6 +57,7 @@ class JobsService(Service):
         """Running and queued top-level jobs.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["listActiveJobs"]())
         return [models.SysActiveJobInfo.model_validate(row) for row in payload or []]
@@ -62,6 +68,7 @@ class JobsService(Service):
         """Finished top-level jobs.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["listCompletedJobs"]())
         return [models.SysCompletedJobInfo.model_validate(row) for row in payload or []]

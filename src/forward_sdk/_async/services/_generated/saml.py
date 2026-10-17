@@ -17,7 +17,10 @@ __all__ = ["AsyncSAMLService"]
 
 
 class AsyncSAMLService(AsyncService):
-    """SAML."""
+    """SAML.
+
+    May be unavailable on your instance (admin); see docs/gating.md.
+    """
 
     async def get_saml_settings(
         self,
@@ -25,6 +28,7 @@ class AsyncSAMLService(AsyncService):
         """Read the org's SAML settings.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["getSamlSettings"]())
         return models.SamlSettings.model_validate(payload or {})
@@ -37,6 +41,7 @@ class AsyncSAMLService(AsyncService):
         """Write the org's SAML settings.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["putSamlSettings"](body=body))
         return payload

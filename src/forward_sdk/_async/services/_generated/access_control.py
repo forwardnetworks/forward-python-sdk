@@ -17,7 +17,10 @@ __all__ = ["AsyncAccessControlService"]
 
 
 class AsyncAccessControlService(AsyncService):
-    """Access Control."""
+    """Access Control.
+
+    May be unavailable on your instance (admin); see docs/gating.md.
+    """
 
     async def add_device_access_labels_to_groups(
         self,
@@ -27,6 +30,7 @@ class AsyncAccessControlService(AsyncService):
         """Attach device access labels to access control groups.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["addDeviceAccessLabelsToGroups"](body=body))
         return payload
@@ -39,6 +43,7 @@ class AsyncAccessControlService(AsyncService):
         """Create an access control group.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["createAccessControlGroup"](body=body))
         return models.AccessControlGroup.model_validate(payload or {})
@@ -51,6 +56,7 @@ class AsyncAccessControlService(AsyncService):
         """Create a device access label.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["createDeviceAccessLabel"](body=body))
         return models.DeviceAccessLabel.model_validate(payload or {})
@@ -63,6 +69,7 @@ class AsyncAccessControlService(AsyncService):
         """Delete an access control group.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["deleteAccessControlGroup"](group_id=group_id))
         return payload
@@ -75,6 +82,7 @@ class AsyncAccessControlService(AsyncService):
         """Delete a device access label.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["deleteDeviceAccessLabel"](label_id=label_id))
         return payload
@@ -85,6 +93,7 @@ class AsyncAccessControlService(AsyncService):
         """Map access control group IDs to names.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["getAccessControlGroupNames"]())
         return models.AccessControlGroupNames.model_validate(payload or {})
@@ -95,6 +104,7 @@ class AsyncAccessControlService(AsyncService):
         """Map device access label IDs to names.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["getDeviceAccessLabelNames"]())
         return models.DeviceAccessLabelNames.model_validate(payload or {})
@@ -105,6 +115,7 @@ class AsyncAccessControlService(AsyncService):
         """List access control groups.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["listAccessControlGroups"]())
         return [models.AccessControlGroup.model_validate(row) for row in payload or []]
@@ -115,6 +126,7 @@ class AsyncAccessControlService(AsyncService):
         """List device access labels.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["listDeviceAccessLabels"]())
         return [models.DeviceAccessLabelInfo.model_validate(row) for row in payload or []]
@@ -127,6 +139,7 @@ class AsyncAccessControlService(AsyncService):
         """Detach device access labels from access control groups.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(
             ops.BUILDERS["removeDeviceAccessLabelsFromGroups"](body=body)
@@ -144,6 +157,7 @@ class AsyncAccessControlService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(
             ops.BUILDERS["setAccessControlGroupNetworkRole"](
@@ -161,6 +175,7 @@ class AsyncAccessControlService(AsyncService):
         """Replace an access control group.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(
             ops.BUILDERS["updateAccessControlGroup"](group_id=group_id, body=body)
@@ -176,6 +191,7 @@ class AsyncAccessControlService(AsyncService):
         """Update a device access label.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(
             ops.BUILDERS["updateDeviceAccessLabel"](label_id=label_id, body=body)

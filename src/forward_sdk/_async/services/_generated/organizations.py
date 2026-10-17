@@ -17,7 +17,10 @@ __all__ = ["AsyncOrganizationsService"]
 
 
 class AsyncOrganizationsService(AsyncService):
-    """Organizations."""
+    """Organizations.
+
+    May be unavailable on your instance (admin); see docs/gating.md.
+    """
 
     async def create_organization(
         self,
@@ -31,6 +34,7 @@ class AsyncOrganizationsService(AsyncService):
         """Create an org.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(
             ops.BUILDERS["createOrganization"](
@@ -51,6 +55,7 @@ class AsyncOrganizationsService(AsyncService):
         """Delete an org.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["deleteOrganization"](org_id=org_id))
         return models.Organization.model_validate(payload or {})
@@ -63,6 +68,7 @@ class AsyncOrganizationsService(AsyncService):
         """Disable an org.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["disableOrganization"](org_id=org_id))
         return payload
@@ -75,6 +81,7 @@ class AsyncOrganizationsService(AsyncService):
         """Enable an org.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["enableOrganization"](org_id=org_id))
         return payload
@@ -85,6 +92,7 @@ class AsyncOrganizationsService(AsyncService):
         """The signed-in org.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["getCurrentOrganization"]())
         return models.Organization.model_validate(payload or {})
@@ -95,6 +103,7 @@ class AsyncOrganizationsService(AsyncService):
         """List the orgs the caller supports.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["listAdminOrganizations"]())
         return [models.OrganizationWithAdditionalInfo.model_validate(row) for row in payload or []]
@@ -108,6 +117,7 @@ class AsyncOrganizationsService(AsyncService):
         """Rename an org as a Forward admin.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(
             ops.BUILDERS["renameOrganization"](org_id=org_id, body=body)
@@ -122,6 +132,7 @@ class AsyncOrganizationsService(AsyncService):
         """Rename the signed-in org.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(ops.BUILDERS["updateCurrentOrganization"](body=body))
         return payload

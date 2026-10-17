@@ -17,7 +17,10 @@ __all__ = ["AsyncAuditLogsService"]
 
 
 class AsyncAuditLogsService(AsyncService):
-    """Audit Logs."""
+    """Audit Logs.
+
+    May be unavailable on your instance (admin); see docs/gating.md.
+    """
 
     async def download_audit_logs_csv(
         self,
@@ -27,6 +30,7 @@ class AsyncAuditLogsService(AsyncService):
         """Download audit log records as CSV.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         async with self._transport.stream(
             ops.BUILDERS["downloadAuditLogsCsv"](max_days=max_days)
@@ -51,6 +55,7 @@ class AsyncAuditLogsService(AsyncService):
         """List audit log records.
 
         Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
         """
         payload = await self._send_json(
             ops.BUILDERS["listAuditLogs"](

@@ -89,29 +89,33 @@ def encode_query(
     and dispatches some operations on a fixed query string, which is merged in
     first so a caller cannot accidentally override it.
     """
-    # A bare key in the dispatch string (``?action=duplicate&targetNetworkId``) only
-    # makes the route match; the caller's value for the same key replaces it
-    # instead of being sent alongside an empty one.
-    supplied = {key for key, value in (params or {}).items() if value is not None}
-    encoded: list[tuple[str, str]] = [
-        (key, "" if value is None else value)
-        for key, value in fixed
-        if not (value is None and key in supplied)
-    ]
+    for fixed_key, fixed_value in fixed:
+        if fixed_value is not None and params and params.get(fixed_key) is not None:
+            raise ValueError(
+                f"{fixed_key!r} selects this operation and is fixed at {fixed_value!r}; "
+                "it cannot be passed"
+            )
+    encoded: list[tuple[str, str]] = [(key, "" if value is None else value) for key, value in fixed]
+    caller: list[tuple[str, str]] = []
     for key, value in (params or {}).items():
         if value is None:
             continue
         if isinstance(value, bool):
-            encoded.append((key, "true" if value else "false"))
+            caller.append((key, "true" if value else "false"))
         elif isinstance(value, (str, bytes)):
-            encoded.append((key, value.decode() if isinstance(value, bytes) else value))
+            caller.append((key, value.decode() if isinstance(value, bytes) else value))
         elif isinstance(value, Iterable):
             for item in value:
                 if item is not None:
-                    encoded.append((key, _scalar(item)))
+                    caller.append((key, _scalar(item)))
         else:
-            encoded.append((key, _scalar(value)))
-    return encoded
+            caller.append((key, _scalar(value)))
+    # A bare key in the dispatch string (``?action=duplicate&targetNetworkId``) only
+    # makes the route match; the caller's value for the same key replaces it
+    # instead of being sent alongside an empty one.
+    supplied = {key for key, _ in caller}
+    encoded = [(k, v) for k, v in encoded if not (k in supplied and (k, None) in set(fixed))]
+    return encoded + caller
 
 
 def _scalar(value: Any) -> str:

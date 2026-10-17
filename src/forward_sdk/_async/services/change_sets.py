@@ -372,7 +372,12 @@ class AsyncChangeSetHandle:
         )
 
     async def restore_commit(self, commit_id: str) -> ChangeSetCommit:
-        """Make the change set's draft match a commit again."""
+        """Add a new head commit carrying an earlier commit's device changes.
+
+        A draft you have pending is saved as its own commit first, so one call can
+        add two commits and leaves no draft behind. From Forward's source; not
+        run against a live instance.
+        """
         payload = await self._service._send_json(
             rest.BUILDERS["restoreChangeSetCommit"](
                 network_id=self.network_id, change_set_id=self.id, commit_id=commit_id
@@ -411,7 +416,11 @@ class AsyncChangeSetHandle:
         A copy into another network needs ``base_snapshot_id``, a snapshot of that
         network to base it on.
         """
-        if target_network_id is not None and base_snapshot_id is None:
+        if (
+            target_network_id is not None
+            and target_network_id != self.network_id
+            and base_snapshot_id is None
+        ):
             raise ValueError("copying to another network needs a base_snapshot_id there")
         body = {
             key: value

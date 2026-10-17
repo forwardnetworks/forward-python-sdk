@@ -8112,7 +8112,7 @@ OPERATIONS: dict[str, OpDef] = {
         response_media=('application/json',),
         stability="unpublished",
         response_model="ChangeSetCommit",
-        summary="Restore a committed version as the change set's draft",
+        summary="Restore a committed version as a new head commit",
     ),
     "restoreChangeSetCommitAsNew": OpDef(
         operation_id="restoreChangeSetCommitAsNew",

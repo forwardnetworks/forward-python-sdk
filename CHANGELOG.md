@@ -14,8 +14,8 @@ All notable changes to this project are documented here. The format follows
   Rapid7, org data files, performance metrics, scorecards, cloud objects, the checks
   reports, snapshot progress, logs and retention, change-set commits and whole-device
   configurations, the NQE schema and assists, and deployment artifacts. All are
-  unpublished and described by hand. Read calls were run against a read-only account;
-  everything else is from Forward's source and is documented as such.
+  unpublished and described by hand. Some reads were run against a read-only account;
+  the rest, and every write and admin route, are from Forward's source and say so.
 - Per-service methods for the hand-written groups among them: `snapshots.progress()`,
   `process_estimate()`, `processing_queue()`, `logs()`, `collection_log()`,
   `collection_exceptions()`, `favorite()`, `set_note()`, `retention_policy()`,
@@ -35,6 +35,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- `collector_tasks.stop_collector_task()` always sent an empty `action`, which Forward
+  refuses; the bare `?action` in its route is now the caller's to set.
 - A create is retried after Forward's rate-limit 429 ("Rate limit exceeded"). That limiter
   refuses before the request reaches its handler, so repeating it cannot do the work twice;
   only idempotent requests were retried before, so a create under a lockout failed at once.

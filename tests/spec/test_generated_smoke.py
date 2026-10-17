@@ -114,6 +114,12 @@ def test_method_reaches_its_endpoint(operation: OpDef) -> None:
     )
 
     for key, value in operation.fixed_query:
-        assert request.url.params.get(key) == (value or ""), (
-            f"{operation.operation_id} did not send its {key} selector"
-        )
+        if value is None:
+            # A bare key only makes the route match; the caller's value rides on it.
+            assert request.url.params.get_list(key), (
+                f"{operation.operation_id} did not send its {key} selector"
+            )
+        else:
+            assert request.url.params.get_list(key) == [value], (
+                f"{operation.operation_id} did not send its {key} selector exactly once"
+            )

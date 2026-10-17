@@ -258,5 +258,6 @@ client.snapshots.preview_retention()   # what the policy would delete; deletes n
 Every field of the policy is required when you set it. The preview is the only
 call that reaches Forward's trigger route, and it always passes `dryRun=true`.
 Without that, the same route deletes the snapshots. These were checked against
-Forward's source and, for the reads, a live account. Setting the policy and
-favouriting were not run.
+Forward's source and, for the reads, a live account. The preview itself needs the
+DELETE_SNAPSHOT permission and was not run, nor were setting the policy and
+favouriting.

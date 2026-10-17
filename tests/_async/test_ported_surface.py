@@ -129,6 +129,22 @@ class TestChangeSetCommitsAndConfigs:
                 await client.change_sets.handle("CHG-1").duplicate(target_network_id="202")
         assert recorder.requests == []
 
+    async def test_naming_its_own_network_as_the_target_needs_no_base_snapshot(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add("POST", CS, json_response({"id": "CHG-3"}))
+        async with make_client(recorder) as client:
+            await client.change_sets.handle("CHG-1").duplicate(target_network_id="101")
+        assert recorder.query_for() == {"action": ["duplicate"], "targetNetworkId": ["101"]}
+
+    async def test_stopping_a_collector_task_sends_the_chosen_action(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add("POST", "/api/collector-tasks/88", json_response({}))
+        async with make_client(recorder) as client:
+            await client.collector_tasks.stop_collector_task(task_id="88", action="CANCEL")
+        assert recorder.query_for() == {"action": ["CANCEL"]}
+
     async def test_a_copy_in_the_same_network_sends_no_target(self, recorder: Recorder) -> None:
         recorder.add("POST", CS, json_response({"id": "CHG-3"}))
         async with make_client(recorder) as client:

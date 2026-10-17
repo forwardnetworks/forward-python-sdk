@@ -11918,10 +11918,14 @@ paths:
   /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}?action=restore:
     post:
       operationId: restoreChangeSetCommit
-      summary: Restore a committed version as the change set's draft
+      summary: Restore a committed version as a new head commit
       description: >-
-        Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING
-        organization property. Source-only: not called live.
+        Adds a new commit carrying the chosen commit's device changes. A draft you
+        have pending is first saved as its own commit ("Draft changes auto-saved"),
+        so one call can add two commits and leaves no draft behind (source
+        ChangeSetService.restoreCommit). Requires the MANAGE_CHANGE_SETS network
+        permission and the PREDICT_MODELING organization property. Source-only: not
+        called live.
       x-forward-stability: unpublished
       tags: [Change Sets]
       parameters:

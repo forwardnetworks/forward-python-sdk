@@ -198,10 +198,19 @@ def test_dispatched_operations_send_their_selector(operation_id: str) -> None:
 
 
 def test_fixed_query_is_not_overridable() -> None:
-    """A caller cannot displace the value that selects the operation."""
+    """A caller cannot displace, or repeat, the value that selects the operation."""
     operation = OPERATIONS["getVulnerabilities"]
-    params = encode_query({"v": "1"}, operation.fixed_query)
-    assert params[0] == ("v", "2")
+    assert encode_query({}, operation.fixed_query) == [("v", "2")]
+    with pytest.raises(ValueError, match="fixed at '2'"):
+        encode_query({"v": "1"}, operation.fixed_query)
+
+
+def test_a_bare_dispatch_key_goes_out_once_with_the_callers_value() -> None:
+    fixed = OPERATIONS["stopCollectorTask"].fixed_query
+    assert fixed == (("action", None),)
+    assert encode_query({"action": "CANCEL"}, fixed) == [("action", "CANCEL")]
+    # An empty value is no value: the bare key still goes out so the route matches.
+    assert encode_query({"action": []}, fixed) == [("action", "")]
 
 
 # --- request bodies of hand-written builders ---------------------------------

@@ -235,9 +235,10 @@ A change-set handle also reads and manages what has been committed:
 handle = client.change_sets.handle("CHG-1")
 handle.commit_detail(commit_id)                 # a commit with its device changes
 handle.edit_commit_note(commit_id, "reviewed")
-handle.restore_commit(commit_id)                # draft matches the commit again
+handle.restore_commit(commit_id)                # a new head commit with that commit's changes
 handle.restore_commit_as_new(commit_id, name="redo")
 handle.delete_commit(commit_id)                 # also deletes the predicted snapshots
+# restore_commit first saves a pending draft as its own commit, so it can add two.
 handle.duplicate(name="copy")
 handle.duplicate(target_network_id="202", base_snapshot_id="55")
 ```

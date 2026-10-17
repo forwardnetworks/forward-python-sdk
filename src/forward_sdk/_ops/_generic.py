@@ -76,7 +76,8 @@ def _signature(operation: OpDef, *, has_body: bool) -> inspect.Signature:
             )
         )
     # A parameter fixed by the operation's dispatch is not the caller's to set.
-    dispatched = {key for key, _ in operation.fixed_query}
+    # A bare key (``?action``) only makes the route match: its value is the caller's.
+    dispatched = {key for key, value in operation.fixed_query if value is not None}
     settable = [p for p in operation.query_params if p.name not in dispatched]
 
     # Required query parameters get no default, so omitting one is caught here

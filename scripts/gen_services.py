@@ -179,7 +179,8 @@ def render_method(operation: OpDef) -> str:
         required.append("body: Any")
         forwarded.append("body=body")
 
-    dispatched = {key for key, _ in operation.fixed_query}
+    # A bare key (``?action``) only makes the route match: its value is the caller's.
+    dispatched = {key for key, value in operation.fixed_query if value is not None}
     for param in operation.query_params:
         if param.name in dispatched:
             continue

@@ -551,13 +551,13 @@ async def test_query_parameters_repeat_and_merge_fixed_dispatch(recorder: Record
 
 
 async def test_fixed_query_cannot_be_overridden(recorder: Recorder) -> None:
-    recorder.add("GET", "/api/networks/101/vulnerabilities", json_response({}))
-    spec = spec_for("getVulnerabilities", path_params={"networkId": "101"}, query={"v": "1"})
-    async with make_transport(recorder) as transport:
-        await transport.send(spec)
+    """The value that selects the operation is Forward's to dispatch on, not the caller's.
 
-    # The dispatch value that selects this operation comes first.
-    assert recorder.query_for()["v"][0] == "2"
+    Sending both would leave it to Spring to pick one of two values for the key.
+    """
+    with pytest.raises(ValueError, match="fixed at '2'"):
+        spec_for("getVulnerabilities", path_params={"networkId": "101"}, query={"v": "1"})
+    assert recorder.requests == []
 
 
 async def test_path_segments_are_quoted(recorder: Recorder) -> None:

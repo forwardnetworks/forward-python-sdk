@@ -55,10 +55,11 @@ class AsyncCollectorTasksService(AsyncService):
         self,
         *,
         task_id: str,
+        action: str,
         note: str | None = None,
     ) -> Any:
         """Stop a collector task."""
         payload = await self._send_json(
-            ops.BUILDERS["stopCollectorTask"](task_id=task_id, note=note)
+            ops.BUILDERS["stopCollectorTask"](task_id=task_id, action=action, note=note)
         )
         return payload

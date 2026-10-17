@@ -89,7 +89,15 @@ def encode_query(
     and dispatches some operations on a fixed query string, which is merged in
     first so a caller cannot accidentally override it.
     """
-    encoded: list[tuple[str, str]] = [(key, "" if value is None else value) for key, value in fixed]
+    # A bare key in the dispatch string (``?action=duplicate&targetNetworkId``) only
+    # makes the route match; the caller's value for the same key replaces it
+    # instead of being sent alongside an empty one.
+    supplied = {key for key, value in (params or {}).items() if value is not None}
+    encoded: list[tuple[str, str]] = [
+        (key, "" if value is None else value)
+        for key, value in fixed
+        if not (value is None and key in supplied)
+    ]
     for key, value in (params or {}).items():
         if value is None:
             continue

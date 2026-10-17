@@ -132,6 +132,24 @@ class ClassicDevicesService(Service):
         )
         return models.ClassicDevices.model_validate(payload or {})
 
+    def get_classic_devices_tags_and_conn_type(
+        self,
+        *,
+        body: Any,
+        network_id: str | None = None,
+    ) -> models.VariantsDevicesTagsAndType:
+        """Devices of the given connection types, with their tags.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getClassicDevicesTagsAndConnType"](
+                network_id=self._network(network_id), body=body
+            )
+        )
+        return models.VariantsDevicesTagsAndType.model_validate(payload or {})
+
     def get_specific_classic_devices(
         self,
         *,
@@ -227,3 +245,22 @@ class ClassicDevicesService(Service):
             ops.BUILDERS["putClassicDevices"](network_id=self._network(network_id), body=body)
         )
         return payload
+
+    def resolve_classic_device_globs(
+        self,
+        *,
+        body: Any,
+        network_id: str | None = None,
+        complete: int | None = None,
+    ) -> models.VariantsResolveGlobsResponse:
+        """Resolve device globs against classic devices.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["resolveClassicDeviceGlobs"](
+                network_id=self._network(network_id), body=body, complete=complete
+            )
+        )
+        return models.VariantsResolveGlobsResponse.model_validate(payload or {})

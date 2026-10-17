@@ -123,6 +123,10 @@ x-extend-schemas:
             keep the network's default collector. Preview: Forward binds it but
             leaves it out of its API description.
           examples: ["C3"]
+        concurrency:
+          type: integer
+          description: >-
+            Concurrency for this source. Preview: Forward accepts it but leaves it out of its API description. Omit to keep Forward's default.
   NewCliNetworkEndpoint:
     properties:
         collectorId:
@@ -167,6 +171,10 @@ x-extend-schemas:
             leave the setting unchanged; null returns the source to the network's default collector. Preview: Forward binds it but
             leaves it out of its API description.
           examples: ["C3"]
+        concurrency:
+          type: integer
+          description: >-
+            Concurrency for this source. Preview: Forward accepts it but leaves it out of its API description. Omit to leave the setting unchanged.
   CliNetworkEndpointPatch:
     properties:
         collectorId:
@@ -210,6 +218,34 @@ x-extend-schemas:
             default. Preview: Forward returns it but leaves it out of its API
             description.
           examples: ["C3"]
+        createdBy:
+          type: string
+          description: >-
+            Username of the user who created this source. Absent when the account was deleted. Observed on live
+            responses.
+          examples: ["me@example.com"]
+        createdById:
+          type: string
+          description: ID of the user who created this source. Observed on every live device.
+          examples: ["456"]
+        createdAt:
+          type: string
+          description: When this source was created, ISO-8601. Observed on every live device.
+          examples: ["2021-12-29T16:30:45.111Z"]
+        updatedBy:
+          type: string
+          description: >-
+            Username of the user who most recently updated this source. Absent when the account was deleted.
+            Observed on live responses.
+          examples: ["you@example.com"]
+        updatedById:
+          type: string
+          description: ID of the user who most recently updated this source. Observed on every live device.
+          examples: ["789"]
+        updatedAt:
+          type: string
+          description: When this source was most recently updated, ISO-8601. Observed on every live device.
+          examples: ["2024-10-27T21:44:51.345Z"]
   CliNetworkEndpoint:
     properties:
         collectorId:
@@ -240,6 +276,123 @@ x-extend-schemas:
             default. Preview: Forward returns it but leaves it out of its API
             description.
           examples: ["C3"]
+
+  SourceConnectivityResult:
+    properties:
+      controllerInfos:
+        type: array
+        description: >-
+          Controllers the last test's QUERY phase found for this device. Preview: Forward returns it but leaves it
+          out of its API description (controller-managed setups). Observed on live results.
+        items: { $ref: "#/components/schemas/NameAndIpAddress" }
+      managedDevices:
+        type: array
+        description: >-
+          For a controller, the devices its QUERY phase reported managing. Preview: hidden from Forward's API
+          description. Observed on live results.
+        items: { $ref: "#/components/schemas/NameAndIpAddress" }
+      dependentNameAndAliases:
+        type: array
+        description: >-
+          For a dependent device, its master's name and aliases. Preview: hidden from Forward's API description.
+          Observed on live results.
+        items: { type: string }
+        examples: [["dc-core-1-vs1", "dc-core-1"]]
+      nameAliases:
+        type: array
+        description: >-
+          Other names this device answers to, from the QUERY phase. Preview: hidden from Forward's API description.
+          Observed on live results.
+        items: { type: string }
+        examples: [["dc-core-1.example.net"]]
+  CloudAccount:
+    properties:
+      clientId:
+        type: string
+        description: The Azure application (client) ID, or the GCP client ID. Observed on live AZURE accounts.
+      tenant:
+        type: string
+        description: The Azure tenant ID. Observed on live AZURE accounts.
+      environment:
+        type: string
+        description: The Azure cloud environment. Observed on live AZURE accounts.
+      subscriptionIds:
+        type: array
+        description: The Azure subscription IDs the account covers. Observed on live AZURE accounts.
+        items: { type: string }
+      discoveredSubscriptionIds:
+        type: array
+        description: Azure subscription IDs found by discovery. Observed on live AZURE accounts.
+        items: { type: string }
+      testResults:
+        type: object
+        description: >-
+          Azure: the last test result per subscription ID. Observed on live AZURE accounts.
+        additionalProperties: { $ref: "#/components/schemas/CloudTestResult" }
+      regions:
+        type: object
+        description: >-
+          AWS: the last test result per region, keyed by region name. Observed on live AWS accounts;
+          each value has error and testInstant.
+        additionalProperties: { $ref: "#/components/schemas/CloudTestResult" }
+      assumeRoleInfos:
+        type: array
+        description: "AWS: the assume-role settings. Observed on live AWS accounts."
+        items: { $ref: "#/components/schemas/VariantsAwsAssumeRoleInfo" }
+      useForwardAccountToAssumeRole:
+        type: boolean
+        description: "AWS: whether Forward's own account is used to assume the role. Observed on live AWS accounts."
+  NewCloudAccount:
+    properties:
+      subscriptionIds:
+        type: array
+        description: >-
+          AZURE: the subscription IDs the account covers. Set on create; on PATCH see CloudAccountPatch.
+        items: { type: string }
+      discoveredSubscriptionIds:
+        type: array
+        description: "AZURE: subscription IDs found by discovery. Accepted on create (CreateAzureAccountRequest)."
+        items: { type: string }
+      projectIds:
+        type: array
+        description: "GCP: the project IDs the account covers. Accepted on create (CreateGcpAccountRequest)."
+        items: { type: string }
+      discoveredProjectIds:
+        type: array
+        description: "GCP: project IDs found by discovery. Accepted on create (CreateGcpAccountRequest)."
+        items: { type: string }
+      awsC2SAccountInfos:
+        type: array
+        description: >-
+          AWS CAP accounts only: the portal-account filter (AwsAccount.awsC2SAccountInfos). Source-only: no CAP
+          account is on the ADP network, so it is not observed live.
+        items: { $ref: "#/components/schemas/VariantsAwsC2SAccountInfo" }
+  CloudAccountPatch:
+    properties:
+      subscriptionIds:
+        type: array
+        description: >-
+          AZURE: replaces the subscription IDs. Presence-aware (JsonProp): omit to leave unchanged. Whether an explicit
+          null clears them is not verified against the source.
+        items: { type: string }
+      discoveredSubscriptionIds:
+        type: array
+        description: "AZURE: replaces the discovered subscription IDs (UpdateAzureAccountRequest, JsonProp)."
+        items: { type: string }
+      projectIds:
+        type: array
+        description: "GCP: replaces the project IDs (UpdateGcpAccountRequest.projectIds, JsonProp). Omit to leave unchanged."
+        items: { type: string }
+      discoveredProjectIds:
+        type: array
+        description: "GCP: replaces the discovered project IDs (UpdateGcpAccountRequest, JsonProp). Omit to leave unchanged."
+        items: { type: string }
+      awsC2SAccountInfos:
+        type: array
+        description: >-
+          AWS CAP accounts: replaces the portal-account filter (UpdateAwsAccountRequest.awsC2SAccountInfos, JsonProp).
+          Omit to leave unchanged. Source-only: not observed live.
+        items: { $ref: "#/components/schemas/VariantsAwsC2SAccountInfo" }
 
 paths:
   /nqe/repos/{repository}/commits/{commitId}/queries:
@@ -13393,6 +13546,380 @@ paths:
         "204":
           description: The uploaded index was removed. No body.
 
+  /networks/{networkId}/classic-devices?action=resolveGlobs:
+    post:
+      operationId: resolveClassicDeviceGlobs
+      summary: Resolve device globs against classic devices
+      description: >-
+        Reads which of the network's classic devices of the given connection types each glob matches; changes nothing.
+        Requires VIEW_COLLECTION_SOURCES (ClassicDeviceController.resolveGlobs). Source-only: the ADP account is
+        read-only, so this POST was not called live. A glob that matches nothing may be absent from the map.
+      x-forward-stability: unpublished
+      tags: [Classic Devices]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - name: complete
+          in: query
+          required: false
+          description: >-
+            Index into globs of the glob to autocomplete. Omit or pass -1 for no completion. Out-of-range is a 400.
+          schema: { type: integer, default: -1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VariantsResolveGlobsRequest" }
+            # constructed field-for-field from ResolveDeviceGlobsRequest.java; placeholder values
+            example: { globs: ["dc-*"], connTypes: ["cisco_ios_ssh"] }
+      responses:
+        "200":
+          description: The globs and the devices each one resolved to.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VariantsResolveGlobsResponse" }
+              # constructed field-for-field from ResolveDeviceGlobsResponse.java; placeholder values
+              example:
+                globToResolvedDevices: { "dc-*": ["dc-core-1", "dc-core-2"] }
+  /networks/{networkId}/classic-devices?view=tagsAndConnType:
+    post:
+      operationId: getClassicDevicesTagsAndConnType
+      summary: Devices of the given connection types, with their tags
+      description: >-
+        Lists the network's classic devices whose connection type is in the body, with their tags, and the device
+        tags. Requires VIEW_COLLECTION_SOURCES (ClassicDeviceController.getDevicesTagsAndType). Source-only: not called
+        live.
+      x-forward-stability: unpublished
+      tags: [Classic Devices]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: "#/components/schemas/ClassicDeviceType" }
+            example: ["cisco_ios_ssh"]
+      responses:
+        "200":
+          description: The matching devices and the network's device tags.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VariantsDevicesTagsAndType" }
+              # constructed field-for-field from DevicesTagsAndType.java / DeviceTagsAndType.java; placeholder values
+              example:
+                devices: [{ name: "dc-core-1", tags: ["core"], type: "cisco_ios_ssh" }]
+                deviceTags: [{ name: "core", color: "#0064a0" }]
+  /networks/{networkId}/change-sets/{changeSetId}?action=duplicate:
+    post:
+      operationId: duplicateChangeSet
+      summary: Duplicate a change set within the same network
+      description: >-
+        Copies the change set into a new one in the same network. Requires MANAGE_CHANGE_SETS and the
+        PREDICT_MODELING organization property (ChangeSetController.duplicateChangeSet). Source-only: the ADP account
+        gets 403 on change sets.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VariantsDuplicateChangeSetRequest" }
+            # constructed field-for-field from DuplicateChangeSetRequest.java; placeholder values
+            example: { targetName: "Core uplink change (copy)", targetBaseSnapshotId: "656" }
+      responses:
+        "200":
+          description: The new change set.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSet" }
+              # from source: ChangeSetController.duplicateChangeSet returns ChangeSet; placeholder values
+              example: { id: "CHG-102", name: "Core uplink change (copy)", networkId: "115", snapshotId: "656" }
+  /networks/{networkId}/change-sets/{changeSetId}?action=duplicate&targetNetworkId:
+    post:
+      operationId: duplicateChangeSetToNetwork
+      summary: Duplicate a change set into another network
+      description: >-
+        Copies the change set into targetNetworkId. Requires MANAGE_CHANGE_SETS on the source and the target network,
+        and the PREDICT_MODELING organization property (ChangeSetController.duplicateChangeSetToNetwork). Source-only.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - name: targetNetworkId
+          in: query
+          required: true
+          description: The network to copy the change set into.
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VariantsDuplicateChangeSetRequest" }
+            example: { targetName: "Core uplink change (copy)" }
+      responses:
+        "200":
+          description: The new change set, in the target network.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSet" }
+              # from source: ChangeSetController.duplicateChangeSetToNetwork returns ChangeSet; placeholder values
+              example: { id: "CHG-103", name: "Core uplink change (copy)", networkId: "220", snapshotId: "701" }
+  /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}:
+    get:
+      operationId: getChangeSetCommit
+      summary: One commit of a change set, with its device changes
+      description: >-
+        Requires MANAGE_CHANGE_SETS and the PREDICT_MODELING organization property (ChangeSetController.getCommit).
+        Device changes for devices the caller cannot access are filtered out. Source-only: the ADP account gets 403.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: commitId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The commit.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommittedChangeSet" }
+              # from source: ChangeSetController.getCommit returns FilteredCommittedChangeSet; placeholder values
+              example:
+                commitId: "9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978"
+                note: "staged for review"
+                committedAt: "2026-09-11T10:02:00Z"
+                deviceToChanges:
+                  dc-core: { commands: "interface Ethernet1\n shutdown", hasConfig: false, hasSecurityRuleChanges: false }
+    patch:
+      operationId: updateChangeSetCommitNote
+      summary: Replace a commit's note
+      description: >-
+        Replaces the note of an existing commit. note is a required query parameter (ChangeSetController.editCommitNote,
+        @RequestParam). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: commitId, in: path, required: true, schema: { type: string } }
+        - { name: note, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The commit metadata.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSetCommit" }
+              # from source: returns ChangeSetCommitMetadata; placeholder values
+              example: { commitId: "9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978", note: "reviewed", committedAt: "2026-09-11T10:02:00Z" }
+    delete:
+      operationId: deleteChangeSetCommit
+      summary: Delete a commit
+      description: >-
+        Deletes the commit (ChangeSetController.deleteCommit, 204). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING.
+        Source-only.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: commitId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted. }
+  /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}?action=restore:
+    post:
+      operationId: restoreChangeSetCommit
+      summary: Restore the change set to a commit
+      description: >-
+        Makes the change set's draft match the commit again (ChangeSetController.restoreCommit). Requires
+        MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: commitId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The commit the draft was restored from.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSetCommit" }
+              # from source: returns ChangeSetCommitMetadata; placeholder values
+              example: { commitId: "9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978", note: "staged for review", committedAt: "2026-09-11T10:02:00Z" }
+  /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}?action=restoreAsNew:
+    post:
+      operationId: restoreChangeSetCommitAsNew
+      summary: Start a new change set from a commit
+      description: >-
+        Creates a new change set from the commit (ChangeSetController.restoreAsNew). Requires MANAGE_CHANGE_SETS and
+        PREDICT_MODELING, and the network snapshot must have finished CREATION. Source-only.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: commitId, in: path, required: true, schema: { type: string } }
+        - name: targetName
+          in: query
+          required: false
+          description: Name of the new change set. Forward reads it as nullable.
+          schema: { type: string }
+        - name: targetBaseSnapshotId
+          in: query
+          required: false
+          description: Base snapshot for the new change set. Forward reads it as nullable.
+          schema: { type: string }
+      responses:
+        "200":
+          description: The new change set's commit.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommittedChangeSet" }
+              # from source: returns FilteredCommittedChangeSet; placeholder values
+              example:
+                commitId: "9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978"
+                note: "restored as new"
+                committedAt: "2026-09-11T10:05:00Z"
+  /networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/config:
+    get:
+      operationId: getChangeSetDeviceDraftConfig
+      summary: The draft configuration of one device
+      description: >-
+        Returns the device's configuration in the change set's draft as text (ChangeSetController.getDraftConfig).
+        Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The configuration text.
+          content:
+            text/plain:
+              schema: { type: string }
+    put:
+      operationId: setChangeSetDeviceDraftConfig
+      summary: Replace the draft configuration of one device
+      description: >-
+        Replaces the device's draft configuration with the text in the body (ChangeSetController.saveDeviceConfig,
+        text/plain, 204). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Forward caps configuration at 2 MB (Go SDK
+        addendum; not re-checked in Java). Source-only.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema: { type: string }
+      responses:
+        "204": { description: Saved. }
+  /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}/devices/{deviceName}/config:
+    get:
+      operationId: getChangeSetCommitDeviceConfig
+      summary: The configuration of one device at a commit
+      description: >-
+        Returns the device's configuration as committed, as text (ChangeSetController.getCommittedConfig). Requires
+        MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: commitId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The configuration text.
+          content:
+            text/plain:
+              schema: { type: string }
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/config?action=preview:
+    post:
+      operationId: previewChangeSetDeviceConfig
+      summary: Preview the configuration after applying commands
+      description: >-
+        Takes commands as text and returns the configuration the device would have if they were applied to its base
+        snapshot's configuration (ChangeSetController.previewUpdatedConfig). Requires MANAGE_CHANGE_SETS and
+        PREDICT_MODELING. Source-only.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema: { type: string }
+      responses:
+        "200":
+          description: The configuration text after the commands.
+          content:
+            text/plain:
+              schema: { type: string }
+  /networks/{networkId}/aws-cap-credentials/{credentialId}:
+    get:
+      operationId: getAwsCapCredential
+      summary: Read an AWS CAP credential
+      description: >-
+        Returns the credential without its client-certificate password, which Forward never returns
+        (CloudAccountController.getAwsCapCredential, VIEW_DEVICE_CREDENTIALS; 404 when unknown). Source-only: no CAP
+        credential is on the ADP network.
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: credentialId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The credential.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VariantsAwsCapCredential" }
+              # constructed field-for-field from client-structs AwsCapCredential.java; placeholder values
+              example:
+                id: "cred-1"
+                baseCapServerUrl: "https://cap.example.net"
+                clientCertificateBase64: "MIIB...placeholder"
+                certificateAuthorityBase64: "MIIC...placeholder"
+    patch:
+      operationId: updateAwsCapCredential
+      summary: Update an AWS CAP credential
+      description: >-
+        Updates the credential's server URL, certificate, password or authority (CloudAccountController.updateAwsCredential,
+        EDIT_DEVICE_CREDENTIALS). Responds with an empty JSON object. Source-only.
+      x-forward-stability: unpublished
+      tags: [Cloud Accounts]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: credentialId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VariantsAwsCapCredentialUpdate" }
+            example: { baseCapServerUrl: "https://cap.example.net" }
+      responses:
+        "200":
+          description: Empty JSON object.
+          content:
+            application/json:
+              schema: { type: object }
+              # from source: EmptyObject.JSON is the literal "{}"
+              example: {}
+
 components:
   schemas:
     SnapshotStateChange:
@@ -19137,3 +19664,104 @@ components:
         maxProgress: { type: integer, format: int64, description: Present while the restore runs. }
         currentProgress: { type: integer, format: int64, description: Present while the restore runs. }
         errorMessage: { type: string, description: Present only when the restore has failed. }
+
+    VariantsResolveGlobsRequest:
+      type: object
+      description: Globs and connection types to resolve. Both lists must be non-empty and no glob may be blank.
+      required: [globs, connTypes]
+      properties:
+        globs:
+          type: array
+          minItems: 1
+          items: { type: string }
+        connTypes:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/ClassicDeviceType" }
+    VariantsResolveGlobsResponse:
+      type: object
+      description: >-
+        globToResolvedDevices maps each glob as sent to the device names it matches. A glob that matches nothing may be
+        missing from the map, and an empty network yields {}. completion is present only when complete was given and the glob at
+        that index has a completion (more than one matching device, or one device whose name extends the glob).
+      properties:
+        globToResolvedDevices:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+        completion:
+          type: string
+          description: The suffix (*) that completes the glob at the complete index. Absent when there is none.
+    VariantsDevicesTagsAndType:
+      type: object
+      properties:
+        devices:
+          type: array
+          items: { $ref: "#/components/schemas/VariantsDeviceTagsAndType" }
+        deviceTags:
+          type: array
+          items: { $ref: "#/components/schemas/DeviceTag" }
+    VariantsDeviceTagsAndType:
+      type: object
+      required: [name, type]
+      properties:
+        name: { type: string }
+        tags:
+          type: array
+          description: Tags on the device. Absent when it has none.
+          items: { type: string }
+        type: { $ref: "#/components/schemas/ClassicDeviceType" }
+    VariantsDuplicateChangeSetRequest:
+      type: object
+      description: Optional body. Both fields are nullable; an absent body is read as all null.
+      properties:
+        targetName:
+          type: string
+          nullable: true
+          description: Name of the copy. Nullable in the source; behaviour when null is not verified.
+        targetBaseSnapshotId:
+          type: string
+          nullable: true
+          description: Base snapshot of the copy. Nullable in the source; behaviour when null is not verified.
+    VariantsAwsCapCredential:
+      type: object
+      description: >-
+        An AWS CAP credential. The client-certificate password is stored by Forward and never returned.
+      required: [id, baseCapServerUrl, clientCertificateBase64]
+      properties:
+        id: { type: string }
+        baseCapServerUrl: { type: string }
+        clientCertificateBase64: { type: string }
+        certificateAuthorityBase64:
+          type: string
+          description: The certificate authority, base64. Absent when none is set.
+    VariantsAwsCapCredentialUpdate:
+      type: object
+      description: >-
+        Changes to an AWS CAP credential. baseCapServerUrl and clientCertificateBase64 are plain nullable fields in the
+        source; clientCertificatePassword and certificateAuthorityBase64 are presence-aware (JsonProp), so an omitted
+        field keeps the stored value. Whether an explicit null clears those two is not verified against the source.
+      properties:
+        baseCapServerUrl: { type: string, nullable: true }
+        clientCertificateBase64: { type: string, nullable: true }
+        clientCertificatePassword:
+          type: string
+          description: Write-only. Stored as a secret; never returned.
+        certificateAuthorityBase64: { type: string }
+    VariantsAwsAssumeRoleInfo:
+      type: object
+      description: One AWS assume-role setting. Field names and types observed on live AWS accounts.
+      properties:
+        accountId: { type: string }
+        accountName: { type: string }
+        enabled: { type: boolean }
+        externalId: { type: string }
+        roleArn: { type: string }
+    VariantsAwsC2SAccountInfo:
+      type: object
+      description: One AWS CAP portal account in the filter. Both fields are required and trimmed by Forward.
+      required: [accountId, accountRole]
+      properties:
+        accountId: { type: string }
+        accountRole: { type: string }

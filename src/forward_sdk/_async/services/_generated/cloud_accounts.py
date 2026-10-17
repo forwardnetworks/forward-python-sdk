@@ -108,7 +108,7 @@ class AsyncCloudAccountsService(AsyncService):
         *,
         credential_id: str,
         network_id: str | None = None,
-    ) -> models.SrcAwsCapCredential:
+    ) -> models.VariantsAwsCapCredential:
         """Read an AWS CAP credential.
 
         Unpublished: not part of Forward's documented API.
@@ -119,7 +119,7 @@ class AsyncCloudAccountsService(AsyncService):
                 network_id=self._network(network_id), credential_id=credential_id
             )
         )
-        return models.SrcAwsCapCredential.model_validate(payload or {})
+        return models.VariantsAwsCapCredential.model_validate(payload or {})
 
     async def get_cloud_account_credential(
         self,
@@ -260,6 +260,25 @@ class AsyncCloudAccountsService(AsyncService):
         """
         payload = await self._send_json(
             ops.BUILDERS["testCloudConnectivity"](network_id=self._network(network_id), body=body)
+        )
+        return payload
+
+    async def update_aws_cap_credential(
+        self,
+        *,
+        credential_id: str,
+        body: Any,
+        network_id: str | None = None,
+    ) -> Any:
+        """Update an AWS CAP credential.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["updateAwsCapCredential"](
+                network_id=self._network(network_id), credential_id=credential_id, body=body
+            )
         )
         return payload
 

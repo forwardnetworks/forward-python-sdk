@@ -29,3 +29,15 @@ def test_names_that_merely_contain_dots_are_kept_inside_one_segment(name: str) -
     raw = request.url.raw_path.decode()
     assert raw.startswith("/api/networks/1/classic-devices/")
     assert raw.count("/") == 5
+
+
+def test_a_bare_dispatch_key_is_replaced_by_the_callers_value() -> None:
+    from forward_sdk._http import encode_query
+
+    fixed = [("action", "duplicate"), ("targetNetworkId", None)]
+    assert encode_query({"targetNetworkId": "7"}, fixed) == [
+        ("action", "duplicate"),
+        ("targetNetworkId", "7"),
+    ]
+    # Without a value the bare key still goes out, so the route keeps matching.
+    assert encode_query({}, fixed) == [("action", "duplicate"), ("targetNetworkId", "")]

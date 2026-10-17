@@ -1265,27 +1265,6 @@ class Type8(OpenEnum):
     alkira = "ALKIRA"
 
 
-class CloudAccount(ForwardModel):
-    """
-    Common fields, with per-type fields beside them: AWS regions and assume-role settings, Azure tenant and subscriptions, GCP projects and regions, IBM accounts and regions, Alkira URL. Secrets and credential ids are never included.
-    """
-
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    collect: bool | None = None
-    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
-    concurrency: int | None = None
-    connection_timeout_seconds: Annotated[int | None, Field(alias="connectionTimeoutSeconds")] = (
-        None
-    )
-    name: str
-    proxy_server_id: Annotated[str | None, Field(alias="proxyServerId")] = None
-    request_timeout_seconds: Annotated[int | None, Field(alias="requestTimeoutSeconds")] = None
-    type: Type8
-
-
 class Type9(OpenEnum):
     aws = "AWS"
     azure = "AZURE"
@@ -1328,35 +1307,6 @@ class CloudAccountDiscovery(ForwardModel):
         populate_by_name=True,
     )
     type: Type9
-
-
-class CloudAccountPatch(ForwardModel):
-    """
-    Selected by type. Every field optional; omitted means unchanged. Credentials cannot be changed here.
-    """
-
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    collect: bool | None = None
-    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
-    concurrency: int | None = None
-    connection_timeout_seconds: Annotated[int | None, Field(alias="connectionTimeoutSeconds")] = (
-        None
-    )
-    name: str | None = None
-    proxy_server_id: Annotated[str | None, Field(alias="proxyServerId")] = None
-    request_timeout_seconds: Annotated[int | None, Field(alias="requestTimeoutSeconds")] = None
-    type: Type8
-
-
-class CloudAccountWithMeta(CloudAccount):
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    num_virtualized_devices: Annotated[int | None, Field(alias="numVirtualizedDevices")] = None
 
 
 class CloudConnectivityTest(ForwardModel):
@@ -4380,27 +4330,6 @@ class NewCliNetworkEndpoint(ForwardModel):
     type: Literal["CLI"]
 
 
-class NewCloudAccount(ForwardModel):
-    """
-    Selected by type. Common: name, collect, collectorId, proxyServerId, concurrency and timeouts. AWS: regions as a map of region to test instant, plus username and password, or roleArn, or assumeRoleInfos. AZURE: clientId, password, tenant, environment, testInstants per subscription. GCP: clientId, clientEmail, privateKeyId, privateKey, regions, projectIds or discoveredProjectIds. IBM_CLOUD: apiKey, regions, optional accountIds. ALKIRA: cloudUrl, apiKeyId, testInstant.
-    """
-
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    collect: bool | None = None
-    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
-    concurrency: int | None = None
-    connection_timeout_seconds: Annotated[int | None, Field(alias="connectionTimeoutSeconds")] = (
-        None
-    )
-    name: str
-    proxy_server_id: Annotated[str | None, Field(alias="proxyServerId")] = None
-    request_timeout_seconds: Annotated[int | None, Field(alias="requestTimeoutSeconds")] = None
-    type: Type8
-
-
 class NewHttpCredential(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -6834,6 +6763,19 @@ class SourceConnectivityResult(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
+    controller_infos: Annotated[list[NameAndIpAddress] | None, Field(alias="controllerInfos")] = (
+        None
+    )
+    """
+    Controllers the last test's QUERY phase found for this device. Preview: Forward returns it but leaves it out of its API description (controller-managed setups). Observed on live results.
+    """
+    dependent_name_and_aliases: Annotated[
+        list[str] | None,
+        Field(alias="dependentNameAndAliases", examples=[["dc-core-1-vs1", "dc-core-1"]]),
+    ] = None
+    """
+    For a dependent device, its master's name and aliases. Preview: hidden from Forward's API description. Observed on live results.
+    """
     discovered_cli_credential2_id: Annotated[
         str | None, Field(alias="discoveredCliCredential2Id", examples=["PM-2"])
     ] = None
@@ -6893,6 +6835,16 @@ class SourceConnectivityResult(ForwardModel):
     """
     The IP addresses to which `host` resolves if it’s a hostname. Contains just `host` itself if it’s an IP
     address.
+    """
+    managed_devices: Annotated[list[NameAndIpAddress] | None, Field(alias="managedDevices")] = None
+    """
+    For a controller, the devices its QUERY phase reported managing. Preview: hidden from Forward's API description. Observed on live results.
+    """
+    name_aliases: Annotated[
+        list[str] | None, Field(alias="nameAliases", examples=[["dc-core-1.example.net"]])
+    ] = None
+    """
+    Other names this device answers to, from the QUERY phase. Preview: hidden from Forward's API description. Observed on live results.
     """
     saved_at: Annotated[str, Field(alias="savedAt", examples=["2025-05-28T12:34:56.789Z"])]
     """
@@ -9519,6 +9471,149 @@ class Users(ForwardModel):
     users: list[User] | None = None
 
 
+class VariantsAwsAssumeRoleInfo(ForwardModel):
+    """
+    One AWS assume-role setting. Field names and types observed on live AWS accounts.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    account_id: Annotated[str | None, Field(alias="accountId")] = None
+    account_name: Annotated[str | None, Field(alias="accountName")] = None
+    enabled: bool | None = None
+    external_id: Annotated[str | None, Field(alias="externalId")] = None
+    role_arn: Annotated[str | None, Field(alias="roleArn")] = None
+
+
+class VariantsAwsC2SAccountInfo(ForwardModel):
+    """
+    One AWS CAP portal account in the filter. Both fields are required and trimmed by Forward.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    account_id: Annotated[str, Field(alias="accountId")]
+    account_role: Annotated[str, Field(alias="accountRole")]
+
+
+class VariantsAwsCapCredential(ForwardModel):
+    """
+    An AWS CAP credential. The client-certificate password is stored by Forward and never returned.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    base_cap_server_url: Annotated[str, Field(alias="baseCapServerUrl")]
+    certificate_authority_base64: Annotated[
+        str | None, Field(alias="certificateAuthorityBase64")
+    ] = None
+    """
+    The certificate authority, base64. Absent when none is set.
+    """
+    client_certificate_base64: Annotated[str, Field(alias="clientCertificateBase64")]
+    id: str
+
+
+class VariantsAwsCapCredentialUpdate(ForwardModel):
+    """
+    Changes to an AWS CAP credential. baseCapServerUrl and clientCertificateBase64 are plain nullable fields in the source; clientCertificatePassword and certificateAuthorityBase64 are presence-aware (JsonProp), so an omitted field keeps the stored value. Whether an explicit null clears those two is not verified against the source.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    base_cap_server_url: Annotated[str | None, Field(alias="baseCapServerUrl")] = None
+    certificate_authority_base64: Annotated[
+        str | None, Field(alias="certificateAuthorityBase64")
+    ] = None
+    client_certificate_base64: Annotated[str | None, Field(alias="clientCertificateBase64")] = None
+    client_certificate_password: Annotated[str | None, Field(alias="clientCertificatePassword")] = (
+        None
+    )
+    """
+    Write-only. Stored as a secret; never returned.
+    """
+
+
+class VariantsDeviceTagsAndType(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    name: str
+    tags: list[str] | None = None
+    """
+    Tags on the device. Absent when it has none.
+    """
+    type: ClassicDeviceType
+
+
+class VariantsDevicesTagsAndType(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_tags: Annotated[list[DeviceTag] | None, Field(alias="deviceTags")] = None
+    devices: list[VariantsDeviceTagsAndType] | None = None
+
+
+class VariantsDuplicateChangeSetRequest(ForwardModel):
+    """
+    Optional body. Both fields are nullable; an absent body is read as all null.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    target_base_snapshot_id: Annotated[str | None, Field(alias="targetBaseSnapshotId")] = None
+    """
+    Base snapshot of the copy. Nullable in the source; behaviour when null is not verified.
+    """
+    target_name: Annotated[str | None, Field(alias="targetName")] = None
+    """
+    Name of the copy. Nullable in the source; behaviour when null is not verified.
+    """
+
+
+class VariantsResolveGlobsRequest(ForwardModel):
+    """
+    Globs and connection types to resolve. Both lists must be non-empty and no glob may be blank.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    conn_types: Annotated[list[ClassicDeviceType], Field(alias="connTypes", min_length=1)]
+    globs: Annotated[list[str], Field(min_length=1)]
+
+
+class VariantsResolveGlobsResponse(ForwardModel):
+    """
+    globToResolvedDevices maps each glob as sent to the device names it matches. A glob that matches nothing may be missing from the map, and an empty network yields {}. completion is present only when complete was given and the glob at that index has a completion (more than one matching device, or one device whose name extends the glob).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    completion: str | None = None
+    """
+    The suffix (*) that completes the glob at the complete index. Absent when there is none.
+    """
+    glob_to_resolved_devices: Annotated[
+        dict[str, list[str]] | None, Field(alias="globToResolvedDevices")
+    ] = None
+
+
 class Vendor(OpenEnum):
     unknown = "UNKNOWN"
     cisco = "CISCO"
@@ -10937,6 +11032,34 @@ class ClassicDevice(Attribution):
     """
     The collector serving this source when one was set for it, in Forward's "C3" form. Absent when the source uses the network's default. Preview: Forward returns it but leaves it out of its API description.
     """
+    created_at: Annotated[
+        str | None, Field(alias="createdAt", examples=["2021-12-29T16:30:45.111Z"])
+    ] = None
+    """
+    When this source was created, ISO-8601. Observed on every live device.
+    """
+    created_by: Annotated[str | None, Field(alias="createdBy", examples=["me@example.com"])] = None
+    """
+    Username of the user who created this source. Absent when the account was deleted. Observed on live responses.
+    """
+    created_by_id: Annotated[str | None, Field(alias="createdById", examples=["456"])] = None
+    """
+    ID of the user who created this source. Observed on every live device.
+    """
+    updated_at: Annotated[
+        str | None, Field(alias="updatedAt", examples=["2024-10-27T21:44:51.345Z"])
+    ] = None
+    """
+    When this source was most recently updated, ISO-8601. Observed on every live device.
+    """
+    updated_by: Annotated[str | None, Field(alias="updatedBy", examples=["you@example.com"])] = None
+    """
+    Username of the user who most recently updated this source. Absent when the account was deleted. Observed on live responses.
+    """
+    updated_by_id: Annotated[str | None, Field(alias="updatedById", examples=["789"])] = None
+    """
+    ID of the user who most recently updated this source. Observed on every live device.
+    """
 
 
 class ClassicDevicePatch(ForwardModel):
@@ -11024,6 +11147,10 @@ class ClassicDevicePatch(ForwardModel):
     collector_id: Annotated[str | None, Field(alias="collectorId", examples=["C3"])] = None
     """
     The collector that serves this one source, overriding the network's default. The collector's numeric id, written "C3" by Forward and accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to leave the setting unchanged; null returns the source to the network's default collector. Preview: Forward binds it but leaves it out of its API description.
+    """
+    concurrency: int | None = None
+    """
+    Concurrency for this source. Preview: Forward accepts it but leaves it out of its API description. Omit to leave the setting unchanged.
     """
     disable_ipv6_collection: Annotated[
         bool | None, Field(alias="disableIpv6Collection", examples=[False])
@@ -11487,6 +11614,69 @@ class CliEndpointProfilePatch(ForwardModel):
     """
 
 
+class CloudAccount(ForwardModel):
+    """
+    Common fields, with per-type fields beside them: AWS regions and assume-role settings, Azure tenant and subscriptions, GCP projects and regions, IBM accounts and regions, Alkira URL. Secrets and credential ids are never included.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    assume_role_infos: Annotated[
+        list[VariantsAwsAssumeRoleInfo] | None, Field(alias="assumeRoleInfos")
+    ] = None
+    """
+    AWS: the assume-role settings. Observed on live AWS accounts.
+    """
+    client_id: Annotated[str | None, Field(alias="clientId")] = None
+    """
+    The Azure application (client) ID, or the GCP client ID. Observed on live AZURE accounts.
+    """
+    collect: bool | None = None
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    concurrency: int | None = None
+    connection_timeout_seconds: Annotated[int | None, Field(alias="connectionTimeoutSeconds")] = (
+        None
+    )
+    discovered_subscription_ids: Annotated[
+        list[str] | None, Field(alias="discoveredSubscriptionIds")
+    ] = None
+    """
+    Azure subscription IDs found by discovery. Observed on live AZURE accounts.
+    """
+    environment: str | None = None
+    """
+    The Azure cloud environment. Observed on live AZURE accounts.
+    """
+    name: str
+    proxy_server_id: Annotated[str | None, Field(alias="proxyServerId")] = None
+    regions: dict[str, CloudTestResult] | None = None
+    """
+    AWS: the last test result per region, keyed by region name. Observed on live AWS accounts; each value has error and testInstant.
+    """
+    request_timeout_seconds: Annotated[int | None, Field(alias="requestTimeoutSeconds")] = None
+    subscription_ids: Annotated[list[str] | None, Field(alias="subscriptionIds")] = None
+    """
+    The Azure subscription IDs the account covers. Observed on live AZURE accounts.
+    """
+    tenant: str | None = None
+    """
+    The Azure tenant ID. Observed on live AZURE accounts.
+    """
+    test_results: Annotated[dict[str, CloudTestResult] | None, Field(alias="testResults")] = None
+    """
+    Azure: the last test result per subscription ID. Observed on live AZURE accounts.
+    """
+    type: Type8
+    use_forward_account_to_assume_role: Annotated[
+        bool | None, Field(alias="useForwardAccountToAssumeRole")
+    ] = None
+    """
+    AWS: whether Forward's own account is used to assume the role. Observed on live AWS accounts.
+    """
+
+
 class CloudAccountDiscoveryResult(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -11499,6 +11689,59 @@ class CloudAccountDiscoveryResult(ForwardModel):
     """
     A collection error name; NONE on success.
     """
+
+
+class CloudAccountPatch(ForwardModel):
+    """
+    Selected by type. Every field optional; omitted means unchanged. Credentials cannot be changed here.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    aws_c2_s_account_infos: Annotated[
+        list[VariantsAwsC2SAccountInfo] | None, Field(alias="awsC2SAccountInfos")
+    ] = None
+    """
+    AWS CAP accounts: replaces the portal-account filter (UpdateAwsAccountRequest.awsC2SAccountInfos, JsonProp). Omit to leave unchanged. Source-only: not observed live.
+    """
+    collect: bool | None = None
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    concurrency: int | None = None
+    connection_timeout_seconds: Annotated[int | None, Field(alias="connectionTimeoutSeconds")] = (
+        None
+    )
+    discovered_project_ids: Annotated[list[str] | None, Field(alias="discoveredProjectIds")] = None
+    """
+    GCP: replaces the discovered project IDs (UpdateGcpAccountRequest, JsonProp). Omit to leave unchanged.
+    """
+    discovered_subscription_ids: Annotated[
+        list[str] | None, Field(alias="discoveredSubscriptionIds")
+    ] = None
+    """
+    AZURE: replaces the discovered subscription IDs (UpdateAzureAccountRequest, JsonProp).
+    """
+    name: str | None = None
+    project_ids: Annotated[list[str] | None, Field(alias="projectIds")] = None
+    """
+    GCP: replaces the project IDs (UpdateGcpAccountRequest.projectIds, JsonProp). Omit to leave unchanged.
+    """
+    proxy_server_id: Annotated[str | None, Field(alias="proxyServerId")] = None
+    request_timeout_seconds: Annotated[int | None, Field(alias="requestTimeoutSeconds")] = None
+    subscription_ids: Annotated[list[str] | None, Field(alias="subscriptionIds")] = None
+    """
+    AZURE: replaces the subscription IDs. Presence-aware (JsonProp): omit to leave unchanged. Whether an explicit null clears them is not verified against the source.
+    """
+    type: Type8
+
+
+class CloudAccountWithMeta(CloudAccount):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    num_virtualized_devices: Annotated[int | None, Field(alias="numVirtualizedDevices")] = None
 
 
 class CloudObjectDiffEntry(ForwardModel):
@@ -12980,6 +13223,10 @@ class NewClassicDevice(ForwardModel):
     """
     The collector that serves this one source, overriding the network's default. The collector's numeric id, written "C3" by Forward and accepted as "C3" or "3"; a UUID is refused with a 400. Omit it to keep the network's default collector. Preview: Forward binds it but leaves it out of its API description.
     """
+    concurrency: int | None = None
+    """
+    Concurrency for this source. Preview: Forward accepts it but leaves it out of its API description. Omit to keep Forward's default.
+    """
     disable_ipv6_collection: Annotated[
         bool | None, Field(alias="disableIpv6Collection", examples=[False])
     ] = None
@@ -13148,6 +13395,51 @@ class NewClassicDevice(ForwardModel):
     transferred over a separate connection. After the transfer is complete, the temporary file is deleted to
     prevent unnecessary disk usage on the device.
     """
+
+
+class NewCloudAccount(ForwardModel):
+    """
+    Selected by type. Common: name, collect, collectorId, proxyServerId, concurrency and timeouts. AWS: regions as a map of region to test instant, plus username and password, or roleArn, or assumeRoleInfos. AZURE: clientId, password, tenant, environment, testInstants per subscription. GCP: clientId, clientEmail, privateKeyId, privateKey, regions, projectIds or discoveredProjectIds. IBM_CLOUD: apiKey, regions, optional accountIds. ALKIRA: cloudUrl, apiKeyId, testInstant.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    aws_c2_s_account_infos: Annotated[
+        list[VariantsAwsC2SAccountInfo] | None, Field(alias="awsC2SAccountInfos")
+    ] = None
+    """
+    AWS CAP accounts only: the portal-account filter (AwsAccount.awsC2SAccountInfos). Source-only: no CAP account is on the ADP network, so it is not observed live.
+    """
+    collect: bool | None = None
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    concurrency: int | None = None
+    connection_timeout_seconds: Annotated[int | None, Field(alias="connectionTimeoutSeconds")] = (
+        None
+    )
+    discovered_project_ids: Annotated[list[str] | None, Field(alias="discoveredProjectIds")] = None
+    """
+    GCP: project IDs found by discovery. Accepted on create (CreateGcpAccountRequest).
+    """
+    discovered_subscription_ids: Annotated[
+        list[str] | None, Field(alias="discoveredSubscriptionIds")
+    ] = None
+    """
+    AZURE: subscription IDs found by discovery. Accepted on create (CreateAzureAccountRequest).
+    """
+    name: str
+    project_ids: Annotated[list[str] | None, Field(alias="projectIds")] = None
+    """
+    GCP: the project IDs the account covers. Accepted on create (CreateGcpAccountRequest).
+    """
+    proxy_server_id: Annotated[str | None, Field(alias="proxyServerId")] = None
+    request_timeout_seconds: Annotated[int | None, Field(alias="requestTimeoutSeconds")] = None
+    subscription_ids: Annotated[list[str] | None, Field(alias="subscriptionIds")] = None
+    """
+    AZURE: the subscription IDs the account covers. Set on create; on PATCH see CloudAccountPatch.
+    """
+    type: Type8
 
 
 class NewSecurityMatrixFilter(ForwardModel):

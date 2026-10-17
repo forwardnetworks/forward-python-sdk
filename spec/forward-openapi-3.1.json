@@ -2610,6 +2610,48 @@
               "C3"
             ],
             "type": "string"
+          },
+          "createdAt": {
+            "description": "When this source was created, ISO-8601. Observed on every live device.",
+            "examples": [
+              "2021-12-29T16:30:45.111Z"
+            ],
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "Username of the user who created this source. Absent when the account was deleted. Observed on live responses.",
+            "examples": [
+              "me@example.com"
+            ],
+            "type": "string"
+          },
+          "createdById": {
+            "description": "ID of the user who created this source. Observed on every live device.",
+            "examples": [
+              "456"
+            ],
+            "type": "string"
+          },
+          "updatedAt": {
+            "description": "When this source was most recently updated, ISO-8601. Observed on every live device.",
+            "examples": [
+              "2024-10-27T21:44:51.345Z"
+            ],
+            "type": "string"
+          },
+          "updatedBy": {
+            "description": "Username of the user who most recently updated this source. Absent when the account was deleted. Observed on live responses.",
+            "examples": [
+              "you@example.com"
+            ],
+            "type": "string"
+          },
+          "updatedById": {
+            "description": "ID of the user who most recently updated this source. Observed on every live device.",
+            "examples": [
+              "789"
+            ],
+            "type": "string"
           }
         }
       },
@@ -2713,6 +2755,10 @@
               "C3"
             ],
             "type": "string"
+          },
+          "concurrency": {
+            "description": "Concurrency for this source. Preview: Forward accepts it but leaves it out of its API description. Omit to leave the setting unchanged.",
+            "type": "integer"
           },
           "disableIpv6Collection": {
             "description": "Disables collection of any IPv6 forwarding state on the device. Defaults to false. Use `null` to clear. Omit\nto leave the property alone.",
@@ -3732,6 +3778,17 @@
         "additionalProperties": true,
         "description": "Common fields, with per-type fields beside them: AWS regions and assume-role settings, Azure tenant and subscriptions, GCP projects and regions, IBM accounts and regions, Alkira URL. Secrets and credential ids are never included.",
         "properties": {
+          "assumeRoleInfos": {
+            "description": "AWS: the assume-role settings. Observed on live AWS accounts.",
+            "items": {
+              "$ref": "#/components/schemas/VariantsAwsAssumeRoleInfo"
+            },
+            "type": "array"
+          },
+          "clientId": {
+            "description": "The Azure application (client) ID, or the GCP client ID. Observed on live AZURE accounts.",
+            "type": "string"
+          },
           "collect": {
             "type": "boolean"
           },
@@ -3744,14 +3801,50 @@
           "connectionTimeoutSeconds": {
             "type": "integer"
           },
+          "discoveredSubscriptionIds": {
+            "description": "Azure subscription IDs found by discovery. Observed on live AZURE accounts.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "environment": {
+            "description": "The Azure cloud environment. Observed on live AZURE accounts.",
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
           "proxyServerId": {
             "type": "string"
           },
+          "regions": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CloudTestResult"
+            },
+            "description": "AWS: the last test result per region, keyed by region name. Observed on live AWS accounts; each value has error and testInstant.",
+            "type": "object"
+          },
           "requestTimeoutSeconds": {
             "type": "integer"
+          },
+          "subscriptionIds": {
+            "description": "The Azure subscription IDs the account covers. Observed on live AZURE accounts.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tenant": {
+            "description": "The Azure tenant ID. Observed on live AZURE accounts.",
+            "type": "string"
+          },
+          "testResults": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CloudTestResult"
+            },
+            "description": "Azure: the last test result per subscription ID. Observed on live AZURE accounts.",
+            "type": "object"
           },
           "type": {
             "enum": [
@@ -3762,6 +3855,10 @@
               "ALKIRA"
             ],
             "type": "string"
+          },
+          "useForwardAccountToAssumeRole": {
+            "description": "AWS: whether Forward's own account is used to assume the role. Observed on live AWS accounts.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -3849,6 +3946,13 @@
         "additionalProperties": true,
         "description": "Selected by type. Every field optional; omitted means unchanged. Credentials cannot be changed here.",
         "properties": {
+          "awsC2SAccountInfos": {
+            "description": "AWS CAP accounts: replaces the portal-account filter (UpdateAwsAccountRequest.awsC2SAccountInfos, JsonProp). Omit to leave unchanged. Source-only: not observed live.",
+            "items": {
+              "$ref": "#/components/schemas/VariantsAwsC2SAccountInfo"
+            },
+            "type": "array"
+          },
           "collect": {
             "type": "boolean"
           },
@@ -3861,14 +3965,42 @@
           "connectionTimeoutSeconds": {
             "type": "integer"
           },
+          "discoveredProjectIds": {
+            "description": "GCP: replaces the discovered project IDs (UpdateGcpAccountRequest, JsonProp). Omit to leave unchanged.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "discoveredSubscriptionIds": {
+            "description": "AZURE: replaces the discovered subscription IDs (UpdateAzureAccountRequest, JsonProp).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "name": {
             "type": "string"
+          },
+          "projectIds": {
+            "description": "GCP: replaces the project IDs (UpdateGcpAccountRequest.projectIds, JsonProp). Omit to leave unchanged.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "proxyServerId": {
             "type": "string"
           },
           "requestTimeoutSeconds": {
             "type": "integer"
+          },
+          "subscriptionIds": {
+            "description": "AZURE: replaces the subscription IDs. Presence-aware (JsonProp): omit to leave unchanged. Whether an explicit null clears them is not verified against the source.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "type": {
             "enum": [
@@ -11057,6 +11189,10 @@
             ],
             "type": "string"
           },
+          "concurrency": {
+            "description": "Concurrency for this source. Preview: Forward accepts it but leaves it out of its API description. Omit to keep Forward's default.",
+            "type": "integer"
+          },
           "disableIpv6Collection": {
             "description": "Disables collection of any IPv6 forwarding state on the device. Defaults to false.",
             "examples": [
@@ -11446,6 +11582,13 @@
         "additionalProperties": true,
         "description": "Selected by type. Common: name, collect, collectorId, proxyServerId, concurrency and timeouts. AWS: regions as a map of region to test instant, plus username and password, or roleArn, or assumeRoleInfos. AZURE: clientId, password, tenant, environment, testInstants per subscription. GCP: clientId, clientEmail, privateKeyId, privateKey, regions, projectIds or discoveredProjectIds. IBM_CLOUD: apiKey, regions, optional accountIds. ALKIRA: cloudUrl, apiKeyId, testInstant.",
         "properties": {
+          "awsC2SAccountInfos": {
+            "description": "AWS CAP accounts only: the portal-account filter (AwsAccount.awsC2SAccountInfos). Source-only: no CAP account is on the ADP network, so it is not observed live.",
+            "items": {
+              "$ref": "#/components/schemas/VariantsAwsC2SAccountInfo"
+            },
+            "type": "array"
+          },
           "collect": {
             "type": "boolean"
           },
@@ -11458,14 +11601,42 @@
           "connectionTimeoutSeconds": {
             "type": "integer"
           },
+          "discoveredProjectIds": {
+            "description": "GCP: project IDs found by discovery. Accepted on create (CreateGcpAccountRequest).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "discoveredSubscriptionIds": {
+            "description": "AZURE: subscription IDs found by discovery. Accepted on create (CreateAzureAccountRequest).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "name": {
             "type": "string"
+          },
+          "projectIds": {
+            "description": "GCP: the project IDs the account covers. Accepted on create (CreateGcpAccountRequest).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "proxyServerId": {
             "type": "string"
           },
           "requestTimeoutSeconds": {
             "type": "integer"
+          },
+          "subscriptionIds": {
+            "description": "AZURE: the subscription IDs the account covers. Set on create; on PATCH see CloudAccountPatch.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "type": {
             "enum": [
@@ -16795,6 +16966,26 @@
       },
       "SourceConnectivityResult": {
         "properties": {
+          "controllerInfos": {
+            "description": "Controllers the last test's QUERY phase found for this device. Preview: Forward returns it but leaves it out of its API description (controller-managed setups). Observed on live results.",
+            "items": {
+              "$ref": "#/components/schemas/NameAndIpAddress"
+            },
+            "type": "array"
+          },
+          "dependentNameAndAliases": {
+            "description": "For a dependent device, its master's name and aliases. Preview: hidden from Forward's API description. Observed on live results.",
+            "examples": [
+              [
+                "dc-core-1-vs1",
+                "dc-core-1"
+              ]
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "discoveredCliCredential2Id": {
             "description": "The `id` of the working CliCredential of type `PRIVILEGED_MODE` (for Cisco-like and Checkpoint devices) or\n`SHELL` (for Avi controllers) auto-discovered during the connectivity test. Can only be present for device\ntypes collected via SSH or Telnet.",
             "examples": [
@@ -16871,6 +17062,25 @@
             "examples": [
               [
                 "10.121.7.13"
+              ]
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "managedDevices": {
+            "description": "For a controller, the devices its QUERY phase reported managing. Preview: hidden from Forward's API description. Observed on live results.",
+            "items": {
+              "$ref": "#/components/schemas/NameAndIpAddress"
+            },
+            "type": "array"
+          },
+          "nameAliases": {
+            "description": "Other names this device answers to, from the QUERY phase. Preview: hidden from Forward's API description. Observed on live results.",
+            "examples": [
+              [
+                "dc-core-1.example.net"
               ]
             ],
             "items": {
@@ -21105,6 +21315,186 @@
               "$ref": "#/components/schemas/User"
             },
             "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "VariantsAwsAssumeRoleInfo": {
+        "description": "One AWS assume-role setting. Field names and types observed on live AWS accounts.",
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "accountName": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "roleArn": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "VariantsAwsC2SAccountInfo": {
+        "description": "One AWS CAP portal account in the filter. Both fields are required and trimmed by Forward.",
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "accountRole": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "accountId",
+          "accountRole"
+        ],
+        "type": "object"
+      },
+      "VariantsAwsCapCredential": {
+        "description": "An AWS CAP credential. The client-certificate password is stored by Forward and never returned.",
+        "properties": {
+          "baseCapServerUrl": {
+            "type": "string"
+          },
+          "certificateAuthorityBase64": {
+            "description": "The certificate authority, base64. Absent when none is set.",
+            "type": "string"
+          },
+          "clientCertificateBase64": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "baseCapServerUrl",
+          "clientCertificateBase64"
+        ],
+        "type": "object"
+      },
+      "VariantsAwsCapCredentialUpdate": {
+        "description": "Changes to an AWS CAP credential. baseCapServerUrl and clientCertificateBase64 are plain nullable fields in the source; clientCertificatePassword and certificateAuthorityBase64 are presence-aware (JsonProp), so an omitted field keeps the stored value. Whether an explicit null clears those two is not verified against the source.",
+        "properties": {
+          "baseCapServerUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "certificateAuthorityBase64": {
+            "type": "string"
+          },
+          "clientCertificateBase64": {
+            "nullable": true,
+            "type": "string"
+          },
+          "clientCertificatePassword": {
+            "description": "Write-only. Stored as a secret; never returned.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "VariantsDeviceTagsAndType": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "tags": {
+            "description": "Tags on the device. Absent when it has none.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ClassicDeviceType"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "VariantsDevicesTagsAndType": {
+        "properties": {
+          "deviceTags": {
+            "items": {
+              "$ref": "#/components/schemas/DeviceTag"
+            },
+            "type": "array"
+          },
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/VariantsDeviceTagsAndType"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "VariantsDuplicateChangeSetRequest": {
+        "description": "Optional body. Both fields are nullable; an absent body is read as all null.",
+        "properties": {
+          "targetBaseSnapshotId": {
+            "description": "Base snapshot of the copy. Nullable in the source; behaviour when null is not verified.",
+            "nullable": true,
+            "type": "string"
+          },
+          "targetName": {
+            "description": "Name of the copy. Nullable in the source; behaviour when null is not verified.",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "VariantsResolveGlobsRequest": {
+        "description": "Globs and connection types to resolve. Both lists must be non-empty and no glob may be blank.",
+        "properties": {
+          "connTypes": {
+            "items": {
+              "$ref": "#/components/schemas/ClassicDeviceType"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "globs": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "globs",
+          "connTypes"
+        ],
+        "type": "object"
+      },
+      "VariantsResolveGlobsResponse": {
+        "description": "globToResolvedDevices maps each glob as sent to the device names it matches. A glob that matches nothing may be missing from the map, and an empty network yields {}. completion is present only when complete was given and the glob at that index has a completion (more than one matching device, or one device whose name extends the glob).",
+        "properties": {
+          "completion": {
+            "description": "The suffix (*) that completes the glob at the complete index. Absent when there is none.",
+            "type": "string"
+          },
+          "globToResolvedDevices": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object"
           }
         },
         "type": "object"
@@ -29722,7 +30112,7 @@
     },
     "/networks/{networkId}/aws-cap-credentials/{credentialId}": {
       "get": {
-        "description": "Returns one AWS CAP credential by id. Gated by VIEW_DEVICE_CREDENTIALS. Forward answers 404 'AWS CAP credential ... not found'. The response includes clientCertificateBase64 (secret material, per Java) as well as the id, server URL and password-secret id. Source-only: no credential id was reachable on the read-only account.",
+        "description": "Returns the credential without its client-certificate password, which Forward never returns (CloudAccountController.getAwsCapCredential, VIEW_DEVICE_CREDENTIALS; 404 when unknown). Source-only: no CAP credential is on the ADP network.",
         "operationId": "getAwsCapCredential",
         "parameters": [
           {
@@ -29747,12 +30137,13 @@
             "content": {
               "application/json": {
                 "example": {
-                  "baseCapServerUrl": "https://cap.example.invalid",
-                  "clientCertificatePasswordId": "S-1",
-                  "id": "AWS-1"
+                  "baseCapServerUrl": "https://cap.example.net",
+                  "certificateAuthorityBase64": "MIIC...placeholder",
+                  "clientCertificateBase64": "MIIB...placeholder",
+                  "id": "cred-1"
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/SrcAwsCapCredential"
+                  "$ref": "#/components/schemas/VariantsAwsCapCredential"
                 }
               }
             },
@@ -29760,6 +30151,59 @@
           }
         },
         "summary": "Read an AWS CAP credential",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Updates the credential's server URL, certificate, password or authority (CloudAccountController.updateAwsCredential, EDIT_DEVICE_CREDENTIALS). Responds with an empty JSON object. Source-only.",
+        "operationId": "updateAwsCapCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "credentialId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "baseCapServerUrl": "https://cap.example.net"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/VariantsAwsCapCredentialUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {},
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Empty JSON object."
+          }
+        },
+        "summary": "Update an AWS CAP credential",
         "tags": [
           "Cloud Accounts"
         ],
@@ -30492,6 +30936,32 @@
             "predict"
           ]
         ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "duplicateChangeSet",
+            "summary": "Duplicate a change set within the same network",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "duplicate"
+              ]
+            ]
+          },
+          {
+            "operationId": "duplicateChangeSetToNetwork",
+            "summary": "Duplicate a change set into another network",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "duplicate"
+              ],
+              [
+                "targetNetworkId",
+                ""
+              ]
+            ]
+          }
+        ],
         "x-forward-stability": "unpublished"
       }
     },
@@ -30827,7 +31297,7 @@
     },
     "/networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}": {
       "delete": {
-        "description": "Removes the version from the change set's history and deletes the predicted snapshots made from it, in one transaction. This cannot be undone. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property. Source-only: not called live.",
+        "description": "Deletes the commit (ChangeSetController.deleteCommit, 204). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.",
         "operationId": "deleteChangeSetCommit",
         "parameters": [
           {
@@ -30860,15 +31330,74 @@
             "description": "Deleted."
           }
         },
-        "summary": "Delete a committed version and the predicted snapshots made from it",
+        "summary": "Delete a commit",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "Requires MANAGE_CHANGE_SETS and the PREDICT_MODELING organization property (ChangeSetController.getCommit). Device changes for devices the caller cannot access are filtered out. Source-only: the ADP account gets 403.",
+        "operationId": "getChangeSetCommit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "commitId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "commitId": "9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978",
+                  "committedAt": "2026-09-11T10:02:00Z",
+                  "deviceToChanges": {
+                    "dc-core": {
+                      "commands": "interface Ethernet1\n shutdown",
+                      "hasConfig": false,
+                      "hasSecurityRuleChanges": false
+                    }
+                  },
+                  "note": "staged for review"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CommittedChangeSet"
+                }
+              }
+            },
+            "description": "The commit."
+          }
+        },
+        "summary": "One commit of a change set, with its device changes",
         "tags": [
           "Change Sets"
         ],
         "x-forward-stability": "unpublished"
       },
       "patch": {
-        "description": "note is a required query parameter and must not be blank. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property. Source-only: the read-only account cannot list change sets (403 live).",
-        "operationId": "editChangeSetCommitNote",
+        "description": "Replaces the note of an existing commit. note is a required query parameter (ChangeSetController.editCommitNote, @RequestParam). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.",
+        "operationId": "updateChangeSetCommitNote",
         "parameters": [
           {
             "in": "path",
@@ -30895,7 +31424,6 @@
             }
           },
           {
-            "description": "The new note. Must not be blank.",
             "in": "query",
             "name": "note",
             "required": true,
@@ -30909,28 +31437,26 @@
             "content": {
               "application/json": {
                 "example": {
-                  "commitId": "1",
-                  "committedAt": "2026-01-01T00:00:00Z",
-                  "committedBy": "example",
-                  "committedById": "1",
-                  "note": "Reviewed"
+                  "commitId": "9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978",
+                  "committedAt": "2026-09-11T10:02:00Z",
+                  "note": "reviewed"
                 },
                 "schema": {
                   "$ref": "#/components/schemas/ChangeSetCommit"
                 }
               }
             },
-            "description": "The commit's metadata after the change."
+            "description": "The commit metadata."
           }
         },
-        "summary": "Replace a committed version's note",
+        "summary": "Replace a commit's note",
         "tags": [
           "Change Sets"
         ],
         "x-forward-stability": "unpublished"
       },
       "post": {
-        "description": "Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property. Source-only: not called live.",
+        "description": "Makes the change set's draft match the commit again (ChangeSetController.restoreCommit). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.",
         "operationId": "restoreChangeSetCommit",
         "parameters": [
           {
@@ -30963,20 +31489,19 @@
             "content": {
               "application/json": {
                 "example": {
-                  "commitId": "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
-                  "committedAt": "1970-01-02T10:17:36.789Z",
-                  "committedById": "-1",
-                  "note": "Change testing"
+                  "commitId": "9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978",
+                  "committedAt": "2026-09-11T10:02:00Z",
+                  "note": "staged for review"
                 },
                 "schema": {
                   "$ref": "#/components/schemas/ChangeSetCommit"
                 }
               }
             },
-            "description": "The restored commit's metadata."
+            "description": "The commit the draft was restored from."
           }
         },
-        "summary": "Restore a committed version as the change set's draft",
+        "summary": "Restore the change set to a commit",
         "tags": [
           "Change Sets"
         ],
@@ -30989,7 +31514,7 @@
         "x-forward-operation-variants": [
           {
             "operationId": "restoreChangeSetCommitAsNew",
-            "summary": "Copy a committed version into a new change set",
+            "summary": "Start a new change set from a commit",
             "x-forward-fixed-query": [
               [
                 "action",
@@ -31084,8 +31609,8 @@
     },
     "/networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}/devices/{deviceName}/config": {
       "get": {
-        "description": "Returns the configuration as plain text. Compare it with the draft or another version for a per-device diff. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property, and device access for the caller. Source-only: not called live.",
-        "operationId": "getChangeSetCommittedDeviceConfig",
+        "description": "Returns the device's configuration as committed, as text (ChangeSetController.getCommittedConfig). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.",
+        "operationId": "getChangeSetCommitDeviceConfig",
         "parameters": [
           {
             "in": "path",
@@ -31129,10 +31654,10 @@
                 }
               }
             },
-            "description": "The device's configuration as UTF-8 text."
+            "description": "The configuration text."
           }
         },
-        "summary": "Read one device's configuration as a committed version has it",
+        "summary": "The configuration of one device at a commit",
         "tags": [
           "Change Sets"
         ],
@@ -31503,7 +32028,7 @@
     },
     "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/config": {
       "post": {
-        "description": "The body is CLI command text, sent as text/plain. The response is the configuration that would result, as text/plain. Nothing is staged. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property, and device access for the caller. Source-only: not called live.",
+        "description": "Takes commands as text and returns the configuration the device would have if they were applied to its base snapshot's configuration (ChangeSetController.previewUpdatedConfig). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.",
         "operationId": "previewChangeSetDeviceConfig",
         "parameters": [
           {
@@ -31550,10 +32075,10 @@
                 }
               }
             },
-            "description": "The configuration that would result, as UTF-8 text."
+            "description": "The configuration text after the commands."
           }
         },
-        "summary": "Preview a device's configuration with CLI commands applied",
+        "summary": "Preview the configuration after applying commands",
         "tags": [
           "Change Sets"
         ],
@@ -32576,8 +33101,8 @@
     },
     "/networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/config": {
       "get": {
-        "description": "Returns the configuration as plain text. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property, and device access for the caller. Source-only: not called live. The Go SDK says Forward answers 404 with no draft or no change for the device; the source was not traced to confirm that.",
-        "operationId": "getChangeSetDraftDeviceConfig",
+        "description": "Returns the device's configuration in the change set's draft as text (ChangeSetController.getDraftConfig). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.",
+        "operationId": "getChangeSetDeviceDraftConfig",
         "parameters": [
           {
             "in": "path",
@@ -32613,18 +33138,18 @@
                 }
               }
             },
-            "description": "The device's configuration as UTF-8 text."
+            "description": "The configuration text."
           }
         },
-        "summary": "Read one device's configuration as the draft would leave it",
+        "summary": "The draft configuration of one device",
         "tags": [
           "Change Sets"
         ],
         "x-forward-stability": "unpublished"
       },
       "put": {
-        "description": "The body is the complete running configuration, as text/plain. It replaces any staged commands for that device, since a device has either commands or a configuration file. The limit is 2 MB of UTF-8 bytes; a larger body is refused with 400. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property, and device access for the caller. Source-only: not called live.",
-        "operationId": "saveChangeSetDraftDeviceConfig",
+        "description": "Replaces the device's draft configuration with the text in the body (ChangeSetController.saveDeviceConfig, text/plain, 204). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Forward caps configuration at 2 MB (Go SDK addendum; not re-checked in Java). Source-only.",
+        "operationId": "setChangeSetDeviceDraftConfig",
         "parameters": [
           {
             "in": "path",
@@ -32666,7 +33191,7 @@
             "description": "Saved."
           }
         },
-        "summary": "Replace a device's whole configuration in the draft",
+        "summary": "Replace the draft configuration of one device",
         "tags": [
           "Change Sets"
         ],
@@ -32953,6 +33478,26 @@
               [
                 "action",
                 "putBatch"
+              ]
+            ]
+          },
+          {
+            "operationId": "resolveClassicDeviceGlobs",
+            "summary": "Resolve device globs against classic devices",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "resolveGlobs"
+              ]
+            ]
+          },
+          {
+            "operationId": "getClassicDevicesTagsAndConnType",
+            "summary": "Devices of the given connection types, with their tags",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "tagsAndConnType"
               ]
             ]
           }

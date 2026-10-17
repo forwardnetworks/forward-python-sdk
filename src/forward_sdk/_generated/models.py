@@ -1630,13 +1630,6 @@ class CollectorTask(ForwardModel):
     """
 
 
-class CollectorTaskId(RootModel[str]):
-    root: Annotated[str, Field(pattern="^[EP][0-9]+$")]
-    """
-    A collector task ID. E followed by a number for an ephemeral task, P for a persistent one.
-    """
-
-
 class CollectorWithAuthKey(ForwardModel):
     """
     A newly created collector account, plus the one-time key its installer needs. The key is returned only from creation -- it cannot be fetched again afterwards.
@@ -2938,6 +2931,229 @@ class DiscoveredEntity(ForwardModel):
     roles: list[str] | None = None
 
 
+class Role1(OpenEnum):
+    """
+    The role held on the network (source: NetworkRole; the five values are the enum constants).
+    """
+
+    limited_read_only = "LIMITED_READ_ONLY"
+    read_only = "READ_ONLY"
+    operator = "OPERATOR"
+    workspace_operator = "WORKSPACE_OPERATOR"
+    admin = "ADMIN"
+
+
+class Disp2AccessibleNetwork(ForwardModel):
+    """
+    A network a user can reach, and the one role the user holds on it (source: UserAccountWithRoles.AccessibleNetwork).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    id: str
+    """
+    The network's ID.
+    """
+    name: str
+    """
+    The network's name.
+    """
+    role: Role1
+    """
+    The role held on the network (source: NetworkRole; the five values are the enum constants).
+    """
+
+
+class Disp2AtlasLocation(ForwardModel):
+    """
+    One location in the grouped atlas and the devices in it (source: AtlasLocation).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    anchored_devices: Annotated[list[str] | None, Field(alias="anchoredDevices")] = None
+    """
+    Devices in this location because they are anchored to a physical device here, such as virtual contexts and wireless access points. Omitted when empty (source: NON_EMPTY).
+    """
+    devices: list[str]
+    """
+    Devices placed in this location by hand. Always sent (source), sorted by Forward.
+    """
+    dynamic_match_devices: Annotated[list[str] | None, Field(alias="dynamicMatchDevices")] = None
+    """
+    Devices in this location because their names match one of the location's device globs. Omitted when empty (source: NON_EMPTY). Not present on the ADP network (live).
+    """
+    location_id: Annotated[str, Field(alias="locationId")]
+    """
+    The location ID, such as 1 or default (live).
+    """
+
+
+class Status4(OpenEnum):
+    """
+    The subtask's state (source: TaskStatus).
+    """
+
+    queued = "QUEUED"
+    running = "RUNNING"
+    succeeded = "SUCCEEDED"
+    failed = "FAILED"
+    timed_out = "TIMED_OUT"
+    canceled = "CANCELED"
+
+
+class Disp2CollectorSubTask(ForwardModel):
+    """
+    One subtask of a collector task, usually one device (source: SubTaskInfo).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collector_id: Annotated[str, Field(alias="collectorId")]
+    """
+    The collector that ran the subtask.
+    """
+    description: str
+    """
+    The device name for a device subtask (live). Source: the subtask custom ID.
+    """
+    finished_at: Annotated[AwareDatetime | None, Field(alias="finishedAt")] = None
+    """
+    When the subtask finished. Omitted until it does (source: NON_NULL).
+    """
+    id: Annotated[str, Field(pattern="^[EP][0-9]+$")]
+    """
+    A collector task ID. E followed by a number for an ephemeral task, P for a persistent one.
+    """
+    note: str | None = None
+    """
+    The reason Forward recorded for the subtask's end, when it recorded one (source: NON_NULL).
+    """
+    operation: str | None = None
+    """
+    The device command running right now. Omitted when Forward does not know it (source: set for NETWORK_COLLECTION parents in the for=ui view).
+    """
+    started_at: Annotated[AwareDatetime | None, Field(alias="startedAt")] = None
+    """
+    When the subtask started. Omitted until it does (source: NON_NULL).
+    """
+    status: Status4
+    """
+    The subtask's state (source: TaskStatus).
+    """
+
+
+class Status5(OpenEnum):
+    """
+    The task's state (source: TaskStatus).
+    """
+
+    queued = "QUEUED"
+    running = "RUNNING"
+    succeeded = "SUCCEEDED"
+    failed = "FAILED"
+    timed_out = "TIMED_OUT"
+    canceled = "CANCELED"
+
+
+class Disp2CveIndexMetadata(ForwardModel):
+    """
+    The CVE index an instance is serving (source: CveIndexCloudController and SystemAdminController, which build the same map). All four keys are always sent; the two upload keys are null when the index was never uploaded and is still the one bundled in the image (source).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    digest: str
+    """
+    The SHA-256 of the gzipped index bytes, as hex (source: getSha256).
+    """
+    index_created_at: Annotated[AwareDatetime, Field(alias="indexCreatedAt")]
+    """
+    When Forward built the index (source: Instant.toString).
+    """
+    index_uploaded_at: Annotated[AwareDatetime, Field(alias="indexUploadedAt")]
+    """
+    When the index was uploaded. Null for the bundled index (source).
+    """
+    index_uploaded_by: Annotated[str, Field(alias="indexUploadedBy")]
+    """
+    Who uploaded the index. Null for the bundled index (source).
+    """
+
+
+class Disp2DeviceAtlas(ForwardModel):
+    """
+    The device atlas grouped by location (source: DeviceAtlas). Locations are sorted in Forward's location-ID order (source); live, default came before 1. Empty locations are omitted.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    locations: list[Disp2AtlasLocation]
+
+
+class Disp2TaskCollector(ForwardModel):
+    """
+    A collector that ran at least one subtask of the task (source: CollectorTask.CollectorInfo).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collector_id: Annotated[str, Field(alias="collectorId")]
+    collector_name: Annotated[str | None, Field(alias="collectorName")] = None
+    """
+    Null when the collector has been deleted (source: @Nullable).
+    """
+
+
+class Disp2TaskProgress(ForwardModel):
+    """
+    Subtask counts by state for a task. Can be empty before the task starts, and each count is omitted when unknown (source: TaskProgress, NON_NULL).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    canceled: int | None = None
+    failed: int | None = None
+    queued: int | None = None
+    running: int | None = None
+    succeeded: int | None = None
+    timed_out: Annotated[int | None, Field(alias="timedOut")] = None
+    total: int | None = None
+
+
+class Disp2TwoFactorAuthStatus(ForwardModel):
+    """
+    One user's two-factor setup (source: TwoFactorAuthStatus).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    any_trusted_devices: Annotated[bool, Field(alias="anyTrustedDevices")]
+    """
+    Whether the user has any trusted two-factor devices.
+    """
+    set_up: Annotated[bool, Field(alias="setUp")]
+    """
+    Whether two-factor authentication is set up for the user.
+    """
+
+
 class Action2(OpenEnum):
     add_query = "addQuery"
     edit_query = "editQuery"
@@ -2965,7 +3181,7 @@ class DraftChangePage(ForwardModel):
     changes: list[DraftChange] | None = None
 
 
-class Status4(OpenEnum):
+class Status6(OpenEnum):
     no_latest_snapshot = "NO_LATEST_SNAPSHOT"
     query_missing = "QUERY_MISSING"
     query_run_error = "QUERY_RUN_ERROR"
@@ -2980,7 +3196,7 @@ class DynamicConnectionsComputeError(ForwardModel):
         populate_by_name=True,
     )
     error_msg: Annotated[str, Field(alias="errorMsg")]
-    status: Status4
+    status: Status6
 
 
 class EncryptorConnection(ForwardModel):
@@ -4739,7 +4955,7 @@ class Outcome(OpenEnum):
     user_error = "USER_ERROR"
 
 
-class Status5(OpenEnum):
+class Status7(OpenEnum):
     """
     The current state of the query execution:
     - `SUBMITTED`: the query has been accepted and is queued, but execution has not yet begun.
@@ -5849,7 +6065,7 @@ class ScopedUserObject(ForwardModel):
     scope_id: Annotated[str | None, Field(alias="scopeId")] = None
 
 
-class Status6(OpenEnum):
+class Status8(OpenEnum):
     valid = "VALID"
     irrelevant = "IRRELEVANT"
     inactive = "INACTIVE"
@@ -5878,7 +6094,7 @@ class ScorecardCheckScore(ForwardModel):
     """
     The check's score on the snapshot.
     """
-    status: Status6 | None = None
+    status: Status8 | None = None
     type: str | None = None
     weight: int | None = None
 
@@ -5961,7 +6177,7 @@ class ScorecardKpiCheckDefinition(ForwardModel):
     weight: int | None = None
 
 
-class Status7(OpenEnum):
+class Status9(OpenEnum):
     unlicensed = "UNLICENSED"
     requires_additional_snapshot_processing = "REQUIRES_ADDITIONAL_SNAPSHOT_PROCESSING"
     processing = "PROCESSING"
@@ -5985,7 +6201,7 @@ class ScorecardSnapshot(ForwardModel):
     """
     Overall score between 0 and 1; null unless status is PROCESSED.
     """
-    status: Status7 | None = None
+    status: Status9 | None = None
     system_managed: Annotated[bool | None, Field(alias="systemManaged")] = None
 
 
@@ -7066,7 +7282,7 @@ class CollectionSourceType(OpenEnum):
     controller_managed = "CONTROLLER_MANAGED"
 
 
-class Status8(OpenEnum):
+class Status10(OpenEnum):
     production = "PRODUCTION"
     tech_preview = "TECH_PREVIEW"
     internal = "INTERNAL"
@@ -7090,7 +7306,7 @@ class SrcDeviceConnTypeInfo(ForwardModel):
     secondary_cli_credential_types: Annotated[
         list[str] | None, Field(alias="secondaryCliCredentialTypes")
     ] = None
-    status: Status8
+    status: Status10
     vendor: str
 
 
@@ -8453,7 +8669,7 @@ class SysCustomBannerList(ForwardModel):
     banners: list[SysCustomBanner]
 
 
-class Status9(OpenEnum):
+class Status11(OpenEnum):
     valid = "VALID"
     invalid_license = "INVALID_LICENSE"
     invalid_signature = "INVALID_SIGNATURE"
@@ -8619,7 +8835,7 @@ class SysLicenseDetails(ForwardModel):
     """
 
 
-class Status10(OpenEnum):
+class Status12(OpenEnum):
     not_active_yet = "NOT_ACTIVE_YET"
     active = "ACTIVE"
     expired = "EXPIRED"
@@ -8631,7 +8847,7 @@ class SysLicenseDetailsWithStatus(SysLicenseDetails):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status10 | None = None
+    status: Status12 | None = None
 
 
 class LicenseStatus(OpenEnum):
@@ -9042,7 +9258,7 @@ class TextRegion(ForwardModel):
     """
 
 
-class Status11(OpenEnum):
+class Status13(OpenEnum):
     neutral = "NEUTRAL"
     ok = "OK"
     warning = "WARNING"
@@ -9054,7 +9270,7 @@ class ThresholdRule(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status11 | None = None
+    status: Status13 | None = None
     value: float | None = None
     """
     Null marks the default rule.
@@ -9371,7 +9587,7 @@ class UserAccountApiTokenAndSecret(ForwardModel):
     token: UserAccountApiToken
 
 
-class Status12(OpenEnum):
+class Status14(OpenEnum):
     active = "ACTIVE"
     expired = "EXPIRED"
 
@@ -9385,7 +9601,7 @@ class UserAccountApiTokenView(UserAccountApiToken):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status12 | None = None
+    status: Status14 | None = None
 
 
 class UserAccountBulkEdit(ForwardModel):
@@ -9988,7 +10204,7 @@ class VulnerabilityDevice(ForwardModel):
     """
 
 
-class Status13(OpenEnum):
+class Status15(OpenEnum):
     """
     The device’s vulnerability status for the CVE.
     """
@@ -10020,7 +10236,7 @@ class VulnerabilityDeviceWithResult(VulnerabilityDevice):
     The device’s [detection result](https://docs.fwd.app/latest/application/security/vulnerability/#detection-results)
     for the CVE.
     """
-    status: Annotated[Status13 | None, Field(examples=["VULNERABLE"])] = None
+    status: Annotated[Status15 | None, Field(examples=["VULNERABLE"])] = None
     """
     The device’s vulnerability status for the CVE.
     """
@@ -12506,6 +12722,134 @@ class DiagnosisReference(ForwardModel):
     """
 
 
+class Disp2CollectorTaskWithSubTasks(ForwardModel):
+    """
+    A collector task and its subtask list, for the UI (source: CollectorTaskWithSubTasks; the task fields sit beside subTasks). This is a different shape from the published CollectorTask: it carries collectors, progress and subTasks.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    canceled_by: Annotated[str | None, Field(alias="canceledBy")] = None
+    """
+    Only set when the task was canceled (source: NON_NULL).
+    """
+    canceled_by_id: Annotated[str | None, Field(alias="canceledById")] = None
+    """
+    Only set when the task was canceled (source).
+    """
+    collector_id: Annotated[str, Field(alias="collectorId")]
+    """
+    Deprecated in Forward's DTO (source: marked for removal, FWD-55201). Read collectors instead.
+    """
+    collector_name: Annotated[str | None, Field(alias="collectorName")] = None
+    """
+    Deprecated in Forward's DTO with collectorId. Omitted when the collector has been deleted (source).
+    """
+    collectors: list[Disp2TaskCollector]
+    """
+    Every collector that has at least one subtask of this task (source). Never empty (source: precondition).
+    """
+    created_at: Annotated[AwareDatetime | None, Field(alias="createdAt")] = None
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    """
+    The name of the user or scheduler that created the task (live: scheduler).
+    """
+    created_by_id: Annotated[str | None, Field(alias="createdById")] = None
+    """
+    The ID of the user that created the task (live: -1 for the scheduler).
+    """
+    description: str | None = None
+    """
+    A short description of what the task does (source: NON_NULL).
+    """
+    finished_at: Annotated[AwareDatetime | None, Field(alias="finishedAt")] = None
+    """
+    Omitted until the task finishes (source: NON_NULL).
+    """
+    id: Annotated[str, Field(pattern="^[EP][0-9]+$")]
+    """
+    A collector task ID. E followed by a number for an ephemeral task, P for a persistent one.
+    """
+    network_id: Annotated[str | None, Field(alias="networkId")] = None
+    network_name: Annotated[str | None, Field(alias="networkName")] = None
+    note: str | None = None
+    """
+    A note on the task, such as why it was canceled (source: NON_NULL).
+    """
+    parent_task_id: Annotated[str | None, Field(alias="parentTaskId", pattern="^[EP][0-9]+$")] = (
+        None
+    )
+    """
+    The parent task ID when this task is a subtask. Omitted otherwise (source: NON_NULL).
+    """
+    progress: Disp2TaskProgress
+    started_at: Annotated[AwareDatetime | None, Field(alias="startedAt")] = None
+    """
+    Omitted until the task starts (source: NON_NULL).
+    """
+    status: Status5
+    """
+    The task's state (source: TaskStatus).
+    """
+    sub_tasks: Annotated[list[Disp2CollectorSubTask], Field(alias="subTasks")]
+    """
+    The subtasks Forward returned, capped by max (source: getFullTaskDetails).
+    """
+    type: str
+    """
+    The task type, such as NETWORK_COLLECTION (live). The full list is Forward's TaskType enum (source).
+    """
+
+
+class Disp2UserAccountWithRoles(User):
+    """
+    A user account with its roles. The user fields are unwrapped into this object, as User is (source: UserAccountWithRoles, @JsonUnwrapped).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    accessible_networks: Annotated[list[Disp2AccessibleNetwork], Field(alias="accessibleNetworks")]
+    """
+    Each network the user can reach with its role. Always sent, empty when there are none (live: empty for 12 of 243 users). Networks Forward cannot name are dropped (source).
+    """
+    api_token_last_used_at: Annotated[AwareDatetime | None, Field(alias="apiTokenLastUsedAt")] = (
+        None
+    )
+    """
+    When an API token was last used. Sent as null when it never was (live: null for 212 of 243 users).
+    """
+    fn_admin: Annotated[bool | None, Field(alias="fnAdmin")] = None
+    """
+    Whether the user is a Forward admin. Omitted when false (source: NON_DEFAULT). Not set for any user on the ADP account (live).
+    """
+    group_ids: Annotated[list[str] | None, Field(alias="groupIds")] = None
+    """
+    The access control groups the user is in, by ID. Omitted when empty (source: NON_EMPTY). Never sent on the ADP account (live).
+    """
+    oldest_api_token_created_at: Annotated[
+        AwareDatetime | None, Field(alias="oldestApiTokenCreatedAt")
+    ] = None
+    """
+    When the user's oldest unexpired API token was created. Sent as null, not omitted, when there is none (live: null for 206 of 243 users). The source comment says absent, which the wire does not match.
+    """
+    org_admin: Annotated[bool, Field(alias="orgAdmin")]
+    """
+    Whether the user holds the ADMIN org role. Always sent.
+    """
+    support_admin: Annotated[bool | None, Field(alias="supportAdmin")] = None
+    """
+    Whether the user is a support admin. Omitted when false (source: NON_DEFAULT). Not set for any user on the ADP account (live).
+    """
+    supported_org_ids: Annotated[list[str] | None, Field(alias="supportedOrgIds")] = None
+    """
+    The orgs a support user can enter. Omitted when empty (source: NON_EMPTY). Never sent on the ADP account (live).
+    """
+
+
 class Encryptor(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -14797,7 +15141,7 @@ class SysDecodedLicenseKey(ForwardModel):
     """
     Whether the license has started by now.
     """
-    status: Status9
+    status: Status11
 
 
 class SysDeploymentArtifact(ForwardModel):
@@ -15747,7 +16091,7 @@ class NqeExecutionStatus(ForwardModel):
     The number of rows produced by the query so far. This count may increase as execution progresses. Absent when
     `status` is `SUBMITTED`.
     """
-    status: Status5
+    status: Status7
     """
     The current state of the query execution:
     - `SUBMITTED`: the query has been accepted and is queued, but execution has not yet begun.

@@ -33,13 +33,13 @@ class AsyncTrustedCertificatesService(AsyncService):
 
     async def apply_trusted_certificates(
         self,
-    ) -> list[models.CollectorTaskId]:
+    ) -> Any:
         """Push trusted certificates to every collector.
 
         Unpublished: not part of Forward's documented API.
         """
         payload = await self._send_json(ops.BUILDERS["applyTrustedCertificates"]())
-        return [models.CollectorTaskId.model_validate(row) for row in payload or []]
+        return payload
 
     async def delete_trusted_certificate(
         self,

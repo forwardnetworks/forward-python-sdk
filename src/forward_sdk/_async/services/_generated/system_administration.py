@@ -69,6 +69,17 @@ class AsyncSystemAdministrationService(AsyncService):
             async for chunk in response.aiter_bytes():
                 yield chunk
 
+    async def get_cve_index_metadata(
+        self,
+    ) -> models.Disp2CveIndexMetadata:
+        """Describe the CVE index the appliance is serving.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (license, deployment, admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getCveIndexMetadata"]())
+        return models.Disp2CveIndexMetadata.model_validate(payload or {})
+
     async def list_admin_networks(
         self,
     ) -> list[models.AdminNetwork]:

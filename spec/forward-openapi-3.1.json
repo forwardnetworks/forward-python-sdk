@@ -7623,6 +7623,402 @@
         },
         "type": "object"
       },
+      "Disp2AccessibleNetwork": {
+        "description": "A network a user can reach, and the one role the user holds on it (source: UserAccountWithRoles.AccessibleNetwork).",
+        "properties": {
+          "id": {
+            "description": "The network's ID.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The network's name.",
+            "type": "string"
+          },
+          "role": {
+            "description": "The role held on the network (source: NetworkRole; the five values are the enum constants).",
+            "enum": [
+              "LIMITED_READ_ONLY",
+              "READ_ONLY",
+              "OPERATOR",
+              "WORKSPACE_OPERATOR",
+              "ADMIN"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role"
+        ],
+        "type": "object"
+      },
+      "Disp2AtlasLocation": {
+        "description": "One location in the grouped atlas and the devices in it (source: AtlasLocation).",
+        "properties": {
+          "anchoredDevices": {
+            "description": "Devices in this location because they are anchored to a physical device here, such as virtual contexts and wireless access points. Omitted when empty (source: NON_EMPTY).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "devices": {
+            "description": "Devices placed in this location by hand. Always sent (source), sorted by Forward.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "dynamicMatchDevices": {
+            "description": "Devices in this location because their names match one of the location's device globs. Omitted when empty (source: NON_EMPTY). Not present on the ADP network (live).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "locationId": {
+            "description": "The location ID, such as 1 or default (live).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "locationId",
+          "devices"
+        ],
+        "type": "object"
+      },
+      "Disp2CollectorSubTask": {
+        "description": "One subtask of a collector task, usually one device (source: SubTaskInfo).",
+        "properties": {
+          "collectorId": {
+            "description": "The collector that ran the subtask.",
+            "type": "string"
+          },
+          "description": {
+            "description": "The device name for a device subtask (live). Source: the subtask custom ID.",
+            "type": "string"
+          },
+          "finishedAt": {
+            "description": "When the subtask finished. Omitted until it does (source: NON_NULL).",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/CollectorTaskId"
+          },
+          "note": {
+            "description": "The reason Forward recorded for the subtask's end, when it recorded one (source: NON_NULL).",
+            "type": "string"
+          },
+          "operation": {
+            "description": "The device command running right now. Omitted when Forward does not know it (source: set for NETWORK_COLLECTION parents in the for=ui view).",
+            "type": "string"
+          },
+          "startedAt": {
+            "description": "When the subtask started. Omitted until it does (source: NON_NULL).",
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "description": "The subtask's state (source: TaskStatus).",
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "SUCCEEDED",
+              "FAILED",
+              "TIMED_OUT",
+              "CANCELED"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "collectorId",
+          "description",
+          "status"
+        ],
+        "type": "object"
+      },
+      "Disp2CollectorTaskWithSubTasks": {
+        "description": "A collector task and its subtask list, for the UI (source: CollectorTaskWithSubTasks; the task fields sit beside subTasks). This is a different shape from the published CollectorTask: it carries collectors, progress and subTasks.",
+        "properties": {
+          "canceledBy": {
+            "description": "Only set when the task was canceled (source: NON_NULL).",
+            "type": "string"
+          },
+          "canceledById": {
+            "description": "Only set when the task was canceled (source).",
+            "type": "string"
+          },
+          "collectorId": {
+            "description": "Deprecated in Forward's DTO (source: marked for removal, FWD-55201). Read collectors instead.",
+            "type": "string"
+          },
+          "collectorName": {
+            "description": "Deprecated in Forward's DTO with collectorId. Omitted when the collector has been deleted (source).",
+            "type": "string"
+          },
+          "collectors": {
+            "description": "Every collector that has at least one subtask of this task (source). Never empty (source: precondition).",
+            "items": {
+              "$ref": "#/components/schemas/Disp2TaskCollector"
+            },
+            "type": "array"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "The name of the user or scheduler that created the task (live: scheduler).",
+            "type": "string"
+          },
+          "createdById": {
+            "description": "The ID of the user that created the task (live: -1 for the scheduler).",
+            "type": "string"
+          },
+          "description": {
+            "description": "A short description of what the task does (source: NON_NULL).",
+            "type": "string"
+          },
+          "finishedAt": {
+            "description": "Omitted until the task finishes (source: NON_NULL).",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/CollectorTaskId"
+          },
+          "networkId": {
+            "type": "string"
+          },
+          "networkName": {
+            "type": "string"
+          },
+          "note": {
+            "description": "A note on the task, such as why it was canceled (source: NON_NULL).",
+            "type": "string"
+          },
+          "parentTaskId": {
+            "$ref": "#/components/schemas/CollectorTaskId",
+            "description": "The parent task ID when this task is a subtask. Omitted otherwise (source: NON_NULL)."
+          },
+          "progress": {
+            "$ref": "#/components/schemas/Disp2TaskProgress"
+          },
+          "startedAt": {
+            "description": "Omitted until the task starts (source: NON_NULL).",
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "description": "The task's state (source: TaskStatus).",
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "SUCCEEDED",
+              "FAILED",
+              "TIMED_OUT",
+              "CANCELED"
+            ],
+            "type": "string"
+          },
+          "subTasks": {
+            "description": "The subtasks Forward returned, capped by max (source: getFullTaskDetails).",
+            "items": {
+              "$ref": "#/components/schemas/Disp2CollectorSubTask"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "The task type, such as NETWORK_COLLECTION (live). The full list is Forward's TaskType enum (source).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "status",
+          "collectorId",
+          "collectors",
+          "progress",
+          "subTasks"
+        ],
+        "type": "object"
+      },
+      "Disp2CveIndexMetadata": {
+        "description": "The CVE index an instance is serving (source: CveIndexCloudController and SystemAdminController, which build the same map). All four keys are always sent; the two upload keys are null when the index was never uploaded and is still the one bundled in the image (source).",
+        "properties": {
+          "digest": {
+            "description": "The SHA-256 of the gzipped index bytes, as hex (source: getSha256).",
+            "type": "string"
+          },
+          "indexCreatedAt": {
+            "description": "When Forward built the index (source: Instant.toString).",
+            "format": "date-time",
+            "type": "string"
+          },
+          "indexUploadedAt": {
+            "description": "When the index was uploaded. Null for the bundled index (source).",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "indexUploadedBy": {
+            "description": "Who uploaded the index. Null for the bundled index (source).",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "digest",
+          "indexCreatedAt",
+          "indexUploadedAt",
+          "indexUploadedBy"
+        ],
+        "type": "object"
+      },
+      "Disp2DeviceAtlas": {
+        "description": "The device atlas grouped by location (source: DeviceAtlas). Locations are sorted in Forward's location-ID order (source); live, default came before 1. Empty locations are omitted.",
+        "properties": {
+          "locations": {
+            "items": {
+              "$ref": "#/components/schemas/Disp2AtlasLocation"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "locations"
+        ],
+        "type": "object"
+      },
+      "Disp2TaskCollector": {
+        "description": "A collector that ran at least one subtask of the task (source: CollectorTask.CollectorInfo).",
+        "properties": {
+          "collectorId": {
+            "type": "string"
+          },
+          "collectorName": {
+            "description": "Null when the collector has been deleted (source: @Nullable).",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "collectorId"
+        ],
+        "type": "object"
+      },
+      "Disp2TaskProgress": {
+        "description": "Subtask counts by state for a task. Can be empty before the task starts, and each count is omitted when unknown (source: TaskProgress, NON_NULL).",
+        "properties": {
+          "canceled": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "integer"
+          },
+          "queued": {
+            "type": "integer"
+          },
+          "running": {
+            "type": "integer"
+          },
+          "succeeded": {
+            "type": "integer"
+          },
+          "timedOut": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "Disp2TwoFactorAuthStatus": {
+        "description": "One user's two-factor setup (source: TwoFactorAuthStatus).",
+        "properties": {
+          "anyTrustedDevices": {
+            "description": "Whether the user has any trusted two-factor devices.",
+            "type": "boolean"
+          },
+          "setUp": {
+            "description": "Whether two-factor authentication is set up for the user.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "setUp",
+          "anyTrustedDevices"
+        ],
+        "type": "object"
+      },
+      "Disp2UserAccountWithRoles": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/User"
+          },
+          {
+            "properties": {
+              "accessibleNetworks": {
+                "description": "Each network the user can reach with its role. Always sent, empty when there are none (live: empty for 12 of 243 users). Networks Forward cannot name are dropped (source).",
+                "items": {
+                  "$ref": "#/components/schemas/Disp2AccessibleNetwork"
+                },
+                "type": "array"
+              },
+              "apiTokenLastUsedAt": {
+                "description": "When an API token was last used. Sent as null when it never was (live: null for 212 of 243 users).",
+                "format": "date-time",
+                "nullable": true,
+                "type": "string"
+              },
+              "fnAdmin": {
+                "description": "Whether the user is a Forward admin. Omitted when false (source: NON_DEFAULT). Not set for any user on the ADP account (live).",
+                "type": "boolean"
+              },
+              "groupIds": {
+                "description": "The access control groups the user is in, by ID. Omitted when empty (source: NON_EMPTY). Never sent on the ADP account (live).",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "oldestApiTokenCreatedAt": {
+                "description": "When the user's oldest unexpired API token was created. Sent as null, not omitted, when there is none (live: null for 206 of 243 users). The source comment says absent, which the wire does not match.",
+                "format": "date-time",
+                "nullable": true,
+                "type": "string"
+              },
+              "orgAdmin": {
+                "description": "Whether the user holds the ADMIN org role. Always sent.",
+                "type": "boolean"
+              },
+              "supportAdmin": {
+                "description": "Whether the user is a support admin. Omitted when false (source: NON_DEFAULT). Not set for any user on the ADP account (live).",
+                "type": "boolean"
+              },
+              "supportedOrgIds": {
+                "description": "The orgs a support user can enter. Omitted when empty (source: NON_EMPTY). Never sent on the ADP account (live).",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "orgAdmin",
+              "accessibleNetworks"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A user account with its roles. The user fields are unwrapped into this object, as User is (source: UserAccountWithRoles, @JsonUnwrapped)."
+      },
       "DraftChange": {
         "description": "One staged, uncommitted change to the library.",
         "properties": {
@@ -24533,6 +24929,28 @@
         "summary": "Get a collector task",
         "tags": [
           "Collector Tasks"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getCollectorTaskSubtasksAt",
+            "summary": "List a task's subtasks that were in progress at an instant",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "subtasks"
+              ]
+            ]
+          },
+          {
+            "operationId": "getCollectorTaskWithSubtasks",
+            "summary": "Get a collector task with its subtasks for the UI",
+            "x-forward-fixed-query": [
+              [
+                "for",
+                "ui"
+              ]
+            ]
+          }
         ]
       },
       "post": {
@@ -25400,6 +25818,18 @@
         "summary": "Export the CVE index",
         "tags": [
           "System Administration"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getCveIndexMetadata",
+            "summary": "Describe the CVE index the appliance is serving",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "metadata"
+              ]
+            ]
+          }
         ]
       },
       "put": {
@@ -30172,6 +30602,18 @@
         "summary": "Get device locations",
         "tags": [
           "Network Locations"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getAtlasByLocation",
+            "summary": "Get the device atlas grouped by location",
+            "x-forward-fixed-query": [
+              [
+                "v",
+                "2"
+              ]
+            ]
+          }
         ]
       },
       "patch": {
@@ -52042,6 +52484,28 @@
         "summary": "Get all user accounts",
         "tags": [
           "User Accounts"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "listUsersWithRoles",
+            "summary": "List the org's user accounts with their roles",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "roles"
+              ]
+            ]
+          },
+          {
+            "operationId": "getUserTwoFactorStatuses",
+            "summary": "Get each user's two-factor authentication status",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "2fa"
+              ]
+            ]
+          }
         ]
       },
       "patch": {

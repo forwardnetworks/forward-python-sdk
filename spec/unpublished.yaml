@@ -13712,6 +13712,111 @@ paths:
               # from source: EmptyObject.JSON is the literal "{}"
               example: {}
 
+  /users?view=roles:
+    get:
+      operationId: listUsersWithRoles
+      summary: List the org's user accounts with their roles
+      description: "Lists the manually created user accounts of the caller's organization, each with its org role, the networks it can reach and the role it holds there, its access control groups and its API-token use. Requires VIEW_USER_ACCOUNTS on the org (source: UserController.getOrgUsersWithRoles). The body is a bare array, not the {users: [...]} wrapper that GET /users returns (live)."
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      responses:
+        "200":
+          description: The org's user accounts with their roles.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Disp2UserAccountWithRoles" }
+              # live (ADP account, 2026-10-17): 2 of 243 users; usernames and emails redacted, ids and shapes kept
+              example: [{"id": "12078", "username": "user1@example.com", "email": "user1@example.com", "enabled": true, "lastActive": "2026-08-07T18:55:22.370Z", "authSource": "LOCAL", "isSupport": true, "orgAdmin": true, "accessibleNetworks": [{"id": "254156", "name": "test777", "role": "ADMIN"}], "oldestApiTokenCreatedAt": "2025-09-07T14:35:38.199573008Z", "apiTokenLastUsedAt": "2025-09-09T16:30:49.776175942Z"}, {"id": "14766", "username": "user2@example.com", "email": "user2@example.com", "enabled": true, "lastActive": "2026-09-18T02:04:19.422Z", "authSource": "SAML", "externalGroups": [], "orgAdmin": false, "accessibleNetworks": [], "oldestApiTokenCreatedAt": null, "apiTokenLastUsedAt": null}]
+  /users?view=2fa:
+    get:
+      operationId: getUserTwoFactorStatuses
+      summary: Get each user's two-factor authentication status
+      description: "Returns the two-factor setup of each user in the caller's organization, keyed by user ID. Requires VIEW_USER_ACCOUNTS on the org (source: UserController.getOrgUser2faStatuses). The values are the two booleans of TwoFactorAuthStatus (source)."
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      responses:
+        "200":
+          description: Two-factor status by user ID.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: { $ref: "#/components/schemas/Disp2TwoFactorAuthStatus" }
+              # live (ADP account, 2026-10-17): {}, the org has no two-factor records; the value shape is source-only
+              example: {}
+  /networks/{networkId}/atlas?v=2:
+    get:
+      operationId: getAtlasByLocation
+      summary: Get the device atlas grouped by location
+      description: "Returns the network's device atlas grouped by location, with each device's placement kind: hand-placed (devices), anchored to another device (anchoredDevices) or matched by a location's device globs (dynamicMatchDevices). Excludes cloud locations and flexibly located devices, and omits empty locations (source: LocationController.getAtlasV2). Requires VIEW_NETWORK_AND_SNAPSHOTS on the network (source)."
+      x-forward-stability: unpublished
+      tags: [Network Locations]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The atlas, grouped by location.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Disp2DeviceAtlas" }
+              # live (ADP network, 2026-10-17): 2 of 298 locations, device lists trimmed to 2 names each
+              example: {"locations": [{"locationId": "default", "devices": ["7.240.4.18", "10.240.116.44"], "anchoredDevices": ["0a0b368b54d521a0", "0a1e5d4d812b084a"]}, {"locationId": "1", "devices": ["avocent-ai33", "avocent-ai36"], "anchoredDevices": ["dc00slservpy001.net.adp.com_associates", "dc00slservpy001.net.adp.com_guestwifi"]}]}
+  /collector-tasks/{taskId}?view=subtasks:
+    get:
+      operationId: getCollectorTaskSubtasksAt
+      summary: List a task's subtasks that were in progress at an instant
+      description: "Returns the subtasks of a collector task that were in progress at the time given in the required at query parameter (source: CollectorTaskApiService.getInProgressSubtasksAt). Requires VIEW_COLLECTOR_TASK_QUEUES on the org and permission to view the task (source: CollectorTaskController.getInProgressSubtasks, TaskPermissionsService.validateTaskPermissions). Omitting at returns 400 (live). An instant before the task was created returns an empty list (live)."
+      x-forward-stability: unpublished
+      tags: [Collector Tasks]
+      parameters:
+        - { name: taskId, in: path, required: true, schema: { type: string } }
+        - { name: at, in: query, required: true, description: "The instant to test, as an ISO-8601 timestamp.", schema: { type: string, format: date-time } }
+      responses:
+        "200":
+          description: The subtasks in progress at that instant.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Disp2CollectorSubTask" }
+              # live (ADP account, task P210811940, at = its start time, 2026-10-17): 1 subtask, trimmed to 1 item
+              example: [{"id": "P210811941", "collectorId": "C8126", "description": "dc01sxecobff201.net.adp.com", "status": "SUCCEEDED", "startedAt": "2026-10-17T17:30:07.299564Z", "finishedAt": "2026-10-17T17:30:21.383713Z"}]
+  /collector-tasks/{taskId}?for=ui:
+    get:
+      operationId: getCollectorTaskWithSubtasks
+      summary: Get a collector task with its subtasks for the UI
+      description: "Returns a collector task with a capped list of its subtasks. Forward returns RUNNING, FAILED, TIMED_OUT and CANCELED subtasks first, then SUCCEEDED ones to fill the max limit, and never QUEUED ones (source: CollectorTaskApiService.getFullTaskDetails). Requires VIEW_COLLECTOR_TASK_QUEUES on the org and permission to view the task (source: CollectorTaskController.getFullTaskDetails, TaskPermissionsService.validateTaskPermissions). Live: max=0 returns subTasks as an empty list, so 0 is not a default."
+      x-forward-stability: unpublished
+      tags: [Collector Tasks]
+      parameters:
+        - { name: taskId, in: path, required: true, schema: { type: string } }
+        - { name: max, in: query, required: false, description: "The most subtasks to return.", schema: { type: integer, default: 1000 } }
+      responses:
+        "200":
+          description: The task and its subtasks.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Disp2CollectorTaskWithSubTasks" }
+              # live (ADP account, task P210811940, 2026-10-17): the task with max=5, its one subtask kept
+              example: {"id": "P210811940", "type": "NETWORK_COLLECTION", "status": "SUCCEEDED", "collectorId": "C8126", "collectorName": "adp", "collectors": [{"collectorId": "C8126", "collectorName": "adp"}], "progress": {"total": 1, "queued": 0, "running": 0, "succeeded": 1, "failed": 0, "timedOut": 0, "canceled": 0}, "createdById": "-1", "createdAt": "2026-10-17T17:30:07.246943Z", "createdBy": "scheduler", "networkId": "173636", "networkName": "Danny-Test", "startedAt": "2026-10-17T17:30:07.302873Z", "finishedAt": "2026-10-17T17:30:21.380805Z", "subTasks": [{"id": "P210811941", "collectorId": "C8126", "description": "dc01sxecobff201.net.adp.com", "status": "SUCCEEDED", "startedAt": "2026-10-17T17:30:07.299564Z", "finishedAt": "2026-10-17T17:30:21.383713Z"}]}
+  /cve-index?view=metadata:
+    get:
+      operationId: getCveIndexMetadata
+      summary: Describe the CVE index the appliance is serving
+      description: "Returns the digest and upload provenance of the CVE index this instance serves. On an on-prem appserver it requires the MANAGE_CVE_INDEX org operation, which carries the SECURITY licence facet (source: SystemAdminController.getCveIndexMetadata). On fwd.app it requires the SOFTWARE_CENTRAL org property or a Forward admin (source: CveIndexCloudController.getCveIndexMetadata). Live: 403 on the ADP account with the message SOFTWARE_CENTRAL is off for your organization, so the success shape is source-only."
+      x-forward-stability: unpublished
+      tags: [System Administration]
+      responses:
+        "200":
+          description: The CVE index metadata.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Disp2CveIndexMetadata" }
+              # from source: CveIndexCloudController.getCveIndexMetadata and SystemAdminController.getCveIndexMetadata (same four keys); no live or test fixture. Values are placeholders, not observed.
+              example: {"digest": "0000000000000000000000000000000000000000000000000000000000000000", "indexCreatedAt": "1970-01-01T00:00:00Z", "indexUploadedAt": "1970-01-01T00:00:00Z", "indexUploadedBy": "example-user"}
+
 components:
   schemas:
     SnapshotStateChange:
@@ -19557,3 +19662,157 @@ components:
       properties:
         accountId: { type: string }
         accountRole: { type: string }
+
+    Disp2AccessibleNetwork:
+      type: object
+      required: [id, name, role]
+      description: "A network a user can reach, and the one role the user holds on it (source: UserAccountWithRoles.AccessibleNetwork)."
+      properties:
+        id: { type: string, description: The network's ID. }
+        name: { type: string, description: The network's name. }
+        role:
+          type: string
+          enum: [LIMITED_READ_ONLY, READ_ONLY, OPERATOR, WORKSPACE_OPERATOR, ADMIN]
+          description: "The role held on the network (source: NetworkRole; the five values are the enum constants)."
+    Disp2UserAccountWithRoles:
+      description: "A user account with its roles. The user fields are unwrapped into this object, as User is (source: UserAccountWithRoles, @JsonUnwrapped)."
+      allOf:
+        - $ref: "#/components/schemas/User"
+        - type: object
+          required: [orgAdmin, accessibleNetworks]
+          properties:
+            orgAdmin: { type: boolean, description: "Whether the user holds the ADMIN org role. Always sent." }
+            fnAdmin: { type: boolean, description: "Whether the user is a Forward admin. Omitted when false (source: NON_DEFAULT). Not set for any user on the ADP account (live)." }
+            supportAdmin: { type: boolean, description: "Whether the user is a support admin. Omitted when false (source: NON_DEFAULT). Not set for any user on the ADP account (live)." }
+            accessibleNetworks:
+              type: array
+              items: { $ref: "#/components/schemas/Disp2AccessibleNetwork" }
+              description: "Each network the user can reach with its role. Always sent, empty when there are none (live: empty for 12 of 243 users). Networks Forward cannot name are dropped (source)."
+            supportedOrgIds:
+              type: array
+              items: { type: string }
+              description: "The orgs a support user can enter. Omitted when empty (source: NON_EMPTY). Never sent on the ADP account (live)."
+            groupIds:
+              type: array
+              items: { type: string }
+              description: "The access control groups the user is in, by ID. Omitted when empty (source: NON_EMPTY). Never sent on the ADP account (live)."
+            oldestApiTokenCreatedAt:
+              type: string
+              format: date-time
+              nullable: true
+              description: "When the user's oldest unexpired API token was created. Sent as null, not omitted, when there is none (live: null for 206 of 243 users). The source comment says absent, which the wire does not match."
+            apiTokenLastUsedAt:
+              type: string
+              format: date-time
+              nullable: true
+              description: "When an API token was last used. Sent as null when it never was (live: null for 212 of 243 users)."
+    Disp2TwoFactorAuthStatus:
+      type: object
+      required: [setUp, anyTrustedDevices]
+      description: "One user's two-factor setup (source: TwoFactorAuthStatus)."
+      properties:
+        setUp: { type: boolean, description: "Whether two-factor authentication is set up for the user." }
+        anyTrustedDevices: { type: boolean, description: "Whether the user has any trusted two-factor devices." }
+    Disp2AtlasLocation:
+      type: object
+      required: [locationId, devices]
+      description: "One location in the grouped atlas and the devices in it (source: AtlasLocation)."
+      properties:
+        locationId: { type: string, description: "The location ID, such as 1 or default (live)." }
+        devices:
+          type: array
+          items: { type: string }
+          description: "Devices placed in this location by hand. Always sent (source), sorted by Forward."
+        anchoredDevices:
+          type: array
+          items: { type: string }
+          description: "Devices in this location because they are anchored to a physical device here, such as virtual contexts and wireless access points. Omitted when empty (source: NON_EMPTY)."
+        dynamicMatchDevices:
+          type: array
+          items: { type: string }
+          description: "Devices in this location because their names match one of the location's device globs. Omitted when empty (source: NON_EMPTY). Not present on the ADP network (live)."
+    Disp2DeviceAtlas:
+      type: object
+      required: [locations]
+      description: "The device atlas grouped by location (source: DeviceAtlas). Locations are sorted in Forward's location-ID order (source); live, default came before 1. Empty locations are omitted."
+      properties:
+        locations:
+          type: array
+          items: { $ref: "#/components/schemas/Disp2AtlasLocation" }
+    Disp2CollectorSubTask:
+      type: object
+      required: [id, collectorId, description, status]
+      description: "One subtask of a collector task, usually one device (source: SubTaskInfo)."
+      properties:
+        id: { $ref: "#/components/schemas/CollectorTaskId" }
+        collectorId: { type: string, description: "The collector that ran the subtask." }
+        description: { type: string, description: "The device name for a device subtask (live). Source: the subtask custom ID." }
+        status:
+          type: string
+          enum: ["QUEUED", "RUNNING", "SUCCEEDED", "FAILED", "TIMED_OUT", "CANCELED"]
+          description: "The subtask's state (source: TaskStatus)."
+        startedAt: { type: string, format: date-time, description: "When the subtask started. Omitted until it does (source: NON_NULL)." }
+        finishedAt: { type: string, format: date-time, description: "When the subtask finished. Omitted until it does (source: NON_NULL)." }
+        operation: { type: string, description: "The device command running right now. Omitted when Forward does not know it (source: set for NETWORK_COLLECTION parents in the for=ui view)." }
+        note: { type: string, description: "The reason Forward recorded for the subtask's end, when it recorded one (source: NON_NULL)." }
+    Disp2TaskProgress:
+      type: object
+      description: "Subtask counts by state for a task. Can be empty before the task starts, and each count is omitted when unknown (source: TaskProgress, NON_NULL)."
+      properties:
+        total: { type: integer }
+        queued: { type: integer }
+        running: { type: integer }
+        succeeded: { type: integer }
+        failed: { type: integer }
+        timedOut: { type: integer }
+        canceled: { type: integer }
+    Disp2TaskCollector:
+      type: object
+      required: [collectorId]
+      description: "A collector that ran at least one subtask of the task (source: CollectorTask.CollectorInfo)."
+      properties:
+        collectorId: { type: string }
+        collectorName: { type: string, nullable: true, description: "Null when the collector has been deleted (source: @Nullable)." }
+    Disp2CollectorTaskWithSubTasks:
+      type: object
+      required: [id, type, status, collectorId, collectors, progress, subTasks]
+      description: "A collector task and its subtask list, for the UI (source: CollectorTaskWithSubTasks; the task fields sit beside subTasks). This is a different shape from the published CollectorTask: it carries collectors, progress and subTasks."
+      properties:
+        id: { $ref: "#/components/schemas/CollectorTaskId" }
+        parentTaskId: { $ref: "#/components/schemas/CollectorTaskId", description: "The parent task ID when this task is a subtask. Omitted otherwise (source: NON_NULL)." }
+        type: { type: string, description: "The task type, such as NETWORK_COLLECTION (live). The full list is Forward's TaskType enum (source)." }
+        status:
+          type: string
+          enum: ["QUEUED", "RUNNING", "SUCCEEDED", "FAILED", "TIMED_OUT", "CANCELED"]
+          description: "The task's state (source: TaskStatus)."
+        collectorId: { type: string, description: "Deprecated in Forward's DTO (source: marked for removal, FWD-55201). Read collectors instead." }
+        collectorName: { type: string, description: "Deprecated in Forward's DTO with collectorId. Omitted when the collector has been deleted (source)." }
+        collectors:
+          type: array
+          items: { $ref: "#/components/schemas/Disp2TaskCollector" }
+          description: "Every collector that has at least one subtask of this task (source). Never empty (source: precondition)."
+        progress: { $ref: "#/components/schemas/Disp2TaskProgress" }
+        createdBy: { type: string, description: "The name of the user or scheduler that created the task (live: scheduler)." }
+        createdById: { type: string, description: "The ID of the user that created the task (live: -1 for the scheduler)." }
+        createdAt: { type: string, format: date-time }
+        networkId: { type: string }
+        networkName: { type: string }
+        startedAt: { type: string, format: date-time, description: "Omitted until the task starts (source: NON_NULL)." }
+        finishedAt: { type: string, format: date-time, description: "Omitted until the task finishes (source: NON_NULL)." }
+        canceledById: { type: string, description: "Only set when the task was canceled (source)." }
+        canceledBy: { type: string, description: "Only set when the task was canceled (source: NON_NULL)." }
+        note: { type: string, description: "A note on the task, such as why it was canceled (source: NON_NULL)." }
+        description: { type: string, description: "A short description of what the task does (source: NON_NULL)." }
+        subTasks:
+          type: array
+          items: { $ref: "#/components/schemas/Disp2CollectorSubTask" }
+          description: "The subtasks Forward returned, capped by max (source: getFullTaskDetails)."
+    Disp2CveIndexMetadata:
+      type: object
+      required: [digest, indexCreatedAt, indexUploadedAt, indexUploadedBy]
+      description: "The CVE index an instance is serving (source: CveIndexCloudController and SystemAdminController, which build the same map). All four keys are always sent; the two upload keys are null when the index was never uploaded and is still the one bundled in the image (source)."
+      properties:
+        digest: { type: string, description: "The SHA-256 of the gzipped index bytes, as hex (source: getSha256)." }
+        indexCreatedAt: { type: string, format: date-time, description: "When Forward built the index (source: Instant.toString)." }
+        indexUploadedAt: { type: string, format: date-time, nullable: true, description: "When the index was uploaded. Null for the bundled index (source)." }
+        indexUploadedBy: { type: string, nullable: true, description: "Who uploaded the index. Null for the bundled index (source)." }

@@ -182,6 +182,17 @@ class AsyncUserAccountsService(AsyncService):
         payload = await self._send_json(ops.BUILDERS["getUserRoles"](user_id=user_id, type=type))
         return models.UserAccountRoles.model_validate(payload or {})
 
+    async def get_user_two_factor_statuses(
+        self,
+    ) -> Any:
+        """Get each user's two-factor authentication status.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getUserTwoFactorStatuses"]())
+        return payload
+
     async def get_users(
         self,
     ) -> models.Users:
@@ -228,6 +239,17 @@ class AsyncUserAccountsService(AsyncService):
         """
         payload = await self._send_json(ops.BUILDERS["listUserApiTokens"](user_id=user_id))
         return models.UserAccountApiTokenList.model_validate(payload or {})
+
+    async def list_users_with_roles(
+        self,
+    ) -> list[models.Disp2UserAccountWithRoles]:
+        """List the org's user accounts with their roles.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["listUsersWithRoles"]())
+        return [models.Disp2UserAccountWithRoles.model_validate(row) for row in payload or []]
 
     async def remove_user_network_role(
         self,

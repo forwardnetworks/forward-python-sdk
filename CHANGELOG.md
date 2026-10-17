@@ -24,6 +24,9 @@ All notable changes to this project are documented here. The format follows
   `delete_commit()`, `duplicate()` and the four device-configuration calls; `ai`'s NQE
   assists; `nqe.schema()` and `run_metrics()`; `nqe.repo.source_by_id()`; and
   `client_software.deployment_artifacts()`.
+- Six query variants of routes already covered: users with their roles and with their
+  two-factor status, the atlas by location, a collector task with its sub-tasks, and the
+  CVE index's metadata. Four were read against a read-only account.
 - Fields the Go SDK reads that were missing: who created and last updated a classic
   device, the controllers and managed devices in a connectivity result, and the Azure,
   GCP and AWS cloud-account fields.
@@ -35,6 +38,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- A job's `cancelLink` is put in the path as Forward gave it. Forward hands it out already
+  percent-encoded, and encoding it again made Forward answer 400. Found by the Go SDK
+  against a live instance; a parameter marked `x-forward-pre-encoded` is now left as it is.
 - `collector_tasks.stop_collector_task()` always sent an empty `action`, which Forward
   refuses; the bare `?action` in its route is now the caller's to set.
 - A create is retried after Forward's rate-limit 429 ("Rate limit exceeded"). That limiter

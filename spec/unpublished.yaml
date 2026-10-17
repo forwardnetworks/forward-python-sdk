@@ -13765,8 +13765,6 @@ components:
           description: The flat form, returned when listing at `head`.
         sourceCodeSha:
           type: string
-        intent:
-          type: string
         sourceCode:
           type: string
           description: Present only when the query was fetched with `with=sourceCode`.

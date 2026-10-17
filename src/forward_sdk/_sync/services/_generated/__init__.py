@@ -10,8 +10,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from forward_sdk._sync.services._generated.access_control import AccessControlService
 from forward_sdk._sync.services._generated.adjacent_networks import AdjacentNetworksService
 from forward_sdk._sync.services._generated.aliases import AliasesService
+from forward_sdk._sync.services._generated.audit_logs import AuditLogsService
 from forward_sdk._sync.services._generated.bgp_advertisements import BGPAdvertisementsService
 from forward_sdk._sync.services._generated.blast_radius import BlastRadiusService
 from forward_sdk._sync.services._generated.change_set_directories import (
@@ -46,9 +48,11 @@ from forward_sdk._sync.services._generated.network_endpoints import NetworkEndpo
 from forward_sdk._sync.services._generated.network_locations import NetworkLocationsService
 from forward_sdk._sync.services._generated.network_topology import NetworkTopologyService
 from forward_sdk._sync.services._generated.nqe_panels import NQEPanelsService
+from forward_sdk._sync.services._generated.organizations import OrganizationsService
 from forward_sdk._sync.services._generated.path_search import PathSearchService
 from forward_sdk._sync.services._generated.predict_assist import PredictAssistService
 from forward_sdk._sync.services._generated.resource_pools import ResourcePoolsService
+from forward_sdk._sync.services._generated.saml import SAMLService
 from forward_sdk._sync.services._generated.security_matrix import SecurityMatrixService
 from forward_sdk._sync.services._generated.security_matrix_filters import (
     SecurityMatrixFiltersService,
@@ -61,6 +65,9 @@ from forward_sdk._sync.services._generated.snmp_credentials import SNMPCredentia
 from forward_sdk._sync.services._generated.system_administration import (
     SystemAdministrationService,
 )
+from forward_sdk._sync.services._generated.trusted_certificates import (
+    TrustedCertificatesService,
+)
 from forward_sdk._sync.services._generated.user_accounts import UserAccountsService
 from forward_sdk._sync.services._generated.vulnerability_analysis import (
     VulnerabilityAnalysisService,
@@ -72,8 +79,10 @@ if TYPE_CHECKING:  # pragma: no cover
     from forward_sdk._sync.transport import Transport
 
 __all__ = [
+    "AccessControlService",
     "AdjacentNetworksService",
     "AliasesService",
+    "AuditLogsService",
     "BGPAdvertisementsService",
     "BlastRadiusService",
     "ChangeSetDirectoriesService",
@@ -105,15 +114,18 @@ __all__ = [
     "NetworkEndpointsService",
     "NetworkLocationsService",
     "NetworkTopologyService",
+    "OrganizationsService",
     "PathSearchService",
     "PredictAssistService",
     "ResourcePoolsService",
+    "SAMLService",
     "SNMPCredentialsService",
     "SecurityMatrixFiltersService",
     "SecurityMatrixService",
     "SecurityZonesService",
     "SnapshotDiffDetailsService",
     "SystemAdministrationService",
+    "TrustedCertificatesService",
     "UserAccountsService",
     "VulnerabilityAnalysisService",
     "WANCircuitsService",
@@ -128,8 +140,10 @@ class GeneratedServices:
     checkers and editors can see them.
     """
 
+    access_control: AccessControlService
     adjacent_networks: AdjacentNetworksService
     aliases: AliasesService
+    audit_logs: AuditLogsService
     bgp_advertisements: BGPAdvertisementsService
     blast_radius: BlastRadiusService
     change_set_directories: ChangeSetDirectoriesService
@@ -160,23 +174,28 @@ class GeneratedServices:
     network_endpoints: NetworkEndpointsService
     network_locations: NetworkLocationsService
     network_topology: NetworkTopologyService
+    organizations: OrganizationsService
     path_search: PathSearchService
     predict_assist: PredictAssistService
     resource_pools: ResourcePoolsService
+    saml: SAMLService
     snmp_credentials: SNMPCredentialsService
     security_matrix: SecurityMatrixService
     security_matrix_filters: SecurityMatrixFiltersService
     security_zones: SecurityZonesService
     snapshot_diff_details: SnapshotDiffDetailsService
     system_administration: SystemAdministrationService
+    trusted_certificates: TrustedCertificatesService
     user_accounts: UserAccountsService
     vulnerability_analysis: VulnerabilityAnalysisService
     wan_circuits: WANCircuitsService
     webhooks: WebhooksService
 
     def _attach_generated_services(self, transport: Transport) -> None:
+        self.access_control = AccessControlService(transport)
         self.adjacent_networks = AdjacentNetworksService(transport)
         self.aliases = AliasesService(transport)
+        self.audit_logs = AuditLogsService(transport)
         self.bgp_advertisements = BGPAdvertisementsService(transport)
         self.blast_radius = BlastRadiusService(transport)
         self.change_set_directories = ChangeSetDirectoriesService(transport)
@@ -207,15 +226,18 @@ class GeneratedServices:
         self.network_endpoints = NetworkEndpointsService(transport)
         self.network_locations = NetworkLocationsService(transport)
         self.network_topology = NetworkTopologyService(transport)
+        self.organizations = OrganizationsService(transport)
         self.path_search = PathSearchService(transport)
         self.predict_assist = PredictAssistService(transport)
         self.resource_pools = ResourcePoolsService(transport)
+        self.saml = SAMLService(transport)
         self.snmp_credentials = SNMPCredentialsService(transport)
         self.security_matrix = SecurityMatrixService(transport)
         self.security_matrix_filters = SecurityMatrixFiltersService(transport)
         self.security_zones = SecurityZonesService(transport)
         self.snapshot_diff_details = SnapshotDiffDetailsService(transport)
         self.system_administration = SystemAdministrationService(transport)
+        self.trusted_certificates = TrustedCertificatesService(transport)
         self.user_accounts = UserAccountsService(transport)
         self.vulnerability_analysis = VulnerabilityAnalysisService(transport)
         self.wan_circuits = WANCircuitsService(transport)
@@ -224,8 +246,10 @@ class GeneratedServices:
 
 #: API group name to the client attribute carrying its service.
 SERVICE_TAGS: dict[str, str] = {
+    "Access Control": "access_control",
     "Adjacent Networks": "adjacent_networks",
     "Aliases": "aliases",
+    "Audit Logs": "audit_logs",
     "BGP Advertisements": "bgp_advertisements",
     "Blast Radius": "blast_radius",
     "Change Set Directories": "change_set_directories",
@@ -256,15 +280,18 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Endpoints": "network_endpoints",
     "Network Locations": "network_locations",
     "Network Topology": "network_topology",
+    "Organizations": "organizations",
     "Path Search": "path_search",
     "Predict Assist": "predict_assist",
     "Resource Pools": "resource_pools",
+    "SAML": "saml",
     "SNMP Credentials": "snmp_credentials",
     "Security Matrix": "security_matrix",
     "Security Matrix Filters": "security_matrix_filters",
     "Security Zones": "security_zones",
     "Snapshot Diff Details": "snapshot_diff_details",
     "System Administration": "system_administration",
+    "Trusted Certificates": "trusted_certificates",
     "User Accounts": "user_accounts",
     "Vulnerability Analysis": "vulnerability_analysis",
     "WAN Circuits": "wan_circuits",

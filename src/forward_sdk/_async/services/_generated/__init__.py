@@ -7,8 +7,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from forward_sdk._async.services._generated.access_control import AsyncAccessControlService
 from forward_sdk._async.services._generated.adjacent_networks import AsyncAdjacentNetworksService
 from forward_sdk._async.services._generated.aliases import AsyncAliasesService
+from forward_sdk._async.services._generated.audit_logs import AsyncAuditLogsService
 from forward_sdk._async.services._generated.bgp_advertisements import AsyncBGPAdvertisementsService
 from forward_sdk._async.services._generated.blast_radius import AsyncBlastRadiusService
 from forward_sdk._async.services._generated.change_set_directories import (
@@ -43,9 +45,11 @@ from forward_sdk._async.services._generated.network_endpoints import AsyncNetwor
 from forward_sdk._async.services._generated.network_locations import AsyncNetworkLocationsService
 from forward_sdk._async.services._generated.network_topology import AsyncNetworkTopologyService
 from forward_sdk._async.services._generated.nqe_panels import AsyncNQEPanelsService
+from forward_sdk._async.services._generated.organizations import AsyncOrganizationsService
 from forward_sdk._async.services._generated.path_search import AsyncPathSearchService
 from forward_sdk._async.services._generated.predict_assist import AsyncPredictAssistService
 from forward_sdk._async.services._generated.resource_pools import AsyncResourcePoolsService
+from forward_sdk._async.services._generated.saml import AsyncSAMLService
 from forward_sdk._async.services._generated.security_matrix import AsyncSecurityMatrixService
 from forward_sdk._async.services._generated.security_matrix_filters import (
     AsyncSecurityMatrixFiltersService,
@@ -58,6 +62,9 @@ from forward_sdk._async.services._generated.snmp_credentials import AsyncSNMPCre
 from forward_sdk._async.services._generated.system_administration import (
     AsyncSystemAdministrationService,
 )
+from forward_sdk._async.services._generated.trusted_certificates import (
+    AsyncTrustedCertificatesService,
+)
 from forward_sdk._async.services._generated.user_accounts import AsyncUserAccountsService
 from forward_sdk._async.services._generated.vulnerability_analysis import (
     AsyncVulnerabilityAnalysisService,
@@ -69,8 +76,10 @@ if TYPE_CHECKING:  # pragma: no cover
     from forward_sdk._async.transport import AsyncTransport
 
 __all__ = [
+    "AsyncAccessControlService",
     "AsyncAdjacentNetworksService",
     "AsyncAliasesService",
+    "AsyncAuditLogsService",
     "AsyncBGPAdvertisementsService",
     "AsyncBlastRadiusService",
     "AsyncChangeSetDirectoriesService",
@@ -102,15 +111,18 @@ __all__ = [
     "AsyncNetworkEndpointsService",
     "AsyncNetworkLocationsService",
     "AsyncNetworkTopologyService",
+    "AsyncOrganizationsService",
     "AsyncPathSearchService",
     "AsyncPredictAssistService",
     "AsyncResourcePoolsService",
+    "AsyncSAMLService",
     "AsyncSNMPCredentialsService",
     "AsyncSecurityMatrixFiltersService",
     "AsyncSecurityMatrixService",
     "AsyncSecurityZonesService",
     "AsyncSnapshotDiffDetailsService",
     "AsyncSystemAdministrationService",
+    "AsyncTrustedCertificatesService",
     "AsyncUserAccountsService",
     "AsyncVulnerabilityAnalysisService",
     "AsyncWANCircuitsService",
@@ -125,8 +137,10 @@ class AsyncGeneratedServices:
     checkers and editors can see them.
     """
 
+    access_control: AsyncAccessControlService
     adjacent_networks: AsyncAdjacentNetworksService
     aliases: AsyncAliasesService
+    audit_logs: AsyncAuditLogsService
     bgp_advertisements: AsyncBGPAdvertisementsService
     blast_radius: AsyncBlastRadiusService
     change_set_directories: AsyncChangeSetDirectoriesService
@@ -157,23 +171,28 @@ class AsyncGeneratedServices:
     network_endpoints: AsyncNetworkEndpointsService
     network_locations: AsyncNetworkLocationsService
     network_topology: AsyncNetworkTopologyService
+    organizations: AsyncOrganizationsService
     path_search: AsyncPathSearchService
     predict_assist: AsyncPredictAssistService
     resource_pools: AsyncResourcePoolsService
+    saml: AsyncSAMLService
     snmp_credentials: AsyncSNMPCredentialsService
     security_matrix: AsyncSecurityMatrixService
     security_matrix_filters: AsyncSecurityMatrixFiltersService
     security_zones: AsyncSecurityZonesService
     snapshot_diff_details: AsyncSnapshotDiffDetailsService
     system_administration: AsyncSystemAdministrationService
+    trusted_certificates: AsyncTrustedCertificatesService
     user_accounts: AsyncUserAccountsService
     vulnerability_analysis: AsyncVulnerabilityAnalysisService
     wan_circuits: AsyncWANCircuitsService
     webhooks: AsyncWebhooksService
 
     def _attach_generated_services(self, transport: AsyncTransport) -> None:
+        self.access_control = AsyncAccessControlService(transport)
         self.adjacent_networks = AsyncAdjacentNetworksService(transport)
         self.aliases = AsyncAliasesService(transport)
+        self.audit_logs = AsyncAuditLogsService(transport)
         self.bgp_advertisements = AsyncBGPAdvertisementsService(transport)
         self.blast_radius = AsyncBlastRadiusService(transport)
         self.change_set_directories = AsyncChangeSetDirectoriesService(transport)
@@ -204,15 +223,18 @@ class AsyncGeneratedServices:
         self.network_endpoints = AsyncNetworkEndpointsService(transport)
         self.network_locations = AsyncNetworkLocationsService(transport)
         self.network_topology = AsyncNetworkTopologyService(transport)
+        self.organizations = AsyncOrganizationsService(transport)
         self.path_search = AsyncPathSearchService(transport)
         self.predict_assist = AsyncPredictAssistService(transport)
         self.resource_pools = AsyncResourcePoolsService(transport)
+        self.saml = AsyncSAMLService(transport)
         self.snmp_credentials = AsyncSNMPCredentialsService(transport)
         self.security_matrix = AsyncSecurityMatrixService(transport)
         self.security_matrix_filters = AsyncSecurityMatrixFiltersService(transport)
         self.security_zones = AsyncSecurityZonesService(transport)
         self.snapshot_diff_details = AsyncSnapshotDiffDetailsService(transport)
         self.system_administration = AsyncSystemAdministrationService(transport)
+        self.trusted_certificates = AsyncTrustedCertificatesService(transport)
         self.user_accounts = AsyncUserAccountsService(transport)
         self.vulnerability_analysis = AsyncVulnerabilityAnalysisService(transport)
         self.wan_circuits = AsyncWANCircuitsService(transport)
@@ -221,8 +243,10 @@ class AsyncGeneratedServices:
 
 #: API group name to the client attribute carrying its service.
 SERVICE_TAGS: dict[str, str] = {
+    "Access Control": "access_control",
     "Adjacent Networks": "adjacent_networks",
     "Aliases": "aliases",
+    "Audit Logs": "audit_logs",
     "BGP Advertisements": "bgp_advertisements",
     "Blast Radius": "blast_radius",
     "Change Set Directories": "change_set_directories",
@@ -253,15 +277,18 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Endpoints": "network_endpoints",
     "Network Locations": "network_locations",
     "Network Topology": "network_topology",
+    "Organizations": "organizations",
     "Path Search": "path_search",
     "Predict Assist": "predict_assist",
     "Resource Pools": "resource_pools",
+    "SAML": "saml",
     "SNMP Credentials": "snmp_credentials",
     "Security Matrix": "security_matrix",
     "Security Matrix Filters": "security_matrix_filters",
     "Security Zones": "security_zones",
     "Snapshot Diff Details": "snapshot_diff_details",
     "System Administration": "system_administration",
+    "Trusted Certificates": "trusted_certificates",
     "User Accounts": "user_accounts",
     "Vulnerability Analysis": "vulnerability_analysis",
     "WAN Circuits": "wan_circuits",

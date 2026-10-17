@@ -3,9 +3,65 @@
 from __future__ import annotations
 
 from forward_sdk._generated._base import OpenEnum
-from forward_sdk._generated._base import ForwardModel
-from pydantic import ConfigDict, Field, RootModel
 from typing import Annotated, Any, Literal
+from pydantic import AwareDatetime, ConfigDict, Field, RootModel
+from forward_sdk._generated._base import ForwardModel
+
+
+class NetworkRoles(OpenEnum):
+    limited_read_only = "LIMITED_READ_ONLY"
+    read_only = "READ_ONLY"
+    operator = "OPERATOR"
+    workspace_operator = "WORKSPACE_OPERATOR"
+    admin = "ADMIN"
+
+
+class AccessControlGroupBulkEdit(ForwardModel):
+    """
+    Attaches or detaches labels across several groups.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    group_ids: Annotated[list[str], Field(alias="groupIds", min_length=1)]
+    label_ids: Annotated[list[str], Field(alias="labelIds", min_length=1)]
+
+
+class AccessControlGroupNames(RootModel[dict[str, str]]):
+    """
+    Access control group ID to name.
+    """
+
+    root: dict[str, str]
+
+
+class AccessControlGroupRequest(ForwardModel):
+    """
+    The body for create and replace. Setting networkRoles to null requests org admin; the source then rejects any deviceAccessLabelIds.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_access_label_ids: Annotated[list[str] | None, Field(alias="deviceAccessLabelIds")] = None
+    """
+    Labels to activate. Must be omitted or empty when networkRoles is null.
+    """
+    external_group_names: Annotated[list[str] | None, Field(alias="externalGroupNames")] = None
+    """
+    Omitted or empty means no external group activates the group.
+    """
+    name: str
+    """
+    Trimmed; must not be blank and at most 255 characters.
+    """
+    network_roles: Annotated[dict[str, NetworkRoles] | None, Field(alias="networkRoles")] = None
+    """
+    Null means org admin. An empty object means a network-scoped group with no roles yet.
+    """
 
 
 class DiffType(OpenEnum):
@@ -191,6 +247,59 @@ class Attribution(ForwardModel):
     """
     The ID of the user who most recently updated this entity, if known. *Note*: The referenced user account
     might no longer exist since an administrator can delete accounts.
+    """
+
+
+class AuditLogPaging(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    limit: int
+    offset: int
+    total: int
+    """
+    Every record that matches the filters
+    """
+
+
+class HttpMethod(OpenEnum):
+    post = "POST"
+    put = "PUT"
+    patch = "PATCH"
+    delete = "DELETE"
+    get = "GET"
+
+
+class AuditLogRecord(ForwardModel):
+    """
+    One audited request. impersonatorId and impersonatorUsername are shown only to Forward's own users.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    http_method: Annotated[HttpMethod, Field(alias="httpMethod")]
+    http_response_code: Annotated[int, Field(alias="httpResponseCode")]
+    impersonated: bool
+    impersonator_id: Annotated[str | None, Field(alias="impersonatorId")] = None
+    """
+    Present only for a support user
+    """
+    impersonator_username: Annotated[str | None, Field(alias="impersonatorUsername")] = None
+    """
+    Present only with impersonatorId.
+    """
+    remote_ip: Annotated[str, Field(alias="remoteIp")]
+    target_uri: Annotated[str, Field(alias="targetUri")]
+    """
+    The path after /api
+    """
+    timestamp: AwareDatetime
+    user_id: Annotated[str | None, Field(alias="userId")] = None
+    """
+    Absent for unauthenticated requests.
     """
 
 
@@ -1196,6 +1305,13 @@ class CollectorTask(ForwardModel):
     """
 
 
+class CollectorTaskId(RootModel[str]):
+    root: Annotated[str, Field(pattern="^[EP][0-9]+$")]
+    """
+    A collector task ID. E followed by a number for an ephemeral task, P for a persistent one.
+    """
+
+
 class CollectorWithAuthKey(ForwardModel):
     """
     A newly created collector account, plus the one-time key its installer needs. The key is returned only from creation -- it cannot be fetched again afterwards.
@@ -1842,6 +1958,98 @@ class DetectionResultDeviceCount(ForwardModel):
     result: Annotated[DetectionResult | None, Field(examples=["VULNERABLE"])] = None
 
 
+class DeviceAccessLabel(Attribution):
+    """
+    A set of devices, by exact name or glob, that an access control group can be narrowed to.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_globs: Annotated[list[str] | None, Field(alias="deviceGlobs")] = None
+    """
+    Device-name patterns (wildcards and character classes). Omitted when empty.
+    """
+    device_names: Annotated[list[str] | None, Field(alias="deviceNames")] = None
+    """
+    Lowercased device names. Omitted when empty.
+    """
+    id: str
+    name: str
+    """
+    Unique (ignoring case) within the org.
+    """
+
+
+class DeviceAccessLabelInfo(DeviceAccessLabel):
+    """
+    A device access label with the counts the list route adds.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    devices_count: Annotated[int, Field(alias="devicesCount")]
+    """
+    Devices in the org the label matches.
+    """
+    groups_count: Annotated[int, Field(alias="groupsCount")]
+    """
+    Groups that activate the label.
+    """
+
+
+class DeviceAccessLabelNames(RootModel[dict[str, str]]):
+    """
+    Device access label ID to name.
+    """
+
+    root: dict[str, str]
+
+
+class DeviceAccessLabelPatch(ForwardModel):
+    """
+    Partial update with presence semantics (source: DeviceAccessLabelPatch.java). An absent field is unchanged. A present field replaces the stored value; a present null clears it. groupIds, when present, replaces the groups that activate the label.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_globs: Annotated[list[str] | None, Field(alias="deviceGlobs")] = None
+    """
+    Replaces the device globs when present. Null or empty clears them.
+    """
+    device_names: Annotated[list[str] | None, Field(alias="deviceNames")] = None
+    """
+    Replaces the device names when present. Null or empty clears them.
+    """
+    group_ids: Annotated[list[str] | None, Field(alias="groupIds")] = None
+    """
+    Replaces the groups that activate the label when present.
+    """
+    name: str | None = None
+    """
+    Replaces the name when present.
+    """
+
+
+class DeviceAccessLabelRequest(ForwardModel):
+    """
+    The body for create. At least one of deviceNames and deviceGlobs must be non-empty.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_globs: Annotated[list[str] | None, Field(alias="deviceGlobs")] = None
+    device_names: Annotated[list[str] | None, Field(alias="deviceNames")] = None
+    name: str
+
+
 class DeviceAliasFilter(ForwardModel):
     """
     A filter that matches any device in a Device Group
@@ -2411,7 +2619,7 @@ class EndpointProfile1(Attribution):
     )
 
 
-class HttpMethod(OpenEnum):
+class HttpMethod1(OpenEnum):
     get = "GET"
     head = "HEAD"
     post = "POST"
@@ -2426,7 +2634,7 @@ class ErrorInfo(ForwardModel):
         populate_by_name=True,
     )
     api_url: Annotated[str, Field(alias="apiUrl", examples=["/api/version"])]
-    http_method: Annotated[HttpMethod, Field(alias="httpMethod", examples=["GET"])]
+    http_method: Annotated[HttpMethod1, Field(alias="httpMethod", examples=["GET"])]
     message: str
     """
     A description of the error
@@ -4374,6 +4582,58 @@ class OnPremResourcePool(ForwardModel):
     vrfs: list[str]
 
 
+class Organization(ForwardModel):
+    """
+    A Forward org. disabled is omitted unless true; sfdcAccountId and sfdcContactId are omitted when unset.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    disabled: bool | None = None
+    """
+    Present only when true.
+    """
+    id: str
+    name: str
+    sfdc_account_id: Annotated[str | None, Field(alias="sfdcAccountId")] = None
+    """
+    Present only when set.
+    """
+    sfdc_contact_id: Annotated[str | None, Field(alias="sfdcContactId")] = None
+    """
+    Present only when set.
+    """
+
+
+class OrganizationUpdate(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    name: str
+    """
+    Must not be empty.
+    """
+
+
+class OrganizationWithAdditionalInfo(Organization):
+    """
+    An org with run-time fields. softwareCentral is omitted when false.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    last_active_at: Annotated[AwareDatetime | None, Field(alias="lastActiveAt")] = None
+    """
+    The latest user login or impersonation in the org. Absent when there is no record.
+    """
+    software_central: Annotated[bool | None, Field(alias="softwareCentral")] = None
+
+
 class DetectionMethod(OpenEnum):
     """
     How the set of possibly matching devices was constructed. `CONFIG` means that the analysis was more thorough
@@ -5021,6 +5281,79 @@ class RulebaseDescriptor(ForwardModel):
     editable: bool | None = None
     rulebase_id: Annotated[str | None, Field(alias="rulebaseId")] = None
     scope_id: Annotated[str | None, Field(alias="scopeId")] = None
+
+
+class CustomSpCertKey(ForwardModel):
+    """
+    Forward's own signing certificate and key. Write-only as far as the source shows (input keys pubCert and privKey).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    priv_key: Annotated[str | None, Field(alias="privKey")] = None
+    """
+    Write-only. Omit to keep the stored key.
+    """
+    pub_cert: Annotated[str | None, Field(alias="pubCert")] = None
+
+
+class SamlAuthSettings(ForwardModel):
+    """
+    The IdP's settings. entityId, ssoRedirectUrl and verificationCert are required even when enabled is false (source). The customSpCertKey field is accepted on write; its output shape was not verified live.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    custom_sp_cert_key: Annotated[CustomSpCertKey | None, Field(alias="customSpCertKey")] = None
+    """
+    Forward's own signing certificate and key. Write-only as far as the source shows (input keys pubCert and privKey).
+    """
+    disable_auth_n_request_signing: Annotated[
+        bool | None, Field(alias="disableAuthNRequestSigning")
+    ] = None
+    """
+    false keeps Forward signing its AuthnRequests.
+    """
+    enabled: bool | None = None
+    """
+    Defaults to true on write.
+    """
+    entity_id: Annotated[str, Field(alias="entityId")]
+    """
+    The IdP's entity or issuer ID.
+    """
+    name: str | None = None
+    """
+    A display label. Omitted when unset.
+    """
+    sso_redirect_url: Annotated[str, Field(alias="ssoRedirectUrl")]
+    """
+    The IdP's SSO URL.
+    """
+    verification_cert: Annotated[str, Field(alias="verificationCert")]
+    """
+    The IdP's signing certificate
+    """
+
+
+class SamlSettings(ForwardModel):
+    """
+    The SAML settings as Forward reads and writes them. customName is the registration ID that the IdP posts back to.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    custom_name: Annotated[str | None, Field(alias="customName")] = None
+    """
+    Unique registration ID for the org. Required on write; absent when not yet configured (source: CustomNameAndSamlAuthSettings).
+    """
+    saml_auth_settings: Annotated[SamlAuthSettings | None, Field(alias="samlAuthSettings")] = None
 
 
 class ScopedAddressObject(ForwardModel):
@@ -6118,6 +6451,41 @@ class TrafficAliasBuilder(ForwardModel):
     values: dict[str, list[str]] | None = None
 
 
+class TrustedCertificate(Attribution):
+    """
+    A stored org trusted certificate.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    certificate: str
+    """
+    The X.509 certificate
+    """
+    expires_at: Annotated[AwareDatetime | None, Field(alias="expiresAt")] = None
+    """
+    The certificate's not-after time.
+    """
+    name: str
+    """
+    Unique (ignoring case) within the org.
+    """
+
+
+class TrustedCertificateRequest(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    certificate: str
+    """
+    A valid
+    """
+    name: str
+
+
 class TunnelInterfaceFilter(ForwardModel):
     """
     A filter that matches one tunnel interface by name and has underlay semantics in the `from` or `to` property
@@ -6240,6 +6608,108 @@ class User(ForwardModel):
     username: Annotated[str, Field(examples=["me@example.com"])]
     """
     The identifier used to authenticate (log in) with this account
+    """
+
+
+class UserAccountApiToken(ForwardModel):
+    """
+    An API token. The secret is never returned after creation. accessKey is the Basic-auth user name.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    access_key: Annotated[str | None, Field(alias="accessKey")] = None
+    """
+    The formatted access key. Null for a legacy token.
+    """
+    created_at: Annotated[AwareDatetime, Field(alias="createdAt")]
+    expires_at: Annotated[AwareDatetime | None, Field(alias="expiresAt")] = None
+    """
+    Null when no expiry policy applies.
+    """
+    last_used_at: Annotated[AwareDatetime | None, Field(alias="lastUsedAt")] = None
+    """
+    Null if never used.
+    """
+    name: str
+
+
+class UserAccountApiTokenAndSecret(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    secret: str
+    """
+    The token's secret. Returned once.
+    """
+    token: UserAccountApiToken
+
+
+class Status7(OpenEnum):
+    active = "ACTIVE"
+    expired = "EXPIRED"
+
+
+class UserAccountApiTokenView(UserAccountApiToken):
+    """
+    An API token with its status.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    status: Status7 | None = None
+
+
+class UserAccountBulkEdit(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    enabled: bool
+    user_ids: Annotated[list[str], Field(alias="userIds", min_length=1)]
+
+
+class OrgEnum(OpenEnum):
+    read_only = "READ_ONLY"
+    admin = "ADMIN"
+
+
+class SystemEnum(OpenEnum):
+    admin = "ADMIN"
+    artifact_uploader = "ARTIFACT_UPLOADER"
+    support_admin = "SUPPORT_ADMIN"
+    free_trial_provisioner = "FREE_TRIAL_PROVISIONER"
+
+
+class UserAccountRoles(ForwardModel):
+    """
+    A user's roles. system and supportedOrgIds are omitted when empty. Forward sends each network's role as one string, never a list (source: UserRoles.java; live).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    network: dict[str, NetworkRoles]
+    """
+    Network ID to the one role held on it.
+    """
+    org: list[OrgEnum]
+    """
+    Org-level roles. READ_ONLY is not assignable; only ADMIN is granted.
+    """
+    supported_org_ids: Annotated[list[str] | None, Field(alias="supportedOrgIds")] = None
+    """
+    The orgs a support user can enter, whose grants have not expired. Omitted when empty. Always empty for a Forward admin, who needs no grants.
+    """
+    system: list[SystemEnum] | None = None
+    """
+    Forward-internal roles. Omitted for an ordinary user.
     """
 
 
@@ -6559,7 +7029,7 @@ class VulnerabilityDevice(ForwardModel):
     """
 
 
-class Status7(OpenEnum):
+class Status8(OpenEnum):
     """
     The device’s vulnerability status for the CVE.
     """
@@ -6591,7 +7061,7 @@ class VulnerabilityDeviceWithResult(VulnerabilityDevice):
     The device’s [detection result](https://docs.fwd.app/latest/application/security/vulnerability/#detection-results)
     for the CVE.
     """
-    status: Annotated[Status7 | None, Field(examples=["VULNERABLE"])] = None
+    status: Annotated[Status8 | None, Field(examples=["VULNERABLE"])] = None
     """
     The device’s vulnerability status for the CVE.
     """
@@ -6821,6 +7291,37 @@ class WebhookTestResult(ForwardModel):
     """
 
 
+class AccessControlGroup(Attribution):
+    """
+    A stored access control group. An org-admin group has networkRoles and deviceAccessLabelIds null, not empty; that null is the org-admin signal.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_access_label_ids: Annotated[list[str] | None, Field(alias="deviceAccessLabelIds")] = None
+    """
+    Labels that narrow the group's device set. Absent for an org-admin group.
+    """
+    external_group_names: Annotated[list[str], Field(alias="externalGroupNames")]
+    """
+    LDAP or SSO group names that activate this group.
+    """
+    id: str
+    """
+    The group's ID.
+    """
+    name: str
+    """
+    Unique (ignoring case) within the org.
+    """
+    network_roles: Annotated[dict[str, NetworkRoles] | None, Field(alias="networkRoles")] = None
+    """
+    Network ID to role. Absent when the group grants org admin; present, possibly empty, otherwise.
+    """
+
+
 class AddressObjectCollection(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -6844,6 +7345,38 @@ class AdjacentNetworkPatch(ForwardModel):
     name: str | None = None
     owned_subnets: Annotated[list[str] | None, Field(alias="ownedSubnets")] = None
     query_id: Annotated[str | None, Field(alias="queryId")] = None
+
+
+class AdminNetwork(Network):
+    """
+    A network across orgs, as the admin route reports it.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    creator: str | None = None
+    """
+    The creator's username
+    """
+    org_name: Annotated[str | None, Field(alias="orgName")] = None
+    seconds_to_expiry: Annotated[int | None, Field(alias="secondsToExpiry")] = None
+    """
+    Present only for a network that expires.
+    """
+
+
+class AdminUserWithOrgId(User):
+    """
+    A user with the ID of the org it belongs to.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    org_id: Annotated[str, Field(alias="orgId")]
 
 
 class AiMessage(ForwardModel):
@@ -6969,6 +7502,15 @@ class AnalyzedResourcePool(ForwardModel):
         Field(alias="resourcePools"),
     ] = None
     timed_out: Annotated[bool | None, Field(alias="timedOut")] = None
+
+
+class AuditLogPage(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    paging: AuditLogPaging
+    records: list[AuditLogRecord]
 
 
 class AuthenticationPhaseResult(ForwardModel):
@@ -10679,6 +11221,14 @@ class TopologyDiff(ForwardModel):
     deleted: Annotated[list[TopologyLink] | None, Field(alias="DELETED")] = None
 
 
+class UserAccountApiTokenList(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    tokens: list[UserAccountApiTokenView]
+
+
 class VlanDiffEntry(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -11432,7 +11982,7 @@ class NqeErrorInfo(ForwardModel):
     api_url: Annotated[str, Field(alias="apiUrl", examples=["/api/version"])]
     completion_type: Annotated[CompletionType | None, Field(alias="completionType")] = None
     errors: list[NqeQueryError] | None = None
-    http_method: Annotated[HttpMethod, Field(alias="httpMethod", examples=["GET"])]
+    http_method: Annotated[HttpMethod1, Field(alias="httpMethod", examples=["GET"])]
     message: str
     """
     A description of the error

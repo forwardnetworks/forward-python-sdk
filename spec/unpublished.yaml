@@ -70,6 +70,22 @@ tags:
   - name: Internet Exposure
     parent: Network Analysis
     description: What the network exposes to the internet, and to whom.
+  - name: Access Control
+    parent: Platform Management
+    description: Device access labels and access control groups, which narrow what each group's members can see.
+  - name: Organizations
+    parent: Platform Management
+    description: The signed-in org, and the Forward-admin view of every org.
+  - name: SAML
+    parent: Platform Management
+    description: The org's SAML single sign-on settings.
+  - name: Audit Logs
+    parent: Platform Management
+    description: Which signed-in user called which mutating route, from where, and when.
+  - name: Trusted Certificates
+    parent: Platform Management
+    description: Org-wide CA certificates that Forward imports into each collector's truststore.
+
 x-extend-schemas:
   NewClassicDevice:
     properties:
@@ -5063,6 +5079,983 @@ paths:
             application/zip: {}
             application/octet-stream: {}
 
+  /access-control-groups:
+    get:
+      operationId: listAccessControlGroups
+      summary: List access control groups
+      description: Requires the VIEW_USER_ACCOUNTS org operation. Forward returns a bare JSON array. An org-admin group omits networkRoles and deviceAccessLabelIds (the class is NON_NULL), which is different from an empty object or array; a network-scoped group always carries networkRoles, possibly empty.
+      x-forward-stability: unpublished
+      tags: [Access Control]
+      responses:
+        "200":
+          description: The org's access control groups.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AccessControlGroup" }
+              example:
+                # live: ADP read-only account returned an empty array; item shape from source: AccessControlGroup.java (constructed field-for-field)
+                - id: "1"
+                  name: Example group
+                  externalGroupNames: [netops]
+                  networkRoles: { "228210": READ_ONLY }
+                  deviceAccessLabelIds: []
+    post:
+      operationId: createAccessControlGroup
+      summary: Create an access control group
+      description: Requires the MANAGE_USER_ACCOUNTS org operation. A body with networkRoles set to null creates an org-admin group, which cannot carry deviceAccessLabelIds (source rejects the combination with 400).
+      x-forward-stability: unpublished
+      tags: [Access Control]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccessControlGroupRequest" }
+      responses:
+        "200":
+          description: The created group.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccessControlGroup" }
+              example:
+                # from source: AccessControlGroup.java (constructed field-for-field; no group exists on the ADP account)
+                id: "2"
+                name: Example group
+                externalGroupNames: [netops]
+                networkRoles: { "228210": READ_ONLY }
+                deviceAccessLabelIds: []
+                createdById: "2"
+                createdAt: "2026-10-17T00:00:00Z"
+                createdBy: admin
+  /access-control-groups?view=names:
+    get:
+      operationId: getAccessControlGroupNames
+      summary: Map access control group IDs to names
+      description: Requires only a signed-in user (@RequiresUser), so it works without the VIEW_USER_ACCOUNTS operation that the full list needs.
+      x-forward-stability: unpublished
+      tags: [Access Control]
+      responses:
+        "200":
+          description: Each group ID mapped to its name.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccessControlGroupNames" }
+              example: {}  # live: ADP account has no groups, so the response was an empty object
+  /access-control-groups?action=addLabels:
+    patch:
+      operationId: addDeviceAccessLabelsToGroups
+      summary: Attach device access labels to access control groups
+      description: Requires the MANAGE_USER_ACCOUNTS org operation. Both groupIds and labelIds must be non-empty.
+      x-forward-stability: unpublished
+      tags: [Access Control]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccessControlGroupBulkEdit" }
+      responses:
+        "204": { description: The labels were attached. }
+  /access-control-groups?action=removeLabels:
+    patch:
+      operationId: removeDeviceAccessLabelsFromGroups
+      summary: Detach device access labels from access control groups
+      description: Requires the MANAGE_USER_ACCOUNTS org operation. Removing a label widens what the group's members can see on the devices it matched.
+      x-forward-stability: unpublished
+      tags: [Access Control]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccessControlGroupBulkEdit" }
+      responses:
+        "204": { description: The labels were detached. }
+  /access-control-groups/{groupId}:
+    post:
+      operationId: updateAccessControlGroup
+      summary: Replace an access control group
+      description: Requires the MANAGE_USER_ACCOUNTS org operation. This is a POST, not a PATCH, and the body replaces the whole group, so send every field. The same org-admin rule as create applies (networkRoles null means org admin).
+      x-forward-stability: unpublished
+      tags: [Access Control]
+      parameters:
+        - { name: groupId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccessControlGroupRequest" }
+      responses:
+        "200":
+          description: The replaced group.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccessControlGroup" }
+              example:
+                # from source: AccessControlGroup.java (constructed field-for-field; no group exists on the ADP account)
+                id: "2"
+                name: Example group
+                externalGroupNames: [netops, secops]
+                networkRoles: { "228210": OPERATOR }
+                deviceAccessLabelIds: ["1"]
+                createdById: "2"
+                createdAt: "2026-10-17T00:00:00Z"
+                updatedById: "2"
+                updatedAt: "2026-10-17T12:00:00Z"
+                updatedBy: admin
+    delete:
+      operationId: deleteAccessControlGroup
+      summary: Delete an access control group
+      description: Requires the MANAGE_USER_ACCOUNTS org operation. Forward answers 204; the SDK treats a 404 as already deleted.
+      x-forward-stability: unpublished
+      tags: [Access Control]
+      parameters:
+        - { name: groupId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: The group was deleted. }
+  /access-control-groups/{groupId}/network-roles/{networkId}:
+    post:
+      operationId: setAccessControlGroupNetworkRole
+      summary: Give an access control group a role on a workspace network
+      description: "Requires the ASSIGN_ROLES network operation on the target network. Forward refuses a network that is not a workspace (BadRequestException), and a role above the caller's own role on that network (org admins may assign any role; source: AccessController.setNetworkRoleForWorkspace)."
+      x-forward-stability: unpublished
+      tags: [Access Control]
+      parameters:
+        - { name: groupId, in: path, required: true, schema: { type: string } }
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - name: role
+          in: query
+          required: true
+          description: The role to grant on the network.
+          schema: { type: string, enum: [LIMITED_READ_ONLY, READ_ONLY, OPERATOR, WORKSPACE_OPERATOR, ADMIN] }
+      responses:
+        "200":
+          description: The group, with the role applied.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccessControlGroup" }
+              example:
+                # from source: AccessControlGroup.java (constructed field-for-field; no group exists on the ADP account)
+                id: "2"
+                name: Example group
+                externalGroupNames: [netops]
+                networkRoles: { "228210": OPERATOR }
+                deviceAccessLabelIds: []
+  /device-access-labels:
+    get:
+      operationId: listDeviceAccessLabels
+      summary: List device access labels
+      description: Requires the VIEW_USER_ACCOUNTS org operation. Each label also carries devicesCount (devices in the org it matches) and groupsCount (groups that activate it), which are not stored on the label.
+      x-forward-stability: unpublished
+      tags: [Access Control]
+      responses:
+        "200":
+          description: The org's device access labels.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DeviceAccessLabelInfo" }
+              example:
+                # live: ADP read-only account returned an empty array; item shape from source: DeviceAccessLabelInfo.java and DeviceAccessLabel.java (constructed field-for-field)
+                - id: "1"
+                  name: edge-routers
+                  deviceNames: [edge-1.example.net]
+                  deviceGlobs: ["edge-*"]
+                  createdAt: "2026-01-15T10:00:00Z"
+                  createdById: "2"
+                  devicesCount: 1
+                  groupsCount: 0
+    post:
+      operationId: createDeviceAccessLabel
+      summary: Create a device access label
+      description: Requires the MANAGE_USER_ACCOUNTS org operation. At least one of deviceNames and deviceGlobs must be non-empty.
+      x-forward-stability: unpublished
+      tags: [Access Control]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeviceAccessLabelRequest" }
+      responses:
+        "200":
+          description: The created label.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceAccessLabel" }
+              example:
+                # from source: DeviceAccessLabel.java (constructed field-for-field; no label exists on the ADP account)
+                id: "1"
+                name: edge-routers
+                deviceNames: [edge-1.example.net]
+                deviceGlobs: ["edge-*"]
+                createdById: "2"
+                createdAt: "2026-10-17T00:00:00Z"
+                createdBy: admin
+  /device-access-labels?view=names:
+    get:
+      operationId: getDeviceAccessLabelNames
+      summary: Map device access label IDs to names
+      description: Requires the VIEW_USER_ACCOUNTS org operation.
+      x-forward-stability: unpublished
+      tags: [Access Control]
+      responses:
+        "200":
+          description: Each label ID mapped to its name.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceAccessLabelNames" }
+              example: {}  # live: ADP account has no labels, so the response was an empty object
+  /device-access-labels/{labelId}:
+    patch:
+      operationId: updateDeviceAccessLabel
+      summary: Update a device access label
+      description: "Requires the MANAGE_USER_ACCOUNTS org operation. Presence semantics (source: DeviceAccessLabelPatch.java): an absent field is left unchanged; a present field replaces the value, and a present null clears it (deviceNames and deviceGlobs become empty)."
+      x-forward-stability: unpublished
+      tags: [Access Control]
+      parameters:
+        - { name: labelId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeviceAccessLabelPatch" }
+      responses:
+        "200":
+          description: The updated label.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceAccessLabel" }
+              example:
+                # from source: DeviceAccessLabel.java (constructed field-for-field; no label exists on the ADP account)
+                id: "1"
+                name: edge-routers
+                deviceNames: [edge-1.example.net, edge-2.example.net]
+                deviceGlobs: []
+                updatedById: "2"
+                updatedAt: "2026-10-17T12:00:00Z"
+                updatedBy: admin
+    delete:
+      operationId: deleteDeviceAccessLabel
+      summary: Delete a device access label
+      description: Requires the MANAGE_USER_ACCOUNTS org operation. Forward answers 204; the SDK treats a 404 as already deleted.
+      x-forward-stability: unpublished
+      tags: [Access Control]
+      parameters:
+        - { name: labelId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: The label was deleted. }
+  /orgs/current:
+    get:
+      operationId: getCurrentOrganization
+      summary: The signed-in org
+      description: Requires any signed-in user (@RequiresUser).
+      x-forward-stability: unpublished
+      tags: [Organizations]
+      responses:
+        "200":
+          description: The org the caller belongs to.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Organization" }
+              example:
+                # live: ADP read-only account, 2026-10-17
+                id: "1628"
+                name: ADP
+    patch:
+      operationId: updateCurrentOrganization
+      summary: Rename the signed-in org
+      description: Requires the MANAGE_ORG_SETTINGS org operation. Forward answers 204.
+      x-forward-stability: unpublished
+      tags: [Organizations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrganizationUpdate" }
+      responses:
+        "204": { description: The org was renamed. }
+  /admin/orgs:
+    get:
+      operationId: listAdminOrganizations
+      summary: List the orgs the caller supports
+      description: Requires the Forward support role (@RequiresForwardSupport). A Forward admin sees every org; a support user sees only the orgs it supports. Excludes the NQE tutorial org.
+      x-forward-stability: unpublished
+      tags: [Organizations]
+      responses:
+        "200":
+          description: The orgs, with run-time fields.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/OrganizationWithAdditionalInfo" }
+              example:
+                # from source: web/.../OrgController.java and OrgWithAdditionalInfo.java (ADP account is 403 on this route)
+                - id: "1628"
+                  name: ADP
+                  softwareCentral: false
+                  lastActiveAt: "2026-10-17T18:35:33Z"
+    post:
+      operationId: createOrganization
+      summary: Create an org
+      description: "Requires the support-admin role (@RequiresSupportAdmin). Parameters are query parameters, not a body. Source rejects onPrem together with type FREE_TRIAL (BadRequestException)."
+      x-forward-stability: unpublished
+      tags: [Organizations]
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema: { type: string }
+        - name: type
+          in: query
+          required: false
+          description: The org type. Omitted means the ORG_TYPE property default.
+          schema: { type: string, enum: [ENTERPRISE_TRIAL, ENTERPRISE, INTERNAL, FREE_TRIAL] }
+        - name: onPrem
+          in: query
+          required: false
+          description: When true, sets the org's SOFTWARE_CENTRAL override.
+          schema: { type: boolean, default: false }
+        - name: sfdcAccountId
+          in: query
+          required: false
+          schema: { type: string }
+        - name: sfdcContactId
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: The created org.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Organization" }
+              example:
+                # from source: Org.java (constructed field-for-field; the ADP account cannot create orgs)
+                id: "2001"
+                name: Example Customer
+  /admin/orgs/{orgId}:
+    patch:
+      operationId: renameOrganization
+      summary: Rename an org as a Forward admin
+      description: Requires the Forward admin role (@RequiresForwardAdmin). Forward answers 204.
+      x-forward-stability: unpublished
+      tags: [Organizations]
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrganizationUpdate" }
+      responses:
+        "204": { description: The org was renamed. }
+    delete:
+      operationId: deleteOrganization
+      summary: Delete an org
+      description: "Requires the Forward admin role (@RequiresForwardAdmin). Source refuses (BadRequestException) while the org still has manually created users, and refuses the NQE tutorial org."
+      x-forward-stability: unpublished
+      tags: [Organizations]
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The deleted org.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Organization" }
+              example:
+                # from source: Org.java (constructed field-for-field; the ADP account cannot delete orgs)
+                id: "2001"
+                name: Example Customer
+  /admin/orgs/{orgId}?action=enable:
+    post:
+      operationId: enableOrganization
+      summary: Enable an org
+      description: "Requires the Forward admin role (@RequiresForwardAdmin). The Forward org itself is always enabled and is refused (BadRequestException). Forward answers 204. Source-only: the bulk form POST /admin/orgs?action=enable is not ported."
+      x-forward-stability: unpublished
+      tags: [Organizations]
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: The org was enabled. }
+  /admin/orgs/{orgId}?action=disable:
+    post:
+      operationId: disableOrganization
+      summary: Disable an org
+      description: "Requires the Forward admin role (@RequiresForwardAdmin). Users in a disabled org cannot log in, call the API, or be impersonated. The Forward org cannot be disabled (BadRequestException). Forward answers 204. Source-only: the bulk form POST /admin/orgs?action=disable is not ported."
+      x-forward-stability: unpublished
+      tags: [Organizations]
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: The org was disabled. }
+  /auth/saml-settings:
+    get:
+      operationId: getSamlSettings
+      summary: Read the org's SAML settings
+      description: Requires the VIEW_ORG_SETTINGS org operation. Forward answers an empty object when SAML is not configured, which the SDK reads as "none".
+      x-forward-stability: unpublished
+      tags: [SAML]
+      responses:
+        "200":
+          description: The custom name and IdP settings, or an empty object.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SamlSettings" }
+              example:
+                # live: ADP read-only account; customName, entityId, ssoRedirectUrl and verificationCert redacted
+                customName: "<redacted>"
+                samlAuthSettings:
+                  enabled: true
+                  entityId: "<redacted>"
+                  ssoRedirectUrl: "<redacted>"
+                  verificationCert: "<redacted>"
+                  disableAuthNRequestSigning: false
+    put:
+      operationId: putSamlSettings
+      summary: Write the org's SAML settings
+      description: "Requires the MANAGE_ORG_SETTINGS org operation. A SAML account cannot disable SAML (AccessDeniedException). Enabling SAML is refused while another external auth source is enabled (BadRequestException). entityId, ssoRedirectUrl and verificationCert are required even when enabled is false (source: SamlAuthSettings constructor). Forward answers 200 with an empty body. Source-only."
+      x-forward-stability: unpublished
+      tags: [SAML]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SamlSettings" }
+      responses:
+        "200":
+          description: The settings were saved. The body is empty.
+  /audit-logs:
+    get:
+      operationId: listAuditLogs
+      summary: List audit log records
+      description: "Requires the VIEW_AUDIT_LOGS org operation, or the Forward admin role (orForwardAdmin). Newest first. remoteIp and targetUri match by case-insensitive prefix. There is no default time window (source: AuditLogRepo, AuditLogController)."
+      x-forward-stability: unpublished
+      tags: [Audit Logs]
+      parameters:
+        - { name: startTime, in: query, required: false, description: Inclusive lower bound on the record time (ISO-8601 instant)., schema: { type: string, format: date-time } }
+        - { name: endTime, in: query, required: false, description: Inclusive upper bound on the record time (ISO-8601 instant)., schema: { type: string, format: date-time } }
+        - { name: remoteIp, in: query, required: false, description: Case-insensitive prefix of the caller address., schema: { type: string } }
+        - { name: userId, in: query, required: false, description: "A Forward user ID, not a username.", schema: { type: string } }
+        - { name: impersonatorId, in: query, required: false, description: A Forward user ID of the impersonating support user., schema: { type: string } }
+        - { name: httpMethod, in: query, required: false, schema: { type: string, enum: [POST, PUT, PATCH, DELETE, GET] } }
+        - { name: targetUri, in: query, required: false, description: "Case-insensitive prefix of the stored path, which has no /api in front.", schema: { type: string } }
+        - { name: httpResponseCode, in: query, required: false, schema: { type: integer } }
+        - { name: limit, in: query, required: false, description: "1 to 10000. Defaults to 1000.", schema: { type: integer, minimum: 1, maximum: 10000 } }
+        - { name: offset, in: query, required: false, description: "0 or more. Defaults to 0.", schema: { type: integer, minimum: 0 } }
+      responses:
+        "200":
+          description: One page of records.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuditLogPage" }
+              example:
+                # live: ADP read-only account, limit=2; remoteIp and targetUri redacted, userIds and timestamps as returned
+                records:
+                  - remoteIp: "<redacted>"
+                    userId: "10206"
+                    impersonated: false
+                    httpMethod: POST
+                    targetUri: "<redacted>"
+                    httpResponseCode: 200
+                    timestamp: "2026-10-17T18:35:33.026380Z"
+                  - remoteIp: "<redacted>"
+                    userId: "8739"
+                    impersonated: false
+                    httpMethod: POST
+                    targetUri: "<redacted>"
+                    httpResponseCode: 200
+                    timestamp: "2026-10-17T15:44:57.681517Z"
+                paging: { offset: 0, limit: 2, total: 5490 }
+  /audit-logs?disposition=attachment:
+    get:
+      operationId: downloadAuditLogsCsv
+      summary: Download audit log records as CSV
+      description: "Requires the VIEW_AUDIT_LOGS org operation, or the Forward admin role. Takes the same filters as listAuditLogs, plus maxDays (1 to 365, default 30), which applies when startTime and endTime are not both given. Live (ADP read-only account): 200 text/csv for maxDays=1; the body was not recorded."
+      x-forward-stability: unpublished
+      tags: [Audit Logs]
+      parameters:
+        - { name: maxDays, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 365 } }
+      responses:
+        "200":
+          description: A CSV attachment named audit-logs.csv.
+          content:
+            text/csv:
+              schema: { type: string }
+  /trusted-certificates:
+    get:
+      operationId: listTrustedCertificates
+      summary: List the org's trusted certificates
+      description: Requires any signed-in user (@RequiresUser). Forward returns a bare JSON array.
+      x-forward-stability: unpublished
+      tags: [Trusted Certificates]
+      responses:
+        "200":
+          description: The org's trusted certificates.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TrustedCertificate" }
+              example:
+                # live: ADP read-only account returned an empty array; item shape from source: StoredTrustedCertificate.java and TrustedCertificate.java (constructed field-for-field)
+                - name: corp-root-ca
+                  certificate: "-----BEGIN CERTIFICATE-----\n<PEM>\n-----END CERTIFICATE-----\n"
+                  expiresAt: "2031-01-01T00:00:00Z"
+                  createdById: "2"
+                  createdAt: "2026-01-15T10:00:00Z"
+                  createdBy: admin
+    post:
+      operationId: addTrustedCertificate
+      summary: Add a trusted certificate
+      description: "Requires the MANAGE_TRUSTED_CERTS_FOR_COLLECTION org operation. Source rejects a duplicate name or a duplicate certificate under another name (BadRequestException), and a certificate that is expired or not yet valid (BadRequestException). Source-only: the Java returns 201 with the stored certificate."
+      x-forward-stability: unpublished
+      tags: [Trusted Certificates]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TrustedCertificateRequest" }
+      responses:
+        "201":
+          description: The stored certificate.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TrustedCertificate" }
+              example:
+                # from source: StoredTrustedCertificate.java and TrustedCertificate.java (constructed field-for-field; the ADP account has no certificates)
+                name: corp-root-ca
+                certificate: "-----BEGIN CERTIFICATE-----\n<PEM>\n-----END CERTIFICATE-----\n"
+                expiresAt: "2031-01-01T00:00:00Z"
+                createdById: "2"
+                createdAt: "2026-10-17T00:00:00Z"
+                createdBy: admin
+  /trusted-certificates?action=apply:
+    post:
+      operationId: applyTrustedCertificates
+      summary: Push trusted certificates to every collector
+      description: "Requires the MANAGE_TRUSTED_CERTS_FOR_COLLECTION org operation. Enqueues one ApplyCertificatesTask per collector that supports custom certificates and returns the collector task IDs. Source refuses with 400 when no collector supports custom certificates, and with ConflictException when every supported collector already has an apply queued. Applying restarts the collectors that receive it. Source-only: not called against the ADP account."
+      x-forward-stability: unpublished
+      tags: [Trusted Certificates]
+      responses:
+        "200":
+          description: The enqueued collector task IDs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CollectorTaskId" }
+              example:
+                # from source: TrustedCertificateTaskService.applyCertificates (CollectorTaskId serialises as its string form, e.g. "P8781")
+                - "P8781"
+  /trusted-certificates/{name}:
+    delete:
+      operationId: deleteTrustedCertificate
+      summary: Delete a trusted certificate
+      description: "Requires the MANAGE_TRUSTED_CERTS_FOR_COLLECTION org operation. Source throws NotFoundException when the name is unknown. Forward answers 204. Source-only."
+      x-forward-stability: unpublished
+      tags: [Trusted Certificates]
+      parameters:
+        - { name: name, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: The certificate was deleted. }
+  /users/current/tokens:
+    get:
+      operationId: listCurrentUserApiTokens
+      summary: List the signed-in user's API tokens
+      description: "Requires any signed-in user (@RequiresUser). The access key is returned; the secret never is. Live (ADP read-only account): 403 Access Denied on this route, while /users/{userId}/tokens works for the same account."
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      responses:
+        "200":
+          description: The caller's API tokens.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserAccountApiTokenList" }
+              example:
+                # source-only (live 403). Shape from source: ApiTokenView.java, ApiToken.java
+                tokens:
+                  - name: cj-api-key
+                    accessKey: "<redacted>"
+                    createdAt: "2026-09-02T20:48:42.234226482Z"
+                    lastUsedAt: "2026-10-17T20:33:07.409597503Z"
+                    expiresAt: null
+                    status: ACTIVE
+    post:
+      operationId: createCurrentUserApiToken
+      summary: Mint an API token for the signed-in user
+      description: "Requires any signed-in user (@RequiresUser). For a LOCAL user the form must carry the password, and the code when 2FA requires it (source: UserController.generateApiToken). An SSO (SAML) user sends name only and must have just signed in through the identity provider (within 30 seconds); source has a second handler for that case on the same path. The secret is returned once. Source-only: not called against the ADP account."
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      parameters:
+        - name: name
+          in: query
+          required: true
+          description: The token name. Also accepted as a form field.
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                  description: The caller's password. Required for LOCAL users; omitted for SAML users.
+                code:
+                  type: string
+                  description: A current two-factor code, when two-factor authentication requires one.
+      responses:
+        "200":
+          description: The new token and its secret.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserAccountApiTokenAndSecret" }
+              example:
+                # from source: ApiTokenAndSecret.java; the secret is shown once and is redacted here
+                token:
+                  name: example-token
+                  accessKey: "<redacted>"
+                  createdAt: "2026-10-17T00:00:00Z"
+                  expiresAt: null
+                secret: "<redacted>"
+  /users/current/tokens/{tokenName}:
+    delete:
+      operationId: deleteCurrentUserApiToken
+      summary: Delete one of the signed-in user's API tokens
+      description: Requires any signed-in user (@RequiresUser). Forward answers 204.
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      parameters:
+        - { name: tokenName, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: The token was deleted. }
+  /users/current/password:
+    post:
+      operationId: changeCurrentUserPassword
+      summary: Change the signed-in user's password
+      description: "Requires any signed-in user (@RequiresUser), and only for LOCAL accounts (source refuses other auth sources). The current password is required; the code is required only when two-factor authentication needs one. Forward answers 204."
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [password, newPassword]
+              properties:
+                password:
+                  type: string
+                  description: The current password.
+                newPassword:
+                  type: string
+                  description: The new password.
+                code:
+                  type: string
+                  description: A current two-factor code, when required.
+      responses:
+        "204": { description: The password was changed. }
+  /users/{userId}/tokens:
+    get:
+      operationId: listUserApiTokens
+      summary: List another user's API tokens
+      description: Requires the VIEW_USER_ACCOUNTS org operation. Access keys are returned; secrets are not.
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The user's API tokens.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserAccountApiTokenList" }
+              example:
+                # live: ADP read-only account, the signed-in user's own tokens; accessKey redacted
+                tokens:
+                  - name: cj-api-key
+                    accessKey: "<redacted>"
+                    createdAt: "2026-09-02T20:48:42.234226482Z"
+                    lastUsedAt: "2026-10-17T20:33:07.409597503Z"
+                    expiresAt: null
+                    status: ACTIVE
+                  - name: rt-api-key
+                    accessKey: "<redacted>"
+                    createdAt: "2025-11-19T20:40:53.790710867Z"
+                    lastUsedAt: "2026-10-14T01:28:26.049795899Z"
+                    expiresAt: null
+                    status: ACTIVE
+  /users/{userId}/tokens/{tokenName}:
+    delete:
+      operationId: deleteUserApiToken
+      summary: Delete another user's API token
+      description: Requires the MANAGE_USER_ACCOUNTS org operation. Forward answers 204.
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+        - { name: tokenName, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: The token was deleted. }
+  /users/{userId}/roles:
+    get:
+      operationId: getUserRoles
+      summary: Read a user's org and network roles
+      description: "Requires the VIEW_USER_ACCOUNTS org operation, or the Forward support role. With type=directlyAssigned the roles granted directly are returned, without those inherited through access control groups (the same route serves both; source: UserController.getUserRoles). Live: the default and the directlyAssigned variant returned the same body for the ADP account."
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+        - name: type
+          in: query
+          required: false
+          description: Set to directlyAssigned for only the roles granted directly. Omitted returns the effective roles.
+          schema: { type: string, enum: [directlyAssigned] }
+      responses:
+        "200":
+          description: The user's roles.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserAccountRoles" }
+              example:
+                # live: ADP read-only account (own user id), network ids kept, first two shown
+                org: [ADMIN]
+                network:
+                  "228210": ADMIN
+                  "239213": ADMIN
+  /users/{userId}/roles/network/{networkId}:
+    post:
+      operationId: setUserNetworkRole
+      summary: Set a user's one role on a network
+      description: "Requires the MANAGE_USER_ACCOUNTS org operation. Removes every role the user holds on the network, then grants the one given (source: UserController.setNetworkRoleForUser). The role is a query parameter. Forward answers 204."
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - name: role
+          in: query
+          required: true
+          schema: { type: string, enum: [LIMITED_READ_ONLY, READ_ONLY, OPERATOR, WORKSPACE_OPERATOR, ADMIN] }
+      responses:
+        "204": { description: The role was set. }
+    delete:
+      operationId: clearUserNetworkRoles
+      summary: Remove every role a user holds on a network
+      description: Requires the MANAGE_USER_ACCOUNTS org operation. Forward answers 204.
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: The roles were removed. }
+  /users/{userId}/roles/network/{networkId}/{role}:
+    post:
+      operationId: addUserNetworkRole
+      summary: Add a network role to a user, keeping existing roles
+      description: Requires the MANAGE_USER_ACCOUNTS org operation. Forward answers 204.
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: role, in: path, required: true, schema: { type: string, enum: [LIMITED_READ_ONLY, READ_ONLY, OPERATOR, WORKSPACE_OPERATOR, ADMIN] } }
+      responses:
+        "204": { description: The role was added. }
+    delete:
+      operationId: removeUserNetworkRole
+      summary: Remove one network role from a user
+      description: Requires the MANAGE_USER_ACCOUNTS org operation. Forward answers 204.
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: role, in: path, required: true, schema: { type: string, enum: [LIMITED_READ_ONLY, READ_ONLY, OPERATOR, WORKSPACE_OPERATOR, ADMIN] } }
+      responses:
+        "204": { description: The role was removed. }
+  /users/{userId}/roles/org/ADMIN:
+    post:
+      operationId: grantOrgAdmin
+      summary: Grant a user the org ADMIN role
+      description: "Requires the MANAGE_USER_ACCOUNTS org operation, or the Forward support role, or the support-admin role (source: UserController.addOrgRoleForUser). Forward answers 204. Only ADMIN can be assigned as an org role. Granting is not idempotent on the wire, so read the roles first."
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: The role was granted. }
+    delete:
+      operationId: revokeOrgAdmin
+      summary: Revoke the org ADMIN role from a user
+      description: "Requires the MANAGE_USER_ACCOUNTS org operation, or the Forward support role. A user cannot revoke their own ADMIN role unless they are a Forward admin (source). Forward answers 204."
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: The role was revoked. }
+  /users/{userId}/2fa:
+    delete:
+      operationId: resetUserTwoFactor
+      summary: Clear a user's two-factor setup
+      description: Requires the MANAGE_USER_ACCOUNTS org operation. The user enrolls again at the next sign-in. Refused for chatbot accounts (source). Forward answers 204.
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Two-factor setup was cleared. }
+  /users:
+    patch:
+      operationId: setUsersEnabled
+      summary: Enable or disable several users at once
+      description: "Requires the MANAGE_USER_ACCOUNTS org operation, or the Forward support role (orForwardSupport). Source refuses any user outside the caller's permitted set. Users already in the requested state are skipped. Forward answers 204."
+      x-forward-stability: unpublished
+      tags: [User Accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserAccountBulkEdit" }
+      responses:
+        "204": { description: The users were updated. }
+  /users/{userId}/supported-orgs:
+    put:
+      operationId: setUserSupportedOrganizations
+      summary: Replace the orgs a support user can enter
+      description: Requires the support-admin role (@RequiresSupportAdmin). The body is a JSON array of org IDs. Forward answers 204.
+      x-forward-stability: unpublished
+      tags: [System Administration]
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { type: string }
+      responses:
+        "204": { description: The supported orgs were replaced. }
+    post:
+      operationId: addUserSupportedOrganization
+      summary: Grant a support user one more org for a limited time
+      description: "Requires the support-admin role (@RequiresSupportAdmin). expiresIn is in days, defaults to 30 and may not exceed 365 (source). Forward answers 204."
+      x-forward-stability: unpublished
+      tags: [System Administration]
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+        - { name: orgId, in: query, required: true, schema: { type: string } }
+        - { name: expiresIn, in: query, required: false, description: Days until the grant expires. Defaults to 30., schema: { type: integer, maximum: 365, default: 30 } }
+      responses:
+        "204": { description: The org was added. }
+  /orgs/{orgId}/users:
+    post:
+      operationId: createOrganizationUser
+      summary: Create a user in another org as a support admin
+      description: "Requires the support-admin role (@RequiresSupportAdmin). Returns the created user, which the Go SDK's note says it does not (source: UserController.createUser)."
+      x-forward-stability: unpublished
+      tags: [System Administration]
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewUser" }
+      responses:
+        "200":
+          description: The created user.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+              example:
+                # from source: UserController.createUser and User (constructed field-for-field; the ADP account is not a support admin)
+                id: "10207"
+                orgId: "2001"
+                username: example-user
+                email: user@example.invalid
+                enabled: true
+                authSource: LOCAL
+                externalGroups: []
+  /admin/networks:
+    get:
+      operationId: listAdminNetworks
+      summary: List networks across orgs
+      description: "Requires the support role (@RequiresForwardSupport). A Forward admin sees every network; a support user sees networks in orgs it supports and networks it may view (source). Each network is the Network object plus orgName, creator (username) and secondsToExpiry."
+      x-forward-stability: unpublished
+      tags: [System Administration]
+      responses:
+        "200":
+          description: The networks.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdminNetwork" }
+              example:
+                # from source: AdminController.getAccessibleNetworks (ADP account is 403 on this route)
+                - id: "228210"
+                  name: example-network
+                  orgId: "1628"
+                  orgName: ADP
+                  creatorId: "2"
+                  creator: admin
+                  createdAt: "2026-01-15T10:00:00Z"
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      summary: List manually created users across orgs
+      description: "Requires the support role (@RequiresForwardSupport). Lists manually created users in every org for a Forward admin, and in the supported orgs for a support user."
+      x-forward-stability: unpublished
+      tags: [System Administration]
+      responses:
+        "200":
+          description: The users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdminUserWithOrgId" }
+              example:
+                # from source: UserController.getAccessibleUsers (ADP account is 403 on this route)
+                - id: "10206"
+                  orgId: "1628"
+                  username: example-user
+                  email: user@example.invalid
+                  enabled: true
+                  authSource: LOCAL
+                  externalGroups: []
+  /admin/users/{idOrUsername}:
+    get:
+      operationId: lookUpAdminUser
+      summary: Look up one user by ID or username
+      description: "Requires the Forward admin role (@RequiresForwardAdmin). A numeric value is read as a user ID; otherwise it is matched to a LOCAL username."
+      x-forward-stability: unpublished
+      tags: [System Administration]
+      parameters:
+        - { name: idOrUsername, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The user.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminUserWithOrgId" }
+              example:
+                # from source: UserController.lookUpUser (ADP account is 403 on this route)
+                id: "10206"
+                orgId: "1628"
+                username: example-user
+                email: user@example.invalid
+                enabled: true
+                authSource: LOCAL
+
 components:
   schemas:
     SnapshotStateChange:
@@ -7688,3 +8681,283 @@ components:
       type: string
       enum: [PARSING, MODELING, SNAPSHOT_GENERATION, REACHABILITY, SHERLOCK_INDEX]
       description: PARSING and MODELING are per device; the rest are snapshot-wide.
+
+    AccessControlGroup:
+      description: A stored access control group. An org-admin group has networkRoles and deviceAccessLabelIds null, not empty; that null is the org-admin signal.
+      allOf:
+        - { $ref: "#/components/schemas/Attribution" }
+        - type: object
+          required: [id, name, externalGroupNames]
+          properties:
+            id: { type: string, description: The group's ID. }
+            name: { type: string, description: Unique (ignoring case) within the org. }
+            externalGroupNames:
+              type: array
+              items: { type: string }
+              description: LDAP or SSO group names that activate this group.
+            networkRoles:
+              type: object
+              additionalProperties: { type: string, enum: [LIMITED_READ_ONLY, READ_ONLY, OPERATOR, WORKSPACE_OPERATOR, ADMIN] }
+              description: Network ID to role. Absent when the group grants org admin; present, possibly empty, otherwise.
+            deviceAccessLabelIds:
+              type: array
+              nullable: true
+              items: { type: string }
+              description: Labels that narrow the group's device set. Absent for an org-admin group.
+    AccessControlGroupRequest:
+      type: object
+      required: [name]
+      description: The body for create and replace. Setting networkRoles to null requests org admin; the source then rejects any deviceAccessLabelIds.
+      properties:
+        name: { type: string, description: Trimmed; must not be blank and at most 255 characters. }
+        externalGroupNames:
+          type: array
+          items: { type: string }
+          description: Omitted or empty means no external group activates the group.
+        networkRoles:
+          type: object
+          nullable: true
+          additionalProperties: { type: string, enum: [LIMITED_READ_ONLY, READ_ONLY, OPERATOR, WORKSPACE_OPERATOR, ADMIN] }
+          description: Null means org admin. An empty object means a network-scoped group with no roles yet.
+        deviceAccessLabelIds:
+          type: array
+          nullable: true
+          items: { type: string }
+          description: Labels to activate. Must be omitted or empty when networkRoles is null.
+    AccessControlGroupBulkEdit:
+      type: object
+      required: [groupIds, labelIds]
+      description: Attaches or detaches labels across several groups.
+      properties:
+        groupIds: { type: array, minItems: 1, items: { type: string } }
+        labelIds: { type: array, minItems: 1, items: { type: string } }
+    AccessControlGroupNames:
+      type: object
+      description: Access control group ID to name.
+      additionalProperties: { type: string }
+    DeviceAccessLabel:
+      description: A set of devices, by exact name or glob, that an access control group can be narrowed to.
+      allOf:
+        - { $ref: "#/components/schemas/Attribution" }
+        - type: object
+          required: [id, name]
+          properties:
+            id: { type: string }
+            name: { type: string, description: Unique (ignoring case) within the org. }
+            deviceNames:
+              type: array
+              items: { type: string }
+              description: Lowercased device names. Omitted when empty.
+            deviceGlobs:
+              type: array
+              items: { type: string }
+              description: Device-name patterns (wildcards and character classes). Omitted when empty.
+    DeviceAccessLabelInfo:
+      description: A device access label with the counts the list route adds.
+      allOf:
+        - { $ref: "#/components/schemas/DeviceAccessLabel" }
+        - type: object
+          required: [devicesCount, groupsCount]
+          properties:
+            devicesCount: { type: integer, description: Devices in the org the label matches. }
+            groupsCount: { type: integer, description: Groups that activate the label. }
+    DeviceAccessLabelRequest:
+      type: object
+      required: [name]
+      description: The body for create. At least one of deviceNames and deviceGlobs must be non-empty.
+      properties:
+        name: { type: string }
+        deviceNames: { type: array, items: { type: string } }
+        deviceGlobs: { type: array, items: { type: string } }
+    DeviceAccessLabelPatch:
+      type: object
+      description: "Partial update with presence semantics (source: DeviceAccessLabelPatch.java). An absent field is unchanged. A present field replaces the stored value; a present null clears it. groupIds, when present, replaces the groups that activate the label."
+      properties:
+        name: { type: string, description: Replaces the name when present. }
+        deviceNames:
+          type: array
+          nullable: true
+          items: { type: string }
+          description: Replaces the device names when present. Null or empty clears them.
+        deviceGlobs:
+          type: array
+          nullable: true
+          items: { type: string }
+          description: Replaces the device globs when present. Null or empty clears them.
+        groupIds:
+          type: array
+          nullable: true
+          items: { type: string }
+          description: Replaces the groups that activate the label when present.
+    DeviceAccessLabelNames:
+      type: object
+      description: Device access label ID to name.
+      additionalProperties: { type: string }
+    Organization:
+      type: object
+      required: [id, name]
+      description: A Forward org. disabled is omitted unless true; sfdcAccountId and sfdcContactId are omitted when unset.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        disabled: { type: boolean, description: Present only when true. }
+        sfdcAccountId: { type: string, description: Present only when set. }
+        sfdcContactId: { type: string, description: Present only when set. }
+    OrganizationWithAdditionalInfo:
+      description: An org with run-time fields. softwareCentral is omitted when false.
+      allOf:
+        - { $ref: "#/components/schemas/Organization" }
+        - type: object
+          properties:
+            softwareCentral: { type: boolean }
+            lastActiveAt:
+              type: string
+              format: date-time
+              description: The latest user login or impersonation in the org. Absent when there is no record.
+    OrganizationUpdate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, description: Must not be empty. }
+    SamlSettings:
+      type: object
+      description: The SAML settings as Forward reads and writes them. customName is the registration ID that the IdP posts back to.
+      properties:
+        customName: { type: string, description: "Unique registration ID for the org. Required on write; absent when not yet configured (source: CustomNameAndSamlAuthSettings)." }
+        samlAuthSettings: { $ref: "#/components/schemas/SamlAuthSettings" }
+    SamlAuthSettings:
+      type: object
+      required: [entityId, ssoRedirectUrl, verificationCert]
+      description: The IdP's settings. entityId, ssoRedirectUrl and verificationCert are required even when enabled is false (source). The customSpCertKey field is accepted on write; its output shape was not verified live.
+      properties:
+        enabled: { type: boolean, description: Defaults to true on write. }
+        name: { type: string, description: A display label. Omitted when unset. }
+        entityId: { type: string, description: The IdP's entity or issuer ID. }
+        ssoRedirectUrl: { type: string, description: The IdP's SSO URL. }
+        verificationCert: { type: string, description: The IdP's signing certificate, PEM. }
+        disableAuthNRequestSigning: { type: boolean, description: "false keeps Forward signing its AuthnRequests." }
+        customSpCertKey:
+          type: object
+          description: Forward's own signing certificate and key. Write-only as far as the source shows (input keys pubCert and privKey).
+          properties:
+            pubCert: { type: string }
+            privKey: { type: string, description: Write-only. Omit to keep the stored key. }
+    AuditLogRecord:
+      type: object
+      description: One audited request. impersonatorId and impersonatorUsername are shown only to Forward's own users.
+      required: [remoteIp, impersonated, httpMethod, targetUri, httpResponseCode, timestamp]
+      properties:
+        remoteIp: { type: string }
+        userId: { type: string, description: Absent for unauthenticated requests. }
+        impersonatorId: { type: string, description: Present only for a support user, and only when impersonating. }
+        impersonatorUsername: { type: string, description: Present only with impersonatorId. }
+        impersonated: { type: boolean }
+        httpMethod: { type: string, enum: [POST, PUT, PATCH, DELETE, GET] }
+        targetUri: { type: string, description: The path after /api, with the query string. }
+        httpResponseCode: { type: integer }
+        timestamp: { type: string, format: date-time }
+    AuditLogPaging:
+      type: object
+      required: [offset, limit, total]
+      properties:
+        offset: { type: integer }
+        limit: { type: integer }
+        total: { type: integer, format: int64, description: Every record that matches the filters, not just this page. }
+    AuditLogPage:
+      type: object
+      required: [records, paging]
+      properties:
+        records: { type: array, items: { $ref: "#/components/schemas/AuditLogRecord" } }
+        paging: { $ref: "#/components/schemas/AuditLogPaging" }
+    TrustedCertificate:
+      description: A stored org trusted certificate.
+      allOf:
+        - { $ref: "#/components/schemas/Attribution" }
+        - type: object
+          required: [name, certificate]
+          properties:
+            name: { type: string, description: Unique (ignoring case) within the org. }
+            certificate: { type: string, description: The X.509 certificate, PEM. }
+            expiresAt: { type: string, format: date-time, description: The certificate's not-after time. }
+    TrustedCertificateRequest:
+      type: object
+      required: [name, certificate]
+      properties:
+        name: { type: string }
+        certificate: { type: string, description: A valid, unexpired X.509 certificate, PEM. }
+    CollectorTaskId:
+      type: string
+      description: A collector task ID. E followed by a number for an ephemeral task, P for a persistent one.
+      pattern: "^[EP][0-9]+$"
+    UserAccountRoles:
+      type: object
+      required: [org, network]
+      description: "A user's roles. system and supportedOrgIds are omitted when empty. Forward sends each network's role as one string, never a list (source: UserRoles.java; live)."
+      properties:
+        system:
+          type: array
+          items: { type: string, enum: [ADMIN, ARTIFACT_UPLOADER, SUPPORT_ADMIN, FREE_TRIAL_PROVISIONER] }
+          description: Forward-internal roles. Omitted for an ordinary user.
+        org:
+          type: array
+          items: { type: string, enum: [READ_ONLY, ADMIN] }
+          description: Org-level roles. READ_ONLY is not assignable; only ADMIN is granted.
+        network:
+          type: object
+          additionalProperties: { type: string, enum: [LIMITED_READ_ONLY, READ_ONLY, OPERATOR, WORKSPACE_OPERATOR, ADMIN] }
+          description: Network ID to the one role held on it.
+        supportedOrgIds:
+          type: array
+          items: { type: string }
+          description: The orgs a support user can enter, whose grants have not expired. Omitted when empty. Always empty for a Forward admin, who needs no grants.
+    UserAccountApiToken:
+      type: object
+      required: [name, createdAt]
+      description: An API token. The secret is never returned after creation. accessKey is the Basic-auth user name.
+      properties:
+        name: { type: string }
+        accessKey: { type: string, nullable: true, description: The formatted access key. Null for a legacy token. }
+        createdAt: { type: string, format: date-time }
+        lastUsedAt: { type: string, format: date-time, nullable: true, description: Null if never used. }
+        expiresAt: { type: string, format: date-time, nullable: true, description: Null when no expiry policy applies. }
+    UserAccountApiTokenView:
+      description: An API token with its status.
+      allOf:
+        - { $ref: "#/components/schemas/UserAccountApiToken" }
+        - type: object
+          properties:
+            status: { type: string, enum: [ACTIVE, EXPIRED] }
+    UserAccountApiTokenList:
+      type: object
+      required: [tokens]
+      properties:
+        tokens: { type: array, items: { $ref: "#/components/schemas/UserAccountApiTokenView" } }
+    UserAccountApiTokenAndSecret:
+      type: object
+      required: [token, secret]
+      properties:
+        token: { $ref: "#/components/schemas/UserAccountApiToken" }
+        secret: { type: string, description: The token's secret. Returned once. }
+    UserAccountBulkEdit:
+      type: object
+      required: [userIds, enabled]
+      properties:
+        userIds: { type: array, minItems: 1, items: { type: string } }
+        enabled: { type: boolean }
+    AdminNetwork:
+      description: A network across orgs, as the admin route reports it.
+      allOf:
+        - { $ref: "#/components/schemas/Network" }
+        - type: object
+          properties:
+            orgName: { type: string }
+            creator: { type: string, nullable: true, description: The creator's username, or null if the account was deleted. }
+            secondsToExpiry: { type: integer, format: int64, description: Present only for a network that expires. }
+    AdminUserWithOrgId:
+      description: A user with the ID of the org it belongs to.
+      allOf:
+        - { $ref: "#/components/schemas/User" }
+        - type: object
+          required: [orgId]
+          properties:
+            orgId: { type: string }

@@ -25,6 +25,72 @@ class UserAccountsService(Service):
     May be unavailable on your instance (admin); see docs/gating.md.
     """
 
+    def add_user_network_role(
+        self,
+        *,
+        user_id: str,
+        role: str,
+        network_id: str | None = None,
+    ) -> Any:
+        """Add a network role to a user, keeping existing roles.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["addUserNetworkRole"](
+                user_id=user_id, network_id=self._network(network_id), role=role
+            )
+        )
+        return payload
+
+    def change_current_user_password(
+        self,
+        *,
+        body: Any,
+    ) -> Any:
+        """Change the signed-in user's password.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(ops.BUILDERS["changeCurrentUserPassword"](body=body))
+        return payload
+
+    def clear_user_network_roles(
+        self,
+        *,
+        user_id: str,
+        network_id: str | None = None,
+    ) -> Any:
+        """Remove every role a user holds on a network.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["clearUserNetworkRoles"](
+                user_id=user_id, network_id=self._network(network_id)
+            )
+        )
+        return payload
+
+    def create_current_user_api_token(
+        self,
+        *,
+        body: Any,
+        name: str,
+    ) -> models.UserAccountApiTokenAndSecret:
+        """Mint an API token for the signed-in user.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(ops.BUILDERS["createCurrentUserApiToken"](body=body, name=name))
+        return models.UserAccountApiTokenAndSecret.model_validate(payload or {})
+
     def create_user(
         self,
         *,
@@ -37,6 +103,19 @@ class UserAccountsService(Service):
         payload = self._send_json(ops.BUILDERS["createUser"](body=body))
         return models.User.model_validate(payload or {})
 
+    def delete_current_user_api_token(
+        self,
+        *,
+        token_name: str,
+    ) -> Any:
+        """Delete one of the signed-in user's API tokens.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(ops.BUILDERS["deleteCurrentUserApiToken"](token_name=token_name))
+        return payload
+
     def delete_user(
         self,
         *,
@@ -47,6 +126,22 @@ class UserAccountsService(Service):
         May be unavailable (admin); see docs/gating.md.
         """
         payload = self._send_json(ops.BUILDERS["deleteUser"](user_id=user_id))
+        return payload
+
+    def delete_user_api_token(
+        self,
+        *,
+        user_id: str,
+        token_name: str,
+    ) -> Any:
+        """Delete another user's API token.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["deleteUserApiToken"](user_id=user_id, token_name=token_name)
+        )
         return payload
 
     def get_current_user(
@@ -72,6 +167,20 @@ class UserAccountsService(Service):
         payload = self._send_json(ops.BUILDERS["getUser"](user_id=user_id))
         return models.User.model_validate(payload or {})
 
+    def get_user_roles(
+        self,
+        *,
+        user_id: str,
+        type: str | None = None,
+    ) -> models.UserAccountRoles:
+        """Read a user's org and network roles.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(ops.BUILDERS["getUserRoles"](user_id=user_id, type=type))
+        return models.UserAccountRoles.model_validate(payload or {})
+
     def get_users(
         self,
     ) -> models.Users:
@@ -81,6 +190,122 @@ class UserAccountsService(Service):
         """
         payload = self._send_json(ops.BUILDERS["getUsers"]())
         return models.Users.model_validate(payload or {})
+
+    def grant_org_admin(
+        self,
+        *,
+        user_id: str,
+    ) -> Any:
+        """Grant a user the org ADMIN role.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(ops.BUILDERS["grantOrgAdmin"](user_id=user_id))
+        return payload
+
+    def list_current_user_api_tokens(
+        self,
+    ) -> models.UserAccountApiTokenList:
+        """List the signed-in user's API tokens.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(ops.BUILDERS["listCurrentUserApiTokens"]())
+        return models.UserAccountApiTokenList.model_validate(payload or {})
+
+    def list_user_api_tokens(
+        self,
+        *,
+        user_id: str,
+    ) -> models.UserAccountApiTokenList:
+        """List another user's API tokens.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(ops.BUILDERS["listUserApiTokens"](user_id=user_id))
+        return models.UserAccountApiTokenList.model_validate(payload or {})
+
+    def remove_user_network_role(
+        self,
+        *,
+        user_id: str,
+        role: str,
+        network_id: str | None = None,
+    ) -> Any:
+        """Remove one network role from a user.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["removeUserNetworkRole"](
+                user_id=user_id, network_id=self._network(network_id), role=role
+            )
+        )
+        return payload
+
+    def reset_user_two_factor(
+        self,
+        *,
+        user_id: str,
+    ) -> Any:
+        """Clear a user's two-factor setup.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(ops.BUILDERS["resetUserTwoFactor"](user_id=user_id))
+        return payload
+
+    def revoke_org_admin(
+        self,
+        *,
+        user_id: str,
+    ) -> Any:
+        """Revoke the org ADMIN role from a user.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(ops.BUILDERS["revokeOrgAdmin"](user_id=user_id))
+        return payload
+
+    def set_user_network_role(
+        self,
+        *,
+        user_id: str,
+        role: str,
+        network_id: str | None = None,
+    ) -> Any:
+        """Set a user's one role on a network.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["setUserNetworkRole"](
+                user_id=user_id, network_id=self._network(network_id), role=role
+            )
+        )
+        return payload
+
+    def set_users_enabled(
+        self,
+        *,
+        body: Any,
+    ) -> Any:
+        """Enable or disable several users at once.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = self._send_json(ops.BUILDERS["setUsersEnabled"](body=body))
+        return payload
 
     def update_user(
         self,

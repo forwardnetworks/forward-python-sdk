@@ -20,6 +20,135 @@
       }
     },
     "schemas": {
+      "AccessControlGroup": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Attribution"
+          },
+          {
+            "properties": {
+              "deviceAccessLabelIds": {
+                "description": "Labels that narrow the group's device set. Absent for an org-admin group.",
+                "items": {
+                  "type": "string"
+                },
+                "nullable": true,
+                "type": "array"
+              },
+              "externalGroupNames": {
+                "description": "LDAP or SSO group names that activate this group.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "id": {
+                "description": "The group's ID.",
+                "type": "string"
+              },
+              "name": {
+                "description": "Unique (ignoring case) within the org.",
+                "type": "string"
+              },
+              "networkRoles": {
+                "additionalProperties": {
+                  "enum": [
+                    "LIMITED_READ_ONLY",
+                    "READ_ONLY",
+                    "OPERATOR",
+                    "WORKSPACE_OPERATOR",
+                    "ADMIN"
+                  ],
+                  "type": "string"
+                },
+                "description": "Network ID to role. Absent when the group grants org admin; present, possibly empty, otherwise.",
+                "type": "object"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "externalGroupNames"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A stored access control group. An org-admin group has networkRoles and deviceAccessLabelIds null, not empty; that null is the org-admin signal."
+      },
+      "AccessControlGroupBulkEdit": {
+        "description": "Attaches or detaches labels across several groups.",
+        "properties": {
+          "groupIds": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "labelIds": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "groupIds",
+          "labelIds"
+        ],
+        "type": "object"
+      },
+      "AccessControlGroupNames": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "description": "Access control group ID to name.",
+        "type": "object"
+      },
+      "AccessControlGroupRequest": {
+        "description": "The body for create and replace. Setting networkRoles to null requests org admin; the source then rejects any deviceAccessLabelIds.",
+        "properties": {
+          "deviceAccessLabelIds": {
+            "description": "Labels to activate. Must be omitted or empty when networkRoles is null.",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "externalGroupNames": {
+            "description": "Omitted or empty means no external group activates the group.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "Trimmed; must not be blank and at most 255 characters.",
+            "type": "string"
+          },
+          "networkRoles": {
+            "additionalProperties": {
+              "enum": [
+                "LIMITED_READ_ONLY",
+                "READ_ONLY",
+                "OPERATOR",
+                "WORKSPACE_OPERATOR",
+                "ADMIN"
+              ],
+              "type": "string"
+            },
+            "description": "Null means org admin. An empty object means a network-scoped group with no roles yet.",
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
       "AclDiffEntry": {
         "properties": {
           "a": {
@@ -196,6 +325,52 @@
           }
         },
         "type": "object"
+      },
+      "AdminNetwork": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Network"
+          },
+          {
+            "properties": {
+              "creator": {
+                "description": "The creator's username",
+                "nullable": true,
+                "or null if the account was deleted.": null,
+                "type": "string"
+              },
+              "orgName": {
+                "type": "string"
+              },
+              "secondsToExpiry": {
+                "description": "Present only for a network that expires.",
+                "format": "int64",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "A network across orgs, as the admin route reports it."
+      },
+      "AdminUserWithOrgId": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/User"
+          },
+          {
+            "properties": {
+              "orgId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "orgId"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A user with the ID of the org it belongs to."
       },
       "AdvancedReachabilityState": {
         "enum": [
@@ -591,6 +766,101 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "AuditLogPage": {
+        "properties": {
+          "paging": {
+            "$ref": "#/components/schemas/AuditLogPaging"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLogRecord"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "records",
+          "paging"
+        ],
+        "type": "object"
+      },
+      "AuditLogPaging": {
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "total": {
+            "description": "Every record that matches the filters",
+            "format": "int64",
+            "not just this page.": null,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "offset",
+          "limit",
+          "total"
+        ],
+        "type": "object"
+      },
+      "AuditLogRecord": {
+        "description": "One audited request. impersonatorId and impersonatorUsername are shown only to Forward's own users.",
+        "properties": {
+          "httpMethod": {
+            "enum": [
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE",
+              "GET"
+            ],
+            "type": "string"
+          },
+          "httpResponseCode": {
+            "type": "integer"
+          },
+          "impersonated": {
+            "type": "boolean"
+          },
+          "impersonatorId": {
+            "and only when impersonating.": null,
+            "description": "Present only for a support user",
+            "type": "string"
+          },
+          "impersonatorUsername": {
+            "description": "Present only with impersonatorId.",
+            "type": "string"
+          },
+          "remoteIp": {
+            "type": "string"
+          },
+          "targetUri": {
+            "description": "The path after /api",
+            "type": "string",
+            "with the query string.": null
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userId": {
+            "description": "Absent for unauthenticated requests.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "remoteIp",
+          "impersonated",
+          "httpMethod",
+          "targetUri",
+          "httpResponseCode",
+          "timestamp"
+        ],
         "type": "object"
       },
       "AuthenticationPhaseResult": {
@@ -3606,6 +3876,11 @@
         },
         "type": "object"
       },
+      "CollectorTaskId": {
+        "description": "A collector task ID. E followed by a number for an ephemeral task, P for a persistent one.",
+        "pattern": "^[EP][0-9]+$",
+        "type": "string"
+      },
       "CollectorWithAuthKey": {
         "additionalProperties": true,
         "description": "A newly created collector account, plus the one-time key its installer needs. The key is returned only from creation -- it cannot be fetched again afterwards.",
@@ -5273,6 +5548,134 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "DeviceAccessLabel": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Attribution"
+          },
+          {
+            "properties": {
+              "deviceGlobs": {
+                "description": "Device-name patterns (wildcards and character classes). Omitted when empty.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "deviceNames": {
+                "description": "Lowercased device names. Omitted when empty.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "description": "Unique (ignoring case) within the org.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A set of devices, by exact name or glob, that an access control group can be narrowed to."
+      },
+      "DeviceAccessLabelInfo": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DeviceAccessLabel"
+          },
+          {
+            "properties": {
+              "devicesCount": {
+                "description": "Devices in the org the label matches.",
+                "type": "integer"
+              },
+              "groupsCount": {
+                "description": "Groups that activate the label.",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "devicesCount",
+              "groupsCount"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A device access label with the counts the list route adds."
+      },
+      "DeviceAccessLabelNames": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "description": "Device access label ID to name.",
+        "type": "object"
+      },
+      "DeviceAccessLabelPatch": {
+        "description": "Partial update with presence semantics (source: DeviceAccessLabelPatch.java). An absent field is unchanged. A present field replaces the stored value; a present null clears it. groupIds, when present, replaces the groups that activate the label.",
+        "properties": {
+          "deviceGlobs": {
+            "description": "Replaces the device globs when present. Null or empty clears them.",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "deviceNames": {
+            "description": "Replaces the device names when present. Null or empty clears them.",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "groupIds": {
+            "description": "Replaces the groups that activate the label when present.",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "name": {
+            "description": "Replaces the name when present.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DeviceAccessLabelRequest": {
+        "description": "The body for create. At least one of deviceNames and deviceGlobs must be non-empty.",
+        "properties": {
+          "deviceGlobs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "deviceNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
         "type": "object"
       },
       "DeviceAclDiff": {
@@ -11773,6 +12176,67 @@
         ],
         "type": "object"
       },
+      "Organization": {
+        "description": "A Forward org. disabled is omitted unless true; sfdcAccountId and sfdcContactId are omitted when unset.",
+        "properties": {
+          "disabled": {
+            "description": "Present only when true.",
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sfdcAccountId": {
+            "description": "Present only when set.",
+            "type": "string"
+          },
+          "sfdcContactId": {
+            "description": "Present only when set.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "OrganizationUpdate": {
+        "properties": {
+          "name": {
+            "description": "Must not be empty.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "OrganizationWithAdditionalInfo": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Organization"
+          },
+          {
+            "properties": {
+              "lastActiveAt": {
+                "description": "The latest user login or impersonation in the org. Absent when there is no record.",
+                "format": "date-time",
+                "type": "string"
+              },
+              "softwareCentral": {
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "An org with run-time fields. softwareCentral is omitted when false."
+      },
       "OsVulnerability": {
         "properties": {
           "dependsOnConfig": {
@@ -13151,6 +13615,68 @@
           },
           "scopeId": {
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SamlAuthSettings": {
+        "description": "The IdP's settings. entityId, ssoRedirectUrl and verificationCert are required even when enabled is false (source). The customSpCertKey field is accepted on write; its output shape was not verified live.",
+        "properties": {
+          "customSpCertKey": {
+            "description": "Forward's own signing certificate and key. Write-only as far as the source shows (input keys pubCert and privKey).",
+            "properties": {
+              "privKey": {
+                "description": "Write-only. Omit to keep the stored key.",
+                "type": "string"
+              },
+              "pubCert": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "disableAuthNRequestSigning": {
+            "description": "false keeps Forward signing its AuthnRequests.",
+            "type": "boolean"
+          },
+          "enabled": {
+            "description": "Defaults to true on write.",
+            "type": "boolean"
+          },
+          "entityId": {
+            "description": "The IdP's entity or issuer ID.",
+            "type": "string"
+          },
+          "name": {
+            "description": "A display label. Omitted when unset.",
+            "type": "string"
+          },
+          "ssoRedirectUrl": {
+            "description": "The IdP's SSO URL.",
+            "type": "string"
+          },
+          "verificationCert": {
+            "PEM.": null,
+            "description": "The IdP's signing certificate",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entityId",
+          "ssoRedirectUrl",
+          "verificationCert"
+        ],
+        "type": "object"
+      },
+      "SamlSettings": {
+        "description": "The SAML settings as Forward reads and writes them. customName is the registration ID that the IdP posts back to.",
+        "properties": {
+          "customName": {
+            "description": "Unique registration ID for the org. Required on write; absent when not yet configured (source: CustomNameAndSamlAuthSettings).",
+            "type": "string"
+          },
+          "samlAuthSettings": {
+            "$ref": "#/components/schemas/SamlAuthSettings"
           }
         },
         "type": "object"
@@ -15258,6 +15784,55 @@
         ],
         "type": "object"
       },
+      "TrustedCertificate": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Attribution"
+          },
+          {
+            "properties": {
+              "certificate": {
+                "PEM.": null,
+                "description": "The X.509 certificate",
+                "type": "string"
+              },
+              "expiresAt": {
+                "description": "The certificate's not-after time.",
+                "format": "date-time",
+                "type": "string"
+              },
+              "name": {
+                "description": "Unique (ignoring case) within the org.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "certificate"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A stored org trusted certificate."
+      },
+      "TrustedCertificateRequest": {
+        "properties": {
+          "certificate": {
+            "PEM.": null,
+            "description": "A valid",
+            "type": "string",
+            "unexpired X.509 certificate": null
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "certificate"
+        ],
+        "type": "object"
+      },
       "TunnelInterfaceFilter": {
         "description": "A filter that matches one tunnel interface by name and has underlay semantics in the `from` or `to` property\nof a `PathQuery`",
         "properties": {
@@ -15446,6 +16021,164 @@
           "username",
           "enabled",
           "authSource"
+        ],
+        "type": "object"
+      },
+      "UserAccountApiToken": {
+        "description": "An API token. The secret is never returned after creation. accessKey is the Basic-auth user name.",
+        "properties": {
+          "accessKey": {
+            "description": "The formatted access key. Null for a legacy token.",
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expiresAt": {
+            "description": "Null when no expiry policy applies.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "description": "Null if never used.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "UserAccountApiTokenAndSecret": {
+        "properties": {
+          "secret": {
+            "description": "The token's secret. Returned once.",
+            "type": "string"
+          },
+          "token": {
+            "$ref": "#/components/schemas/UserAccountApiToken"
+          }
+        },
+        "required": [
+          "token",
+          "secret"
+        ],
+        "type": "object"
+      },
+      "UserAccountApiTokenList": {
+        "properties": {
+          "tokens": {
+            "items": {
+              "$ref": "#/components/schemas/UserAccountApiTokenView"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "tokens"
+        ],
+        "type": "object"
+      },
+      "UserAccountApiTokenView": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserAccountApiToken"
+          },
+          {
+            "properties": {
+              "status": {
+                "enum": [
+                  "ACTIVE",
+                  "EXPIRED"
+                ],
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "An API token with its status."
+      },
+      "UserAccountBulkEdit": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "userIds": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "userIds",
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "UserAccountRoles": {
+        "description": "A user's roles. system and supportedOrgIds are omitted when empty. Forward sends each network's role as one string, never a list (source: UserRoles.java; live).",
+        "properties": {
+          "network": {
+            "additionalProperties": {
+              "enum": [
+                "LIMITED_READ_ONLY",
+                "READ_ONLY",
+                "OPERATOR",
+                "WORKSPACE_OPERATOR",
+                "ADMIN"
+              ],
+              "type": "string"
+            },
+            "description": "Network ID to the one role held on it.",
+            "type": "object"
+          },
+          "org": {
+            "description": "Org-level roles. READ_ONLY is not assignable; only ADMIN is granted.",
+            "items": {
+              "enum": [
+                "READ_ONLY",
+                "ADMIN"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "supportedOrgIds": {
+            "description": "The orgs a support user can enter, whose grants have not expired. Omitted when empty. Always empty for a Forward admin, who needs no grants.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "system": {
+            "description": "Forward-internal roles. Omitted for an ordinary user.",
+            "items": {
+              "enum": [
+                "ADMIN",
+                "ARTIFACT_UPLOADER",
+                "SUPPORT_ADMIN",
+                "FREE_TRIAL_PROVISIONER"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "org",
+          "network"
         ],
         "type": "object"
       },
@@ -16372,6 +17105,636 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/access-control-groups": {
+      "get": {
+        "description": "Requires the VIEW_USER_ACCOUNTS org operation. Forward returns a bare JSON array. An org-admin group omits networkRoles and deviceAccessLabelIds (the class is NON_NULL), which is different from an empty object or array; a network-scoped group always carries networkRoles, possibly empty.",
+        "operationId": "listAccessControlGroups",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "deviceAccessLabelIds": [],
+                    "externalGroupNames": [
+                      "netops"
+                    ],
+                    "id": "1",
+                    "name": "Example group",
+                    "networkRoles": {
+                      "228210": "READ_ONLY"
+                    }
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AccessControlGroup"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The org's access control groups."
+          }
+        },
+        "summary": "List access control groups",
+        "tags": [
+          "Access Control"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getAccessControlGroupNames",
+            "summary": "Map access control group IDs to names",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "names"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation. Both groupIds and labelIds must be non-empty.",
+        "operationId": "addDeviceAccessLabelsToGroups",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessControlGroupBulkEdit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The labels were attached."
+          }
+        },
+        "summary": "Attach device access labels to access control groups",
+        "tags": [
+          "Access Control"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "addLabels"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "removeDeviceAccessLabelsFromGroups",
+            "summary": "Detach device access labels from access control groups",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "removeLabels"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation. A body with networkRoles set to null creates an org-admin group, which cannot carry deviceAccessLabelIds (source rejects the combination with 400).",
+        "operationId": "createAccessControlGroup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessControlGroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "createdBy": "admin",
+                  "createdById": "2",
+                  "deviceAccessLabelIds": [],
+                  "externalGroupNames": [
+                    "netops"
+                  ],
+                  "id": "2",
+                  "name": "Example group",
+                  "networkRoles": {
+                    "228210": "READ_ONLY"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AccessControlGroup"
+                }
+              }
+            },
+            "description": "The created group."
+          }
+        },
+        "summary": "Create an access control group",
+        "tags": [
+          "Access Control"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/access-control-groups/{groupId}": {
+      "delete": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation. Forward answers 204; the SDK treats a 404 as already deleted.",
+        "operationId": "deleteAccessControlGroup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The group was deleted."
+          }
+        },
+        "summary": "Delete an access control group",
+        "tags": [
+          "Access Control"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation. This is a POST, not a PATCH, and the body replaces the whole group, so send every field. The same org-admin rule as create applies (networkRoles null means org admin).",
+        "operationId": "updateAccessControlGroup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessControlGroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "createdById": "2",
+                  "deviceAccessLabelIds": [
+                    "1"
+                  ],
+                  "externalGroupNames": [
+                    "netops",
+                    "secops"
+                  ],
+                  "id": "2",
+                  "name": "Example group",
+                  "networkRoles": {
+                    "228210": "OPERATOR"
+                  },
+                  "updatedAt": "2026-10-17T12:00:00Z",
+                  "updatedBy": "admin",
+                  "updatedById": "2"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AccessControlGroup"
+                }
+              }
+            },
+            "description": "The replaced group."
+          }
+        },
+        "summary": "Replace an access control group",
+        "tags": [
+          "Access Control"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/access-control-groups/{groupId}/network-roles/{networkId}": {
+      "post": {
+        "description": "Requires the ASSIGN_ROLES network operation on the target network. Forward refuses a network that is not a workspace (BadRequestException), and a role above the caller's own role on that network (org admins may assign any role; source: AccessController.setNetworkRoleForWorkspace).",
+        "operationId": "setAccessControlGroupNetworkRole",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The role to grant on the network.",
+            "in": "query",
+            "name": "role",
+            "required": true,
+            "schema": {
+              "enum": [
+                "LIMITED_READ_ONLY",
+                "READ_ONLY",
+                "OPERATOR",
+                "WORKSPACE_OPERATOR",
+                "ADMIN"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "deviceAccessLabelIds": [],
+                  "externalGroupNames": [
+                    "netops"
+                  ],
+                  "id": "2",
+                  "name": "Example group",
+                  "networkRoles": {
+                    "228210": "OPERATOR"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AccessControlGroup"
+                }
+              }
+            },
+            "description": "The group, with the role applied."
+          }
+        },
+        "summary": "Give an access control group a role on a workspace network",
+        "tags": [
+          "Access Control"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/admin/networks": {
+      "get": {
+        "description": "Requires the support role (@RequiresForwardSupport). A Forward admin sees every network; a support user sees networks in orgs it supports and networks it may view (source). Each network is the Network object plus orgName, creator (username) and secondsToExpiry.",
+        "operationId": "listAdminNetworks",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "createdAt": "2026-01-15T10:00:00Z",
+                    "creator": "admin",
+                    "creatorId": "2",
+                    "id": "228210",
+                    "name": "example-network",
+                    "orgId": "1628",
+                    "orgName": "ADP"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminNetwork"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The networks."
+          }
+        },
+        "summary": "List networks across orgs",
+        "tags": [
+          "System Administration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/admin/orgs": {
+      "get": {
+        "description": "Requires the Forward support role (@RequiresForwardSupport). A Forward admin sees every org; a support user sees only the orgs it supports. Excludes the NQE tutorial org.",
+        "operationId": "listAdminOrganizations",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": "1628",
+                    "lastActiveAt": "2026-10-17T18:35:33Z",
+                    "name": "ADP",
+                    "softwareCentral": false
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationWithAdditionalInfo"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The orgs, with run-time fields."
+          }
+        },
+        "summary": "List the orgs the caller supports",
+        "tags": [
+          "Organizations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the support-admin role (@RequiresSupportAdmin). Parameters are query parameters, not a body. Source rejects onPrem together with type FREE_TRIAL (BadRequestException).",
+        "operationId": "createOrganization",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The org type. Omitted means the ORG_TYPE property default.",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ENTERPRISE_TRIAL",
+                "ENTERPRISE",
+                "INTERNAL",
+                "FREE_TRIAL"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "When true, sets the org's SOFTWARE_CENTRAL override.",
+            "in": "query",
+            "name": "onPrem",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sfdcAccountId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sfdcContactId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "2001",
+                  "name": "Example Customer"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            },
+            "description": "The created org."
+          }
+        },
+        "summary": "Create an org",
+        "tags": [
+          "Organizations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/admin/orgs/{orgId}": {
+      "delete": {
+        "description": "Requires the Forward admin role (@RequiresForwardAdmin). Source refuses (BadRequestException) while the org still has manually created users, and refuses the NQE tutorial org.",
+        "operationId": "deleteOrganization",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "2001",
+                  "name": "Example Customer"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            },
+            "description": "The deleted org."
+          }
+        },
+        "summary": "Delete an org",
+        "tags": [
+          "Organizations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Requires the Forward admin role (@RequiresForwardAdmin). Forward answers 204.",
+        "operationId": "renameOrganization",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The org was renamed."
+          }
+        },
+        "summary": "Rename an org as a Forward admin",
+        "tags": [
+          "Organizations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the Forward admin role (@RequiresForwardAdmin). The Forward org itself is always enabled and is refused (BadRequestException). Forward answers 204. Source-only: the bulk form POST /admin/orgs?action=enable is not ported.",
+        "operationId": "enableOrganization",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The org was enabled."
+          }
+        },
+        "summary": "Enable an org",
+        "tags": [
+          "Organizations"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "enable"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "disableOrganization",
+            "summary": "Disable an org",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "disable"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "description": "Requires the support role (@RequiresForwardSupport). Lists manually created users in every org for a Forward admin, and in the supported orgs for a support user.",
+        "operationId": "listAdminUsers",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "authSource": "LOCAL",
+                    "email": "user@example.invalid",
+                    "enabled": true,
+                    "externalGroups": [],
+                    "id": "10206",
+                    "orgId": "1628",
+                    "username": "example-user"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminUserWithOrgId"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The users."
+          }
+        },
+        "summary": "List manually created users across orgs",
+        "tags": [
+          "System Administration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/admin/users/{idOrUsername}": {
+      "get": {
+        "description": "Requires the Forward admin role (@RequiresForwardAdmin). A numeric value is read as a user ID; otherwise it is matched to a LOCAL username.",
+        "operationId": "lookUpAdminUser",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "idOrUsername",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "authSource": "LOCAL",
+                  "email": "user@example.invalid",
+                  "enabled": true,
+                  "id": "10206",
+                  "orgId": "1628",
+                  "username": "example-user"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserWithOrgId"
+                }
+              }
+            },
+            "description": "The user."
+          }
+        },
+        "summary": "Look up one user by ID or username",
+        "tags": [
+          "System Administration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/ai-chats": {
       "get": {
         "operationId": "getAiChats",
@@ -16718,6 +18081,227 @@
         "summary": "Export a chat as a transcript",
         "tags": [
           "Forward AI"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/audit-logs": {
+      "get": {
+        "description": "Requires the VIEW_AUDIT_LOGS org operation, or the Forward admin role (orForwardAdmin). Newest first. remoteIp and targetUri match by case-insensitive prefix. There is no default time window (source: AuditLogRepo, AuditLogController).",
+        "operationId": "listAuditLogs",
+        "parameters": [
+          {
+            "description": "Inclusive lower bound on the record time (ISO-8601 instant).",
+            "in": "query",
+            "name": "startTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive upper bound on the record time (ISO-8601 instant).",
+            "in": "query",
+            "name": "endTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Case-insensitive prefix of the caller address.",
+            "in": "query",
+            "name": "remoteIp",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A Forward user ID, not a username.",
+            "in": "query",
+            "name": "userId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A Forward user ID of the impersonating support user.",
+            "in": "query",
+            "name": "impersonatorId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "httpMethod",
+            "required": false,
+            "schema": {
+              "enum": [
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "GET"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Case-insensitive prefix of the stored path, which has no /api in front.",
+            "in": "query",
+            "name": "targetUri",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "httpResponseCode",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "1 to 10000. Defaults to 1000.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 10000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "0 or more. Defaults to 0.",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "paging": {
+                    "limit": 2,
+                    "offset": 0,
+                    "total": 5490
+                  },
+                  "records": [
+                    {
+                      "httpMethod": "POST",
+                      "httpResponseCode": 200,
+                      "impersonated": false,
+                      "remoteIp": "<redacted>",
+                      "targetUri": "<redacted>",
+                      "timestamp": "2026-10-17T18:35:33.026380Z",
+                      "userId": "10206"
+                    },
+                    {
+                      "httpMethod": "POST",
+                      "httpResponseCode": 200,
+                      "impersonated": false,
+                      "remoteIp": "<redacted>",
+                      "targetUri": "<redacted>",
+                      "timestamp": "2026-10-17T15:44:57.681517Z",
+                      "userId": "8739"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogPage"
+                }
+              }
+            },
+            "description": "One page of records."
+          }
+        },
+        "summary": "List audit log records",
+        "tags": [
+          "Audit Logs"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "downloadAuditLogsCsv",
+            "summary": "Download audit log records as CSV",
+            "x-forward-fixed-query": [
+              [
+                "disposition",
+                "attachment"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/auth/saml-settings": {
+      "get": {
+        "description": "Requires the VIEW_ORG_SETTINGS org operation. Forward answers an empty object when SAML is not configured, which the SDK reads as \"none\".",
+        "operationId": "getSamlSettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "customName": "<redacted>",
+                  "samlAuthSettings": {
+                    "disableAuthNRequestSigning": false,
+                    "enabled": true,
+                    "entityId": "<redacted>",
+                    "ssoRedirectUrl": "<redacted>",
+                    "verificationCert": "<redacted>"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SamlSettings"
+                }
+              }
+            },
+            "description": "The custom name and IdP settings, or an empty object."
+          }
+        },
+        "summary": "Read the org's SAML settings",
+        "tags": [
+          "SAML"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "put": {
+        "description": "Requires the MANAGE_ORG_SETTINGS org operation. A SAML account cannot disable SAML (AccessDeniedException). Enabling SAML is refused while another external auth source is enabled (BadRequestException). entityId, ssoRedirectUrl and verificationCert are required even when enabled is false (source: SamlAuthSettings constructor). Forward answers 200 with an empty body. Source-only.",
+        "operationId": "putSamlSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SamlSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The settings were saved. The body is empty."
+          }
+        },
+        "summary": "Write the org's SAML settings",
+        "tags": [
+          "SAML"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -17500,6 +19084,183 @@
         "summary": "Set a deployment property",
         "tags": [
           "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/device-access-labels": {
+      "get": {
+        "description": "Requires the VIEW_USER_ACCOUNTS org operation. Each label also carries devicesCount (devices in the org it matches) and groupsCount (groups that activate it), which are not stored on the label.",
+        "operationId": "listDeviceAccessLabels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "createdAt": "2026-01-15T10:00:00Z",
+                    "createdById": "2",
+                    "deviceGlobs": [
+                      "edge-*"
+                    ],
+                    "deviceNames": [
+                      "edge-1.example.net"
+                    ],
+                    "devicesCount": 1,
+                    "groupsCount": 0,
+                    "id": "1",
+                    "name": "edge-routers"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceAccessLabelInfo"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The org's device access labels."
+          }
+        },
+        "summary": "List device access labels",
+        "tags": [
+          "Access Control"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getDeviceAccessLabelNames",
+            "summary": "Map device access label IDs to names",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "names"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation. At least one of deviceNames and deviceGlobs must be non-empty.",
+        "operationId": "createDeviceAccessLabel",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceAccessLabelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "createdBy": "admin",
+                  "createdById": "2",
+                  "deviceGlobs": [
+                    "edge-*"
+                  ],
+                  "deviceNames": [
+                    "edge-1.example.net"
+                  ],
+                  "id": "1",
+                  "name": "edge-routers"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceAccessLabel"
+                }
+              }
+            },
+            "description": "The created label."
+          }
+        },
+        "summary": "Create a device access label",
+        "tags": [
+          "Access Control"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/device-access-labels/{labelId}": {
+      "delete": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation. Forward answers 204; the SDK treats a 404 as already deleted.",
+        "operationId": "deleteDeviceAccessLabel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "labelId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The label was deleted."
+          }
+        },
+        "summary": "Delete a device access label",
+        "tags": [
+          "Access Control"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation. Presence semantics (source: DeviceAccessLabelPatch.java): an absent field is left unchanged; a present field replaces the value, and a present null clears it (deviceNames and deviceGlobs become empty).",
+        "operationId": "updateDeviceAccessLabel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "labelId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceAccessLabelPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "deviceGlobs": [],
+                  "deviceNames": [
+                    "edge-1.example.net",
+                    "edge-2.example.net"
+                  ],
+                  "id": "1",
+                  "name": "edge-routers",
+                  "updatedAt": "2026-10-17T12:00:00Z",
+                  "updatedBy": "admin",
+                  "updatedById": "2"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceAccessLabel"
+                }
+              }
+            },
+            "description": "The updated label."
+          }
+        },
+        "summary": "Update a device access label",
+        "tags": [
+          "Access Control"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -33941,6 +35702,57 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/orgs/current": {
+      "get": {
+        "description": "Requires any signed-in user (@RequiresUser).",
+        "operationId": "getCurrentOrganization",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "1628",
+                  "name": "ADP"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            },
+            "description": "The org the caller belongs to."
+          }
+        },
+        "summary": "The signed-in org",
+        "tags": [
+          "Organizations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Requires the MANAGE_ORG_SETTINGS org operation. Forward answers 204.",
+        "operationId": "updateCurrentOrganization",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The org was renamed."
+          }
+        },
+        "summary": "Rename the signed-in org",
+        "tags": [
+          "Organizations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/orgs/{orgId}/config": {
       "get": {
         "description": "Needs Forward support access. Unlike the other two, the default filter is OFF: every property.",
@@ -34113,6 +35925,58 @@
         "summary": "Set an org property for a named org",
         "tags": [
           "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/orgs/{orgId}/users": {
+      "post": {
+        "description": "Requires the support-admin role (@RequiresSupportAdmin). Returns the created user, which the Go SDK's note says it does not (source: UserController.createUser).",
+        "operationId": "createOrganizationUser",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewUser"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "authSource": "LOCAL",
+                  "email": "user@example.invalid",
+                  "enabled": true,
+                  "externalGroups": [],
+                  "id": "10207",
+                  "orgId": "2001",
+                  "username": "example-user"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            },
+            "description": "The created user."
+          }
+        },
+        "summary": "Create a user in another org as a support admin",
+        "tags": [
+          "System Administration"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -35328,6 +37192,119 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/trusted-certificates": {
+      "get": {
+        "description": "Requires any signed-in user (@RequiresUser). Forward returns a bare JSON array.",
+        "operationId": "listTrustedCertificates",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "certificate": "-----BEGIN CERTIFICATE-----\n<PEM>\n-----END CERTIFICATE-----\n",
+                    "createdAt": "2026-01-15T10:00:00Z",
+                    "createdBy": "admin",
+                    "createdById": "2",
+                    "expiresAt": "2031-01-01T00:00:00Z",
+                    "name": "corp-root-ca"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TrustedCertificate"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The org's trusted certificates."
+          }
+        },
+        "summary": "List the org's trusted certificates",
+        "tags": [
+          "Trusted Certificates"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the MANAGE_TRUSTED_CERTS_FOR_COLLECTION org operation. Source rejects a duplicate name or a duplicate certificate under another name (BadRequestException), and a certificate that is expired or not yet valid (BadRequestException). Source-only: the Java returns 201 with the stored certificate.",
+        "operationId": "addTrustedCertificate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrustedCertificateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "certificate": "-----BEGIN CERTIFICATE-----\n<PEM>\n-----END CERTIFICATE-----\n",
+                  "createdAt": "2026-10-17T00:00:00Z",
+                  "createdBy": "admin",
+                  "createdById": "2",
+                  "expiresAt": "2031-01-01T00:00:00Z",
+                  "name": "corp-root-ca"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TrustedCertificate"
+                }
+              }
+            },
+            "description": "The stored certificate."
+          }
+        },
+        "summary": "Add a trusted certificate",
+        "tags": [
+          "Trusted Certificates"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "applyTrustedCertificates",
+            "summary": "Push trusted certificates to every collector",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "apply"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/trusted-certificates/{name}": {
+      "delete": {
+        "description": "Requires the MANAGE_TRUSTED_CERTS_FOR_COLLECTION org operation. Source throws NotFoundException when the name is unknown. Forward answers 204. Source-only.",
+        "operationId": "deleteTrustedCertificate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The certificate was deleted."
+          }
+        },
+        "summary": "Delete a trusted certificate",
+        "tags": [
+          "Trusted Certificates"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/users": {
       "get": {
         "operationId": "getUsers",
@@ -35352,6 +37329,30 @@
         "tags": [
           "User Accounts"
         ]
+      },
+      "patch": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation, or the Forward support role (orForwardSupport). Source refuses any user outside the caller's permitted set. Users already in the requested state are skipped. Forward answers 204.",
+        "operationId": "setUsersEnabled",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserAccountBulkEdit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The users were updated."
+          }
+        },
+        "summary": "Enable or disable several users at once",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
       },
       "post": {
         "description": "Creates a new `LOCAL` user account.",
@@ -35570,6 +37571,175 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/users/current/password": {
+      "post": {
+        "description": "Requires any signed-in user (@RequiresUser), and only for LOCAL accounts (source refuses other auth sources). The current password is required; the code is required only when two-factor authentication needs one. Forward answers 204.",
+        "operationId": "changeCurrentUserPassword",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "properties": {
+                  "code": {
+                    "description": "A current two-factor code, when required.",
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "description": "The new password.",
+                    "type": "string"
+                  },
+                  "password": {
+                    "description": "The current password.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "password",
+                  "newPassword"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The password was changed."
+          }
+        },
+        "summary": "Change the signed-in user's password",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/users/current/tokens": {
+      "get": {
+        "description": "Requires any signed-in user (@RequiresUser). The access key is returned; the secret never is. Live (ADP read-only account): 403 Access Denied on this route, while /users/{userId}/tokens works for the same account.",
+        "operationId": "listCurrentUserApiTokens",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "tokens": [
+                    {
+                      "accessKey": "<redacted>",
+                      "createdAt": "2026-09-02T20:48:42.234226482Z",
+                      "expiresAt": null,
+                      "lastUsedAt": "2026-10-17T20:33:07.409597503Z",
+                      "name": "cj-api-key",
+                      "status": "ACTIVE"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UserAccountApiTokenList"
+                }
+              }
+            },
+            "description": "The caller's API tokens."
+          }
+        },
+        "summary": "List the signed-in user's API tokens",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires any signed-in user (@RequiresUser). For a LOCAL user the form must carry the password, and the code when 2FA requires it (source: UserController.generateApiToken). An SSO (SAML) user sends name only and must have just signed in through the identity provider (within 30 seconds); source has a second handler for that case on the same path. The secret is returned once. Source-only: not called against the ADP account.",
+        "operationId": "createCurrentUserApiToken",
+        "parameters": [
+          {
+            "description": "The token name. Also accepted as a form field.",
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "properties": {
+                  "code": {
+                    "description": "A current two-factor code, when two-factor authentication requires one.",
+                    "type": "string"
+                  },
+                  "password": {
+                    "description": "The caller's password. Required for LOCAL users; omitted for SAML users.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "password"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "secret": "<redacted>",
+                  "token": {
+                    "accessKey": "<redacted>",
+                    "createdAt": "2026-10-17T00:00:00Z",
+                    "expiresAt": null,
+                    "name": "example-token"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UserAccountApiTokenAndSecret"
+                }
+              }
+            },
+            "description": "The new token and its secret."
+          }
+        },
+        "summary": "Mint an API token for the signed-in user",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/users/current/tokens/{tokenName}": {
+      "delete": {
+        "description": "Requires any signed-in user (@RequiresUser). Forward answers 204.",
+        "operationId": "deleteCurrentUserApiToken",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tokenName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The token was deleted."
+          }
+        },
+        "summary": "Delete one of the signed-in user's API tokens",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/users/{userId}": {
       "delete": {
         "description": "**Warning**: This operation *cannot* be undone.",
@@ -35678,6 +37848,482 @@
         "tags": [
           "User Accounts"
         ]
+      }
+    },
+    "/users/{userId}/2fa": {
+      "delete": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation. The user enrolls again at the next sign-in. Refused for chatbot accounts (source). Forward answers 204.",
+        "operationId": "resetUserTwoFactor",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Two-factor setup was cleared."
+          }
+        },
+        "summary": "Clear a user's two-factor setup",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/users/{userId}/roles": {
+      "get": {
+        "description": "Requires the VIEW_USER_ACCOUNTS org operation, or the Forward support role. With type=directlyAssigned the roles granted directly are returned, without those inherited through access control groups (the same route serves both; source: UserController.getUserRoles). Live: the default and the directlyAssigned variant returned the same body for the ADP account.",
+        "operationId": "getUserRoles",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Set to directlyAssigned for only the roles granted directly. Omitted returns the effective roles.",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "enum": [
+                "directlyAssigned"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "network": {
+                    "228210": "ADMIN",
+                    "239213": "ADMIN"
+                  },
+                  "org": [
+                    "ADMIN"
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UserAccountRoles"
+                }
+              }
+            },
+            "description": "The user's roles."
+          }
+        },
+        "summary": "Read a user's org and network roles",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/users/{userId}/roles/network/{networkId}": {
+      "delete": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation. Forward answers 204.",
+        "operationId": "clearUserNetworkRoles",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The roles were removed."
+          }
+        },
+        "summary": "Remove every role a user holds on a network",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation. Removes every role the user holds on the network, then grants the one given (source: UserController.setNetworkRoleForUser). The role is a query parameter. Forward answers 204.",
+        "operationId": "setUserNetworkRole",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": true,
+            "schema": {
+              "enum": [
+                "LIMITED_READ_ONLY",
+                "READ_ONLY",
+                "OPERATOR",
+                "WORKSPACE_OPERATOR",
+                "ADMIN"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The role was set."
+          }
+        },
+        "summary": "Set a user's one role on a network",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/users/{userId}/roles/network/{networkId}/{role}": {
+      "delete": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation. Forward answers 204.",
+        "operationId": "removeUserNetworkRole",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "role",
+            "required": true,
+            "schema": {
+              "enum": [
+                "LIMITED_READ_ONLY",
+                "READ_ONLY",
+                "OPERATOR",
+                "WORKSPACE_OPERATOR",
+                "ADMIN"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The role was removed."
+          }
+        },
+        "summary": "Remove one network role from a user",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation. Forward answers 204.",
+        "operationId": "addUserNetworkRole",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "role",
+            "required": true,
+            "schema": {
+              "enum": [
+                "LIMITED_READ_ONLY",
+                "READ_ONLY",
+                "OPERATOR",
+                "WORKSPACE_OPERATOR",
+                "ADMIN"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The role was added."
+          }
+        },
+        "summary": "Add a network role to a user, keeping existing roles",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/users/{userId}/roles/org/ADMIN": {
+      "delete": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation, or the Forward support role. A user cannot revoke their own ADMIN role unless they are a Forward admin (source). Forward answers 204.",
+        "operationId": "revokeOrgAdmin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The role was revoked."
+          }
+        },
+        "summary": "Revoke the org ADMIN role from a user",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation, or the Forward support role, or the support-admin role (source: UserController.addOrgRoleForUser). Forward answers 204. Only ADMIN can be assigned as an org role. Granting is not idempotent on the wire, so read the roles first.",
+        "operationId": "grantOrgAdmin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The role was granted."
+          }
+        },
+        "summary": "Grant a user the org ADMIN role",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/users/{userId}/supported-orgs": {
+      "post": {
+        "description": "Requires the support-admin role (@RequiresSupportAdmin). expiresIn is in days, defaults to 30 and may not exceed 365 (source). Forward answers 204.",
+        "operationId": "addUserSupportedOrganization",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Days until the grant expires. Defaults to 30.",
+            "in": "query",
+            "name": "expiresIn",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 365,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The org was added."
+          }
+        },
+        "summary": "Grant a support user one more org for a limited time",
+        "tags": [
+          "System Administration"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "put": {
+        "description": "Requires the support-admin role (@RequiresSupportAdmin). The body is a JSON array of org IDs. Forward answers 204.",
+        "operationId": "setUserSupportedOrganizations",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The supported orgs were replaced."
+          }
+        },
+        "summary": "Replace the orgs a support user can enter",
+        "tags": [
+          "System Administration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/users/{userId}/tokens": {
+      "get": {
+        "description": "Requires the VIEW_USER_ACCOUNTS org operation. Access keys are returned; secrets are not.",
+        "operationId": "listUserApiTokens",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "tokens": [
+                    {
+                      "accessKey": "<redacted>",
+                      "createdAt": "2026-09-02T20:48:42.234226482Z",
+                      "expiresAt": null,
+                      "lastUsedAt": "2026-10-17T20:33:07.409597503Z",
+                      "name": "cj-api-key",
+                      "status": "ACTIVE"
+                    },
+                    {
+                      "accessKey": "<redacted>",
+                      "createdAt": "2025-11-19T20:40:53.790710867Z",
+                      "expiresAt": null,
+                      "lastUsedAt": "2026-10-14T01:28:26.049795899Z",
+                      "name": "rt-api-key",
+                      "status": "ACTIVE"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UserAccountApiTokenList"
+                }
+              }
+            },
+            "description": "The user's API tokens."
+          }
+        },
+        "summary": "List another user's API tokens",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/users/{userId}/tokens/{tokenName}": {
+      "delete": {
+        "description": "Requires the MANAGE_USER_ACCOUNTS org operation. Forward answers 204.",
+        "operationId": "deleteUserApiToken",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tokenName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The token was deleted."
+          }
+        },
+        "summary": "Delete another user's API token",
+        "tags": [
+          "User Accounts"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/version": {
@@ -36230,6 +38876,31 @@
       "description": "What the network exposes to the internet, and to whom.",
       "name": "Internet Exposure",
       "x-parent": "Network Analysis"
+    },
+    {
+      "description": "Device access labels and access control groups, which narrow what each group's members can see.",
+      "name": "Access Control",
+      "x-parent": "Platform Management"
+    },
+    {
+      "description": "The signed-in org, and the Forward-admin view of every org.",
+      "name": "Organizations",
+      "x-parent": "Platform Management"
+    },
+    {
+      "description": "The org's SAML single sign-on settings.",
+      "name": "SAML",
+      "x-parent": "Platform Management"
+    },
+    {
+      "description": "Which signed-in user called which mutating route, from where, and when.",
+      "name": "Audit Logs",
+      "x-parent": "Platform Management"
+    },
+    {
+      "description": "Org-wide CA certificates that Forward imports into each collector's truststore.",
+      "name": "Trusted Certificates",
+      "x-parent": "Platform Management"
     }
   ]
 }

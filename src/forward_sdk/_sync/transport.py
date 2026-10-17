@@ -203,7 +203,15 @@ class Transport:
             self._notify("on_response", spec.operation, response, time.monotonic() - started)
             self.counters.record_status(response.status_code)
 
-            if response.status_code in RETRYABLE_STATUS and spec.idempotent and not final:
+            # A 429 comes from a filter that runs before the request reaches its
+            # handler (Forward's rate limiter, and the one-active-chat refusal), so
+            # repeating it cannot do the work twice -- even for a create. Every
+            # other retryable status may follow a request that was processed.
+            if (
+                response.status_code in RETRYABLE_STATUS
+                and (spec.idempotent or response.status_code == 429)
+                and not final
+            ):
                 if response.status_code == 429:
                     self.counters.increment("http_429")
                 self.counters.increment("http_transient")

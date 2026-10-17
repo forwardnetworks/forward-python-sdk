@@ -395,6 +395,44 @@ async def test_non_idempotent_request_retried_on_connect_error(
     assert recorder.count("POST", "/api/networks") == 2
 
 
+async def test_a_create_is_retried_after_a_429(recorder: Recorder, no_sleep: list[float]) -> None:
+    """Forward's rate limiter refuses before the handler runs, so nothing was created."""
+    spec = RequestSpec(
+        operation=OPERATIONS["createNetwork"],
+        path="/networks",
+        json={"name": "n"},
+        idempotent=False,
+    )
+    recorder.add(
+        "POST",
+        "/api/networks",
+        httpx.Response(429, json={"message": "Rate limit exceeded, please try again later"}),
+        json_response({"id": "1"}),
+    )
+    async with make_transport(recorder) as transport:
+        await transport.send(spec)
+
+    assert recorder.count("POST", "/api/networks") == 2
+
+
+async def test_a_create_is_not_retried_after_a_503(
+    recorder: Recorder, no_sleep: list[float]
+) -> None:
+    """A 503 can follow a request that was processed, so a create is not repeated."""
+    spec = RequestSpec(
+        operation=OPERATIONS["createNetwork"],
+        path="/networks",
+        json={"name": "n"},
+        idempotent=False,
+    )
+    recorder.add("POST", "/api/networks", httpx.Response(503, json={"message": "busy"}))
+    async with make_transport(recorder) as transport:
+        with pytest.raises(ForwardServerError):
+            await transport.send(spec)
+
+    assert recorder.count("POST", "/api/networks") == 1
+
+
 async def test_rate_limiter_paces_requests(recorder: Recorder, no_sleep: list[float]) -> None:
     recorder.add("GET", "/api/networks", json_response([]))
     config = build_config("https://forward.test", rate_limit_rpm=600)

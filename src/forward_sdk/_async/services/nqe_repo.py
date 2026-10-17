@@ -18,7 +18,9 @@ from dataclasses import replace
 from typing import Any
 
 from forward_sdk._async.services._base import AsyncService
+from forward_sdk._generated.models import AnalysisNqeQuerySource
 from forward_sdk._ops import nqe_repo as ops
+from forward_sdk._ops import rest
 from forward_sdk.errors import (
     ForwardConfigurationError,
     ForwardConflictError,
@@ -294,6 +296,15 @@ class AsyncNqeRepository(AsyncService):
             f"query {path!r} has no source at commit {commit_id} in the {repository} repository",
             status=404,
         )
+
+    async def source_by_id(self, query_id: str, commit_id: str) -> AnalysisNqeQuerySource:
+        """A query's source at one commit, by its id. Both are required."""
+        payload = await self._send_json(
+            rest.BUILDERS["getNqeQuerySourceCode"](
+                query_id=query_id, commit_id=sanitize_commit_id(commit_id)
+            )
+        )
+        return AnalysisNqeQuerySource.model_validate(payload or {})
 
     async def head_commit_id(self) -> str | None:
         """The organization repository's current commit."""

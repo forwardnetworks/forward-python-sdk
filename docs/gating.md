@@ -57,6 +57,13 @@ the user's role.
 | Jump servers | | | ✅ |
 | Endpoint profiles | | | ✅ |
 | Data connectors | | | ✅ |
+| Access control groups and device access labels | | | ✅ |
+| Audit logs | | | ✅ |
+| Organizations | | | ✅ |
+| SAML settings | | | ✅ |
+| Backend jobs | | | ✅ |
+| Licensing | | | ✅ |
+| Backups | | ✅ | ✅ |
 
 Everything else in the published API is available to any authenticated user with
 access to the network in question.

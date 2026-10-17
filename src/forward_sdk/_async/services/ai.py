@@ -31,12 +31,20 @@ from __future__ import annotations
 
 import asyncio
 import time
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from forward_sdk._async.services._base import AsyncService
-from forward_sdk._generated.models import AiChat, AiMessage, AiMessageAnswer
-from forward_sdk._ops import RequestSpec
+from forward_sdk._generated.models import (
+    AiChat,
+    AiMessage,
+    AiMessageAnswer,
+    AnalysisNqeDocAssist,
+    AnalysisNqeDocAssistFollowup,
+    AnalysisNqeQueryAssist,
+    AnalysisNqeSummaryAssist,
+)
+from forward_sdk._ops import RequestSpec, rest
 from forward_sdk._ops import ai as ops
 from forward_sdk.errors import ForwardRateLimitError, ForwardTimeoutError
 
@@ -289,3 +297,45 @@ class AsyncAiService(AsyncService):
         await chat.wait(timeout=timeout)
         messages = await chat.messages()
         return messages[-1] if messages else None
+
+    # -- NQE assists -----------------------------------------------------
+    #
+    # Forward keeps four one-shot helpers for writing NQE beside the chat. They
+    # need the same AI_ALLOWED property. The query and documentation assists
+    # answer 410 on an organization with NQE_AI_ASSIST on, which has the unified
+    # assistant instead (source-verified; not seen live).
+
+    async def generate_nqe_query(self, prompt: str) -> AnalysisNqeQueryAssist:
+        """Turn a plain-language request into an NQE query."""
+        payload = await self._send_json(
+            rest.BUILDERS["createNqeQueryAssist"](body={"prompt": prompt})
+        )
+        return AnalysisNqeQueryAssist.model_validate(payload or {})
+
+    async def summarize_nqe_query(self, query: str) -> AnalysisNqeSummaryAssist:
+        """Describe what an NQE query does, in plain language."""
+        payload = await self._send_json(
+            rest.BUILDERS["createNqeSummaryAssist"](body={"query": query})
+        )
+        return AnalysisNqeSummaryAssist.model_validate(payload or {})
+
+    async def ask_nqe_docs(
+        self, question: str, *, previous_messages: Sequence[Mapping[str, Any]] | None = None
+    ) -> AnalysisNqeDocAssist:
+        """Ask a question about NQE, answered from its documentation."""
+        body: dict[str, Any] = {"question": question}
+        if previous_messages:
+            body["previousMessages"] = [dict(message) for message in previous_messages]
+        payload = await self._send_json(rest.BUILDERS["createNqeDocAssist"](body=body))
+        return AnalysisNqeDocAssist.model_validate(payload or {})
+
+    async def suggest_nqe_doc_followups(
+        self, doc_assist_id: str, answer: str
+    ) -> AnalysisNqeDocAssistFollowup:
+        """Suggest follow-up questions for an answer from :meth:`ask_nqe_docs`."""
+        payload = await self._send_json(
+            rest.BUILDERS["createNqeDocAssistFollowups"](
+                doc_assist_id=doc_assist_id, body={"answer": answer}
+            )
+        )
+        return AnalysisNqeDocAssistFollowup.model_validate(payload or {})

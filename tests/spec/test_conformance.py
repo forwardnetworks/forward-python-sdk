@@ -188,8 +188,13 @@ def test_dispatched_operations_send_their_selector(operation_id: str) -> None:
     operation = OPERATIONS[operation_id]
     spec = build(operation_id)
     assert spec is not None
-    expected = [(key, value or "") for key, value in operation.fixed_query]
-    assert list(spec.params)[: len(expected)] == expected
+    sent = list(spec.params)[: len(operation.fixed_query)]
+    for (key, value), (sent_key, sent_value) in zip(operation.fixed_query, sent, strict=True):
+        assert sent_key == key
+        # A bare key (``?action=duplicate&targetNetworkId``) only makes the route
+        # match, and the caller's value for it stands in for the empty one.
+        if value is not None:
+            assert sent_value == value
 
 
 def test_fixed_query_is_not_overridable() -> None:

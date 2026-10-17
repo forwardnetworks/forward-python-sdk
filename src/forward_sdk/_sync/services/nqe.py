@@ -23,6 +23,8 @@ from collections.abc import Iterator, Mapping, Sequence
 from typing import Any
 
 from forward_sdk._generated.models import (
+    AnalysisNqeInlinedType,
+    AnalysisNqeRunMetric,
     NqeDiffEntry,
     NqeDiffResult,
     NqeExecutionStatus,
@@ -31,6 +33,7 @@ from forward_sdk._generated.models import (
 )
 from forward_sdk._http import parse_retry_after
 from forward_sdk._ops import nqe as ops
+from forward_sdk._ops import rest
 from forward_sdk._sync.services._base import Service
 from forward_sdk._sync.services.nqe_repo import NqeRepository
 from forward_sdk._sync.transport import Transport
@@ -630,6 +633,34 @@ class NqeService(Service):
         Bounded and thread-safe; reading it never raises.
         """
         return self._reports.all()
+
+    def schema(self, snapshot_id: str | None = None) -> AnalysisNqeInlinedType:
+        """The NQE data model as one tree, member types written out inline.
+
+        Unpublished. Large, and recursive. A type's ``deprecated`` is a flag; a
+        field's is the advice to follow instead.
+        """
+        payload = self._send_json(
+            rest.BUILDERS["getNqeSchema"](snapshot_id=self._snapshot(snapshot_id))
+        )
+        return AnalysisNqeInlinedType.model_validate(payload or {})
+
+    def run_metrics(
+        self,
+        *,
+        from_: str | None = None,
+        to: str | None = None,
+        min_execution_seconds: int | None = None,
+        limit: int | None = None,
+    ) -> list[AnalysisNqeRunMetric]:
+        """Recent slow NQE runs. Unpublished, and it needs the DEBUG_NQE permission."""
+        payload = self._send_json(
+            rest.BUILDERS["listNqeRunMetrics"](
+                from_=from_, to=to, min_execution_seconds=min_execution_seconds, limit=limit
+            )
+        )
+        rows = payload if isinstance(payload, list) else (payload or {}).get("metrics") or []
+        return [AnalysisNqeRunMetric.model_validate(row) for row in rows]
 
     def queries(self, directory: str | None = None) -> list[NqeQuery]:
         """List queries in the library."""

@@ -907,8 +907,8 @@
             "type": "array"
           },
           "deprecated": {
-            "description": "Present when the type is deprecated.",
-            "type": "string"
+            "description": "True when the type is deprecated (live). On a field it is the replacement advice, a string; on a type it is a flag.",
+            "type": "boolean"
           },
           "docString": {
             "type": "string"

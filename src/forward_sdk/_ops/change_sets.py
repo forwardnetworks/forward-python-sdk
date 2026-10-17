@@ -16,6 +16,19 @@ from forward_sdk._ops import RequestSpec, op, spec_for
 
 TEXT = "text/plain; charset=utf-8"
 
+#: Forward refuses a device configuration larger than this, so the SDK does first.
+MAX_DEVICE_CONFIG_BYTES = 2 * 1024 * 1024
+
+
+def _config_bytes(config: str) -> bytes:
+    data = config.encode("utf-8")
+    if len(data) > MAX_DEVICE_CONFIG_BYTES:
+        raise ValueError(
+            f"a device configuration may be at most {MAX_DEVICE_CONFIG_BYTES} bytes, "
+            f"not {len(data)}"
+        )
+    return data
+
 
 def _cs(network_id: str, change_set_id: str | None = None, **more: str) -> dict[str, str]:
     params = {"networkId": network_id}
@@ -201,4 +214,64 @@ def delete_check(*, network_id: str, change_set_id: str, check_id: str) -> Reque
     return spec_for(
         "deleteChangeSetCheck",
         path_params=_cs(network_id, change_set_id, checkId=check_id),
+    )
+
+
+@op("saveChangeSetDraftDeviceConfig")
+def save_draft_device_config(
+    *, network_id: str, change_set_id: str, device_name: str, config: str
+) -> RequestSpec:
+    """Replace a device's whole draft configuration. The body is the text itself."""
+    return spec_for(
+        "saveChangeSetDraftDeviceConfig",
+        path_params=_cs(network_id, change_set_id, deviceName=device_name),
+        content=_config_bytes(config),
+        headers={"Content-Type": TEXT},
+    )
+
+
+@op("previewChangeSetDeviceConfig")
+def preview_device_config(
+    *, network_id: str, change_set_id: str, device_name: str, commands: str
+) -> RequestSpec:
+    """The configuration a device would have if ``commands`` were applied. Changes nothing."""
+    return spec_for(
+        "previewChangeSetDeviceConfig",
+        path_params=_cs(network_id, change_set_id, deviceName=device_name),
+        content=_config_bytes(commands),
+        headers={"Content-Type": TEXT},
+        accept="text/plain",
+        # A read despite the POST: nothing is stored, so repeating it is safe.
+        idempotent=True,
+    )
+
+
+@op("duplicateChangeSet")
+def duplicate(
+    *, network_id: str, change_set_id: str, body: Mapping[str, Any] | None = None
+) -> RequestSpec:
+    """Copy a change set within its own network."""
+    return spec_for(
+        "duplicateChangeSet",
+        path_params=_cs(network_id, change_set_id),
+        json=dict(body or {}),
+        idempotent=False,
+    )
+
+
+@op("duplicateChangeSetToNetwork")
+def duplicate_to_network(
+    *,
+    network_id: str,
+    change_set_id: str,
+    target_network_id: str,
+    body: Mapping[str, Any] | None = None,
+) -> RequestSpec:
+    """Copy a change set into another network, named by the query's targetNetworkId."""
+    return spec_for(
+        "duplicateChangeSetToNetwork",
+        path_params=_cs(network_id, change_set_id),
+        query={"targetNetworkId": target_network_id},
+        json=dict(body or {}),
+        idempotent=False,
     )

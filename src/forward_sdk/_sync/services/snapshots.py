@@ -17,10 +17,16 @@ from pathlib import Path
 from typing import Any
 
 from forward_sdk._generated.models import (
+    AnalysisCollectionExceptions,
+    AnalysisProcessEstimate,
+    AnalysisSnapshotProcessingQueue,
+    AnalysisSnapshotProgress,
     CollectorTask,
     SnapshotException,
     SnapshotExceptions,
     SnapshotInfo,
+    SnapshotRetentionPolicy,
+    SnapshotRetentionPreview,
     SnapshotState,
     StartCollectionResponse,
 )
@@ -489,6 +495,118 @@ class SnapshotsService(Service):
         """
         response = self._transport.send(ops.get_snapshot_exceptions_text(snapshot_id=snapshot_id))
         return response.text
+
+    def collection_exceptions(
+        self,
+        snapshot_id: str,
+        *,
+        limit: int | None = None,
+        occurrences_limit: int | None = None,
+    ) -> AnalysisCollectionExceptions:
+        """What went wrong while collecting a snapshot, merged by stack trace.
+
+        Unpublished. Collection, as opposed to the processing that
+        :meth:`exceptions` reports.
+        """
+        payload = self._send_json(
+            rest.BUILDERS["listSnapshotCollectionExceptions"](
+                snapshot_id=snapshot_id, limit=limit, occurrences_limit=occurrences_limit
+            )
+        )
+        return AnalysisCollectionExceptions.model_validate(payload or {})
+
+    def progress(self, snapshot_id: str) -> AnalysisSnapshotProgress:
+        """The latest progress report for a snapshot that is still being processed."""
+        payload = self._send_json(rest.BUILDERS["getSnapshotProgress"](snapshot_id=snapshot_id))
+        return AnalysisSnapshotProgress.model_validate(payload or {})
+
+    def process_estimate(self, snapshot_id: str) -> AnalysisProcessEstimate:
+        """Forward's estimate of how long processing a snapshot will take."""
+        payload = self._send_json(
+            rest.BUILDERS["getSnapshotProcessEstimate"](snapshot_id=snapshot_id)
+        )
+        return AnalysisProcessEstimate.model_validate(payload or {})
+
+    def processing_queue(self) -> AnalysisSnapshotProcessingQueue:
+        """The snapshots waiting for, and being given, processing capacity."""
+        payload = self._send_json(rest.BUILDERS["listSnapshotProcessingQueue"]())
+        return AnalysisSnapshotProcessingQueue.model_validate(payload or {})
+
+    def collection_log(self, snapshot_id: str) -> Iterator[bytes]:
+        """The collection log of a snapshot, streamed as plain text."""
+        spec = rest.BUILDERS["getSnapshotCollectionLog"](snapshot_id=snapshot_id)
+        with self._transport.stream(spec) as response:
+            for chunk in response.iter_bytes():
+                yield chunk
+
+    def logs(
+        self,
+        snapshot_id: str,
+        *,
+        device_name: str | None = None,
+        level: str | None = None,
+        backfilled: bool | None = None,
+    ) -> Iterator[bytes]:
+        """A snapshot's processing logs, streamed as plain text.
+
+        They are large: one live snapshot's came to hundreds of megabytes. Narrow
+        them with ``device_name`` or ``level`` before reading.
+        """
+        spec = rest.BUILDERS["getSnapshotLogs"](
+            snapshot_id=snapshot_id,
+            device_name=device_name,
+            level=level,
+            backfilled=backfilled,
+        )
+        with self._transport.stream(spec) as response:
+            for chunk in response.iter_bytes():
+                yield chunk
+
+    def favorite(self, snapshot_id: str) -> None:
+        """Keep a snapshot out of the network's automatic retention clean-up."""
+        self._transport.send(rest.BUILDERS["favoriteSnapshot"](snapshot_id=snapshot_id))
+
+    def unfavorite(self, snapshot_id: str) -> None:
+        """Let retention remove a snapshot again."""
+        self._transport.send(rest.BUILDERS["unfavoriteSnapshot"](snapshot_id=snapshot_id))
+
+    def set_note(self, snapshot_id: str, note: str) -> Mapping[str, Any]:
+        """Replace a snapshot's note. Returns the snapshot's metadata."""
+        payload = self._send_json(
+            rest.BUILDERS["updateSnapshotNote"](snapshot_id=snapshot_id, body={"note": note})
+        )
+        return dict(payload or {})
+
+    def retention_policy(self, network_id: str | None = None) -> SnapshotRetentionPolicy:
+        """How many snapshots of each age Forward keeps for a network."""
+        payload = self._send_json(
+            rest.BUILDERS["getSnapshotRetentionPolicy"](network_id=self._network(network_id))
+        )
+        return SnapshotRetentionPolicy.model_validate(payload or {})
+
+    def set_retention_policy(
+        self,
+        policy: SnapshotRetentionPolicy | Mapping[str, Any],
+        network_id: str | None = None,
+    ) -> None:
+        """Replace a network's retention policy. Every field is required."""
+        body = (
+            policy.model_dump(by_alias=True, exclude_none=True)
+            if isinstance(policy, SnapshotRetentionPolicy)
+            else dict(policy)
+        )
+        self._transport.send(
+            rest.BUILDERS["setSnapshotRetentionPolicy"](
+                network_id=self._network(network_id), body=body
+            )
+        )
+
+    def preview_retention(self, network_id: str | None = None) -> SnapshotRetentionPreview:
+        """Which snapshots the current policy would remove, without removing any."""
+        payload = self._send_json(
+            rest.BUILDERS["previewSnapshotRetention"](network_id=self._network(network_id))
+        )
+        return SnapshotRetentionPreview.model_validate(payload or {})
 
     def export(
         self,

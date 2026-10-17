@@ -24,6 +24,8 @@ from forward_sdk._async.services._base import AsyncService
 from forward_sdk._async.services.nqe_repo import AsyncNqeRepository
 from forward_sdk._async.transport import AsyncTransport
 from forward_sdk._generated.models import (
+    AnalysisNqeInlinedType,
+    AnalysisNqeRunMetric,
     NqeDiffEntry,
     NqeDiffResult,
     NqeExecutionStatus,
@@ -32,6 +34,7 @@ from forward_sdk._generated.models import (
 )
 from forward_sdk._http import parse_retry_after
 from forward_sdk._ops import nqe as ops
+from forward_sdk._ops import rest
 from forward_sdk.errors import (
     ForwardConfigurationError,
     ForwardExecutionError,
@@ -628,6 +631,34 @@ class AsyncNqeService(AsyncService):
         Bounded and thread-safe; reading it never raises.
         """
         return self._reports.all()
+
+    async def schema(self, snapshot_id: str | None = None) -> AnalysisNqeInlinedType:
+        """The NQE data model as one tree, member types written out inline.
+
+        Unpublished. Large, and recursive. A type's ``deprecated`` is a flag; a
+        field's is the advice to follow instead.
+        """
+        payload = await self._send_json(
+            rest.BUILDERS["getNqeSchema"](snapshot_id=self._snapshot(snapshot_id))
+        )
+        return AnalysisNqeInlinedType.model_validate(payload or {})
+
+    async def run_metrics(
+        self,
+        *,
+        from_: str | None = None,
+        to: str | None = None,
+        min_execution_seconds: int | None = None,
+        limit: int | None = None,
+    ) -> list[AnalysisNqeRunMetric]:
+        """Recent slow NQE runs. Unpublished, and it needs the DEBUG_NQE permission."""
+        payload = await self._send_json(
+            rest.BUILDERS["listNqeRunMetrics"](
+                from_=from_, to=to, min_execution_seconds=min_execution_seconds, limit=limit
+            )
+        )
+        rows = payload if isinstance(payload, list) else (payload or {}).get("metrics") or []
+        return [AnalysisNqeRunMetric.model_validate(row) for row in rows]
 
     async def queries(self, directory: str | None = None) -> list[NqeQuery]:
         """List queries in the library."""

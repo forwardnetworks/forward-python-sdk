@@ -17,12 +17,15 @@ and digest of what it saved rather than checking a pinned one.
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from email.message import Message
 from pathlib import Path
+from typing import Any
 
+from forward_sdk._generated.models import SysDeploymentArtifact
 from forward_sdk._ops import client_software as ops
+from forward_sdk._ops import rest
 from forward_sdk._sync.services._base import Service
 
 __all__ = ["ClientPackage", "ClientSoftwareService"]
@@ -82,6 +85,27 @@ class ClientSoftwareService(Service):
                 partial.unlink(missing_ok=True)
                 raise
         return ClientPackage(path=target, file_name=file_name, size=size, sha256=digest.hexdigest())
+
+    def deployment_artifacts(self, type: str | None = None) -> list[SysDeploymentArtifact]:
+        """The appliance images and other artifacts Forward offers for download.
+
+        Unpublished, and it needs the SOFTWARE_CENTRAL organization property: an
+        organization without it is refused with 403 (seen on a hosted one).
+        """
+        payload = self._send_json(rest.BUILDERS["listDeploymentArtifacts"](type=type))
+        rows = payload if isinstance(payload, list) else (payload or {}).get("artifacts") or []
+        return [SysDeploymentArtifact.model_validate(row) for row in rows]
+
+    def deployment_artifact_url(
+        self, artifact_id: str, version_id: str | None = None
+    ) -> Mapping[str, Any]:
+        """A short-lived download URL for one artifact (Forward's reply, unmodelled)."""
+        payload = self._send_json(
+            rest.BUILDERS["getDeploymentArtifactUrl"](
+                artifact_id=artifact_id, version_id=version_id
+            )
+        )
+        return dict(payload or {})
 
 
 def _disposition_filename(header: str) -> str:

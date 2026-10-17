@@ -35,6 +35,7 @@ from forward_sdk._generated.models import (
     SnapshotInfo,
 )
 from forward_sdk._ops import change_sets as ops
+from forward_sdk._ops import rest
 
 if TYPE_CHECKING:  # pragma: no cover
     from forward_sdk._async.services.snapshots import AsyncSnapshotsService
@@ -341,6 +342,140 @@ class AsyncChangeSetHandle:
         await self._service._transport.send(
             ops.delete_check(network_id=self.network_id, change_set_id=self.id, check_id=check_id)
         )
+
+    # -- commits and configurations --------------------------------------
+
+    async def commit_detail(self, commit_id: str) -> CommittedChangeSet:
+        """One commit, with the device changes it carried."""
+        payload = await self._service._send_json(
+            rest.BUILDERS["getChangeSetCommit"](
+                network_id=self.network_id, change_set_id=self.id, commit_id=commit_id
+            )
+        )
+        return CommittedChangeSet.model_validate(payload or {})
+
+    async def edit_commit_note(self, commit_id: str, note: str) -> ChangeSetCommit:
+        """Replace a commit's note. The note must not be blank."""
+        payload = await self._service._send_json(
+            rest.BUILDERS["updateChangeSetCommitNote"](
+                network_id=self.network_id, change_set_id=self.id, commit_id=commit_id, note=note
+            )
+        )
+        return ChangeSetCommit.model_validate(payload or {})
+
+    async def delete_commit(self, commit_id: str) -> None:
+        """Delete a commit and the predicted snapshots made from it. Not reversible."""
+        await self._service._transport.send(
+            rest.BUILDERS["deleteChangeSetCommit"](
+                network_id=self.network_id, change_set_id=self.id, commit_id=commit_id
+            )
+        )
+
+    async def restore_commit(self, commit_id: str) -> ChangeSetCommit:
+        """Make the change set's draft match a commit again."""
+        payload = await self._service._send_json(
+            rest.BUILDERS["restoreChangeSetCommit"](
+                network_id=self.network_id, change_set_id=self.id, commit_id=commit_id
+            )
+        )
+        return ChangeSetCommit.model_validate(payload or {})
+
+    async def restore_commit_as_new(
+        self,
+        commit_id: str,
+        *,
+        name: str | None = None,
+        base_snapshot_id: str | None = None,
+    ) -> CommittedChangeSet:
+        """Start a new change set from a commit, leaving this one as it is."""
+        payload = await self._service._send_json(
+            rest.BUILDERS["restoreChangeSetCommitAsNew"](
+                network_id=self.network_id,
+                change_set_id=self.id,
+                commit_id=commit_id,
+                target_name=name,
+                target_base_snapshot_id=base_snapshot_id,
+            )
+        )
+        return CommittedChangeSet.model_validate(payload or {})
+
+    async def duplicate(
+        self,
+        *,
+        name: str | None = None,
+        base_snapshot_id: str | None = None,
+        target_network_id: str | None = None,
+    ) -> ChangeSet:
+        """Copy this change set, optionally into another network.
+
+        A copy into another network needs ``base_snapshot_id``, a snapshot of that
+        network to base it on.
+        """
+        if target_network_id is not None and base_snapshot_id is None:
+            raise ValueError("copying to another network needs a base_snapshot_id there")
+        body = {
+            key: value
+            for key, value in (("targetName", name), ("targetBaseSnapshotId", base_snapshot_id))
+            if value is not None
+        }
+        if target_network_id is None:
+            builder = ops.duplicate(network_id=self.network_id, change_set_id=self.id, body=body)
+        else:
+            builder = ops.duplicate_to_network(
+                network_id=self.network_id,
+                change_set_id=self.id,
+                target_network_id=target_network_id,
+                body=body,
+            )
+        return ChangeSet.model_validate(await self._service._send_json(builder) or {})
+
+    async def draft_device_config(self, device_name: str) -> str:
+        """A device's whole draft configuration, as text."""
+        response = await self._service._transport.send(
+            rest.BUILDERS["getChangeSetDraftDeviceConfig"](
+                network_id=self.network_id, change_set_id=self.id, device_name=device_name
+            )
+        )
+        return response.text
+
+    async def save_draft_device_config(self, device_name: str, config: str) -> None:
+        """Replace a device's whole draft configuration (at most 2 MB).
+
+        Where :meth:`set_commands` stages commands to run, this replaces the
+        configuration itself.
+        """
+        await self._service._transport.send(
+            ops.save_draft_device_config(
+                network_id=self.network_id,
+                change_set_id=self.id,
+                device_name=device_name,
+                config=config,
+            )
+        )
+
+    async def committed_device_config(self, commit_id: str, device_name: str) -> str:
+        """A device's configuration as of a commit, as text."""
+        response = await self._service._transport.send(
+            rest.BUILDERS["getChangeSetCommittedDeviceConfig"](
+                network_id=self.network_id,
+                change_set_id=self.id,
+                commit_id=commit_id,
+                device_name=device_name,
+            )
+        )
+        return response.text
+
+    async def preview_device_config(self, device_name: str, commands: str) -> str:
+        """What a device's configuration would be after ``commands``. Stages nothing."""
+        response = await self._service._transport.send(
+            ops.preview_device_config(
+                network_id=self.network_id,
+                change_set_id=self.id,
+                device_name=device_name,
+                commands=commands,
+            )
+        )
+        return response.text
 
     async def delete(self) -> None:
         """Delete this change set."""

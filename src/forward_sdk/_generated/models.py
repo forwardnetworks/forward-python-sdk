@@ -16744,9 +16744,9 @@ class AnalysisNqeInlinedType(ForwardModel):
         populate_by_name=True,
     )
     alternatives: list[AnalysisNqeInlinedAlternative] | None = None
-    deprecated: str | None = None
+    deprecated: bool | None = None
     """
-    Present when the type is deprecated.
+    True when the type is deprecated (live). On a field it is the replacement advice, a string; on a type it is a flag.
     """
     doc_string: Annotated[str | None, Field(alias="docString")] = None
     fields: list[AnalysisNqeInlinedField] | None = None

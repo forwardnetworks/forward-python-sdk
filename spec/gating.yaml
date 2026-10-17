@@ -25,3 +25,18 @@ tags:
     - admin
   Data Connectors:
     - admin
+  Access Control:
+    - admin
+  Audit Logs:
+    - admin
+  Organizations:
+    - admin
+  SAML:
+    - admin
+  Jobs:
+    - admin
+  Licensing:
+    - admin
+  Backups:
+    - deployment
+    - admin

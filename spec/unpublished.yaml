@@ -18725,8 +18725,10 @@ components:
           items: { $ref: "#/components/schemas/AnalysisNqeInlinedAlternative" }
         docString: { type: string }
         deprecated:
-          type: string
-          description: Present when the type is deprecated.
+          type: boolean
+          description: >-
+            True when the type is deprecated (live). On a field it is the
+            replacement advice, a string; on a type it is a flag.
         restricted:
           type: boolean
           description: True when the caller's licence does not include this part of the model.

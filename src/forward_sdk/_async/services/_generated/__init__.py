@@ -11,6 +11,8 @@ from forward_sdk._async.services._generated.access_control import AsyncAccessCon
 from forward_sdk._async.services._generated.adjacent_networks import AsyncAdjacentNetworksService
 from forward_sdk._async.services._generated.aliases import AsyncAliasesService
 from forward_sdk._async.services._generated.audit_logs import AsyncAuditLogsService
+from forward_sdk._async.services._generated.backups import AsyncBackupsService
+from forward_sdk._async.services._generated.banners import AsyncBannersService
 from forward_sdk._async.services._generated.bgp_advertisements import AsyncBGPAdvertisementsService
 from forward_sdk._async.services._generated.blast_radius import AsyncBlastRadiusService
 from forward_sdk._async.services._generated.change_set_directories import (
@@ -22,6 +24,9 @@ from forward_sdk._async.services._generated.cloud_accounts import AsyncCloudAcco
 from forward_sdk._async.services._generated.cloud_objects import AsyncCloudObjectsService
 from forward_sdk._async.services._generated.collection_schedules import (
     AsyncCollectionSchedulesService,
+)
+from forward_sdk._async.services._generated.collection_settings import (
+    AsyncCollectionSettingsService,
 )
 from forward_sdk._async.services._generated.collection_sources import AsyncCollectionSourcesService
 from forward_sdk._async.services._generated.collector_binding import AsyncCollectorBindingService
@@ -44,10 +49,12 @@ from forward_sdk._async.services._generated.integrations import AsyncIntegration
 from forward_sdk._async.services._generated.internet_exposure import AsyncInternetExposureService
 from forward_sdk._async.services._generated.internet_node import AsyncInternetNodeService
 from forward_sdk._async.services._generated.intranet_nodes import AsyncIntranetNodesService
+from forward_sdk._async.services._generated.jobs import AsyncJobsService
 from forward_sdk._async.services._generated.jump_servers import AsyncJumpServersService
 from forward_sdk._async.services._generated.l2vpns import AsyncL2vpnsService
 from forward_sdk._async.services._generated.l3vpns import AsyncL3vpnsService
 from forward_sdk._async.services._generated.legacy_collection import AsyncLegacyCollectionService
+from forward_sdk._async.services._generated.licensing import AsyncLicensingService
 from forward_sdk._async.services._generated.network_collection import AsyncNetworkCollectionService
 from forward_sdk._async.services._generated.network_endpoints import AsyncNetworkEndpointsService
 from forward_sdk._async.services._generated.network_locations import AsyncNetworkLocationsService
@@ -94,6 +101,8 @@ __all__ = [
     "AsyncAliasesService",
     "AsyncAuditLogsService",
     "AsyncBGPAdvertisementsService",
+    "AsyncBackupsService",
+    "AsyncBannersService",
     "AsyncBlastRadiusService",
     "AsyncChangeSetDirectoriesService",
     "AsyncChecksService",
@@ -101,6 +110,7 @@ __all__ = [
     "AsyncCloudAccountsService",
     "AsyncCloudObjectsService",
     "AsyncCollectionSchedulesService",
+    "AsyncCollectionSettingsService",
     "AsyncCollectionSourcesService",
     "AsyncCollectorBindingService",
     "AsyncCollectorTasksService",
@@ -121,10 +131,12 @@ __all__ = [
     "AsyncInternetExposureService",
     "AsyncInternetNodeService",
     "AsyncIntranetNodesService",
+    "AsyncJobsService",
     "AsyncJumpServersService",
     "AsyncL2vpnsService",
     "AsyncL3vpnsService",
     "AsyncLegacyCollectionService",
+    "AsyncLicensingService",
     "AsyncNQEPanelsService",
     "AsyncNetworkCollectionService",
     "AsyncNetworkEndpointsService",
@@ -164,6 +176,8 @@ class AsyncGeneratedServices:
     aliases: AsyncAliasesService
     audit_logs: AsyncAuditLogsService
     bgp_advertisements: AsyncBGPAdvertisementsService
+    backups: AsyncBackupsService
+    banners: AsyncBannersService
     blast_radius: AsyncBlastRadiusService
     change_set_directories: AsyncChangeSetDirectoriesService
     checks: AsyncChecksService
@@ -171,6 +185,7 @@ class AsyncGeneratedServices:
     cloud_accounts: AsyncCloudAccountsService
     cloud_objects: AsyncCloudObjectsService
     collection_schedules: AsyncCollectionSchedulesService
+    collection_settings: AsyncCollectionSettingsService
     collection_sources: AsyncCollectionSourcesService
     collector_binding: AsyncCollectorBindingService
     collector_tasks: AsyncCollectorTasksService
@@ -190,10 +205,12 @@ class AsyncGeneratedServices:
     internet_exposure: AsyncInternetExposureService
     internet_node: AsyncInternetNodeService
     intranet_nodes: AsyncIntranetNodesService
+    jobs: AsyncJobsService
     jump_servers: AsyncJumpServersService
     l2vpns: AsyncL2vpnsService
     l3vpns: AsyncL3vpnsService
     legacy_collection: AsyncLegacyCollectionService
+    licensing: AsyncLicensingService
     nqe_panels: AsyncNQEPanelsService
     network_collection: AsyncNetworkCollectionService
     network_endpoints: AsyncNetworkEndpointsService
@@ -225,6 +242,8 @@ class AsyncGeneratedServices:
         self.aliases = AsyncAliasesService(transport)
         self.audit_logs = AsyncAuditLogsService(transport)
         self.bgp_advertisements = AsyncBGPAdvertisementsService(transport)
+        self.backups = AsyncBackupsService(transport)
+        self.banners = AsyncBannersService(transport)
         self.blast_radius = AsyncBlastRadiusService(transport)
         self.change_set_directories = AsyncChangeSetDirectoriesService(transport)
         self.checks = AsyncChecksService(transport)
@@ -232,6 +251,7 @@ class AsyncGeneratedServices:
         self.cloud_accounts = AsyncCloudAccountsService(transport)
         self.cloud_objects = AsyncCloudObjectsService(transport)
         self.collection_schedules = AsyncCollectionSchedulesService(transport)
+        self.collection_settings = AsyncCollectionSettingsService(transport)
         self.collection_sources = AsyncCollectionSourcesService(transport)
         self.collector_binding = AsyncCollectorBindingService(transport)
         self.collector_tasks = AsyncCollectorTasksService(transport)
@@ -251,10 +271,12 @@ class AsyncGeneratedServices:
         self.internet_exposure = AsyncInternetExposureService(transport)
         self.internet_node = AsyncInternetNodeService(transport)
         self.intranet_nodes = AsyncIntranetNodesService(transport)
+        self.jobs = AsyncJobsService(transport)
         self.jump_servers = AsyncJumpServersService(transport)
         self.l2vpns = AsyncL2vpnsService(transport)
         self.l3vpns = AsyncL3vpnsService(transport)
         self.legacy_collection = AsyncLegacyCollectionService(transport)
+        self.licensing = AsyncLicensingService(transport)
         self.nqe_panels = AsyncNQEPanelsService(transport)
         self.network_collection = AsyncNetworkCollectionService(transport)
         self.network_endpoints = AsyncNetworkEndpointsService(transport)
@@ -288,6 +310,8 @@ SERVICE_TAGS: dict[str, str] = {
     "Aliases": "aliases",
     "Audit Logs": "audit_logs",
     "BGP Advertisements": "bgp_advertisements",
+    "Backups": "backups",
+    "Banners": "banners",
     "Blast Radius": "blast_radius",
     "Change Set Directories": "change_set_directories",
     "Checks": "checks",
@@ -295,6 +319,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Cloud Accounts": "cloud_accounts",
     "Cloud Objects": "cloud_objects",
     "Collection Schedules": "collection_schedules",
+    "Collection Settings": "collection_settings",
     "Collection Sources": "collection_sources",
     "Collector Binding": "collector_binding",
     "Collector Tasks": "collector_tasks",
@@ -314,10 +339,12 @@ SERVICE_TAGS: dict[str, str] = {
     "Internet Exposure": "internet_exposure",
     "Internet Node": "internet_node",
     "Intranet Nodes": "intranet_nodes",
+    "Jobs": "jobs",
     "Jump Servers": "jump_servers",
     "L2VPNs": "l2vpns",
     "L3VPNs": "l3vpns",
     "Legacy Collection": "legacy_collection",
+    "Licensing": "licensing",
     "NQE Panels": "nqe_panels",
     "Network Collection": "network_collection",
     "Network Endpoints": "network_endpoints",

@@ -18883,6 +18883,1534 @@
         ],
         "type": "object"
       },
+      "SysActiveJobInfo": {
+        "description": "One row, or a group of identical rows, of running or queued work. Field names are from the Java record ActiveJobInfo; the endpoint itself is ADMINISTER_SYSTEM, so it was not live-verified.",
+        "properties": {
+          "cancelLink": {
+            "description": "Opaque. Pass it to cancelJob unchanged.",
+            "type": "string"
+          },
+          "creationTime": {
+            "description": "When the job was created, or the earliest creation time in a group. Serialization is set by Forward's mapper and was not checked.",
+            "type": "string"
+          },
+          "durationInSeconds": {
+            "type": "integer"
+          },
+          "jobType": {
+            "type": "string"
+          },
+          "longestQueuedTimeInSeconds": {
+            "type": "integer"
+          },
+          "longestRunningTimeInSeconds": {
+            "type": "integer"
+          },
+          "networkId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "orgName": {
+            "type": "string"
+          },
+          "queued": {
+            "description": "1 when waiting in the queue. For a group, the count.",
+            "type": "integer"
+          },
+          "running": {
+            "description": "1 when executing. For a group, the count.",
+            "type": "integer"
+          },
+          "snapshotId": {
+            "description": "Absent for network-level jobs.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "totalCount": {
+            "description": "1, or the number of jobs in the group.",
+            "type": "integer"
+          },
+          "waitingForOtherJobs": {
+            "description": "1 when blocked by a stage-dependency job, 0 otherwise. For a group, the count.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "jobType",
+          "orgName",
+          "networkId",
+          "creationTime",
+          "cancelLink",
+          "totalCount"
+        ],
+        "type": "object"
+      },
+      "SysAppBackup": {
+        "description": "One stored backup. Source-only (not live-verified). Size is in bytes.",
+        "properties": {
+          "appVersion": {
+            "description": "The Forward version that wrote the backup.",
+            "type": "string"
+          },
+          "backupTimeMillis": {
+            "description": "When the backup was taken, as epoch milliseconds.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "note": {
+            "description": "A note given when the backup was taken. Absent when none.",
+            "type": "string"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "snapshotsIncluded": {
+            "type": "boolean"
+          },
+          "storageType": {
+            "enum": [
+              "INTERNAL",
+              "S3"
+            ],
+            "type": "string"
+          },
+          "triggerType": {
+            "enum": [
+              "MANUAL",
+              "SCHEDULED"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "storageType",
+          "triggerType",
+          "appVersion",
+          "snapshotsIncluded",
+          "size"
+        ],
+        "type": "object"
+      },
+      "SysApprovedCliCommands": {
+        "description": "The CLI commands endpoint profiles may run. signedAt and the uploaded fields are absent for the system defaults.",
+        "properties": {
+          "commands": {
+            "items": {
+              "description": "A regular expression.",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "signedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "uploadedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "uploadedById": {
+            "description": "The id of the user who uploaded the file.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "commands"
+        ],
+        "type": "object"
+      },
+      "SysAsciiCodedSignedLicenseKey": {
+        "properties": {
+          "signedLicenseKey": {
+            "description": "The ASCII-encoded signed license key. Secret-like.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signedLicenseKey"
+        ],
+        "type": "object"
+      },
+      "SysCbrOperationStatus": {
+        "description": "The state of an application or snapshot part of a cluster operation.",
+        "enum": [
+          "NOT_STARTED",
+          "IN_PROGRESS",
+          "ERROR",
+          "DONE",
+          "CANCELLED",
+          "NETWORK_MISSING"
+        ],
+        "type": "string"
+      },
+      "SysCliCommandAssessment": {
+        "properties": {
+          "approved": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "unapproved": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "approved",
+          "unapproved"
+        ],
+        "type": "object"
+      },
+      "SysClusterOperation": {
+        "description": "A cluster backup or restore that is running or has just finished. Source-only. Java enum BACKUP/RESTORE; the wire value is the constant name unless Forward's mapper is configured otherwise (not checked). The Go SDK comment says lower-case, which disagrees with the Java enum.",
+        "properties": {
+          "appStatus": {
+            "$ref": "#/components/schemas/SysCbrOperationStatus"
+          },
+          "id": {
+            "description": "The operation id, a timestamp in seconds.",
+            "type": "string"
+          },
+          "snapshotToStatus": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SysCbrOperationStatus"
+            },
+            "description": "The state of each snapshot involved, keyed by snapshot id.",
+            "type": "object"
+          },
+          "type": {
+            "enum": [
+              "BACKUP",
+              "RESTORE"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SysClusterOperationResult": {
+        "description": "The outcome of a completed cluster operation. Source-only.",
+        "properties": {
+          "appStatus": {
+            "$ref": "#/components/schemas/SysCbrOperationStatus"
+          },
+          "id": {
+            "type": "string"
+          },
+          "snapshotToStatus": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SysCbrOperationStatus"
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "SysCollectorCollectionSettings": {
+        "description": "The collection settings stored for one collector. Zero values are omitted.",
+        "properties": {
+          "concurrency": {
+            "description": "Devices collected at once.",
+            "type": "integer"
+          },
+          "snmpCollectionConcurrency": {
+            "type": "integer"
+          },
+          "vcenterConcurrency": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SysCollectorCollectionSettingsPatch": {
+        "description": "A partial change to a collector's settings. An explicit null resets the field to Forward's default.",
+        "properties": {
+          "concurrency": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "snmpCollectionConcurrency": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "vcenterConcurrency": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "SysCollectorCredentials": {
+        "description": "A collector's name and, in a response, its username and new password. The password is shown once and is never returned again.",
+        "properties": {
+          "collectorName": {
+            "type": "string"
+          },
+          "password": {
+            "description": "Returned in the response only. Secret.",
+            "type": "string",
+            "writeOnly": true
+          },
+          "username": {
+            "description": "Returned in the response. Unchanged by a reset.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "collectorName"
+        ],
+        "type": "object"
+      },
+      "SysCollectorDiskUsage": {
+        "properties": {
+          "availableMb": {
+            "type": "integer"
+          },
+          "sizeMb": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SysCollectorMetricSample": {
+        "description": "One sample uploaded by a collector. The series are CPU, memory, garbage collection, file descriptors, disk and task executor. No network throughput is recorded.",
+        "properties": {
+          "cpuMetrics": {
+            "properties": {
+              "cpuCores": {
+                "type": "integer"
+              },
+              "cpuLoad": {
+                "description": "The host's recent load as a fraction 0 to 1. Below 0 means not measured yet.",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "diskMetrics": {
+            "description": "Megabytes, for the collector data volume, the OS volume and the temp volume.",
+            "properties": {
+              "collector": {
+                "$ref": "#/components/schemas/SysCollectorDiskUsage"
+              },
+              "os": {
+                "$ref": "#/components/schemas/SysCollectorDiskUsage"
+              },
+              "tmp": {
+                "$ref": "#/components/schemas/SysCollectorDiskUsage"
+              }
+            },
+            "type": "object"
+          },
+          "fileMetrics": {
+            "properties": {
+              "fileDescriptorsMax": {
+                "type": "integer"
+              },
+              "fileDescriptorsOpen": {
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "gcMetrics": {
+            "properties": {
+              "gcLoad": {
+                "description": "The fraction of the interval since the previous sample spent in GC.",
+                "type": "number"
+              },
+              "gcTimeSeconds": {
+                "description": "A cumulative counter since the collector JVM started.",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "memoryMetrics": {
+            "description": "Megabytes.",
+            "properties": {
+              "jvmMemFreeMb": {
+                "description": "Free space within the heap the JVM has committed so far.",
+                "type": "integer"
+              },
+              "jvmMemMaxMb": {
+                "type": "integer"
+              },
+              "procRssMb": {
+                "type": "integer"
+              },
+              "vmMemFreeMb": {
+                "type": "integer"
+              },
+              "vmMemTotalMb": {
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "taskMetrics": {
+            "properties": {
+              "concurrency": {
+                "description": "The executor's configured size.",
+                "type": "integer"
+              },
+              "queueSize": {
+                "type": "integer"
+              },
+              "tasksFinished": {
+                "type": "integer"
+              },
+              "tasksStarted": {
+                "description": "A running total since the collector process started.",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SysCollectorMetricsResponse": {
+        "properties": {
+          "metrics": {
+            "description": "The samples, oldest first.",
+            "items": {
+              "$ref": "#/components/schemas/SysCollectorMetricSample"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "metrics"
+        ],
+        "type": "object"
+      },
+      "SysCommonBackupSettings": {
+        "description": "The backup schedule and retention for one storage type. Source-only.",
+        "properties": {
+          "backupTime": {
+            "description": "Time of day, HH:mm.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether the scheduled backup runs.",
+            "type": "boolean"
+          },
+          "includeSnapshots": {
+            "type": "boolean"
+          },
+          "numDaysToRetain": {
+            "description": "Days to keep backups. Defaults to 30.",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "backupTime",
+          "numDaysToRetain",
+          "includeSnapshots"
+        ],
+        "type": "object"
+      },
+      "SysCommonBackupSettingsPatch": {
+        "description": "A change to the backup settings. Omitted fields keep their stored value; null also keeps it. Source-only.",
+        "properties": {
+          "backupTime": {
+            "description": "Time of day, HH:mm.",
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "includeSnapshots": {
+            "type": "boolean"
+          },
+          "numDaysToRetain": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SysCompletedJobInfo": {
+        "description": "One row, or a group, of finished work. Field names from the Java record CompletedJobInfo; not live-verified.",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "creationTime": {
+            "type": "string"
+          },
+          "durationInSeconds": {
+            "type": "integer"
+          },
+          "earliestStartTime": {
+            "type": "string"
+          },
+          "jobType": {
+            "type": "string"
+          },
+          "latestEndTime": {
+            "type": "string"
+          },
+          "longestQueueTimeInSeconds": {
+            "type": "integer"
+          },
+          "longestRunningTimeInSeconds": {
+            "type": "integer"
+          },
+          "networkId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "orgName": {
+            "type": "string"
+          },
+          "snapshotId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "SUCCEEDED",
+              "FAILED",
+              "CANCELED",
+              "TIMED_OUT"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SysCriticalStates": {
+        "additionalProperties": true,
+        "description": "The critical-state flags. Only keys that apply to this deployment are present. License-status states (LICENSE_EXPIRED and the like) are not in this map; the UI derives them from the license status.",
+        "properties": {
+          "COLLECTOR_OUTDATED": {
+            "type": "boolean"
+          },
+          "LICENSE_CCH_EXHAUSTED": {
+            "type": "boolean"
+          },
+          "LICENSE_CCH_GRACE_PERIOD_ENDED": {
+            "type": "boolean"
+          },
+          "LOW_STORAGE": {
+            "type": "boolean"
+          },
+          "MAINTENANCE_WINDOW": {
+            "description": "The scheduled upgrade window, or null when none is scheduled.",
+            "properties": {
+              "end": {
+                "description": "Epoch milliseconds.",
+                "format": "int64",
+                "type": "integer"
+              },
+              "start": {
+                "description": "Epoch milliseconds.",
+                "format": "int64",
+                "type": "integer"
+              }
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "NO_BACKUP_STORAGE": {
+            "type": "boolean"
+          },
+          "NO_STORAGE": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "SysCustomBanner": {
+        "description": "A banner shown in the UI for each of some set of networks.",
+        "properties": {
+          "backgroundColor": {
+            "description": "A banner colour. The observed value is GREEN; the full set is in Forward's Color enum (not listed here).",
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "message": {
+            "description": "Must not be blank.",
+            "type": "string"
+          },
+          "networkIds": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "enabled",
+          "message",
+          "backgroundColor",
+          "networkIds"
+        ],
+        "type": "object"
+      },
+      "SysCustomBannerList": {
+        "properties": {
+          "banners": {
+            "items": {
+              "$ref": "#/components/schemas/SysCustomBanner"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "banners"
+        ],
+        "type": "object"
+      },
+      "SysDecodedLicenseKey": {
+        "description": "A preview of a license key. license and started are absent when the key is invalid.",
+        "properties": {
+          "license": {
+            "$ref": "#/components/schemas/SysLicense"
+          },
+          "started": {
+            "description": "Whether the license has started by now.",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "VALID",
+              "INVALID_LICENSE",
+              "INVALID_SIGNATURE",
+              "INVALID_FINGERPRINT",
+              "EXPIRED",
+              "UNSUPPORTED_TYPE",
+              "WRONG_TIER",
+              "REPLACEMENT_PENDING",
+              "BAD_TRIAL_TIER",
+              "BAD_TIER_TRIAL_TIMING",
+              "CCH_DEBT_UNPAID",
+              "ALREADY_USED"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "SysDeploymentArtifact": {
+        "description": "One installer or upgrade artifact, with every version Forward still serves. Source-only (Software Central is off on the hosted account).",
+        "properties": {
+          "deploymentTypes": {
+            "items": {
+              "enum": [
+                "VMWARE_HYPERVISOR",
+                "AWS_EC2",
+                "AWS_GOVCLOUD_EC2",
+                "AZURE_VM",
+                "AZURE_GOV_VM",
+                "GCP_VM",
+                "KVM_HYPERVISOR"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/SysDeploymentArtifactVersion"
+            },
+            "type": "array"
+          },
+          "workflow": {
+            "description": "INSTALLATION stands up a new instance. APP_UPGRADE moves an existing one forward.",
+            "enum": [
+              "INSTALLATION",
+              "APP_UPGRADE"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "deploymentTypes",
+          "workflow",
+          "versions"
+        ],
+        "type": "object"
+      },
+      "SysDeploymentArtifactVersion": {
+        "description": "One downloadable file. Source-only.",
+        "properties": {
+          "baseVersion": {
+            "type": "string"
+          },
+          "fileType": {
+            "enum": [
+              "OVA",
+              "TAR_GZ",
+              "AIRGAP",
+              "PACKAGE"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "maxBaseVersion": {
+            "type": "string"
+          },
+          "minBaseVersion": {
+            "type": "string"
+          },
+          "sha256": {
+            "description": "The SHA-256 digest of the file.",
+            "type": "string"
+          },
+          "sizeInBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "uploadedAt": {
+            "description": "Epoch milliseconds.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "uploadedBy": {
+            "description": "The id of the user who uploaded it.",
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "fileType",
+          "sizeInBytes",
+          "uploadedAt"
+        ],
+        "type": "object"
+      },
+      "SysDisabledCommand": {
+        "description": "One built-in collection command switched off for a range of software versions.",
+        "properties": {
+          "command": {
+            "description": "A case-insensitive Java regular expression, matched against the command Forward would run.",
+            "type": "string"
+          },
+          "version": {
+            "$ref": "#/components/schemas/SysDisabledCommandVersion"
+          }
+        },
+        "required": [
+          "command",
+          "version"
+        ],
+        "type": "object"
+      },
+      "SysDisabledCommandVersion": {
+        "description": "The inclusive range of software versions, as release version strings.",
+        "properties": {
+          "end": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ],
+        "type": "object"
+      },
+      "SysInstanceFingerprint": {
+        "properties": {
+          "instanceId": {
+            "description": "The fingerprint, encoded.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instanceId"
+        ],
+        "type": "object"
+      },
+      "SysLicense": {
+        "description": "A license, as Forward records it. Observed live.",
+        "properties": {
+          "cloudCreditHours": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "edgeAssetCap": {
+            "type": "integer"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "licensedTo": {
+            "type": "string"
+          },
+          "liteDeviceCap": {
+            "type": "integer"
+          },
+          "purchaseOrder": {
+            "type": "string"
+          },
+          "replaces": {
+            "type": "boolean"
+          },
+          "standardDeviceCap": {
+            "type": "integer"
+          },
+          "startsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "tier": {
+            "description": "The license tier. The observed value is NS.",
+            "enum": [
+              "B",
+              "N",
+              "NP",
+              "S",
+              "NS",
+              "NSP"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "description": "The observed value is TIER.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SysLicenseDetails": {
+        "description": "A license and the signed key generated from it, once activated. invalidated is omitted when false. Observed live; the Java field list is in LicenseDetails.java.",
+        "properties": {
+          "fingerprint": {
+            "description": "The fingerprint of the instance the key is bound to.",
+            "type": "string"
+          },
+          "invalidated": {
+            "description": "Present only when true.",
+            "type": "boolean"
+          },
+          "license": {
+            "$ref": "#/components/schemas/SysLicense"
+          },
+          "signedLicenseKey": {
+            "description": "The ASCII signed key, when one exists. Secret-like; do not log.",
+            "type": "string"
+          },
+          "usedAt": {
+            "description": "When the license was added to this deployment or activated.",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SysLicenseDetailsWithStatus": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SysLicenseDetails"
+          },
+          {
+            "properties": {
+              "status": {
+                "enum": [
+                  "NOT_ACTIVE_YET",
+                  "ACTIVE",
+                  "EXPIRED",
+                  "REPLACED"
+                ],
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        ]
+      },
+      "SysLicenseTierAndStatus": {
+        "description": "The tier and status. Both are absent for an unlicensed organization.",
+        "properties": {
+          "licenseStatus": {
+            "enum": [
+              "SOFTWARE_CENTRAL",
+              "EXEMPT",
+              "ACTIVE",
+              "NOT_ACTIVE_YET",
+              "EXPIRED_RECENTLY",
+              "EXPIRED"
+            ],
+            "type": "string"
+          },
+          "licenseTier": {
+            "enum": [
+              "B",
+              "N",
+              "NP",
+              "S",
+              "NS",
+              "NSP"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SysNewCustomBanner": {
+        "description": "A new banner. The id is assigned by Forward.",
+        "properties": {
+          "backgroundColor": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "networkIds": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "enabled",
+          "message",
+          "backgroundColor",
+          "networkIds"
+        ],
+        "type": "object"
+      },
+      "SysNewProxyServer": {
+        "description": "The fields for a new proxy. name, host and port are required by the service, not by the schema.",
+        "properties": {
+          "disableCertChecking": {
+            "type": "boolean"
+          },
+          "host": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "port": {
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "protocol": {
+            "enum": [
+              "http",
+              "https"
+            ],
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SysOrgCollectionSettings": {
+        "additionalProperties": true,
+        "description": "The organization-wide collection settings. Only settings that have been set are present. Fields not modelled here (the rib route and redaction settings) are also returned. Timeouts are in minutes.",
+        "properties": {
+          "collectFullConfigDeviceTypes": {
+            "description": "Device types for which the full running configuration is collected.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "collectionMaxRetryDelayMillis": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "collectionRetries": {
+            "description": "Retries after the first attempt. 0 turns retries off.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "collectionRetryDelayMillis": {
+            "description": "The first retry delay. Doubles up to the maximum.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "commandDelayMs": {
+            "description": "Time to wait after each command is sent to a device.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "defaultRedactionAlgorithm": {
+            "type": "string"
+          },
+          "deviceCollectionTimeoutMinutes": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "deviceDiscoveryTimeoutMinutes": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "disableCommandOutputLogging": {
+            "type": "boolean"
+          },
+          "disabledCommands": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/SysDisabledCommand"
+              },
+              "type": "array"
+            },
+            "description": "Built-in collection commands switched off, keyed by device type name.",
+            "type": "object"
+          },
+          "enableBetaCommands": {
+            "type": "boolean"
+          },
+          "enableSnmpCredDiscovery": {
+            "type": "boolean"
+          },
+          "generalJobTimeoutMinutes": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxCommandAuthZPerSecond": {
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxDeviceAuthNPerSecond": {
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxScanConnectionsPerSecond": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "networkRedactionAlgorithmOverrides": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Redaction algorithm per network id.",
+            "type": "object"
+          },
+          "passwordPrompts": {
+            "description": "Custom password prompts, matched case-insensitively. No empty value and no colon.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "perDeviceConcurrencyBoost": {
+            "description": "Extra SSH connections per device for parallel data.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "perDeviceSnmpConcurrency": {
+            "description": "Concurrent SNMP transactions per device. Forward's default is 4.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "ribRouteLimit": {
+            "type": "integer"
+          },
+          "ribRouteSubnets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "ribRouteVrfs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "snapshotCollectionTimeoutMinutes": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SysOrgCollectionSettingsPatch": {
+        "description": "A partial change to the organization collection settings. Presence semantics: an omitted key is left alone; a key sent as null is cleared, which resets it to Forward's default. The three collectionRetries and collectionRetryDelayMillis and collectionMaxRetryDelayMillis keys merge into one stored retry config. disabledCommands, when sent, replaces the whole stored map; an empty object clears every disabled command. Source: OrgCollectionSettingsPatch.java.",
+        "properties": {
+          "collectFullConfigDeviceTypes": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "collectionMaxRetryDelayMillis": {
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "collectionRetries": {
+            "description": "Retries after the first attempt. 0 turns retries off. Negative is a 400.",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "collectionRetryDelayMillis": {
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "commandDelayMs": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "deviceCollectionTimeoutMinutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "deviceDiscoveryTimeoutMinutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "disableCommandOutputLogging": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "disabledCommands": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/SysDisabledCommand"
+              },
+              "type": "array"
+            },
+            "description": "Replaces the whole stored map. Each entry needs a command and both version bounds.",
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "enableBetaCommands": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "enableSnmpCredDiscovery": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "generalJobTimeoutMinutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "maxCommandAuthZPerSecond": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "maxDeviceAuthNPerSecond": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "maxScanConnectionsPerSecond": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "passwordPrompts": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "perDeviceConcurrencyBoost": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "perDeviceSnmpConcurrency": {
+            "description": "1 to 100. Anything else is a 400.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "snapshotCollectionTimeoutMinutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "SysPerformanceSettings": {
+        "description": "Whether performance collection runs for a network, and how often. Source-only.",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "intervalMinutes": {
+            "description": "Absent when Forward's default applies.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "SysPerformanceSettingsPatch": {
+        "description": "A partial change. An omitted key is left alone. A null enabled is stored as false. Source: PerformanceSettingsPatch.java.",
+        "properties": {
+          "enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "intervalMinutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "SysProxyServerConfig": {
+        "description": "An internet proxy used for collection. The password is a secret reference, never the value. Source-only except the fields shown in the example.",
+        "properties": {
+          "disableCertChecking": {
+            "type": "boolean"
+          },
+          "host": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "description": "A secret reference when a password is set. Absent otherwise.",
+            "type": "string"
+          },
+          "port": {
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "protocol": {
+            "enum": [
+              "http",
+              "https"
+            ],
+            "type": "string"
+          },
+          "username": {
+            "description": "Absent when none is set.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "host",
+          "port",
+          "protocol"
+        ],
+        "type": "object"
+      },
+      "SysProxyServerConfigPatch": {
+        "description": "A partial change to a proxy. An omitted key is left alone. An explicit null clears username, password or disableCertChecking. host, port and protocol cannot be cleared.",
+        "properties": {
+          "disableCertChecking": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "host": {
+            "type": "string"
+          },
+          "name": {
+            "description": "A null or omitted name keeps the stored name.",
+            "type": "string"
+          },
+          "password": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "writeOnly": true
+          },
+          "port": {
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "protocol": {
+            "enum": [
+              "http",
+              "https"
+            ],
+            "type": "string"
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "SysRestoreStatus": {
+        "description": "How a snapshot restore is going. Source-only: the fields are the Java RestoreStatus record.",
+        "properties": {
+          "currentProgress": {
+            "description": "Present while the restore runs.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "errorMessage": {
+            "description": "Present only when the restore has failed.",
+            "type": "string"
+          },
+          "maxProgress": {
+            "description": "Present while the restore runs.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "stage": {
+            "description": "Present while the restore runs. Absent before it starts and after it finishes or fails.",
+            "enum": [
+              "DOWNLOADING",
+              "UNPACKING"
+            ],
+            "type": "string"
+          },
+          "startMillis": {
+            "description": "When the restore began, as epoch milliseconds.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SysCbrOperationStatus"
+          }
+        },
+        "required": [
+          "status",
+          "startMillis"
+        ],
+        "type": "object"
+      },
+      "SysS3StorageSettings": {
+        "description": "S3 settings for backups. The secret key is write-only and is never returned, so it is not listed here. A request that sets these settings (the bucket ownership change) must still send secretKey. Source-only.",
+        "properties": {
+          "accessKey": {
+            "type": "string"
+          },
+          "bucketName": {
+            "type": "string"
+          },
+          "certificate": {
+            "description": "A PEM certificate to trust for serviceEndpoint. Absent when none.",
+            "type": "string"
+          },
+          "disableChecksumValidation": {
+            "type": "boolean"
+          },
+          "disableSslValidation": {
+            "description": "Mutually exclusive with certificate.",
+            "type": "boolean"
+          },
+          "secretKey": {
+            "description": "Sent in requests only; never returned by Forward.",
+            "type": "string",
+            "writeOnly": true
+          },
+          "serviceEndpoint": {
+            "type": "string"
+          },
+          "writeOnly": {
+            "description": "Reads and writes allowed, deletes not.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accessKey",
+          "bucketName",
+          "serviceEndpoint"
+        ],
+        "type": "object"
+      },
+      "SysS3StorageSettingsPatch": {
+        "description": "A change to the S3 settings. Omitted fields keep their stored value. For certificate, an explicit null clears it; for the other fields, null keeps the stored value. Source-only.",
+        "properties": {
+          "accessKey": {
+            "type": "string"
+          },
+          "bucketName": {
+            "type": "string"
+          },
+          "certificate": {
+            "description": "Send null to clear the stored certificate.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "disableChecksumValidation": {
+            "type": "boolean"
+          },
+          "disableSslValidation": {
+            "type": "boolean"
+          },
+          "secretKey": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "serviceEndpoint": {
+            "type": "string"
+          },
+          "writeOnly": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "SysStoredProxyServer": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SysProxyServerConfig"
+          },
+          {
+            "$ref": "#/components/schemas/Attribution"
+          }
+        ]
+      },
+      "SysSystemAnnouncement": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "linkUrl": {
+            "description": "A link to show with the message. Absent when none.",
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "SysSystemAnnouncementResponse": {
+        "description": "The system announcement, or an empty object when there is none.",
+        "properties": {
+          "announcement": {
+            "$ref": "#/components/schemas/SysSystemAnnouncement"
+          }
+        },
+        "type": "object"
+      },
       "TapiNetworkContainer": {
         "properties": {
           "model": {
@@ -21555,6 +23083,95 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/approved-cli-commands": {
+      "get": {
+        "description": "Requires the VIEW_ENDPOINT_PROFILES organization permission (@Requires(org = VIEW_ENDPOINT_PROFILES)). A profile command outside this list is not run.",
+        "operationId": "getApprovedCliCommands",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "commands": [
+                    "^show\\s+[^|>;]*$",
+                    "^display\\s+[^|>;]*$"
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysApprovedCliCommands"
+                }
+              }
+            },
+            "description": "The approved commands, as regular expressions."
+          }
+        },
+        "summary": "The CLI commands endpoint profiles may run",
+        "tags": [
+          "Endpoint Profiles"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the MANAGE_ENDPOINT_PROFILES organization permission, although nothing is written. Each command is matched with find(), not a full match. Source-only.",
+        "operationId": "assessCliCommands",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "approved": [
+                    "^show\\s+version$"
+                  ],
+                  "unapproved": [
+                    "^configure\\s+terminal$"
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysCliCommandAssessment"
+                }
+              }
+            },
+            "description": "The commands, split into approved and unapproved."
+          }
+        },
+        "summary": "Say which CLI commands the approved list allows",
+        "tags": [
+          "Endpoint Profiles"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "assess"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "updateApprovedCliCommands",
+            "summary": "Replace the approved CLI commands with a Forward-signed file",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "update"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/audit-logs": {
       "get": {
         "description": "Requires the VIEW_AUDIT_LOGS org operation, or the Forward admin role (orForwardAdmin). Newest first. remoteIp and targetUri match by case-insensitive prefix. There is no default time window (source: AuditLogRepo, AuditLogController).",
@@ -21776,6 +23393,408 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/backup-settings": {
+      "get": {
+        "description": "Requires the ADMINISTER_SYSTEM system permission. Source-only.",
+        "operationId": "getCommonBackupSettings",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "storageType",
+            "required": true,
+            "schema": {
+              "enum": [
+                "INTERNAL",
+                "S3"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "backupTime": "02:00",
+                  "enabled": true,
+                  "includeSnapshots": false,
+                  "numDaysToRetain": 30
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysCommonBackupSettings"
+                }
+              }
+            },
+            "description": "The stored backup settings."
+          }
+        },
+        "summary": "Read the backup schedule and retention for one storage",
+        "tags": [
+          "Backups"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Requires the ADMINISTER_SYSTEM system permission. Omitted fields keep their stored values. An explicit null is not a clear: Forward treats null as \"keep\" for every field here. Source-only.",
+        "operationId": "updateCommonBackupSettings",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "storageType",
+            "required": true,
+            "schema": {
+              "enum": [
+                "INTERNAL",
+                "S3"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysCommonBackupSettingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "backupTime": "03:30",
+                  "enabled": true,
+                  "includeSnapshots": true,
+                  "numDaysToRetain": 14
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysCommonBackupSettings"
+                }
+              }
+            },
+            "description": "The settings after the change."
+          }
+        },
+        "summary": "Change the backup schedule or retention for one storage",
+        "tags": [
+          "Backups"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the ADMINISTER_SYSTEM system permission. Overrides the deployment id stored in the bucket, so a bucket written by another deployment can be used here. storageType must be S3. Source-only.",
+        "operationId": "setS3BackupBucketOwner",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "storageType",
+            "required": true,
+            "schema": {
+              "enum": [
+                "S3"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysS3StorageSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The bucket ownership was changed. No body."
+          }
+        },
+        "summary": "Take over an S3 bucket for this deployment",
+        "tags": [
+          "Backups"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "chown"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/backup-settings/storage": {
+      "get": {
+        "description": "Requires the ADMINISTER_SYSTEM system permission. The secret key is never returned. Source-only: no body when no S3 storage is configured (Optional.empty()).",
+        "operationId": "getS3BackupStorage",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "accessKey": "EXAMPLEACCESSKEY",
+                  "bucketName": "example-backup-bucket",
+                  "disableChecksumValidation": false,
+                  "disableSslValidation": false,
+                  "serviceEndpoint": "https://s3.example.com",
+                  "writeOnly": false
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysS3StorageSettings"
+                }
+              }
+            },
+            "description": "The stored S3 settings, without the secret key."
+          }
+        },
+        "summary": "Read the S3 storage settings for backups",
+        "tags": [
+          "Backups"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "storageType",
+            "S3"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Requires the ADMINISTER_SYSTEM system permission. Omitted fields keep their stored values. For certificate, an explicit null clears the stored certificate; for the other fields, null keeps the stored value. Source-only.",
+        "operationId": "updateS3BackupStorage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysS3StorageSettingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "accessKey": "EXAMPLEACCESSKEY",
+                  "bucketName": "example-backup-bucket",
+                  "disableChecksumValidation": false,
+                  "disableSslValidation": false,
+                  "serviceEndpoint": "https://s3.example.com",
+                  "writeOnly": false
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysS3StorageSettings"
+                }
+              }
+            },
+            "description": "The settings after the change. The secret key is not returned."
+          }
+        },
+        "summary": "Change the S3 storage settings for backups",
+        "tags": [
+          "Backups"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "storageType",
+            "S3"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/backups": {
+      "get": {
+        "description": "Requires the ADMINISTER_SYSTEM system permission (@Requires(system = ADMINISTER_SYSTEM)). Served only on on-premises Kubernetes deployments (ClusterBackupRestoreController, @ProfileCriteria ON_PREM and K8S, not SHARED_K8S); a hosted deployment answers 404 \"No endpoint\".",
+        "operationId": "listClusterBackups",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "appVersion": "26.9.0",
+                    "backupTimeMillis": 1700000000000,
+                    "id": 1,
+                    "note": "example backup",
+                    "size": 1048576,
+                    "snapshotsIncluded": false,
+                    "storageType": "INTERNAL",
+                    "triggerType": "MANUAL"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SysAppBackup"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Every backup Forward holds, in every storage."
+          }
+        },
+        "summary": "List the stored application backups",
+        "tags": [
+          "Backups"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getClusterOperationProgress",
+            "summary": "The running or latest cluster backup or restore",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "progress"
+              ]
+            ]
+          },
+          {
+            "operationId": "getLastRestoreResult",
+            "summary": "How the last completed cluster restore went",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "lastRestoreResult"
+              ]
+            ]
+          },
+          {
+            "operationId": "getLastScheduledBackupResult",
+            "summary": "The last completed backup of one storage and trigger type",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "lastBackupResult"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the ADMINISTER_SYSTEM system permission. Source-only: the request is a manual backup (BackupTriggerType MANUAL). Returns the backup operation that was started.",
+        "operationId": "runClusterBackup",
+        "parameters": [
+          {
+            "description": "A note stored with the backup. Blank is the same as omitted.",
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Whether snapshots are included in the backup. Defaults to false.",
+            "in": "query",
+            "name": "includeSnapshots",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Where the backup is written. Omitted means INTERNAL.",
+            "in": "query",
+            "name": "storageType",
+            "required": false,
+            "schema": {
+              "enum": [
+                "INTERNAL",
+                "S3"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "appStatus": "NOT_STARTED",
+                  "id": "1700000001",
+                  "snapshotToStatus": {},
+                  "type": "BACKUP"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysClusterOperation"
+                }
+              }
+            },
+            "description": "The backup operation that was started."
+          }
+        },
+        "summary": "Take an application backup now",
+        "tags": [
+          "Backups"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "cancelClusterOperation",
+            "summary": "Cancel the backup or restore that is running",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "cancel"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/backups/{backupId}": {
+      "delete": {
+        "description": "Requires the ADMINISTER_SYSTEM system permission. There is no undo. Without storageType the backup is deleted from every storage it is in. Source-only.",
+        "operationId": "deleteClusterBackup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "backupId",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Delete from this storage only. Omitted deletes from every storage.",
+            "in": "query",
+            "name": "storageType",
+            "required": false,
+            "schema": {
+              "enum": [
+                "INTERNAL",
+                "S3"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The backup was deleted."
+          }
+        },
+        "summary": "Delete one stored backup",
+        "tags": [
+          "Backups"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/cloud/aws-regions": {
       "get": {
         "operationId": "listAwsRegions",
@@ -21885,6 +23904,93 @@
         "summary": "IBM Cloud region ids and display names",
         "tags": [
           "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/collection-settings": {
+      "get": {
+        "description": "Requires the VIEW_ORG_COLLECTION_SETTINGS organization permission (@Requires(org = VIEW_ORG_COLLECTION_SETTINGS)). Only settings that have been set appear; an absent key means Forward's default applies.",
+        "operationId": "getOrganizationCollectionSettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "collectionRetries": 2,
+                  "deviceCollectionTimeoutMinutes": 480,
+                  "maxCommandAuthZPerSecond": 650,
+                  "maxDeviceAuthNPerSecond": 650,
+                  "networkRedactionAlgorithmOverrides": {
+                    "<network-id>": "NONE"
+                  },
+                  "perDeviceConcurrencyBoost": 1,
+                  "ribRouteLimit": 1,
+                  "ribRouteSubnets": [
+                    "10.0.0.0/8"
+                  ],
+                  "snapshotCollectionTimeoutMinutes": 480
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysOrgCollectionSettings"
+                }
+              }
+            },
+            "description": "The stored settings."
+          }
+        },
+        "summary": "The organization-wide collection settings",
+        "tags": [
+          "Collection Settings"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Requires the EDIT_ORG_COLLECTION_SETTINGS organization permission (@Requires(org = EDIT_ORG_COLLECTION_SETTINGS)). Presence semantics: a key that is omitted is left alone; a key sent as null is cleared, which resets it to Forward's default. The collectionRetries, collectionRetryDelayMillis and collectionMaxRetryDelayMillis keys are one stored retry config, merged key by key. disabledCommands, when sent, replaces the whole stored map; an empty map clears it. There is no concurrency guard, so two editors can overwrite each other.",
+        "operationId": "patchOrganizationCollectionSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysOrgCollectionSettingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "collectionMaxRetryDelayMillis": 60000,
+                  "collectionRetries": 3,
+                  "collectionRetryDelayMillis": 5000,
+                  "disabledCommands": {
+                    "example_ssh": [
+                      {
+                        "command": "^show\\s+example$",
+                        "version": {
+                          "end": "99.0",
+                          "start": "1.0"
+                        }
+                      }
+                    ]
+                  },
+                  "maxDeviceAuthNPerSecond": 500,
+                  "perDeviceSnmpConcurrency": 8
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysOrgCollectionSettings"
+                }
+              }
+            },
+            "description": "The settings after the change."
+          }
+        },
+        "summary": "Change the organization-wide collection settings",
+        "tags": [
+          "Collection Settings"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -22174,25 +24280,160 @@
       }
     },
     "/collectors": {
+      "get": {
+        "description": "Requires the VIEW_COLLECTORS organization permission (@Requires(org = VIEW_COLLECTORS)). includeNetworks defaults to true.",
+        "operationId": "listCollectors",
+        "parameters": [
+          {
+            "description": "Whether each collector lists the networks it serves. Defaults to true.",
+            "in": "query",
+            "name": "includeNetworks",
+            "required": false,
+            "schema": {
+              "default": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "collectorUpdating": false,
+                    "connectionStatus": "CONNECTED",
+                    "createdAt": 1725891706091,
+                    "createdBy": "<user-id>",
+                    "externalIp": "192.0.2.10",
+                    "features": {
+                      "latest": 35,
+                      "updatable": true
+                    },
+                    "health": {
+                      "issues": [],
+                      "status": "HEALTHY"
+                    },
+                    "id": "<collector-id>",
+                    "internalIps": [
+                      "192.0.2.20"
+                    ],
+                    "isDefault": false,
+                    "name": "<collector-name>",
+                    "networkIds": [
+                      "<network-id>"
+                    ],
+                    "orgId": "<org-id>",
+                    "updateStatus": "UP_TO_DATE",
+                    "username": "<collector-username>",
+                    "version": "26.9.0-18"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CollectorWithStatus"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The collectors."
+          }
+        },
+        "summary": "The organization's collectors, with their status",
+        "tags": [
+          "Collector Binding"
+        ],
+        "x-forward-stability": "unpublished"
+      },
       "post": {
-        "operationId": "createCollectorAccount",
+        "description": "Only collectors that support remote upgrade and auto-start are queued. Returns the names of the collectors that will be upgraded.",
+        "operationId": "upgradeCollectors",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  "wells-demo-collector"
+                ],
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Collector names queued for upgrade."
+          }
+        },
+        "summary": "Upgrade every online collector in the org that supports it",
+        "tags": [
+          "Collectors"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "upgrade"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/collectors/{collectorId}/collection-settings": {
+      "get": {
+        "description": "Requires the VIEW_COLLECTORS organization permission (@Requires(org = VIEW_COLLECTORS)). Only settings that have been set appear.",
+        "operationId": "getCollectorCollectionSettings",
+        "parameters": [
+          {
+            "description": "The collector id, in Forward's \"C3\" form.",
+            "in": "path",
+            "name": "collectorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "concurrency": 1024
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysCollectorCollectionSettings"
+                }
+              }
+            },
+            "description": "The stored settings for the collector."
+          }
+        },
+        "summary": "The collection settings of one collector",
+        "tags": [
+          "Collection Settings"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Requires the MANAGE_COLLECTORS organization permission (@Requires(org = MANAGE_COLLECTORS)). An omitted key is left alone; a key sent as null resets it to Forward's default.",
+        "operationId": "patchCollectorCollectionSettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
-              "example": {
-                "collectorName": "wells-demo-collector"
-              },
               "schema": {
-                "properties": {
-                  "collectorName": {
-                    "description": "Unique per org.",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "collectorName"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/SysCollectorCollectionSettingsPatch"
               }
             }
           },
@@ -22203,37 +24444,21 @@
             "content": {
               "application/json": {
                 "example": {
-                  "authorizationKey": "collector-a1b2c3d4:9f8e7d6c5b4a3210",
-                  "createdAt": 1788949865425,
-                  "createdBy": "100",
-                  "id": "77",
-                  "name": "wells-demo-collector",
-                  "orgId": "12",
-                  "username": "collector-a1b2c3d4"
+                  "concurrency": 256,
+                  "snmpCollectionConcurrency": 32,
+                  "vcenterConcurrency": 2
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/CollectorWithAuthKey"
+                  "$ref": "#/components/schemas/SysCollectorCollectionSettings"
                 }
               }
             },
-            "description": "The new collector account, with its one-time install auth key."
+            "description": "The settings after the change."
           }
         },
-        "summary": "Register a new collector account for the org",
+        "summary": "Change the collection settings of one collector",
         "tags": [
-          "Collectors"
-        ],
-        "x-forward-operation-variants": [
-          {
-            "operationId": "upgradeCollectors",
-            "summary": "Upgrade every online collector in the org that supports it",
-            "x-forward-fixed-query": [
-              [
-                "action",
-                "upgrade"
-              ]
-            ]
-          }
+          "Collection Settings"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -22289,6 +24514,117 @@
             "action",
             "upgrade"
           ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/collectors/{collectorName}/metrics": {
+      "get": {
+        "description": "Requires the DEBUG_COLLECTORS organization permission (@Requires(org = DEBUG_COLLECTORS)), which most logins lack. The collector is named by its name, not its id. An unknown name is a 400.",
+        "operationId": "getCollectorMetrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectorName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The start of the window, as an ISO-8601 instant.",
+            "in": "query",
+            "name": "startTime",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The end of the window, as an ISO-8601 instant.",
+            "in": "query",
+            "name": "endTime",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "How many samples each series keeps when the window holds more. Must be greater than 1. Forward caps it at 5000 and defaults it to 500. Forward downsamples by keeping each series' peaks and troughs, so the result can hold more than this number.",
+            "in": "query",
+            "name": "samplesPerSeries",
+            "required": false,
+            "schema": {
+              "default": 500,
+              "maximum": 5000,
+              "minimum": 2,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "metrics": [
+                    {
+                      "cpuMetrics": {
+                        "cpuCores": 32,
+                        "cpuLoad": 0.00146874
+                      },
+                      "diskMetrics": {
+                        "collector": {
+                          "availableMb": 253515,
+                          "sizeMb": 262031
+                        },
+                        "os": {
+                          "availableMb": 253515,
+                          "sizeMb": 262031
+                        },
+                        "tmp": {
+                          "availableMb": 253515,
+                          "sizeMb": 262031
+                        }
+                      },
+                      "fileMetrics": {
+                        "fileDescriptorsMax": 262144,
+                        "fileDescriptorsOpen": 26
+                      },
+                      "gcMetrics": {
+                        "gcLoad": 0.0,
+                        "gcTimeSeconds": 0
+                      },
+                      "memoryMetrics": {
+                        "jvmMemFreeMb": 115,
+                        "jvmMemMaxMb": 38336,
+                        "procRssMb": 557,
+                        "vmMemFreeMb": 60869,
+                        "vmMemTotalMb": 63881
+                      },
+                      "taskMetrics": {
+                        "concurrency": 1024,
+                        "queueSize": 0,
+                        "tasksFinished": 0,
+                        "tasksStarted": 0
+                      },
+                      "timestamp": "2026-10-16T00:04:14.444521937Z"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysCollectorMetricsResponse"
+                }
+              }
+            },
+            "description": "The samples, oldest first. Empty when the collector uploaded nothing in the window."
+          }
+        },
+        "summary": "A collector's own resource metrics over a time window",
+        "tags": [
+          "Collector Binding"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -22440,7 +24776,186 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/critical-states": {
+      "get": {
+        "description": "Any signed-in user (@RequiresUser). Only the states that apply to this deployment appear as keys. A value of false means the state is not active.",
+        "operationId": "getCriticalStates",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "COLLECTOR_OUTDATED": false,
+                  "LICENSE_CCH_EXHAUSTED": false,
+                  "LICENSE_CCH_GRACE_PERIOD_ENDED": false,
+                  "MAINTENANCE_WINDOW": null
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysCriticalStates"
+                }
+              }
+            },
+            "description": "The active flags, keyed by issue type name."
+          }
+        },
+        "summary": "Organization-wide critical states behind the top banner",
+        "tags": [
+          "Banners"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/custom-banners": {
+      "get": {
+        "description": "Any signed-in user (@RequiresUser).",
+        "operationId": "listCustomBanners",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "banners": [
+                    {
+                      "backgroundColor": "GREEN",
+                      "enabled": false,
+                      "id": "1",
+                      "message": "The information in this portal is the property of <org> and/or...",
+                      "networkIds": [
+                        "<network-id>"
+                      ]
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysCustomBannerList"
+                }
+              }
+            },
+            "description": "The banners, under the key banners."
+          }
+        },
+        "summary": "List the organization's custom banners",
+        "tags": [
+          "Banners"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the MANAGE_ORG_SETTINGS organization permission (@Requires(org = MANAGE_ORG_SETTINGS)). Message and networkIds must be non-blank and non-empty (CustomBanner constructor checks).",
+        "operationId": "createCustomBanner",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysNewCustomBanner"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "backgroundColor": "GREEN",
+                  "enabled": true,
+                  "id": "2",
+                  "message": "Example maintenance notice",
+                  "networkIds": [
+                    "1001"
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysCustomBanner"
+                }
+              }
+            },
+            "description": "The banner, with its new id."
+          }
+        },
+        "summary": "Create a custom banner",
+        "tags": [
+          "Banners"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/custom-banners/{bannerId}": {
+      "delete": {
+        "description": "Requires the MANAGE_ORG_SETTINGS organization permission.",
+        "operationId": "deleteCustomBanner",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bannerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The banner was deleted. No body."
+          }
+        },
+        "summary": "Delete a custom banner",
+        "tags": [
+          "Banners"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "put": {
+        "description": "Requires the MANAGE_ORG_SETTINGS organization permission. The id in the body must equal the id in the path (400 otherwise).",
+        "operationId": "replaceCustomBanner",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bannerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysCustomBanner"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The banner was replaced. No body."
+          }
+        },
+        "summary": "Replace a custom banner",
+        "tags": [
+          "Banners"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/cve-index": {
+      "delete": {
+        "description": "Requires the Forward administrator role (@RequiresForwardAdmin). Deletes an uploaded CVE index so the bundled one is used again (CveIndexCloudController.deleteCveIndex). The hosted account was not tested, because this changes the index in use.",
+        "operationId": "deleteCveIndex",
+        "responses": {
+          "204": {
+            "description": "The uploaded index was removed. No body."
+          }
+        },
+        "summary": "Revert to the CVE index bundled with this Forward build",
+        "tags": [
+          "Vulnerability Analysis"
+        ],
+        "x-forward-stability": "unpublished"
+      },
       "get": {
         "description": "The CVE index is a gzipped binary (.bin.gz) file.\n\nTo download the latest one from fwd.app:\n\n`curl -vu <user>:<pass> https://fwd.app/api/cve-index -o cve-index.bin.gz`\n\nThe response includes a `Digest` header containing the file\u2019s SHA-256 digest.",
         "operationId": "getCveIndex",
@@ -23110,6 +25625,164 @@
         "summary": "The type Forward infers from a stored data file",
         "tags": [
           "Data Files"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/debug/jobs": {
+      "get": {
+        "description": "Requires the ADMINISTER_SYSTEM system permission. Served as text, not JSON. Has no stability promise. Source-only.",
+        "operationId": "getDebugJobsView",
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The debug view as plain text."
+          }
+        },
+        "summary": "A point-in-time dump of the job scheduler",
+        "tags": [
+          "Jobs"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/deployment-artifacts": {
+      "get": {
+        "description": "Requires Software Central to be on for the organization, or the Forward administrator role (@Requires(on = SOFTWARE_CENTRAL, orForwardAdmin = true)). Answers 403 \"SOFTWARE_CENTRAL is off for your organization\" otherwise. Source-only, because the hosted ADP account has Software Central off.",
+        "operationId": "listDeploymentArtifacts",
+        "parameters": [
+          {
+            "description": "Only artifacts deployable on this platform. Omitted lists all of them.",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "enum": [
+                "VMWARE_HYPERVISOR",
+                "AWS_EC2",
+                "AWS_GOVCLOUD_EC2",
+                "AZURE_VM",
+                "AZURE_GOV_VM",
+                "GCP_VM",
+                "KVM_HYPERVISOR"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "deploymentTypes": [
+                      "VMWARE_HYPERVISOR"
+                    ],
+                    "id": "3000",
+                    "name": "example-appliance",
+                    "versions": [
+                      {
+                        "baseVersion": "26.8.0",
+                        "fileType": "OVA",
+                        "id": "3001",
+                        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+                        "sizeInBytes": 4294967296,
+                        "uploadedAt": 1700000000000,
+                        "uploadedBy": "4001",
+                        "version": "26.9.0"
+                      }
+                    ],
+                    "workflow": "INSTALLATION"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SysDeploymentArtifact"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The artifacts, each with every version Forward still serves."
+          }
+        },
+        "summary": "The installer and upgrade artifacts Software Central serves",
+        "tags": [
+          "Client Software"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/deployment-artifacts/{artifactId}": {
+      "get": {
+        "description": "Requires Software Central to be on, or the Forward administrator role (@Requires(on = SOFTWARE_CENTRAL, orForwardAdmin = true)). The URL is presigned and short-lived. Source-only.",
+        "operationId": "getDeploymentArtifactUrl",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "artifactId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The version to resolve. Omitted resolves the latest version.",
+            "in": "query",
+            "name": "versionId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "url": "https://downloads.example.com/example-appliance-26.9.0.ova?signature=example"
+                },
+                "schema": {
+                  "properties": {
+                    "url": {
+                      "description": "A presigned URL, valid for a short time.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The download URL."
+          }
+        },
+        "summary": "A short-lived download URL for one artifact version",
+        "tags": [
+          "Client Software"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "as",
+            "url"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "downloadDeploymentArtifact",
+            "summary": "Download one artifact version through a redirect",
+            "x-forward-fixed-query": []
+          }
         ],
         "x-forward-stability": "unpublished"
       }
@@ -25581,9 +28254,9 @@
       }
     },
     "/global-config/{property}": {
-      "get": {
-        "description": "The fixed default only. This never reflects an org's override, so it keeps reporting the default after an org value has been set. That is correct behaviour and easily mistaken for a failed write.",
-        "operationId": "getGlobalConfigValue",
+      "delete": {
+        "description": "Requires the Forward administrator role (@RequiresForwardAdmin). Source-only: removes the stored global value, so the fixed default applies again.",
+        "operationId": "clearGlobalConfigValue",
         "parameters": [
           {
             "in": "path",
@@ -25595,63 +28268,11 @@
           }
         ],
         "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "example": {
-                  "firewall_predict": false
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/ConfigValue"
-                }
-              }
-            },
-            "description": "The property and its global default."
+          "204": {
+            "description": "The global value was removed. No body."
           }
         },
-        "summary": "An org property's global default",
-        "tags": [
-          "Configuration"
-        ],
-        "x-forward-stability": "unpublished"
-      },
-      "put": {
-        "description": "Forward administrators only. Properties declared org-scoped have an immutable default and refuse with \"Permission denied. Global default value cannot be changed for PROPERTY\"; set those per org instead.",
-        "operationId": "setGlobalConfigValue",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "property",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "value",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "example": {
-                  "session_timeout": 60
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/ConfigValue"
-                }
-              }
-            },
-            "description": "The property and its new default."
-          }
-        },
-        "summary": "Change an org property's global default",
+        "summary": "Remove a global default override for an org property",
         "tags": [
           "Configuration"
         ],
@@ -25985,6 +28606,121 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/jobs/active": {
+      "get": {
+        "description": "Requires the ADMINISTER_SYSTEM system permission (@Requires(system = ADMINISTER_SYSTEM)). Rows are grouped by type, network and snapshot.",
+        "operationId": "listActiveJobs",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "cancelLink": "ZXhhbXBsZS1jYW5jZWwtbGluaw==",
+                    "creationTime": "2026-10-17T12:00:00Z",
+                    "durationInSeconds": 42,
+                    "jobType": "Example job",
+                    "longestQueuedTimeInSeconds": 0,
+                    "longestRunningTimeInSeconds": 42,
+                    "networkId": 1001,
+                    "orgName": "Example Org",
+                    "queued": 0,
+                    "running": 1,
+                    "snapshotId": 2001,
+                    "totalCount": 1,
+                    "waitingForOtherJobs": 0
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SysActiveJobInfo"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "One row per group of identical jobs."
+          }
+        },
+        "summary": "Running and queued top-level jobs",
+        "tags": [
+          "Jobs"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/jobs/completed": {
+      "get": {
+        "description": "Requires the ADMINISTER_SYSTEM system permission (@Requires(system = ADMINISTER_SYSTEM)). Rows are grouped by type, network, snapshot and state. Field names are from the Java record CompletedJobInfo. Not live-verified (ADMINISTER_SYSTEM).",
+        "operationId": "listCompletedJobs",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "count": 1,
+                    "creationTime": "2026-10-17T11:00:00Z",
+                    "durationInSeconds": 65,
+                    "earliestStartTime": "2026-10-17T11:00:05Z",
+                    "jobType": "Example job",
+                    "latestEndTime": "2026-10-17T11:01:05Z",
+                    "longestQueueTimeInSeconds": 5,
+                    "longestRunningTimeInSeconds": 60,
+                    "networkId": 1001,
+                    "orgName": "Example Org",
+                    "snapshotId": 2001,
+                    "state": "SUCCEEDED"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SysCompletedJobInfo"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "One row per group of finished jobs."
+          }
+        },
+        "summary": "Finished top-level jobs",
+        "tags": [
+          "Jobs"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/jobs/{cancelJobId}": {
+      "delete": {
+        "description": "Requires the ADMINISTER_SYSTEM system permission. Pass the cancelLink of an active job row unchanged. Forward answers 200 when cancelled and 404 when the job already finished or was already cancelled.",
+        "operationId": "cancelJob",
+        "parameters": [
+          {
+            "description": "The cancelLink from a row of listActiveJobs. It is base64 underneath and already percent-encoded for the path. Do not encode it again.",
+            "in": "path",
+            "name": "cancelJobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The job was cancelled. No body."
+          },
+          "404": {
+            "description": "The job already finished, or was already cancelled."
+          }
+        },
+        "summary": "Cancel a job or a group of jobs",
+        "tags": [
+          "Jobs"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/l7-applications": {
       "get": {
         "operationId": "getL7Applications",
@@ -26012,6 +28748,129 @@
         "tags": [
           "Path Search"
         ]
+      }
+    },
+    "/licenses": {
+      "get": {
+        "description": "Any signed-in user (@RequiresUser).",
+        "operationId": "listLicenses",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "license": {
+                      "cloudCreditHours": 245280000,
+                      "createdAt": "2026-10-07T15:56:55.219019657Z",
+                      "edgeAssetCap": 850,
+                      "expiresAt": "2027-10-18T03:59:59.999Z",
+                      "id": "4434",
+                      "licensedTo": "<customer>",
+                      "liteDeviceCap": 6035,
+                      "purchaseOrder": "<purchase-order>",
+                      "replaces": false,
+                      "standardDeviceCap": 5225,
+                      "startsAt": "2026-10-18T04:00:00Z",
+                      "tier": "NS",
+                      "type": "TIER"
+                    },
+                    "signedLicenseKey": "<redacted>",
+                    "status": "NOT_ACTIVE_YET",
+                    "usedAt": "2026-10-07T15:57:26.069257534Z"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SysLicenseDetailsWithStatus"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Every license the organization holds, each with its status."
+          }
+        },
+        "summary": "The organization's licenses with their status",
+        "tags": [
+          "Licensing"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getLicenseTierAndStatus",
+            "summary": "The license tier and the organization's license status",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "status"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the MANAGE_LICENSING organization permission. Adds the key and publishes the license-activated event. Source-only.",
+        "operationId": "applyLicense",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysAsciiCodedSignedLicenseKey"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "fingerprint": "InstanceID__EXAMPLE",
+                  "license": {
+                    "cloudCreditHours": 1000000,
+                    "createdAt": "2026-10-07T15:56:55Z",
+                    "edgeAssetCap": 100,
+                    "expiresAt": "2027-10-18T03:59:59Z",
+                    "id": "4434",
+                    "licensedTo": "Example Org",
+                    "liteDeviceCap": 1200,
+                    "purchaseOrder": "PO-0000",
+                    "replaces": false,
+                    "standardDeviceCap": 1000,
+                    "startsAt": "2026-10-18T04:00:00Z",
+                    "tier": "NS",
+                    "type": "TIER"
+                  },
+                  "signedLicenseKey": "EXAMPLE-SIGNED-LICENSE-KEY",
+                  "usedAt": "2026-10-17T12:00:00Z"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysLicenseDetails"
+                }
+              }
+            },
+            "description": "The license that was added."
+          }
+        },
+        "summary": "Add a signed license key to this deployment",
+        "tags": [
+          "Licensing"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "decodeLicense",
+            "summary": "Preview a signed license key without adding it",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "decode"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks": {
@@ -42245,6 +45104,211 @@
         ]
       }
     },
+    "/networks/{networkId}/performance/settings": {
+      "patch": {
+        "description": "Requires the EDIT_PERFORMANCE_SETTINGS network permission (@Requires(network = EDIT_PERFORMANCE_SETTINGS)). A null enabled is stored as false. Source-only: the response is not in the Go SDK's test fixtures.",
+        "operationId": "patchPerformanceSettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysPerformanceSettingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "enabled": true,
+                  "intervalMinutes": 5
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysPerformanceSettings"
+                }
+              }
+            },
+            "description": "The performance settings after the change."
+          }
+        },
+        "summary": "Turn performance collection on or off for a network",
+        "tags": [
+          "Collection Settings"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/proxies": {
+      "get": {
+        "description": "Requires the VIEW_INTERNET_PROXIES network permission (@Requires(network = VIEW_INTERNET_PROXIES)).",
+        "operationId": "listNetworkProxies",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "createdAt": "2025-03-24T13:17:39.213446403Z",
+                    "createdById": "10789",
+                    "host": "<proxy-host>",
+                    "id": "P-0",
+                    "name": "hostproxy",
+                    "port": 8080,
+                    "protocol": "http",
+                    "updatedAt": "2025-03-24T13:17:39.213446403Z",
+                    "updatedById": "10789"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SysStoredProxyServer"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The proxies, with their attribution."
+          }
+        },
+        "summary": "The internet proxies a network uses",
+        "tags": [
+          "Network Collection"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the EDIT_INTERNET_PROXIES network permission (@Requires(network = EDIT_INTERNET_PROXIES)). The password, when given, is stored as a secret and is never returned. Source-only.",
+        "operationId": "createNetworkProxy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysNewProxyServer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "disableCertChecking": false,
+                  "host": "proxy.example.com",
+                  "id": "P-1",
+                  "name": "example-proxy",
+                  "port": 8080,
+                  "protocol": "https",
+                  "username": "example-user"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysProxyServerConfig"
+                }
+              }
+            },
+            "description": "The stored proxy, with its new id."
+          }
+        },
+        "summary": "Add an internet proxy to a network",
+        "tags": [
+          "Network Collection"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/proxies/{proxyId}": {
+      "patch": {
+        "description": "Requires the EDIT_INTERNET_PROXIES network permission. Presence semantics: an omitted key is left alone; a key sent as null clears username, password or disableCertChecking. host, port and protocol cannot be cleared, so a null for them is refused by validation. Source-only.",
+        "operationId": "updateNetworkProxy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "proxyId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysProxyServerConfigPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "disableCertChecking": true,
+                  "host": "proxy.example.com",
+                  "id": "P-1",
+                  "name": "example-proxy",
+                  "port": 8443,
+                  "protocol": "https"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysProxyServerConfig"
+                }
+              }
+            },
+            "description": "The proxy after the change."
+          }
+        },
+        "summary": "Change an internet proxy of a network",
+        "tags": [
+          "Network Collection"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/rapid7-sources": {
       "post": {
         "description": "Adds a Rapid7 source. Gated by MANAGE_END_HOST_SCANNERS. credentialId must name an HTTP LOGIN credential (Java validateCredentialId). reportNames must be non-empty. Returns 200 with the stored source.",
@@ -46069,6 +49133,44 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/orgs/current/collectors/resetPassword": {
+      "post": {
+        "description": "Any signed-in user (@RequiresUser); the service then requires the caller to be allowed to modify that collector. The old password stops working at once, so a running collector stops authenticating until it is given the new token. The response carries the new password once; do not log it.",
+        "operationId": "resetCollectorPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysCollectorCredentials"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "collectorName": "<collector-name>",
+                  "password": "<redacted>",
+                  "username": "<collector-username>"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysCollectorCredentials"
+                }
+              }
+            },
+            "description": "The collector's username and its new password."
+          }
+        },
+        "summary": "Issue a new password for a collector",
+        "tags": [
+          "Collector Binding"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/orgs/{orgId}/config": {
       "get": {
         "description": "Needs Forward support access. Unlike the other two, the default filter is OFF: every property.",
@@ -46245,6 +49347,157 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/orgs/{orgId}/licenses": {
+      "delete": {
+        "description": "Requires the Forward administrator role (@RequiresForwardAdmin). Refused with 400 for an ENTERPRISE organization. Use with care.",
+        "operationId": "removeAllOrganizationLicenses",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "All of the organization's licenses were deleted. No body."
+          }
+        },
+        "summary": "Delete every license of an organization",
+        "tags": [
+          "Licensing"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "Requires the Forward support role (@RequiresForwardSupport). Returns 403 for a caller outside that role.",
+        "operationId": "listOrganizationLicenses",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "fingerprint": "InstanceID__EXAMPLE",
+                    "license": {
+                      "cloudCreditHours": 1000000,
+                      "createdAt": "2026-10-07T15:56:55Z",
+                      "edgeAssetCap": 100,
+                      "expiresAt": "2027-10-18T03:59:59Z",
+                      "id": "4434",
+                      "licensedTo": "Example Org",
+                      "liteDeviceCap": 1200,
+                      "purchaseOrder": "PO-0000",
+                      "replaces": false,
+                      "standardDeviceCap": 1000,
+                      "startsAt": "2026-10-18T04:00:00Z",
+                      "tier": "NS",
+                      "type": "TIER"
+                    },
+                    "signedLicenseKey": "EXAMPLE-SIGNED-LICENSE-KEY",
+                    "status": "ACTIVE",
+                    "usedAt": "2026-10-17T12:00:00Z"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SysLicenseDetailsWithStatus"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The organization's licenses, each with its status."
+          }
+        },
+        "summary": "An organization's licenses, for Forward support",
+        "tags": [
+          "Licensing"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/orgs/{orgId}/licenses/{licenseId}": {
+      "post": {
+        "description": "Requires the Forward support role (@RequiresForwardSupport). Prevents the license from being activated if it has not been. Source-only.",
+        "operationId": "invalidateOrganizationLicense",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "licenseId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "fingerprint": "InstanceID__EXAMPLE",
+                  "invalidated": true,
+                  "license": {
+                    "cloudCreditHours": 1000000,
+                    "createdAt": "2026-10-07T15:56:55Z",
+                    "edgeAssetCap": 100,
+                    "expiresAt": "2027-10-18T03:59:59Z",
+                    "id": "4434",
+                    "licensedTo": "Example Org",
+                    "liteDeviceCap": 1200,
+                    "purchaseOrder": "PO-0000",
+                    "replaces": false,
+                    "standardDeviceCap": 1000,
+                    "startsAt": "2026-10-18T04:00:00Z",
+                    "tier": "NS",
+                    "type": "TIER"
+                  },
+                  "signedLicenseKey": "EXAMPLE-SIGNED-LICENSE-KEY",
+                  "usedAt": "2026-10-17T12:00:00Z"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysLicenseDetails"
+                }
+              }
+            },
+            "description": "The license, now invalidated."
+          }
+        },
+        "summary": "Stop one license from being activated",
+        "tags": [
+          "Licensing"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "invalidate"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/orgs/{orgId}/users": {
       "post": {
         "description": "Requires the support-admin role (@RequiresSupportAdmin). Returns the created user, which the Go SDK's note says it does not (source: UserController.createUser).",
@@ -46417,6 +49670,18 @@
         "summary": "Export a Snapshot",
         "tags": [
           "Network Snapshots"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getSnapshotRestoreStatus",
+            "summary": "How a snapshot restore is going",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "restoreStatus"
+              ]
+            ]
+          }
         ]
       },
       "patch": {
@@ -46558,6 +49823,16 @@
               [
                 "action",
                 "reprocess"
+              ]
+            ]
+          },
+          {
+            "operationId": "restoreSnapshotFromBackup",
+            "summary": "Restore one snapshot from a backup",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "restore"
               ]
             ]
           }
@@ -47954,6 +51229,30 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/system-announcement": {
+      "get": {
+        "description": "Any signed-in user (@RequiresUser). The object is empty when there is no announcement.",
+        "operationId": "getSystemAnnouncement",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {},
+                "schema": {
+                  "$ref": "#/components/schemas/SysSystemAnnouncementResponse"
+                }
+              }
+            },
+            "description": "The announcement, under the key announcement, or an empty object."
+          }
+        },
+        "summary": "The current system announcement",
+        "tags": [
+          "Banners"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/trusted-certificates": {
       "get": {
         "description": "Requires any signed-in user (@RequiresUser). Forward returns a bare JSON array.",
@@ -49114,6 +52413,32 @@
         ]
       }
     },
+    "/vm/instanceId": {
+      "get": {
+        "description": "Any signed-in user (@RequiresUser). Served only on on-premises deployments (OnPremLicenseController, @Profile ON_PREM). A hosted deployment answers 404 \"No endpoint\".",
+        "operationId": "getInstanceFingerprint",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "instanceId": "InstanceID__EXAMPLE"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SysInstanceFingerprint"
+                }
+              }
+            },
+            "description": "The fingerprint, under instanceId."
+          }
+        },
+        "summary": "The fingerprint this instance presents when a license is issued",
+        "tags": [
+          "Licensing"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/webhook-types/{eventType}": {
       "get": {
         "operationId": "getWebhookDefaultTemplates",
@@ -49687,6 +53012,26 @@
     {
       "description": "Cloud resources (VPCs, subnets, instances and so on) collected into a snapshot.",
       "name": "Cloud Objects"
+    },
+    {
+      "description": "Cluster backups and restores of the Forward application (on-premises Kubernetes deployments only).",
+      "name": "Backups"
+    },
+    {
+      "description": "Organization banners, the critical-state flags behind the top banner, and the system announcement.",
+      "name": "Banners"
+    },
+    {
+      "description": "Running and finished top-level backend jobs, and cancelling them.",
+      "name": "Jobs"
+    },
+    {
+      "description": "License keys for the organization, the license tier and status, and the instance fingerprint.",
+      "name": "Licensing"
+    },
+    {
+      "description": "Organization-wide and per-collector collection tuning, and per-network performance collection.",
+      "name": "Collection Settings"
     }
   ]
 }

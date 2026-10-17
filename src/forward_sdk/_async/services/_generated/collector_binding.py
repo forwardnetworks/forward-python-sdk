@@ -19,6 +19,28 @@ __all__ = ["AsyncCollectorBindingService"]
 class AsyncCollectorBindingService(AsyncService):
     """Collector Binding."""
 
+    async def get_collector_metrics(
+        self,
+        *,
+        collector_name: str,
+        start_time: str,
+        end_time: str,
+        samples_per_series: int | None = None,
+    ) -> models.SysCollectorMetricsResponse:
+        """A collector's own resource metrics over a time window.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["getCollectorMetrics"](
+                collector_name=collector_name,
+                start_time=start_time,
+                end_time=end_time,
+                samples_per_series=samples_per_series,
+            )
+        )
+        return models.SysCollectorMetricsResponse.model_validate(payload or {})
+
     async def get_network_collector(
         self,
         *,
@@ -33,6 +55,32 @@ class AsyncCollectorBindingService(AsyncService):
             ops.BUILDERS["getNetworkCollector"](network_id=self._network(network_id))
         )
         return models.CollectorWithStatus.model_validate(payload or {})
+
+    async def list_collectors(
+        self,
+        *,
+        include_networks: bool | None = None,
+    ) -> list[models.CollectorWithStatus]:
+        """The organization's collectors, with their status.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["listCollectors"](include_networks=include_networks)
+        )
+        return [models.CollectorWithStatus.model_validate(row) for row in payload or []]
+
+    async def reset_collector_password(
+        self,
+        *,
+        body: Any,
+    ) -> models.SysCollectorCredentials:
+        """Issue a new password for a collector.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(ops.BUILDERS["resetCollectorPassword"](body=body))
+        return models.SysCollectorCredentials.model_validate(payload or {})
 
     async def set_network_collector(
         self,

@@ -14,6 +14,8 @@ from forward_sdk._sync.services._generated.access_control import AccessControlSe
 from forward_sdk._sync.services._generated.adjacent_networks import AdjacentNetworksService
 from forward_sdk._sync.services._generated.aliases import AliasesService
 from forward_sdk._sync.services._generated.audit_logs import AuditLogsService
+from forward_sdk._sync.services._generated.backups import BackupsService
+from forward_sdk._sync.services._generated.banners import BannersService
 from forward_sdk._sync.services._generated.bgp_advertisements import BGPAdvertisementsService
 from forward_sdk._sync.services._generated.blast_radius import BlastRadiusService
 from forward_sdk._sync.services._generated.change_set_directories import (
@@ -25,6 +27,9 @@ from forward_sdk._sync.services._generated.cloud_accounts import CloudAccountsSe
 from forward_sdk._sync.services._generated.cloud_objects import CloudObjectsService
 from forward_sdk._sync.services._generated.collection_schedules import (
     CollectionSchedulesService,
+)
+from forward_sdk._sync.services._generated.collection_settings import (
+    CollectionSettingsService,
 )
 from forward_sdk._sync.services._generated.collection_sources import CollectionSourcesService
 from forward_sdk._sync.services._generated.collector_binding import CollectorBindingService
@@ -47,10 +52,12 @@ from forward_sdk._sync.services._generated.integrations import IntegrationsServi
 from forward_sdk._sync.services._generated.internet_exposure import InternetExposureService
 from forward_sdk._sync.services._generated.internet_node import InternetNodeService
 from forward_sdk._sync.services._generated.intranet_nodes import IntranetNodesService
+from forward_sdk._sync.services._generated.jobs import JobsService
 from forward_sdk._sync.services._generated.jump_servers import JumpServersService
 from forward_sdk._sync.services._generated.l2vpns import L2vpnsService
 from forward_sdk._sync.services._generated.l3vpns import L3vpnsService
 from forward_sdk._sync.services._generated.legacy_collection import LegacyCollectionService
+from forward_sdk._sync.services._generated.licensing import LicensingService
 from forward_sdk._sync.services._generated.network_collection import NetworkCollectionService
 from forward_sdk._sync.services._generated.network_endpoints import NetworkEndpointsService
 from forward_sdk._sync.services._generated.network_locations import NetworkLocationsService
@@ -97,6 +104,8 @@ __all__ = [
     "AliasesService",
     "AuditLogsService",
     "BGPAdvertisementsService",
+    "BackupsService",
+    "BannersService",
     "BlastRadiusService",
     "ChangeSetDirectoriesService",
     "ChecksService",
@@ -104,6 +113,7 @@ __all__ = [
     "CloudAccountsService",
     "CloudObjectsService",
     "CollectionSchedulesService",
+    "CollectionSettingsService",
     "CollectionSourcesService",
     "CollectorBindingService",
     "CollectorTasksService",
@@ -124,10 +134,12 @@ __all__ = [
     "InternetExposureService",
     "InternetNodeService",
     "IntranetNodesService",
+    "JobsService",
     "JumpServersService",
     "L2vpnsService",
     "L3vpnsService",
     "LegacyCollectionService",
+    "LicensingService",
     "NQEPanelsService",
     "NetworkCollectionService",
     "NetworkEndpointsService",
@@ -167,6 +179,8 @@ class GeneratedServices:
     aliases: AliasesService
     audit_logs: AuditLogsService
     bgp_advertisements: BGPAdvertisementsService
+    backups: BackupsService
+    banners: BannersService
     blast_radius: BlastRadiusService
     change_set_directories: ChangeSetDirectoriesService
     checks: ChecksService
@@ -174,6 +188,7 @@ class GeneratedServices:
     cloud_accounts: CloudAccountsService
     cloud_objects: CloudObjectsService
     collection_schedules: CollectionSchedulesService
+    collection_settings: CollectionSettingsService
     collection_sources: CollectionSourcesService
     collector_binding: CollectorBindingService
     collector_tasks: CollectorTasksService
@@ -193,10 +208,12 @@ class GeneratedServices:
     internet_exposure: InternetExposureService
     internet_node: InternetNodeService
     intranet_nodes: IntranetNodesService
+    jobs: JobsService
     jump_servers: JumpServersService
     l2vpns: L2vpnsService
     l3vpns: L3vpnsService
     legacy_collection: LegacyCollectionService
+    licensing: LicensingService
     nqe_panels: NQEPanelsService
     network_collection: NetworkCollectionService
     network_endpoints: NetworkEndpointsService
@@ -228,6 +245,8 @@ class GeneratedServices:
         self.aliases = AliasesService(transport)
         self.audit_logs = AuditLogsService(transport)
         self.bgp_advertisements = BGPAdvertisementsService(transport)
+        self.backups = BackupsService(transport)
+        self.banners = BannersService(transport)
         self.blast_radius = BlastRadiusService(transport)
         self.change_set_directories = ChangeSetDirectoriesService(transport)
         self.checks = ChecksService(transport)
@@ -235,6 +254,7 @@ class GeneratedServices:
         self.cloud_accounts = CloudAccountsService(transport)
         self.cloud_objects = CloudObjectsService(transport)
         self.collection_schedules = CollectionSchedulesService(transport)
+        self.collection_settings = CollectionSettingsService(transport)
         self.collection_sources = CollectionSourcesService(transport)
         self.collector_binding = CollectorBindingService(transport)
         self.collector_tasks = CollectorTasksService(transport)
@@ -254,10 +274,12 @@ class GeneratedServices:
         self.internet_exposure = InternetExposureService(transport)
         self.internet_node = InternetNodeService(transport)
         self.intranet_nodes = IntranetNodesService(transport)
+        self.jobs = JobsService(transport)
         self.jump_servers = JumpServersService(transport)
         self.l2vpns = L2vpnsService(transport)
         self.l3vpns = L3vpnsService(transport)
         self.legacy_collection = LegacyCollectionService(transport)
+        self.licensing = LicensingService(transport)
         self.nqe_panels = NQEPanelsService(transport)
         self.network_collection = NetworkCollectionService(transport)
         self.network_endpoints = NetworkEndpointsService(transport)
@@ -291,6 +313,8 @@ SERVICE_TAGS: dict[str, str] = {
     "Aliases": "aliases",
     "Audit Logs": "audit_logs",
     "BGP Advertisements": "bgp_advertisements",
+    "Backups": "backups",
+    "Banners": "banners",
     "Blast Radius": "blast_radius",
     "Change Set Directories": "change_set_directories",
     "Checks": "checks",
@@ -298,6 +322,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Cloud Accounts": "cloud_accounts",
     "Cloud Objects": "cloud_objects",
     "Collection Schedules": "collection_schedules",
+    "Collection Settings": "collection_settings",
     "Collection Sources": "collection_sources",
     "Collector Binding": "collector_binding",
     "Collector Tasks": "collector_tasks",
@@ -317,10 +342,12 @@ SERVICE_TAGS: dict[str, str] = {
     "Internet Exposure": "internet_exposure",
     "Internet Node": "internet_node",
     "Intranet Nodes": "intranet_nodes",
+    "Jobs": "jobs",
     "Jump Servers": "jump_servers",
     "L2VPNs": "l2vpns",
     "L3VPNs": "l3vpns",
     "Legacy Collection": "legacy_collection",
+    "Licensing": "licensing",
     "NQE Panels": "nqe_panels",
     "Network Collection": "network_collection",
     "Network Endpoints": "network_endpoints",

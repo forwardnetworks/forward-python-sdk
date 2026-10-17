@@ -34,6 +34,18 @@ class ConfigurationService(Service):
         payload = self._send_json(ops.BUILDERS["clearDeploymentConfigValue"](property=property))
         return payload
 
+    def clear_global_config_value(
+        self,
+        *,
+        property: str,
+    ) -> Any:
+        """Remove a global default override for an org property.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["clearGlobalConfigValue"](property=property))
+        return payload
+
     def clear_org_config_value(
         self,
         *,
@@ -81,18 +93,6 @@ class ConfigurationService(Service):
         Unpublished: not part of Forward's documented API.
         """
         payload = self._send_json(ops.BUILDERS["getDeploymentConfigValue"](property=property))
-        return models.ConfigValue.model_validate(payload or {})
-
-    def get_global_config_value(
-        self,
-        *,
-        property: str,
-    ) -> models.ConfigValue:
-        """An org property's global default.
-
-        Unpublished: not part of Forward's documented API.
-        """
-        payload = self._send_json(ops.BUILDERS["getGlobalConfigValue"](property=property))
         return models.ConfigValue.model_validate(payload or {})
 
     def get_global_config_values(
@@ -173,21 +173,6 @@ class ConfigurationService(Service):
         """
         payload = self._send_json(
             ops.BUILDERS["setDeploymentConfigValue"](property=property, value=value)
-        )
-        return models.ConfigValue.model_validate(payload or {})
-
-    def set_global_config_value(
-        self,
-        *,
-        property: str,
-        value: str,
-    ) -> models.ConfigValue:
-        """Change an org property's global default.
-
-        Unpublished: not part of Forward's documented API.
-        """
-        payload = self._send_json(
-            ops.BUILDERS["setGlobalConfigValue"](property=property, value=value)
         )
         return models.ConfigValue.model_validate(payload or {})
 

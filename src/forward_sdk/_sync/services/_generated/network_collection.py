@@ -10,6 +10,8 @@ These endpoints are not part of Forward's published API.
 
 from __future__ import annotations
 
+from typing import Any
+
 from forward_sdk._generated import models
 from forward_sdk._ops import rest as ops
 from forward_sdk._sync.services._base import Service
@@ -19,6 +21,22 @@ __all__ = ["NetworkCollectionService"]
 
 class NetworkCollectionService(Service):
     """Network Collection."""
+
+    def create_network_proxy(
+        self,
+        *,
+        body: Any,
+        network_id: str | None = None,
+    ) -> models.SysProxyServerConfig:
+        """Add an internet proxy to a network.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["createNetworkProxy"](network_id=self._network(network_id), body=body)
+        )
+        return models.SysProxyServerConfig.model_validate(payload or {})
 
     def get_network_collection_metrics(
         self,
@@ -53,3 +71,37 @@ class NetworkCollectionService(Service):
             ops.BUILDERS["listDeviceStatuses"](network_id=self._network(network_id))
         )
         return [models.SrcDeviceStatus.model_validate(row) for row in payload or []]
+
+    def list_network_proxies(
+        self,
+        *,
+        network_id: str | None = None,
+    ) -> list[models.SysStoredProxyServer]:
+        """The internet proxies a network uses.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["listNetworkProxies"](network_id=self._network(network_id))
+        )
+        return [models.SysStoredProxyServer.model_validate(row) for row in payload or []]
+
+    def update_network_proxy(
+        self,
+        *,
+        proxy_id: str,
+        body: Any,
+        network_id: str | None = None,
+    ) -> models.SysProxyServerConfig:
+        """Change an internet proxy of a network.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["updateNetworkProxy"](
+                network_id=self._network(network_id), proxy_id=proxy_id, body=body
+            )
+        )
+        return models.SysProxyServerConfig.model_validate(payload or {})

@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import Any
 
 from forward_sdk._async.services._base import AsyncService
-from forward_sdk._generated import models
 from forward_sdk._ops import rest as ops
 
 __all__ = ["AsyncCollectorsService"]
@@ -18,18 +17,6 @@ __all__ = ["AsyncCollectorsService"]
 
 class AsyncCollectorsService(AsyncService):
     """Collectors."""
-
-    async def create_collector_account(
-        self,
-        *,
-        body: Any,
-    ) -> models.CollectorWithAuthKey:
-        """Register a new collector account for the org.
-
-        Unpublished: not part of Forward's documented API.
-        """
-        payload = await self._send_json(ops.BUILDERS["createCollectorAccount"](body=body))
-        return models.CollectorWithAuthKey.model_validate(payload or {})
 
     async def delete_collector_account(
         self,

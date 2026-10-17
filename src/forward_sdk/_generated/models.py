@@ -7984,6 +7984,1045 @@ class SyntheticNatEntry(ForwardModel):
     """
 
 
+class SysActiveJobInfo(ForwardModel):
+    """
+    One row, or a group of identical rows, of running or queued work. Field names are from the Java record ActiveJobInfo; the endpoint itself is ADMINISTER_SYSTEM, so it was not live-verified.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cancel_link: Annotated[str, Field(alias="cancelLink")]
+    """
+    Opaque. Pass it to cancelJob unchanged.
+    """
+    creation_time: Annotated[str, Field(alias="creationTime")]
+    """
+    When the job was created, or the earliest creation time in a group. Serialization is set by Forward's mapper and was not checked.
+    """
+    duration_in_seconds: Annotated[int | None, Field(alias="durationInSeconds")] = None
+    job_type: Annotated[str, Field(alias="jobType")]
+    longest_queued_time_in_seconds: Annotated[
+        int | None, Field(alias="longestQueuedTimeInSeconds")
+    ] = None
+    longest_running_time_in_seconds: Annotated[
+        int | None, Field(alias="longestRunningTimeInSeconds")
+    ] = None
+    network_id: Annotated[int, Field(alias="networkId")]
+    org_name: Annotated[str, Field(alias="orgName")]
+    queued: int | None = None
+    """
+    1 when waiting in the queue. For a group, the count.
+    """
+    running: int | None = None
+    """
+    1 when executing. For a group, the count.
+    """
+    snapshot_id: Annotated[int | None, Field(alias="snapshotId")] = None
+    """
+    Absent for network-level jobs.
+    """
+    total_count: Annotated[int, Field(alias="totalCount")]
+    """
+    1, or the number of jobs in the group.
+    """
+    waiting_for_other_jobs: Annotated[int | None, Field(alias="waitingForOtherJobs")] = None
+    """
+    1 when blocked by a stage-dependency job, 0 otherwise. For a group, the count.
+    """
+
+
+class StorageType(OpenEnum):
+    internal = "INTERNAL"
+    s3 = "S3"
+
+
+class TriggerType(OpenEnum):
+    manual = "MANUAL"
+    scheduled = "SCHEDULED"
+
+
+class SysAppBackup(ForwardModel):
+    """
+    One stored backup. Source-only (not live-verified). Size is in bytes.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    app_version: Annotated[str, Field(alias="appVersion")]
+    """
+    The Forward version that wrote the backup.
+    """
+    backup_time_millis: Annotated[int | None, Field(alias="backupTimeMillis")] = None
+    """
+    When the backup was taken, as epoch milliseconds.
+    """
+    id: int
+    note: str | None = None
+    """
+    A note given when the backup was taken. Absent when none.
+    """
+    size: int
+    snapshots_included: Annotated[bool, Field(alias="snapshotsIncluded")]
+    storage_type: Annotated[StorageType, Field(alias="storageType")]
+    trigger_type: Annotated[TriggerType, Field(alias="triggerType")]
+
+
+class SysApprovedCliCommands(ForwardModel):
+    """
+    The CLI commands endpoint profiles may run. signedAt and the uploaded fields are absent for the system defaults.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    commands: list[str]
+    signed_at: Annotated[AwareDatetime | None, Field(alias="signedAt")] = None
+    uploaded_at: Annotated[AwareDatetime | None, Field(alias="uploadedAt")] = None
+    uploaded_by_id: Annotated[str | None, Field(alias="uploadedById")] = None
+    """
+    The id of the user who uploaded the file.
+    """
+
+
+class SysAsciiCodedSignedLicenseKey(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    signed_license_key: Annotated[str, Field(alias="signedLicenseKey")]
+    """
+    The ASCII-encoded signed license key. Secret-like.
+    """
+
+
+class SysCbrOperationStatus(OpenEnum):
+    """
+    The state of an application or snapshot part of a cluster operation.
+    """
+
+    not_started = "NOT_STARTED"
+    in_progress = "IN_PROGRESS"
+    error = "ERROR"
+    done = "DONE"
+    cancelled = "CANCELLED"
+    network_missing = "NETWORK_MISSING"
+
+
+class SysCliCommandAssessment(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    approved: list[str]
+    unapproved: list[str]
+
+
+class Type64(OpenEnum):
+    backup = "BACKUP"
+    restore = "RESTORE"
+
+
+class SysClusterOperation(ForwardModel):
+    """
+    A cluster backup or restore that is running or has just finished. Source-only. Java enum BACKUP/RESTORE; the wire value is the constant name unless Forward's mapper is configured otherwise (not checked). The Go SDK comment says lower-case, which disagrees with the Java enum.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    app_status: Annotated[SysCbrOperationStatus | None, Field(alias="appStatus")] = None
+    id: str | None = None
+    """
+    The operation id, a timestamp in seconds.
+    """
+    snapshot_to_status: Annotated[
+        dict[str, SysCbrOperationStatus] | None, Field(alias="snapshotToStatus")
+    ] = None
+    """
+    The state of each snapshot involved, keyed by snapshot id.
+    """
+    type: Type64 | None = None
+
+
+class SysClusterOperationResult(ForwardModel):
+    """
+    The outcome of a completed cluster operation. Source-only.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    app_status: Annotated[SysCbrOperationStatus | None, Field(alias="appStatus")] = None
+    id: str | None = None
+    snapshot_to_status: Annotated[
+        dict[str, SysCbrOperationStatus] | None, Field(alias="snapshotToStatus")
+    ] = None
+
+
+class SysCollectorCollectionSettings(ForwardModel):
+    """
+    The collection settings stored for one collector. Zero values are omitted.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    concurrency: int | None = None
+    """
+    Devices collected at once.
+    """
+    snmp_collection_concurrency: Annotated[int | None, Field(alias="snmpCollectionConcurrency")] = (
+        None
+    )
+    vcenter_concurrency: Annotated[int | None, Field(alias="vcenterConcurrency")] = None
+
+
+class SysCollectorCollectionSettingsPatch(ForwardModel):
+    """
+    A partial change to a collector's settings. An explicit null resets the field to Forward's default.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    concurrency: int | None = None
+    snmp_collection_concurrency: Annotated[int | None, Field(alias="snmpCollectionConcurrency")] = (
+        None
+    )
+    vcenter_concurrency: Annotated[int | None, Field(alias="vcenterConcurrency")] = None
+
+
+class SysCollectorCredentials(ForwardModel):
+    """
+    A collector's name and, in a response, its username and new password. The password is shown once and is never returned again.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collector_name: Annotated[str, Field(alias="collectorName")]
+    password: str | None = None
+    """
+    Returned in the response only. Secret.
+    """
+    username: str | None = None
+    """
+    Returned in the response. Unchanged by a reset.
+    """
+
+
+class SysCollectorDiskUsage(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    available_mb: Annotated[int | None, Field(alias="availableMb")] = None
+    size_mb: Annotated[int | None, Field(alias="sizeMb")] = None
+
+
+class CpuMetrics(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cpu_cores: Annotated[int | None, Field(alias="cpuCores")] = None
+    cpu_load: Annotated[float | None, Field(alias="cpuLoad")] = None
+    """
+    The host's recent load as a fraction 0 to 1. Below 0 means not measured yet.
+    """
+
+
+class DiskMetrics(ForwardModel):
+    """
+    Megabytes, for the collector data volume, the OS volume and the temp volume.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collector: SysCollectorDiskUsage | None = None
+    os: SysCollectorDiskUsage | None = None
+    tmp: SysCollectorDiskUsage | None = None
+
+
+class FileMetrics(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    file_descriptors_max: Annotated[int | None, Field(alias="fileDescriptorsMax")] = None
+    file_descriptors_open: Annotated[int | None, Field(alias="fileDescriptorsOpen")] = None
+
+
+class GcMetrics(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    gc_load: Annotated[float | None, Field(alias="gcLoad")] = None
+    """
+    The fraction of the interval since the previous sample spent in GC.
+    """
+    gc_time_seconds: Annotated[int | None, Field(alias="gcTimeSeconds")] = None
+    """
+    A cumulative counter since the collector JVM started.
+    """
+
+
+class MemoryMetrics(ForwardModel):
+    """
+    Megabytes.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    jvm_mem_free_mb: Annotated[int | None, Field(alias="jvmMemFreeMb")] = None
+    """
+    Free space within the heap the JVM has committed so far.
+    """
+    jvm_mem_max_mb: Annotated[int | None, Field(alias="jvmMemMaxMb")] = None
+    proc_rss_mb: Annotated[int | None, Field(alias="procRssMb")] = None
+    vm_mem_free_mb: Annotated[int | None, Field(alias="vmMemFreeMb")] = None
+    vm_mem_total_mb: Annotated[int | None, Field(alias="vmMemTotalMb")] = None
+
+
+class TaskMetrics(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    concurrency: int | None = None
+    """
+    The executor's configured size.
+    """
+    queue_size: Annotated[int | None, Field(alias="queueSize")] = None
+    tasks_finished: Annotated[int | None, Field(alias="tasksFinished")] = None
+    tasks_started: Annotated[int | None, Field(alias="tasksStarted")] = None
+    """
+    A running total since the collector process started.
+    """
+
+
+class SysCollectorMetricSample(ForwardModel):
+    """
+    One sample uploaded by a collector. The series are CPU, memory, garbage collection, file descriptors, disk and task executor. No network throughput is recorded.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cpu_metrics: Annotated[CpuMetrics | None, Field(alias="cpuMetrics")] = None
+    disk_metrics: Annotated[DiskMetrics | None, Field(alias="diskMetrics")] = None
+    """
+    Megabytes, for the collector data volume, the OS volume and the temp volume.
+    """
+    file_metrics: Annotated[FileMetrics | None, Field(alias="fileMetrics")] = None
+    gc_metrics: Annotated[GcMetrics | None, Field(alias="gcMetrics")] = None
+    memory_metrics: Annotated[MemoryMetrics | None, Field(alias="memoryMetrics")] = None
+    """
+    Megabytes.
+    """
+    task_metrics: Annotated[TaskMetrics | None, Field(alias="taskMetrics")] = None
+    timestamp: AwareDatetime | None = None
+
+
+class SysCollectorMetricsResponse(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    metrics: list[SysCollectorMetricSample]
+    """
+    The samples, oldest first.
+    """
+
+
+class SysCommonBackupSettings(ForwardModel):
+    """
+    The backup schedule and retention for one storage type. Source-only.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    backup_time: Annotated[str, Field(alias="backupTime")]
+    """
+    Time of day, HH:mm.
+    """
+    enabled: bool
+    """
+    Whether the scheduled backup runs.
+    """
+    include_snapshots: Annotated[bool, Field(alias="includeSnapshots")]
+    num_days_to_retain: Annotated[int, Field(alias="numDaysToRetain", ge=1)]
+    """
+    Days to keep backups. Defaults to 30.
+    """
+
+
+class SysCommonBackupSettingsPatch(ForwardModel):
+    """
+    A change to the backup settings. Omitted fields keep their stored value; null also keeps it. Source-only.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    backup_time: Annotated[str | None, Field(alias="backupTime")] = None
+    """
+    Time of day, HH:mm.
+    """
+    enabled: bool | None = None
+    include_snapshots: Annotated[bool | None, Field(alias="includeSnapshots")] = None
+    num_days_to_retain: Annotated[int | None, Field(alias="numDaysToRetain", ge=1)] = None
+
+
+class State(OpenEnum):
+    succeeded = "SUCCEEDED"
+    failed = "FAILED"
+    canceled = "CANCELED"
+    timed_out = "TIMED_OUT"
+
+
+class SysCompletedJobInfo(ForwardModel):
+    """
+    One row, or a group, of finished work. Field names from the Java record CompletedJobInfo; not live-verified.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    count: int | None = None
+    creation_time: Annotated[str | None, Field(alias="creationTime")] = None
+    duration_in_seconds: Annotated[int | None, Field(alias="durationInSeconds")] = None
+    earliest_start_time: Annotated[str | None, Field(alias="earliestStartTime")] = None
+    job_type: Annotated[str | None, Field(alias="jobType")] = None
+    latest_end_time: Annotated[str | None, Field(alias="latestEndTime")] = None
+    longest_queue_time_in_seconds: Annotated[
+        int | None, Field(alias="longestQueueTimeInSeconds")
+    ] = None
+    longest_running_time_in_seconds: Annotated[
+        int | None, Field(alias="longestRunningTimeInSeconds")
+    ] = None
+    network_id: Annotated[int | None, Field(alias="networkId")] = None
+    org_name: Annotated[str | None, Field(alias="orgName")] = None
+    snapshot_id: Annotated[int | None, Field(alias="snapshotId")] = None
+    state: State | None = None
+
+
+class MaintenanceWindow(ForwardModel):
+    """
+    The scheduled upgrade window, or null when none is scheduled.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    end: int | None = None
+    """
+    Epoch milliseconds.
+    """
+    start: int | None = None
+    """
+    Epoch milliseconds.
+    """
+
+
+class SysCriticalStates(ForwardModel):
+    """
+    The critical-state flags. Only keys that apply to this deployment are present. License-status states (LICENSE_EXPIRED and the like) are not in this map; the UI derives them from the license status.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collector_outdated: Annotated[bool | None, Field(alias="COLLECTOR_OUTDATED")] = None
+    license_cch_exhausted: Annotated[bool | None, Field(alias="LICENSE_CCH_EXHAUSTED")] = None
+    license_cch_grace_period_ended: Annotated[
+        bool | None, Field(alias="LICENSE_CCH_GRACE_PERIOD_ENDED")
+    ] = None
+    low_storage: Annotated[bool | None, Field(alias="LOW_STORAGE")] = None
+    maintenance_window: Annotated[MaintenanceWindow | None, Field(alias="MAINTENANCE_WINDOW")] = (
+        None
+    )
+    """
+    The scheduled upgrade window, or null when none is scheduled.
+    """
+    no_backup_storage: Annotated[bool | None, Field(alias="NO_BACKUP_STORAGE")] = None
+    no_storage: Annotated[bool | None, Field(alias="NO_STORAGE")] = None
+
+
+class SysCustomBanner(ForwardModel):
+    """
+    A banner shown in the UI for each of some set of networks.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    background_color: Annotated[str, Field(alias="backgroundColor")]
+    """
+    A banner colour. The observed value is GREEN; the full set is in Forward's Color enum (not listed here).
+    """
+    enabled: bool
+    id: str
+    message: str
+    """
+    Must not be blank.
+    """
+    network_ids: Annotated[list[str], Field(alias="networkIds", min_length=1)]
+
+
+class SysCustomBannerList(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    banners: list[SysCustomBanner]
+
+
+class Status9(OpenEnum):
+    valid = "VALID"
+    invalid_license = "INVALID_LICENSE"
+    invalid_signature = "INVALID_SIGNATURE"
+    invalid_fingerprint = "INVALID_FINGERPRINT"
+    expired = "EXPIRED"
+    unsupported_type = "UNSUPPORTED_TYPE"
+    wrong_tier = "WRONG_TIER"
+    replacement_pending = "REPLACEMENT_PENDING"
+    bad_trial_tier = "BAD_TRIAL_TIER"
+    bad_tier_trial_timing = "BAD_TIER_TRIAL_TIMING"
+    cch_debt_unpaid = "CCH_DEBT_UNPAID"
+    already_used = "ALREADY_USED"
+
+
+class DeploymentType(OpenEnum):
+    vmware_hypervisor = "VMWARE_HYPERVISOR"
+    aws_ec2 = "AWS_EC2"
+    aws_govcloud_ec2 = "AWS_GOVCLOUD_EC2"
+    azure_vm = "AZURE_VM"
+    azure_gov_vm = "AZURE_GOV_VM"
+    gcp_vm = "GCP_VM"
+    kvm_hypervisor = "KVM_HYPERVISOR"
+
+
+class Workflow(OpenEnum):
+    """
+    INSTALLATION stands up a new instance. APP_UPGRADE moves an existing one forward.
+    """
+
+    installation = "INSTALLATION"
+    app_upgrade = "APP_UPGRADE"
+
+
+class FileType(OpenEnum):
+    ova = "OVA"
+    tar_gz = "TAR_GZ"
+    airgap = "AIRGAP"
+    package = "PACKAGE"
+
+
+class SysDeploymentArtifactVersion(ForwardModel):
+    """
+    One downloadable file. Source-only.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    base_version: Annotated[str | None, Field(alias="baseVersion")] = None
+    file_type: Annotated[FileType, Field(alias="fileType")]
+    id: str
+    max_base_version: Annotated[str | None, Field(alias="maxBaseVersion")] = None
+    min_base_version: Annotated[str | None, Field(alias="minBaseVersion")] = None
+    sha256: str | None = None
+    """
+    The SHA-256 digest of the file.
+    """
+    size_in_bytes: Annotated[int, Field(alias="sizeInBytes")]
+    uploaded_at: Annotated[int, Field(alias="uploadedAt")]
+    """
+    Epoch milliseconds.
+    """
+    uploaded_by: Annotated[str | None, Field(alias="uploadedBy")] = None
+    """
+    The id of the user who uploaded it.
+    """
+    version: str
+
+
+class SysDisabledCommandVersion(ForwardModel):
+    """
+    The inclusive range of software versions, as release version strings.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    end: str
+    start: str
+
+
+class SysInstanceFingerprint(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    instance_id: Annotated[str, Field(alias="instanceId")]
+    """
+    The fingerprint, encoded.
+    """
+
+
+class Tier(OpenEnum):
+    """
+    The license tier. The observed value is NS.
+    """
+
+    b = "B"
+    n = "N"
+    np = "NP"
+    s = "S"
+    ns = "NS"
+    nsp = "NSP"
+
+
+class SysLicense(ForwardModel):
+    """
+    A license, as Forward records it. Observed live.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cloud_credit_hours: Annotated[int | None, Field(alias="cloudCreditHours")] = None
+    created_at: Annotated[AwareDatetime | None, Field(alias="createdAt")] = None
+    edge_asset_cap: Annotated[int | None, Field(alias="edgeAssetCap")] = None
+    expires_at: Annotated[AwareDatetime | None, Field(alias="expiresAt")] = None
+    id: str | None = None
+    licensed_to: Annotated[str | None, Field(alias="licensedTo")] = None
+    lite_device_cap: Annotated[int | None, Field(alias="liteDeviceCap")] = None
+    purchase_order: Annotated[str | None, Field(alias="purchaseOrder")] = None
+    replaces: bool | None = None
+    standard_device_cap: Annotated[int | None, Field(alias="standardDeviceCap")] = None
+    starts_at: Annotated[AwareDatetime | None, Field(alias="startsAt")] = None
+    tier: Tier | None = None
+    """
+    The license tier. The observed value is NS.
+    """
+    type: str | None = None
+    """
+    The observed value is TIER.
+    """
+
+
+class SysLicenseDetails(ForwardModel):
+    """
+    A license and the signed key generated from it, once activated. invalidated is omitted when false. Observed live; the Java field list is in LicenseDetails.java.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    fingerprint: str | None = None
+    """
+    The fingerprint of the instance the key is bound to.
+    """
+    invalidated: bool | None = None
+    """
+    Present only when true.
+    """
+    license: SysLicense | None = None
+    signed_license_key: Annotated[str | None, Field(alias="signedLicenseKey")] = None
+    """
+    The ASCII signed key, when one exists. Secret-like; do not log.
+    """
+    used_at: Annotated[AwareDatetime | None, Field(alias="usedAt")] = None
+    """
+    When the license was added to this deployment or activated.
+    """
+
+
+class Status10(OpenEnum):
+    not_active_yet = "NOT_ACTIVE_YET"
+    active = "ACTIVE"
+    expired = "EXPIRED"
+    replaced = "REPLACED"
+
+
+class SysLicenseDetailsWithStatus(SysLicenseDetails):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    status: Status10 | None = None
+
+
+class LicenseStatus(OpenEnum):
+    software_central = "SOFTWARE_CENTRAL"
+    exempt = "EXEMPT"
+    active = "ACTIVE"
+    not_active_yet = "NOT_ACTIVE_YET"
+    expired_recently = "EXPIRED_RECENTLY"
+    expired = "EXPIRED"
+
+
+class LicenseTier(OpenEnum):
+    b = "B"
+    n = "N"
+    np = "NP"
+    s = "S"
+    ns = "NS"
+    nsp = "NSP"
+
+
+class SysLicenseTierAndStatus(ForwardModel):
+    """
+    The tier and status. Both are absent for an unlicensed organization.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    license_status: Annotated[LicenseStatus | None, Field(alias="licenseStatus")] = None
+    license_tier: Annotated[LicenseTier | None, Field(alias="licenseTier")] = None
+
+
+class SysNewCustomBanner(ForwardModel):
+    """
+    A new banner. The id is assigned by Forward.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    background_color: Annotated[str, Field(alias="backgroundColor")]
+    enabled: bool
+    message: str
+    network_ids: Annotated[list[str], Field(alias="networkIds", min_length=1)]
+
+
+class Protocol3(OpenEnum):
+    http = "http"
+    https = "https"
+
+
+class SysNewProxyServer(ForwardModel):
+    """
+    The fields for a new proxy. name, host and port are required by the service, not by the schema.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    disable_cert_checking: Annotated[bool | None, Field(alias="disableCertChecking")] = None
+    host: str | None = None
+    name: str | None = None
+    password: str | None = None
+    port: Annotated[int | None, Field(ge=1, le=65535)] = None
+    protocol: Protocol3 | None = None
+    username: str | None = None
+
+
+class SysOrgCollectionSettingsPatch(ForwardModel):
+    """
+    A partial change to the organization collection settings. Presence semantics: an omitted key is left alone; a key sent as null is cleared, which resets it to Forward's default. The three collectionRetries and collectionRetryDelayMillis and collectionMaxRetryDelayMillis keys merge into one stored retry config. disabledCommands, when sent, replaces the whole stored map; an empty object clears every disabled command. Source: OrgCollectionSettingsPatch.java.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collect_full_config_device_types: Annotated[
+        list[str] | None, Field(alias="collectFullConfigDeviceTypes")
+    ] = None
+    collection_max_retry_delay_millis: Annotated[
+        int | None, Field(alias="collectionMaxRetryDelayMillis", ge=0)
+    ] = None
+    collection_retries: Annotated[int | None, Field(alias="collectionRetries", ge=0)] = None
+    """
+    Retries after the first attempt. 0 turns retries off. Negative is a 400.
+    """
+    collection_retry_delay_millis: Annotated[
+        int | None, Field(alias="collectionRetryDelayMillis", ge=0)
+    ] = None
+    command_delay_ms: Annotated[int | None, Field(alias="commandDelayMs")] = None
+    device_collection_timeout_minutes: Annotated[
+        int | None, Field(alias="deviceCollectionTimeoutMinutes")
+    ] = None
+    device_discovery_timeout_minutes: Annotated[
+        int | None, Field(alias="deviceDiscoveryTimeoutMinutes")
+    ] = None
+    disable_command_output_logging: Annotated[
+        bool | None, Field(alias="disableCommandOutputLogging")
+    ] = None
+    disabled_commands: Annotated[dict[str, Any] | None, Field(alias="disabledCommands")] = None
+    """
+    Replaces the whole stored map. Each entry needs a command and both version bounds.
+    """
+    enable_beta_commands: Annotated[bool | None, Field(alias="enableBetaCommands")] = None
+    enable_snmp_cred_discovery: Annotated[bool | None, Field(alias="enableSnmpCredDiscovery")] = (
+        None
+    )
+    general_job_timeout_minutes: Annotated[int | None, Field(alias="generalJobTimeoutMinutes")] = (
+        None
+    )
+    max_command_auth_z_per_second: Annotated[
+        int | None, Field(alias="maxCommandAuthZPerSecond")
+    ] = None
+    max_device_auth_n_per_second: Annotated[int | None, Field(alias="maxDeviceAuthNPerSecond")] = (
+        None
+    )
+    max_scan_connections_per_second: Annotated[
+        int | None, Field(alias="maxScanConnectionsPerSecond")
+    ] = None
+    password_prompts: Annotated[list[str] | None, Field(alias="passwordPrompts")] = None
+    per_device_concurrency_boost: Annotated[
+        int | None, Field(alias="perDeviceConcurrencyBoost")
+    ] = None
+    per_device_snmp_concurrency: Annotated[
+        int | None, Field(alias="perDeviceSnmpConcurrency", ge=1, le=100)
+    ] = None
+    """
+    1 to 100. Anything else is a 400.
+    """
+    snapshot_collection_timeout_minutes: Annotated[
+        int | None, Field(alias="snapshotCollectionTimeoutMinutes")
+    ] = None
+
+
+class SysPerformanceSettings(ForwardModel):
+    """
+    Whether performance collection runs for a network, and how often. Source-only.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    enabled: bool
+    interval_minutes: Annotated[int | None, Field(alias="intervalMinutes")] = None
+    """
+    Absent when Forward's default applies.
+    """
+
+
+class SysPerformanceSettingsPatch(ForwardModel):
+    """
+    A partial change. An omitted key is left alone. A null enabled is stored as false. Source: PerformanceSettingsPatch.java.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    enabled: bool | None = None
+    interval_minutes: Annotated[int | None, Field(alias="intervalMinutes")] = None
+
+
+class SysProxyServerConfig(ForwardModel):
+    """
+    An internet proxy used for collection. The password is a secret reference, never the value. Source-only except the fields shown in the example.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    disable_cert_checking: Annotated[bool | None, Field(alias="disableCertChecking")] = None
+    host: str
+    id: str | None = None
+    name: str
+    password: str | None = None
+    """
+    A secret reference when a password is set. Absent otherwise.
+    """
+    port: Annotated[int, Field(ge=1, le=65535)]
+    protocol: Protocol3
+    username: str | None = None
+    """
+    Absent when none is set.
+    """
+
+
+class SysProxyServerConfigPatch(ForwardModel):
+    """
+    A partial change to a proxy. An omitted key is left alone. An explicit null clears username, password or disableCertChecking. host, port and protocol cannot be cleared.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    disable_cert_checking: Annotated[bool | None, Field(alias="disableCertChecking")] = None
+    host: str | None = None
+    name: str | None = None
+    """
+    A null or omitted name keeps the stored name.
+    """
+    password: str | None = None
+    port: Annotated[int | None, Field(ge=1, le=65535)] = None
+    protocol: Protocol3 | None = None
+    username: str | None = None
+
+
+class Stage(OpenEnum):
+    """
+    Present while the restore runs. Absent before it starts and after it finishes or fails.
+    """
+
+    downloading = "DOWNLOADING"
+    unpacking = "UNPACKING"
+
+
+class SysRestoreStatus(ForwardModel):
+    """
+    How a snapshot restore is going. Source-only: the fields are the Java RestoreStatus record.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    current_progress: Annotated[int | None, Field(alias="currentProgress")] = None
+    """
+    Present while the restore runs.
+    """
+    error_message: Annotated[str | None, Field(alias="errorMessage")] = None
+    """
+    Present only when the restore has failed.
+    """
+    max_progress: Annotated[int | None, Field(alias="maxProgress")] = None
+    """
+    Present while the restore runs.
+    """
+    stage: Stage | None = None
+    """
+    Present while the restore runs. Absent before it starts and after it finishes or fails.
+    """
+    start_millis: Annotated[int, Field(alias="startMillis")]
+    """
+    When the restore began, as epoch milliseconds.
+    """
+    status: SysCbrOperationStatus
+
+
+class SysS3StorageSettings(ForwardModel):
+    """
+    S3 settings for backups. The secret key is write-only and is never returned, so it is not listed here. A request that sets these settings (the bucket ownership change) must still send secretKey. Source-only.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    access_key: Annotated[str, Field(alias="accessKey")]
+    bucket_name: Annotated[str, Field(alias="bucketName")]
+    certificate: str | None = None
+    """
+    A PEM certificate to trust for serviceEndpoint. Absent when none.
+    """
+    disable_checksum_validation: Annotated[
+        bool | None, Field(alias="disableChecksumValidation")
+    ] = None
+    disable_ssl_validation: Annotated[bool | None, Field(alias="disableSslValidation")] = None
+    """
+    Mutually exclusive with certificate.
+    """
+    secret_key: Annotated[str | None, Field(alias="secretKey")] = None
+    """
+    Sent in requests only; never returned by Forward.
+    """
+    service_endpoint: Annotated[str, Field(alias="serviceEndpoint")]
+    write_only: Annotated[bool | None, Field(alias="writeOnly")] = None
+    """
+    Reads and writes allowed, deletes not.
+    """
+
+
+class SysS3StorageSettingsPatch(ForwardModel):
+    """
+    A change to the S3 settings. Omitted fields keep their stored value. For certificate, an explicit null clears it; for the other fields, null keeps the stored value. Source-only.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    access_key: Annotated[str | None, Field(alias="accessKey")] = None
+    bucket_name: Annotated[str | None, Field(alias="bucketName")] = None
+    certificate: str | None = None
+    """
+    Send null to clear the stored certificate.
+    """
+    disable_checksum_validation: Annotated[
+        bool | None, Field(alias="disableChecksumValidation")
+    ] = None
+    disable_ssl_validation: Annotated[bool | None, Field(alias="disableSslValidation")] = None
+    secret_key: Annotated[str | None, Field(alias="secretKey")] = None
+    service_endpoint: Annotated[str | None, Field(alias="serviceEndpoint")] = None
+    write_only: Annotated[bool | None, Field(alias="writeOnly")] = None
+
+
+class SysStoredProxyServer(SysProxyServerConfig, Attribution):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+
+
+class SysSystemAnnouncement(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[AwareDatetime, Field(alias="createdAt")]
+    link_url: Annotated[str | None, Field(alias="linkUrl")] = None
+    """
+    A link to show with the message. Absent when none.
+    """
+    message: str
+
+
+class SysSystemAnnouncementResponse(ForwardModel):
+    """
+    The system announcement, or an empty object when there is none.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    announcement: SysSystemAnnouncement | None = None
+
+
 class TapiNetworkContainer(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -8051,7 +9090,7 @@ class TextRegion(ForwardModel):
     """
 
 
-class Status9(OpenEnum):
+class Status11(OpenEnum):
     neutral = "NEUTRAL"
     ok = "OK"
     warning = "WARNING"
@@ -8063,7 +9102,7 @@ class ThresholdRule(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status9 | None = None
+    status: Status11 | None = None
     value: float | None = None
     """
     Null marks the default rule.
@@ -8138,7 +9177,7 @@ class TopologyLink(ForwardModel):
     target_port: Annotated[str | None, Field(alias="targetPort")] = None
 
 
-class Type64(OpenEnum):
+class Type65(OpenEnum):
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -8163,7 +9202,7 @@ class TotalHits(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    type: Type64 | None = None
+    type: Type65 | None = None
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -8380,7 +9419,7 @@ class UserAccountApiTokenAndSecret(ForwardModel):
     token: UserAccountApiToken
 
 
-class Status10(OpenEnum):
+class Status12(OpenEnum):
     active = "ACTIVE"
     expired = "EXPIRED"
 
@@ -8394,7 +9433,7 @@ class UserAccountApiTokenView(UserAccountApiToken):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status10 | None = None
+    status: Status12 | None = None
 
 
 class UserAccountBulkEdit(ForwardModel):
@@ -8854,7 +9893,7 @@ class VulnerabilityDevice(ForwardModel):
     """
 
 
-class Status11(OpenEnum):
+class Status13(OpenEnum):
     """
     The device’s vulnerability status for the CVE.
     """
@@ -8886,7 +9925,7 @@ class VulnerabilityDeviceWithResult(VulnerabilityDevice):
     The device’s [detection result](https://docs.fwd.app/latest/application/security/vulnerability/#detection-results)
     for the CVE.
     """
-    status: Annotated[Status11 | None, Field(examples=["VULNERABLE"])] = None
+    status: Annotated[Status13 | None, Field(examples=["VULNERABLE"])] = None
     """
     The device’s vulnerability status for the CVE.
     """
@@ -9050,7 +10089,7 @@ class WanCircuitPatch(ForwardModel):
     name: Annotated[str | None, Field(examples=["wan-circuit-01"])] = None
 
 
-class Type65(OpenEnum):
+class Type66(OpenEnum):
     basic_auth = "BASIC_AUTH"
 
 
@@ -9064,11 +10103,11 @@ class WebhookCredential(ForwardModel):
         populate_by_name=True,
     )
     password: str | None = None
-    type: Type65 | None = None
+    type: Type66 | None = None
     username: str | None = None
 
 
-class Type66(OpenEnum):
+class Type67(OpenEnum):
     snapshot_ready = "SNAPSHOT_READY"
     nqe_verification_failure = "NQE_VERIFICATION_FAILURE"
     intent_verification_failure = "INTENT_VERIFICATION_FAILURE"
@@ -9084,7 +10123,7 @@ class WebhookEventParams(ForwardModel):
         populate_by_name=True,
     )
     network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
-    type: Type66
+    type: Type67
 
 
 class PayloadFormat(OpenEnum):
@@ -13450,6 +14489,154 @@ class StoredJumpServer(JumpServer, Attribution):
         extra="allow",
         populate_by_name=True,
     )
+
+
+class SysDecodedLicenseKey(ForwardModel):
+    """
+    A preview of a license key. license and started are absent when the key is invalid.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    license: SysLicense | None = None
+    started: bool | None = None
+    """
+    Whether the license has started by now.
+    """
+    status: Status9
+
+
+class SysDeploymentArtifact(ForwardModel):
+    """
+    One installer or upgrade artifact, with every version Forward still serves. Source-only (Software Central is off on the hosted account).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    deployment_types: Annotated[list[DeploymentType], Field(alias="deploymentTypes")]
+    id: str
+    name: str
+    versions: list[SysDeploymentArtifactVersion]
+    workflow: Workflow
+    """
+    INSTALLATION stands up a new instance. APP_UPGRADE moves an existing one forward.
+    """
+
+
+class SysDisabledCommand(ForwardModel):
+    """
+    One built-in collection command switched off for a range of software versions.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    command: str
+    """
+    A case-insensitive Java regular expression, matched against the command Forward would run.
+    """
+    version: SysDisabledCommandVersion
+
+
+class SysOrgCollectionSettings(ForwardModel):
+    """
+    The organization-wide collection settings. Only settings that have been set are present. Fields not modelled here (the rib route and redaction settings) are also returned. Timeouts are in minutes.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collect_full_config_device_types: Annotated[
+        list[str] | None, Field(alias="collectFullConfigDeviceTypes")
+    ] = None
+    """
+    Device types for which the full running configuration is collected.
+    """
+    collection_max_retry_delay_millis: Annotated[
+        int | None, Field(alias="collectionMaxRetryDelayMillis", ge=0)
+    ] = None
+    collection_retries: Annotated[int | None, Field(alias="collectionRetries", ge=0)] = None
+    """
+    Retries after the first attempt. 0 turns retries off.
+    """
+    collection_retry_delay_millis: Annotated[
+        int | None, Field(alias="collectionRetryDelayMillis", ge=0)
+    ] = None
+    """
+    The first retry delay. Doubles up to the maximum.
+    """
+    command_delay_ms: Annotated[int | None, Field(alias="commandDelayMs", ge=0)] = None
+    """
+    Time to wait after each command is sent to a device.
+    """
+    default_redaction_algorithm: Annotated[str | None, Field(alias="defaultRedactionAlgorithm")] = (
+        None
+    )
+    device_collection_timeout_minutes: Annotated[
+        int | None, Field(alias="deviceCollectionTimeoutMinutes", ge=1)
+    ] = None
+    device_discovery_timeout_minutes: Annotated[
+        int | None, Field(alias="deviceDiscoveryTimeoutMinutes", ge=1)
+    ] = None
+    disable_command_output_logging: Annotated[
+        bool | None, Field(alias="disableCommandOutputLogging")
+    ] = None
+    disabled_commands: Annotated[
+        dict[str, list[SysDisabledCommand]] | None, Field(alias="disabledCommands")
+    ] = None
+    """
+    Built-in collection commands switched off, keyed by device type name.
+    """
+    enable_beta_commands: Annotated[bool | None, Field(alias="enableBetaCommands")] = None
+    enable_snmp_cred_discovery: Annotated[bool | None, Field(alias="enableSnmpCredDiscovery")] = (
+        None
+    )
+    general_job_timeout_minutes: Annotated[
+        int | None, Field(alias="generalJobTimeoutMinutes", ge=1)
+    ] = None
+    max_command_auth_z_per_second: Annotated[
+        int | None, Field(alias="maxCommandAuthZPerSecond", ge=1, le=1000)
+    ] = None
+    max_device_auth_n_per_second: Annotated[
+        int | None, Field(alias="maxDeviceAuthNPerSecond", ge=1, le=1000)
+    ] = None
+    max_scan_connections_per_second: Annotated[
+        int | None, Field(alias="maxScanConnectionsPerSecond", ge=1)
+    ] = None
+    network_redaction_algorithm_overrides: Annotated[
+        dict[str, str] | None, Field(alias="networkRedactionAlgorithmOverrides")
+    ] = None
+    """
+    Redaction algorithm per network id.
+    """
+    password_prompts: Annotated[list[str] | None, Field(alias="passwordPrompts")] = None
+    """
+    Custom password prompts, matched case-insensitively. No empty value and no colon.
+    """
+    per_device_concurrency_boost: Annotated[
+        int | None, Field(alias="perDeviceConcurrencyBoost", ge=0)
+    ] = None
+    """
+    Extra SSH connections per device for parallel data.
+    """
+    per_device_snmp_concurrency: Annotated[
+        int | None, Field(alias="perDeviceSnmpConcurrency", ge=1, le=100)
+    ] = None
+    """
+    Concurrent SNMP transactions per device. Forward's default is 4.
+    """
+    rib_route_limit: Annotated[int | None, Field(alias="ribRouteLimit")] = None
+    rib_route_subnets: Annotated[list[str] | None, Field(alias="ribRouteSubnets")] = None
+    rib_route_vrfs: Annotated[list[str] | None, Field(alias="ribRouteVrfs")] = None
+    snapshot_collection_timeout_minutes: Annotated[
+        int | None, Field(alias="snapshotCollectionTimeoutMinutes", ge=1)
+    ] = None
 
 
 class TopologyDiff(ForwardModel):

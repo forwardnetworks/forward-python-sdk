@@ -100,6 +100,17 @@ tags:
   - name: Cloud Objects
     description: Cloud resources (VPCs, subnets, instances and so on) collected into a snapshot.
 
+  - name: Backups
+    description: Cluster backups and restores of the Forward application (on-premises Kubernetes deployments only).
+  - name: Banners
+    description: Organization banners, the critical-state flags behind the top banner, and the system announcement.
+  - name: Jobs
+    description: Running and finished top-level backend jobs, and cancelling them.
+  - name: Licensing
+    description: License keys for the organization, the license tier and status, and the instance fingerprint.
+  - name: Collection Settings
+    description: Organization-wide and per-collector collection tuning, and per-network performance collection.
+
 x-extend-schemas:
   NewClassicDevice:
     properties:
@@ -11914,6 +11925,1474 @@ paths:
             text/plain:
               schema: { type: string }
 
+  /backups:
+    get:
+      operationId: listClusterBackups
+      summary: List the stored application backups
+      description: >-
+        Requires the ADMINISTER_SYSTEM system permission (@Requires(system = ADMINISTER_SYSTEM)). Served only on
+        on-premises Kubernetes deployments (ClusterBackupRestoreController, @ProfileCriteria ON_PREM and K8S, not
+        SHARED_K8S); a hosted deployment answers 404 "No endpoint".
+      x-forward-stability: unpublished
+      tags: [Backups]
+      responses:
+        "200":
+          description: Every backup Forward holds, in every storage.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SysAppBackup'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/cbr/AppBackup.java
+              example:
+                - id: 1
+                  backupTimeMillis: 1700000000000
+                  storageType: INTERNAL
+                  triggerType: MANUAL
+                  appVersion: 26.9.0
+                  snapshotsIncluded: false
+                  size: 1048576
+                  note: example backup
+    post:
+      operationId: runClusterBackup
+      summary: Take an application backup now
+      description: >-
+        Requires the ADMINISTER_SYSTEM system permission. Source-only: the request is a manual backup
+        (BackupTriggerType MANUAL). Returns the backup operation that was started.
+      x-forward-stability: unpublished
+      tags: [Backups]
+      parameters:
+        - name: name
+          in: query
+          required: false
+          description: A note stored with the backup. Blank is the same as omitted.
+          schema: { type: string }
+        - name: includeSnapshots
+          in: query
+          required: false
+          description: Whether snapshots are included in the backup. Defaults to false.
+          schema: { type: boolean, default: false }
+        - name: storageType
+          in: query
+          required: false
+          description: Where the backup is written. Omitted means INTERNAL.
+          schema: { type: string, enum: [INTERNAL, S3] }
+      responses:
+        "200":
+          description: The backup operation that was started.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysClusterOperation'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/cbr/ClusterOperation.java (returned by ClusterBackupRestoreController.runBackup)
+              example:
+                id: '1700000001'
+                type: BACKUP
+                appStatus: NOT_STARTED
+                snapshotToStatus: {}
+  /backups?view=progress:
+    get:
+      operationId: getClusterOperationProgress
+      summary: The running or latest cluster backup or restore
+      description: >-
+        Any signed-in user (@RequiresUser); Forward uses it to show the restore banner. Source-only: the response
+        has no body when there is no operation (Optional.empty()).
+      x-forward-stability: unpublished
+      tags: [Backups]
+      responses:
+        "200":
+          description: The running or most recent operation, when there is one.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysClusterOperation'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/cbr/ClusterOperation.java (+ClusterOperationProgress.java, unwrapped)
+              example:
+                id: '1700000000'
+                type: BACKUP
+                appStatus: IN_PROGRESS
+                snapshotToStatus:
+                  example-snapshot-1: IN_PROGRESS
+  /backups?view=lastRestoreResult:
+    get:
+      operationId: getLastRestoreResult
+      summary: How the last completed cluster restore went
+      description: >-
+        Requires the ADMINISTER_SYSTEM system permission. Source-only: no body when no restore has completed
+        (Optional.empty()).
+      x-forward-stability: unpublished
+      tags: [Backups]
+      responses:
+        "200":
+          description: The result of the last completed restore.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysClusterOperationResult'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/cbr/ClusterOperationResult.java
+              example:
+                id: '1700000002'
+                appStatus: DONE
+                snapshotToStatus:
+                  example-snapshot-1: DONE
+  /backups?view=lastBackupResult:
+    get:
+      operationId: getLastScheduledBackupResult
+      summary: The last completed backup of one storage and trigger type
+      description: >-
+        Requires the ADMINISTER_SYSTEM system permission. Source-only: no body when none has completed
+        (Optional.empty()).
+      x-forward-stability: unpublished
+      tags: [Backups]
+      parameters:
+        - name: storageType
+          in: query
+          required: true
+          schema: { type: string, enum: [INTERNAL, S3] }
+        - name: triggerType
+          in: query
+          required: true
+          schema: { type: string, enum: [MANUAL, SCHEDULED] }
+      responses:
+        "200":
+          description: The result of the last completed backup of that type.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysClusterOperationResult'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/cbr/ClusterOperationResult.java
+              example:
+                id: '1700000003'
+                appStatus: DONE
+                snapshotToStatus: {}
+  /backups?action=cancel:
+    post:
+      operationId: cancelClusterOperation
+      summary: Cancel the backup or restore that is running
+      description: >-
+        Requires the ADMINISTER_SYSTEM system permission. Cancels whichever operation is running, and does nothing
+        when none is. It is not addressed by id. Source-only.
+      x-forward-stability: unpublished
+      tags: [Backups]
+      responses:
+        "200":
+          description: The cancel request was accepted. No body.
+  /backups/{backupId}:
+    delete:
+      operationId: deleteClusterBackup
+      summary: Delete one stored backup
+      description: >-
+        Requires the ADMINISTER_SYSTEM system permission. There is no undo. Without storageType the backup is deleted
+        from every storage it is in. Source-only.
+      x-forward-stability: unpublished
+      tags: [Backups]
+      parameters:
+        - name: backupId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+        - name: storageType
+          in: query
+          required: false
+          description: Delete from this storage only. Omitted deletes from every storage.
+          schema: { type: string, enum: [INTERNAL, S3] }
+      responses:
+        "204":
+          description: The backup was deleted.
+  /backup-settings:
+    get:
+      operationId: getCommonBackupSettings
+      summary: Read the backup schedule and retention for one storage
+      description: Requires the ADMINISTER_SYSTEM system permission. Source-only.
+      x-forward-stability: unpublished
+      tags: [Backups]
+      parameters:
+        - name: storageType
+          in: query
+          required: true
+          schema: { type: string, enum: [INTERNAL, S3] }
+      responses:
+        "200":
+          description: The stored backup settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysCommonBackupSettings'
+              # # from source: backend/cbr/cbr-common/src/main/java/com/forwardnetworks/cbr/settings/CommonBackupSettings.java
+              example:
+                enabled: true
+                backupTime: 02:00
+                numDaysToRetain: 30
+                includeSnapshots: false
+    patch:
+      operationId: updateCommonBackupSettings
+      summary: Change the backup schedule or retention for one storage
+      description: >-
+        Requires the ADMINISTER_SYSTEM system permission. Omitted fields keep their stored values. An explicit null is
+        not a clear: Forward treats null as "keep" for every field here. Source-only.
+      x-forward-stability: unpublished
+      tags: [Backups]
+      parameters:
+        - name: storageType
+          in: query
+          required: true
+          schema: { type: string, enum: [INTERNAL, S3] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SysCommonBackupSettingsPatch'
+      responses:
+        "200":
+          description: The settings after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysCommonBackupSettings'
+              # # from source: backend/cbr/cbr-common/src/main/java/com/forwardnetworks/cbr/settings/CommonBackupSettings.java
+              example:
+                enabled: true
+                backupTime: 03:30
+                numDaysToRetain: 14
+                includeSnapshots: true
+  /backup-settings/storage?storageType=S3:
+    get:
+      operationId: getS3BackupStorage
+      summary: Read the S3 storage settings for backups
+      description: >-
+        Requires the ADMINISTER_SYSTEM system permission. The secret key is never returned. Source-only: no body
+        when no S3 storage is configured (Optional.empty()).
+      x-forward-stability: unpublished
+      tags: [Backups]
+      responses:
+        "200":
+          description: The stored S3 settings, without the secret key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysS3StorageSettings'
+              # # from source: backend/cbr/cbr-common/src/main/java/com/forwardnetworks/cbr/settings/s3/S3StorageSettings.java (secretKey is @JsonIgnore, so absent)
+              example:
+                accessKey: EXAMPLEACCESSKEY
+                bucketName: example-backup-bucket
+                serviceEndpoint: https://s3.example.com
+                disableSslValidation: false
+                writeOnly: false
+                disableChecksumValidation: false
+    patch:
+      operationId: updateS3BackupStorage
+      summary: Change the S3 storage settings for backups
+      description: >-
+        Requires the ADMINISTER_SYSTEM system permission. Omitted fields keep their stored values. For certificate,
+        an explicit null clears the stored certificate; for the other fields, null keeps the stored value. Source-only.
+      x-forward-stability: unpublished
+      tags: [Backups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SysS3StorageSettingsPatch'
+      responses:
+        "200":
+          description: The settings after the change. The secret key is not returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysS3StorageSettings'
+              # # from source: backend/cbr/cbr-common/src/main/java/com/forwardnetworks/cbr/settings/s3/S3StorageSettings.java (secretKey is @JsonIgnore, so absent)
+              example:
+                accessKey: EXAMPLEACCESSKEY
+                bucketName: example-backup-bucket
+                serviceEndpoint: https://s3.example.com
+                disableSslValidation: false
+                writeOnly: false
+                disableChecksumValidation: false
+  /backup-settings?action=chown:
+    post:
+      operationId: setS3BackupBucketOwner
+      summary: Take over an S3 bucket for this deployment
+      description: >-
+        Requires the ADMINISTER_SYSTEM system permission. Overrides the deployment id stored in the bucket, so a bucket
+        written by another deployment can be used here. storageType must be S3. Source-only.
+      x-forward-stability: unpublished
+      tags: [Backups]
+      parameters:
+        - name: storageType
+          in: query
+          required: true
+          schema: { type: string, enum: [S3] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SysS3StorageSettings'
+      responses:
+        "200":
+          description: The bucket ownership was changed. No body.
+  /custom-banners:
+    get:
+      operationId: listCustomBanners
+      summary: List the organization's custom banners
+      description: Any signed-in user (@RequiresUser).
+      x-forward-stability: unpublished
+      tags: [Banners]
+      responses:
+        "200":
+          description: The banners, under the key banners.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysCustomBannerList'
+              example:
+                # from live GET on the hosted ADP account; message shortened and tenant identifiers replaced
+                banners:
+                  - id: "1"
+                    enabled: false
+                    message: "The information in this portal is the property of <org> and/or..."
+                    backgroundColor: GREEN
+                    networkIds: ["<network-id>"]
+    post:
+      operationId: createCustomBanner
+      summary: Create a custom banner
+      description: >-
+        Requires the MANAGE_ORG_SETTINGS organization permission (@Requires(org = MANAGE_ORG_SETTINGS)). Message and
+        networkIds must be non-blank and non-empty (CustomBanner constructor checks).
+      x-forward-stability: unpublished
+      tags: [Banners]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SysNewCustomBanner'
+      responses:
+        "200":
+          description: The banner, with its new id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysCustomBanner'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/network/banner/CustomBanner.java
+              example:
+                id: '2'
+                enabled: true
+                message: Example maintenance notice
+                backgroundColor: GREEN
+                networkIds:
+                - '1001'
+  /custom-banners/{bannerId}:
+    put:
+      operationId: replaceCustomBanner
+      summary: Replace a custom banner
+      description: >-
+        Requires the MANAGE_ORG_SETTINGS organization permission. The id in the body must equal the id in the path (400
+        otherwise).
+      x-forward-stability: unpublished
+      tags: [Banners]
+      parameters:
+        - name: bannerId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SysCustomBanner'
+      responses:
+        "204":
+          description: The banner was replaced. No body.
+    delete:
+      operationId: deleteCustomBanner
+      summary: Delete a custom banner
+      description: Requires the MANAGE_ORG_SETTINGS organization permission.
+      x-forward-stability: unpublished
+      tags: [Banners]
+      parameters:
+        - name: bannerId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: The banner was deleted. No body.
+  /critical-states:
+    get:
+      operationId: getCriticalStates
+      summary: Organization-wide critical states behind the top banner
+      description: >-
+        Any signed-in user (@RequiresUser). Only the states that apply to this deployment appear as keys. A value of
+        false means the state is not active.
+      x-forward-stability: unpublished
+      tags: [Banners]
+      responses:
+        "200":
+          description: The active flags, keyed by issue type name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysCriticalStates'
+              example:
+                # from live GET on the hosted ADP account
+                MAINTENANCE_WINDOW: null
+                LICENSE_CCH_EXHAUSTED: false
+                LICENSE_CCH_GRACE_PERIOD_ENDED: false
+                COLLECTOR_OUTDATED: false
+  /system-announcement:
+    get:
+      operationId: getSystemAnnouncement
+      summary: The current system announcement
+      description: Any signed-in user (@RequiresUser). The object is empty when there is no announcement.
+      x-forward-stability: unpublished
+      tags: [Banners]
+      responses:
+        "200":
+          description: The announcement, under the key announcement, or an empty object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysSystemAnnouncementResponse'
+              example:
+                {}
+  /jobs/active:
+    get:
+      operationId: listActiveJobs
+      summary: Running and queued top-level jobs
+      description: >-
+        Requires the ADMINISTER_SYSTEM system permission (@Requires(system = ADMINISTER_SYSTEM)). Rows are grouped by
+        type, network and snapshot.
+      x-forward-stability: unpublished
+      tags: [Jobs]
+      responses:
+        "200":
+          description: One row per group of identical jobs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SysActiveJobInfo'
+              # # from source: search/src/main/java/com/forwardnetworks/cv/distributed/job/tracking/ActiveJobInfo.java
+              example:
+                - jobType: Example job
+                  orgName: Example Org
+                  networkId: 1001
+                  snapshotId: 2001
+                  creationTime: '2026-10-17T12:00:00Z'
+                  waitingForOtherJobs: 0
+                  queued: 0
+                  running: 1
+                  longestQueuedTimeInSeconds: 0
+                  longestRunningTimeInSeconds: 42
+                  durationInSeconds: 42
+                  totalCount: 1
+                  cancelLink: ZXhhbXBsZS1jYW5jZWwtbGluaw==
+  /jobs/completed:
+    get:
+      operationId: listCompletedJobs
+      summary: Finished top-level jobs
+      description: >-
+        Requires the ADMINISTER_SYSTEM system permission (@Requires(system = ADMINISTER_SYSTEM)). Rows are grouped by
+        type, network, snapshot and state. Field names are from the Java record CompletedJobInfo. Not live-verified
+        (ADMINISTER_SYSTEM).
+      x-forward-stability: unpublished
+      tags: [Jobs]
+      responses:
+        "200":
+          description: One row per group of finished jobs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SysCompletedJobInfo'
+              # # from source: search/src/main/java/com/forwardnetworks/cv/distributed/job/tracking/CompletedJobInfo.java (State: search/src/main/java/com/forwardnetworks/cv/job/State.java)
+              example:
+                - jobType: Example job
+                  orgName: Example Org
+                  networkId: 1001
+                  snapshotId: 2001
+                  creationTime: '2026-10-17T11:00:00Z'
+                  state: SUCCEEDED
+                  earliestStartTime: '2026-10-17T11:00:05Z'
+                  latestEndTime: '2026-10-17T11:01:05Z'
+                  longestQueueTimeInSeconds: 5
+                  longestRunningTimeInSeconds: 60
+                  durationInSeconds: 65
+                  count: 1
+  /jobs/{cancelJobId}:
+    delete:
+      operationId: cancelJob
+      summary: Cancel a job or a group of jobs
+      description: >-
+        Requires the ADMINISTER_SYSTEM system permission. Pass the cancelLink of an active job row unchanged. Forward
+        answers 200 when cancelled and 404 when the job already finished or was already cancelled.
+      x-forward-stability: unpublished
+      tags: [Jobs]
+      parameters:
+        - name: cancelJobId
+          in: path
+          required: true
+          description: >-
+            The cancelLink from a row of listActiveJobs. It is base64 underneath and already percent-encoded for the
+            path. Do not encode it again.
+          schema: { type: string }
+      responses:
+        "200":
+          description: The job was cancelled. No body.
+        "404":
+          description: The job already finished, or was already cancelled.
+  /debug/jobs:
+    get:
+      operationId: getDebugJobsView
+      summary: A point-in-time dump of the job scheduler
+      description: >-
+        Requires the ADMINISTER_SYSTEM system permission. Served as text, not JSON. Has no stability promise.
+        Source-only.
+      x-forward-stability: unpublished
+      tags: [Jobs]
+      responses:
+        "200":
+          description: The debug view as plain text.
+          content:
+            text/plain:
+              schema: { type: string }
+  /licenses:
+    get:
+      operationId: listLicenses
+      summary: The organization's licenses with their status
+      description: Any signed-in user (@RequiresUser).
+      x-forward-stability: unpublished
+      tags: [Licensing]
+      responses:
+        "200":
+          description: Every license the organization holds, each with its status.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SysLicenseDetailsWithStatus'
+              example:
+                # from live GET on the hosted ADP account (one of 29); signed key redacted, fingerprint omitted
+                - license:
+                    id: "4434"
+                    createdAt: "2026-10-07T15:56:55.219019657Z"
+                    startsAt: "2026-10-18T04:00:00Z"
+                    expiresAt: "2027-10-18T03:59:59.999Z"
+                    licensedTo: "<customer>"
+                    purchaseOrder: "<purchase-order>"
+                    tier: NS
+                    replaces: false
+                    standardDeviceCap: 5225
+                    liteDeviceCap: 6035
+                    cloudCreditHours: 245280000
+                    edgeAssetCap: 850
+                    type: TIER
+                  usedAt: "2026-10-07T15:57:26.069257534Z"
+                  signedLicenseKey: "<redacted>"
+                  status: NOT_ACTIVE_YET
+    post:
+      operationId: applyLicense
+      summary: Add a signed license key to this deployment
+      description: >-
+        Requires the MANAGE_LICENSING organization permission. Adds the key and publishes the license-activated event.
+        Source-only.
+      x-forward-stability: unpublished
+      tags: [Licensing]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SysAsciiCodedSignedLicenseKey'
+      responses:
+        "200":
+          description: The license that was added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysLicenseDetails'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/licensing/LicenseDetails.java (+OnPremLicenseController.addLicense)
+              example:
+                license:
+                  id: '4434'
+                  createdAt: '2026-10-07T15:56:55Z'
+                  startsAt: '2026-10-18T04:00:00Z'
+                  expiresAt: '2027-10-18T03:59:59Z'
+                  licensedTo: Example Org
+                  purchaseOrder: PO-0000
+                  tier: NS
+                  replaces: false
+                  standardDeviceCap: 1000
+                  liteDeviceCap: 1200
+                  cloudCreditHours: 1000000
+                  edgeAssetCap: 100
+                  type: TIER
+                signedLicenseKey: EXAMPLE-SIGNED-LICENSE-KEY
+                usedAt: '2026-10-17T12:00:00Z'
+                fingerprint: InstanceID__EXAMPLE
+  /licenses?action=decode:
+    post:
+      operationId: decodeLicense
+      summary: Preview a signed license key without adding it
+      description: >-
+        Requires the MANAGE_LICENSING organization permission. Reports what adding the key would do. Source-only.
+      x-forward-stability: unpublished
+      tags: [Licensing]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SysAsciiCodedSignedLicenseKey'
+      responses:
+        "200":
+          description: The verdict, and the license when the key decodes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysDecodedLicenseKey'
+              # # from source: web/src/main/java/com/forwardnetworks/cv/web/json/license/DecodedLicenseKey.java (+NewLicenseKeyStatus.java)
+              example:
+                status: VALID
+                license:
+                  id: '4434'
+                  createdAt: '2026-10-07T15:56:55Z'
+                  startsAt: '2026-10-18T04:00:00Z'
+                  expiresAt: '2027-10-18T03:59:59Z'
+                  licensedTo: Example Org
+                  purchaseOrder: PO-0000
+                  tier: NS
+                  replaces: false
+                  standardDeviceCap: 1000
+                  liteDeviceCap: 1200
+                  cloudCreditHours: 1000000
+                  edgeAssetCap: 100
+                  type: TIER
+                started: true
+  /licenses?view=status:
+    get:
+      operationId: getLicenseTierAndStatus
+      summary: The license tier and the organization's license status
+      description: Any signed-in user (@RequiresUser). Both fields are absent for an unlicensed organization.
+      x-forward-stability: unpublished
+      tags: [Licensing]
+      responses:
+        "200":
+          description: The tier and status, as far as they are known.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysLicenseTierAndStatus'
+              example:
+                # from live GET on the hosted ADP account
+                licenseTier: NS
+                licenseStatus: ACTIVE
+  /vm/instanceId:
+    get:
+      operationId: getInstanceFingerprint
+      summary: The fingerprint this instance presents when a license is issued
+      description: >-
+        Any signed-in user (@RequiresUser). Served only on on-premises deployments (OnPremLicenseController, @Profile
+        ON_PREM). A hosted deployment answers 404 "No endpoint".
+      x-forward-stability: unpublished
+      tags: [Licensing]
+      responses:
+        "200":
+          description: The fingerprint, under instanceId.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysInstanceFingerprint'
+              # # from source: web/src/main/java/com/forwardnetworks/cv/web/controller/OnPremLicenseController.java (Map.of("instanceId", ...))
+              example:
+                instanceId: InstanceID__EXAMPLE
+  /orgs/{orgId}/licenses:
+    get:
+      operationId: listOrganizationLicenses
+      summary: An organization's licenses, for Forward support
+      description: >-
+        Requires the Forward support role (@RequiresForwardSupport). Returns 403 for a caller outside that role.
+      x-forward-stability: unpublished
+      tags: [Licensing]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The organization's licenses, each with its status.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SysLicenseDetailsWithStatus'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/licensing/LicenseDetailsWithStatus.java (+LicenseDetails.java)
+              example:
+                - license:
+                    id: '4434'
+                    createdAt: '2026-10-07T15:56:55Z'
+                    startsAt: '2026-10-18T04:00:00Z'
+                    expiresAt: '2027-10-18T03:59:59Z'
+                    licensedTo: Example Org
+                    purchaseOrder: PO-0000
+                    tier: NS
+                    replaces: false
+                    standardDeviceCap: 1000
+                    liteDeviceCap: 1200
+                    cloudCreditHours: 1000000
+                    edgeAssetCap: 100
+                    type: TIER
+                  signedLicenseKey: EXAMPLE-SIGNED-LICENSE-KEY
+                  usedAt: '2026-10-17T12:00:00Z'
+                  fingerprint: InstanceID__EXAMPLE
+                  status: ACTIVE
+    delete:
+      operationId: removeAllOrganizationLicenses
+      summary: Delete every license of an organization
+      description: >-
+        Requires the Forward administrator role (@RequiresForwardAdmin). Refused with 400 for an ENTERPRISE
+        organization. Use with care.
+      x-forward-stability: unpublished
+      tags: [Licensing]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: All of the organization's licenses were deleted. No body.
+  /orgs/{orgId}/licenses/{licenseId}?action=invalidate:
+    post:
+      operationId: invalidateOrganizationLicense
+      summary: Stop one license from being activated
+      description: >-
+        Requires the Forward support role (@RequiresForwardSupport). Prevents the license from being activated if it
+        has not been. Source-only.
+      x-forward-stability: unpublished
+      tags: [Licensing]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: licenseId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The license, now invalidated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysLicenseDetails'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/licensing/LicenseDetails.java (invalidated is NON_DEFAULT, so present when true)
+              example:
+                license:
+                  id: '4434'
+                  createdAt: '2026-10-07T15:56:55Z'
+                  startsAt: '2026-10-18T04:00:00Z'
+                  expiresAt: '2027-10-18T03:59:59Z'
+                  licensedTo: Example Org
+                  purchaseOrder: PO-0000
+                  tier: NS
+                  replaces: false
+                  standardDeviceCap: 1000
+                  liteDeviceCap: 1200
+                  cloudCreditHours: 1000000
+                  edgeAssetCap: 100
+                  type: TIER
+                invalidated: true
+                signedLicenseKey: EXAMPLE-SIGNED-LICENSE-KEY
+                usedAt: '2026-10-17T12:00:00Z'
+                fingerprint: InstanceID__EXAMPLE
+  /deployment-artifacts:
+    get:
+      operationId: listDeploymentArtifacts
+      summary: The installer and upgrade artifacts Software Central serves
+      description: >-
+        Requires Software Central to be on for the organization, or the Forward administrator role
+        (@Requires(on = SOFTWARE_CENTRAL, orForwardAdmin = true)). Answers 403 "SOFTWARE_CENTRAL is off for your
+        organization" otherwise. Source-only, because the hosted ADP account has Software Central off.
+      x-forward-stability: unpublished
+      tags: [Client Software]
+      parameters:
+        - name: type
+          in: query
+          required: false
+          description: Only artifacts deployable on this platform. Omitted lists all of them.
+          schema:
+            type: string
+            enum: [VMWARE_HYPERVISOR, AWS_EC2, AWS_GOVCLOUD_EC2, AZURE_VM, AZURE_GOV_VM, GCP_VM, KVM_HYPERVISOR]
+      responses:
+        "200":
+          description: The artifacts, each with every version Forward still serves.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SysDeploymentArtifact'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/deployment/DeploymentArtifact.java (+DeploymentArtifactVersion.java, DeploymentType.java)
+              example:
+                - id: '3000'
+                  name: example-appliance
+                  deploymentTypes:
+                  - VMWARE_HYPERVISOR
+                  workflow: INSTALLATION
+                  versions:
+                  - id: '3001'
+                    baseVersion: 26.8.0
+                    version: 26.9.0
+                    fileType: OVA
+                    sizeInBytes: 4294967296
+                    sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+                    uploadedBy: '4001'
+                    uploadedAt: 1700000000000
+  /deployment-artifacts/{artifactId}?as=url:
+    get:
+      operationId: getDeploymentArtifactUrl
+      summary: A short-lived download URL for one artifact version
+      description: >-
+        Requires Software Central to be on, or the Forward administrator role (@Requires(on = SOFTWARE_CENTRAL,
+        orForwardAdmin = true)). The URL is presigned and short-lived. Source-only.
+      x-forward-stability: unpublished
+      tags: [Client Software]
+      parameters:
+        - name: artifactId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: versionId
+          in: query
+          required: false
+          description: The version to resolve. Omitted resolves the latest version.
+          schema: { type: string }
+      responses:
+        "200":
+          description: The download URL.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url]
+                properties:
+                  url:
+                    type: string
+                    description: A presigned URL, valid for a short time.
+              # # from source: web/src/main/java/com/forwardnetworks/cv/web/controller/DeploymentController.java (Map.of("url", ...))
+              example:
+                url: https://downloads.example.com/example-appliance-26.9.0.ova?signature=example
+  /deployment-artifacts/{artifactId}:
+    get:
+      operationId: downloadDeploymentArtifact
+      summary: Download one artifact version through a redirect
+      description: >-
+        Requires Software Central to be on, or the Forward administrator role. Answers 302 to the presigned URL of the
+        file. The file is not streamed through Forward. Source-only.
+      x-forward-stability: unpublished
+      tags: [Client Software]
+      parameters:
+        - name: artifactId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: versionId
+          in: query
+          required: false
+          description: The version to download. Omitted downloads the latest version.
+          schema: { type: string }
+      responses:
+        "302":
+          description: A redirect to the presigned download URL. No body.
+  /approved-cli-commands:
+    get:
+      operationId: getApprovedCliCommands
+      summary: The CLI commands endpoint profiles may run
+      description: >-
+        Requires the VIEW_ENDPOINT_PROFILES organization permission (@Requires(org = VIEW_ENDPOINT_PROFILES)). A profile
+        command outside this list is not run.
+      x-forward-stability: unpublished
+      tags: [Endpoint Profiles]
+      responses:
+        "200":
+          description: The approved commands, as regular expressions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysApprovedCliCommands'
+              example:
+                # from live GET on the hosted ADP account (2 of 24)
+                commands: ["^show\\s+[^|>;]*$", "^display\\s+[^|>;]*$"]
+  /approved-cli-commands?action=assess:
+    post:
+      operationId: assessCliCommands
+      summary: Say which CLI commands the approved list allows
+      description: >-
+        Requires the MANAGE_ENDPOINT_PROFILES organization permission, although nothing is written. Each command is
+        matched with find(), not a full match. Source-only.
+      x-forward-stability: unpublished
+      tags: [Endpoint Profiles]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { type: string }
+      responses:
+        "200":
+          description: The commands, split into approved and unapproved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysCliCommandAssessment'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/client/clicommands/CliCommandsService.java (assessCliCommands returns Map.of(approved, unapproved))
+              example:
+                approved:
+                - ^show\s+version$
+                unapproved:
+                - ^configure\s+terminal$
+  /approved-cli-commands?action=update:
+    post:
+      operationId: updateApprovedCliCommands
+      summary: Replace the approved CLI commands with a Forward-signed file
+      description: >-
+        Requires the MANAGE_ENDPOINT_PROFILES organization permission. The file must be signed by Forward and carry
+        this organization's identifier; otherwise 400 ("Signature mismatch" or "Identifier mismatch"). This changes
+        which endpoint profiles are collected. Source-only.
+      x-forward-stability: unpublished
+      tags: [Endpoint Profiles]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The signed commands file, as Forward issued it.
+      responses:
+        "200":
+          description: The approved commands after the update.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysApprovedCliCommands'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/sources/endpoint/ApprovedCliProfileCommands.java
+              example:
+                commands:
+                - ^show\s+[^|>;]*$
+                signedAt: '2026-10-17T12:00:00Z'
+                uploadedAt: '2026-10-17T12:05:00Z'
+                uploadedById: '4001'
+  /collection-settings:
+    get:
+      operationId: getOrganizationCollectionSettings
+      summary: The organization-wide collection settings
+      description: >-
+        Requires the VIEW_ORG_COLLECTION_SETTINGS organization permission (@Requires(org = VIEW_ORG_COLLECTION_SETTINGS)).
+        Only settings that have been set appear; an absent key means Forward's default applies.
+      x-forward-stability: unpublished
+      tags: [Collection Settings]
+      responses:
+        "200":
+          description: The stored settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysOrgCollectionSettings'
+              example:
+                # from live GET on the hosted ADP account; route subnet list trimmed from 24 to 1
+                maxCommandAuthZPerSecond: 650
+                maxDeviceAuthNPerSecond: 650
+                perDeviceConcurrencyBoost: 1
+                deviceCollectionTimeoutMinutes: 480
+                snapshotCollectionTimeoutMinutes: 480
+                collectionRetries: 2
+                ribRouteLimit: 1
+                ribRouteSubnets: ["10.0.0.0/8"]
+                networkRedactionAlgorithmOverrides:
+                  "<network-id>": NONE
+    patch:
+      operationId: patchOrganizationCollectionSettings
+      summary: Change the organization-wide collection settings
+      description: >-
+        Requires the EDIT_ORG_COLLECTION_SETTINGS organization permission (@Requires(org = EDIT_ORG_COLLECTION_SETTINGS)).
+        Presence semantics: a key that is omitted is left alone; a key sent as null is cleared, which resets it to
+        Forward's default. The collectionRetries, collectionRetryDelayMillis and collectionMaxRetryDelayMillis keys
+        are one stored retry config, merged key by key. disabledCommands, when sent, replaces the whole stored map;
+        an empty map clears it. There is no concurrency guard, so two editors can overwrite each other.
+      x-forward-stability: unpublished
+      tags: [Collection Settings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SysOrgCollectionSettingsPatch'
+      responses:
+        "200":
+          description: The settings after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysOrgCollectionSettings'
+              # # from source: client-structs/src/main/java/com/forwardnetworks/client/config/OrgCollectionSettings.java (returned by PATCH; field names as in the GET)
+              example:
+                maxDeviceAuthNPerSecond: 500
+                perDeviceSnmpConcurrency: 8
+                collectionRetries: 3
+                collectionRetryDelayMillis: 5000
+                collectionMaxRetryDelayMillis: 60000
+                disabledCommands:
+                  example_ssh:
+                  - command: ^show\s+example$
+                    version:
+                      start: '1.0'
+                      end: '99.0'
+  /collectors/{collectorId}/collection-settings:
+    get:
+      operationId: getCollectorCollectionSettings
+      summary: The collection settings of one collector
+      description: >-
+        Requires the VIEW_COLLECTORS organization permission (@Requires(org = VIEW_COLLECTORS)). Only settings that have
+        been set appear.
+      x-forward-stability: unpublished
+      tags: [Collection Settings]
+      parameters:
+        - name: collectorId
+          in: path
+          required: true
+          description: The collector id, in Forward's "C3" form.
+          schema: { type: string }
+      responses:
+        "200":
+          description: The stored settings for the collector.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysCollectorCollectionSettings'
+              example:
+                # from live GET on the hosted ADP account
+                concurrency: 1024
+    patch:
+      operationId: patchCollectorCollectionSettings
+      summary: Change the collection settings of one collector
+      description: >-
+        Requires the MANAGE_COLLECTORS organization permission (@Requires(org = MANAGE_COLLECTORS)). An omitted key is
+        left alone; a key sent as null resets it to Forward's default.
+      x-forward-stability: unpublished
+      tags: [Collection Settings]
+      parameters:
+        - name: collectorId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SysCollectorCollectionSettingsPatch'
+      responses:
+        "200":
+          description: The settings after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysCollectorCollectionSettings'
+              # # from source: client-structs/src/main/java/com/forwardnetworks/client/config/CollectorCollectionSettings.java
+              example:
+                concurrency: 256
+                snmpCollectionConcurrency: 32
+                vcenterConcurrency: 2
+  /networks/{networkId}/performance/settings:
+    patch:
+      operationId: patchPerformanceSettings
+      summary: Turn performance collection on or off for a network
+      description: >-
+        Requires the EDIT_PERFORMANCE_SETTINGS network permission (@Requires(network = EDIT_PERFORMANCE_SETTINGS)). A
+        null enabled is stored as false. Source-only: the response is not in the Go SDK's test fixtures.
+      x-forward-stability: unpublished
+      tags: [Collection Settings]
+      parameters:
+        - name: networkId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SysPerformanceSettingsPatch'
+      responses:
+        "200":
+          description: The performance settings after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysPerformanceSettings'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/perf/PerformanceSettings.java
+              example:
+                enabled: true
+                intervalMinutes: 5
+  /collectors:
+    get:
+      operationId: listCollectors
+      summary: The organization's collectors, with their status
+      description: >-
+        Requires the VIEW_COLLECTORS organization permission (@Requires(org = VIEW_COLLECTORS)). includeNetworks defaults
+        to true.
+      x-forward-stability: unpublished
+      tags: [Collector Binding]
+      parameters:
+        - name: includeNetworks
+          in: query
+          required: false
+          description: Whether each collector lists the networks it serves. Defaults to true.
+          schema: { type: boolean, default: true }
+      responses:
+        "200":
+          description: The collectors.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CollectorWithStatus'
+              example:
+                # from live GET on the hosted ADP account (one of 4); tenant names, IPs and ids replaced
+                - id: "<collector-id>"
+                  orgId: "<org-id>"
+                  name: "<collector-name>"
+                  username: "<collector-username>"
+                  createdAt: 1725891706091
+                  createdBy: "<user-id>"
+                  isDefault: false
+                  connectionStatus: CONNECTED
+                  health:
+                    status: HEALTHY
+                    issues: []
+                  version: "26.9.0-18"
+                  features:
+                    latest: 35
+                    updatable: true
+                  updateStatus: UP_TO_DATE
+                  collectorUpdating: false
+                  externalIp: "192.0.2.10"
+                  internalIps: ["192.0.2.20"]
+                  networkIds: ["<network-id>"]
+  /collectors/{collectorName}/metrics:
+    get:
+      operationId: getCollectorMetrics
+      summary: A collector's own resource metrics over a time window
+      description: >-
+        Requires the DEBUG_COLLECTORS organization permission (@Requires(org = DEBUG_COLLECTORS)), which most logins
+        lack. The collector is named by its name, not its id. An unknown name is a 400.
+      x-forward-stability: unpublished
+      tags: [Collector Binding]
+      parameters:
+        - name: collectorName
+          in: path
+          required: true
+          schema: { type: string }
+        - name: startTime
+          in: query
+          required: true
+          description: The start of the window, as an ISO-8601 instant.
+          schema: { type: string, format: date-time }
+        - name: endTime
+          in: query
+          required: true
+          description: The end of the window, as an ISO-8601 instant.
+          schema: { type: string, format: date-time }
+        - name: samplesPerSeries
+          in: query
+          required: false
+          description: >-
+            How many samples each series keeps when the window holds more. Must be greater than 1. Forward caps it at
+            5000 and defaults it to 500. Forward downsamples by keeping each series' peaks and troughs, so the result can
+            hold more than this number.
+          schema: { type: integer, minimum: 2, maximum: 5000, default: 500 }
+      responses:
+        "200":
+          description: The samples, oldest first. Empty when the collector uploaded nothing in the window.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysCollectorMetricsResponse'
+              example:
+                # from live GET on the hosted ADP account with samplesPerSeries=2 (first of 2 samples shown)
+                metrics:
+                  - timestamp: "2026-10-16T00:04:14.444521937Z"
+                    cpuMetrics:
+                      cpuLoad: 0.00146874
+                      cpuCores: 32
+                    memoryMetrics:
+                      vmMemTotalMb: 63881
+                      vmMemFreeMb: 60869
+                      jvmMemMaxMb: 38336
+                      jvmMemFreeMb: 115
+                      procRssMb: 557
+                    gcMetrics:
+                      gcTimeSeconds: 0
+                      gcLoad: 0.0
+                    fileMetrics:
+                      fileDescriptorsMax: 262144
+                      fileDescriptorsOpen: 26
+                    diskMetrics:
+                      collector:
+                        sizeMb: 262031
+                        availableMb: 253515
+                      os:
+                        sizeMb: 262031
+                        availableMb: 253515
+                      tmp:
+                        sizeMb: 262031
+                        availableMb: 253515
+                    taskMetrics:
+                      concurrency: 1024
+                      queueSize: 0
+                      tasksStarted: 0
+                      tasksFinished: 0
+  /orgs/current/collectors/resetPassword:
+    post:
+      operationId: resetCollectorPassword
+      summary: Issue a new password for a collector
+      description: >-
+        Any signed-in user (@RequiresUser); the service then requires the caller to be allowed to modify that collector.
+        The old password stops working at once, so a running collector stops authenticating until it is given the new
+        token. The response carries the new password once; do not log it.
+      x-forward-stability: unpublished
+      tags: [Collector Binding]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SysCollectorCredentials'
+      responses:
+        "200":
+          description: The collector's username and its new password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysCollectorCredentials'
+              example:
+                # from source: CollectorCredentials.java; password and username redacted
+                collectorName: "<collector-name>"
+                username: "<collector-username>"
+                password: "<redacted>"
+  /networks/{networkId}/proxies:
+    get:
+      operationId: listNetworkProxies
+      summary: The internet proxies a network uses
+      description: Requires the VIEW_INTERNET_PROXIES network permission (@Requires(network = VIEW_INTERNET_PROXIES)).
+      x-forward-stability: unpublished
+      tags: [Network Collection]
+      parameters:
+        - name: networkId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The proxies, with their attribution.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SysStoredProxyServer'
+              example:
+                # from live GET on the hosted ADP account (one of 2); host replaced
+                - id: "P-0"
+                  name: hostproxy
+                  host: "<proxy-host>"
+                  port: 8080
+                  protocol: http
+                  createdById: "10789"
+                  createdAt: "2025-03-24T13:17:39.213446403Z"
+                  updatedById: "10789"
+                  updatedAt: "2025-03-24T13:17:39.213446403Z"
+    post:
+      operationId: createNetworkProxy
+      summary: Add an internet proxy to a network
+      description: >-
+        Requires the EDIT_INTERNET_PROXIES network permission (@Requires(network = EDIT_INTERNET_PROXIES)). The password,
+        when given, is stored as a secret and is never returned. Source-only.
+      x-forward-stability: unpublished
+      tags: [Network Collection]
+      parameters:
+        - name: networkId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SysNewProxyServer'
+      responses:
+        "200":
+          description: The stored proxy, with its new id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysProxyServerConfig'
+              # # from source: client-structs/src/main/java/com/forwardnetworks/client/model/ProxyServerConfig.java (password is a secret id, omitted here)
+              example:
+                id: P-1
+                name: example-proxy
+                host: proxy.example.com
+                port: 8080
+                username: example-user
+                protocol: https
+                disableCertChecking: false
+  /networks/{networkId}/proxies/{proxyId}:
+    patch:
+      operationId: updateNetworkProxy
+      summary: Change an internet proxy of a network
+      description: >-
+        Requires the EDIT_INTERNET_PROXIES network permission. Presence semantics: an omitted key is left alone; a key
+        sent as null clears username, password or disableCertChecking. host, port and protocol cannot be cleared, so
+        a null for them is refused by validation. Source-only.
+      x-forward-stability: unpublished
+      tags: [Network Collection]
+      parameters:
+        - name: networkId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: proxyId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SysProxyServerConfigPatch'
+      responses:
+        "200":
+          description: The proxy after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysProxyServerConfig'
+              # # from source: client-structs/src/main/java/com/forwardnetworks/client/model/ProxyServerConfig.java (password is a secret id, omitted here)
+              example:
+                id: P-1
+                name: example-proxy
+                host: proxy.example.com
+                port: 8443
+                protocol: https
+                disableCertChecking: true
+  /global-config/{property}:
+    delete:
+      operationId: clearGlobalConfigValue
+      summary: Remove a global default override for an org property
+      description: >-
+        Requires the Forward administrator role (@RequiresForwardAdmin). Source-only: removes the stored global value,
+        so the fixed default applies again.
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - name: property
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: The global value was removed. No body.
+  /snapshots/{snapshotId}?action=restore:
+    post:
+      operationId: restoreSnapshotFromBackup
+      summary: Restore one snapshot from a backup
+      description: >-
+        Requires the RESTORE_SNAPSHOT network permission (@Requires(network = RESTORE_SNAPSHOT)) and a snapshot that has
+        been backed up (@RequiresSnapshot(backedUp = true)). Adds the snapshot back and changes no existing one. Forward
+        answers 409 when the snapshot is already on disk and 400 when the backup was written by a newer version. Source-only.
+      x-forward-stability: unpublished
+      tags: [Backups]
+      parameters:
+        - name: snapshotId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The restore's initial status. Follow it with getSnapshotRestoreStatus.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysRestoreStatus'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/cbr/RestoreStatus.java (RestoreStatus.initial)
+              example:
+                status: NOT_STARTED
+                startMillis: 1700000000000
+  /snapshots/{snapshotId}?view=restoreStatus:
+    get:
+      operationId: getSnapshotRestoreStatus
+      summary: How a snapshot restore is going
+      description: >-
+        Requires the VIEW_NETWORK_AND_SNAPSHOTS network permission and a backed-up snapshot
+        (@Requires(network = VIEW_NETWORK_AND_SNAPSHOTS), @RequiresSnapshot(backedUp = true)). Answers 204 with no body when
+        no restore has been started. Source-only.
+      x-forward-stability: unpublished
+      tags: [Backups]
+      parameters:
+        - name: snapshotId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The restore's status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysRestoreStatus'
+              # # from source: app/src/main/java/com/forwardnetworks/cv/cbr/RestoreStatus.java
+              example:
+                status: IN_PROGRESS
+                startMillis: 1700000000000
+                stage: DOWNLOADING
+                maxProgress: 1048576
+                currentProgress: 524288
+        "204":
+          description: No restore has been started for this snapshot. No body.
+  /cve-index:
+    delete:
+      operationId: deleteCveIndex
+      summary: Revert to the CVE index bundled with this Forward build
+      description: >-
+        Requires the Forward administrator role (@RequiresForwardAdmin). Deletes an uploaded CVE index so the bundled one
+        is used again (CveIndexCloudController.deleteCveIndex). The hosted account was not tested, because this changes
+        the index in use.
+      x-forward-stability: unpublished
+      tags: [Vulnerability Analysis]
+      responses:
+        "204":
+          description: The uploaded index was removed. No body.
+
 components:
   schemas:
     SnapshotStateChange:
@@ -17060,3 +18539,601 @@ components:
         followupQuestions:
           type: array
           items: { type: string }
+
+    SysAppBackup:
+      type: object
+      description: One stored backup. Source-only (not live-verified). Size is in bytes.
+      required: [id, storageType, triggerType, appVersion, snapshotsIncluded, size]
+      properties:
+        id: { type: integer, format: int64 }
+        backupTimeMillis: { type: integer, format: int64, description: "When the backup was taken, as epoch milliseconds." }
+        storageType: { type: string, enum: [INTERNAL, S3] }
+        triggerType: { type: string, enum: [MANUAL, SCHEDULED] }
+        appVersion: { type: string, description: The Forward version that wrote the backup. }
+        snapshotsIncluded: { type: boolean }
+        size: { type: integer, format: int64 }
+        note: { type: string, description: A note given when the backup was taken. Absent when none. }
+    SysClusterOperation:
+      type: object
+      description: >-
+        A cluster backup or restore that is running or has just finished. Source-only. Java enum BACKUP/RESTORE; the wire
+        value is the constant name unless Forward's mapper is configured otherwise (not checked). The Go SDK comment
+        says lower-case, which disagrees with the Java enum.
+      properties:
+        id:
+          type: string
+          description: The operation id, a timestamp in seconds.
+        type:
+          type: string
+          enum: [BACKUP, RESTORE]
+        appStatus:
+          $ref: '#/components/schemas/SysCbrOperationStatus'
+        snapshotToStatus:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SysCbrOperationStatus'
+          description: The state of each snapshot involved, keyed by snapshot id.
+    SysClusterOperationResult:
+      type: object
+      description: The outcome of a completed cluster operation. Source-only.
+      properties:
+        id:
+          type: string
+        appStatus:
+          $ref: '#/components/schemas/SysCbrOperationStatus'
+        snapshotToStatus:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SysCbrOperationStatus'
+    SysCbrOperationStatus:
+      type: string
+      description: The state of an application or snapshot part of a cluster operation.
+      enum: [NOT_STARTED, IN_PROGRESS, ERROR, DONE, CANCELLED, NETWORK_MISSING]
+    SysCommonBackupSettings:
+      type: object
+      description: The backup schedule and retention for one storage type. Source-only.
+      required: [enabled, backupTime, numDaysToRetain, includeSnapshots]
+      properties:
+        enabled: { type: boolean, description: Whether the scheduled backup runs. }
+        backupTime: { type: string, description: 'Time of day, HH:mm.' }
+        numDaysToRetain: { type: integer, minimum: 1, description: Days to keep backups. Defaults to 30. }
+        includeSnapshots: { type: boolean }
+    SysCommonBackupSettingsPatch:
+      type: object
+      description: >-
+        A change to the backup settings. Omitted fields keep their stored value; null also keeps it. Source-only.
+      properties:
+        enabled: { type: boolean }
+        backupTime: { type: string, description: 'Time of day, HH:mm.' }
+        numDaysToRetain: { type: integer, minimum: 1 }
+        includeSnapshots: { type: boolean }
+    SysS3StorageSettings:
+      type: object
+      description: >-
+        S3 settings for backups. The secret key is write-only and is never returned, so it is not listed here. A request
+        that sets these settings (the bucket ownership change) must still send secretKey. Source-only.
+      required: [accessKey, bucketName, serviceEndpoint]
+      properties:
+        accessKey: { type: string }
+        secretKey: { type: string, writeOnly: true, description: Sent in requests only; never returned by Forward. }
+        bucketName: { type: string }
+        serviceEndpoint: { type: string }
+        disableSslValidation: { type: boolean, description: Mutually exclusive with certificate. }
+        certificate: { type: string, description: A PEM certificate to trust for serviceEndpoint. Absent when none. }
+        writeOnly: { type: boolean, description: "Reads and writes allowed, deletes not." }
+        disableChecksumValidation: { type: boolean }
+    SysS3StorageSettingsPatch:
+      type: object
+      description: >-
+        A change to the S3 settings. Omitted fields keep their stored value. For certificate, an explicit null clears
+        it; for the other fields, null keeps the stored value. Source-only.
+      properties:
+        accessKey: { type: string }
+        secretKey: { type: string, writeOnly: true }
+        bucketName: { type: string }
+        serviceEndpoint: { type: string }
+        disableSslValidation: { type: boolean }
+        certificate: { type: [string, "null"], description: 'Send null to clear the stored certificate.' }
+        writeOnly: { type: boolean }
+        disableChecksumValidation: { type: boolean }
+    SysCustomBanner:
+      type: object
+      description: A banner shown in the UI for each of some set of networks.
+      required: [id, enabled, message, backgroundColor, networkIds]
+      properties:
+        id: { type: string }
+        enabled: { type: boolean }
+        message: { type: string, description: Must not be blank. }
+        backgroundColor:
+          type: string
+          description: A banner colour. The observed value is GREEN; the full set is in Forward's Color enum (not listed here).
+        networkIds:
+          type: array
+          minItems: 1
+          items: { type: string }
+    SysNewCustomBanner:
+      type: object
+      description: A new banner. The id is assigned by Forward.
+      required: [enabled, message, backgroundColor, networkIds]
+      properties:
+        enabled: { type: boolean }
+        message: { type: string }
+        backgroundColor: { type: string }
+        networkIds:
+          type: array
+          minItems: 1
+          items: { type: string }
+    SysCustomBannerList:
+      type: object
+      required: [banners]
+      properties:
+        banners:
+          type: array
+          items:
+            $ref: '#/components/schemas/SysCustomBanner'
+    SysCriticalStates:
+      type: object
+      description: >-
+        The critical-state flags. Only keys that apply to this deployment are present. License-status states
+        (LICENSE_EXPIRED and the like) are not in this map; the UI derives them from the license status.
+      properties:
+        MAINTENANCE_WINDOW:
+          description: The scheduled upgrade window, or null when none is scheduled.
+          type: [object, "null"]
+          properties:
+            start: { type: integer, format: int64, description: Epoch milliseconds. }
+            end: { type: integer, format: int64, description: Epoch milliseconds. }
+        LOW_STORAGE: { type: boolean }
+        NO_STORAGE: { type: boolean }
+        NO_BACKUP_STORAGE: { type: boolean }
+        LICENSE_CCH_EXHAUSTED: { type: boolean }
+        LICENSE_CCH_GRACE_PERIOD_ENDED: { type: boolean }
+        COLLECTOR_OUTDATED: { type: boolean }
+      additionalProperties: true
+    SysSystemAnnouncementResponse:
+      type: object
+      description: The system announcement, or an empty object when there is none.
+      properties:
+        announcement:
+          $ref: '#/components/schemas/SysSystemAnnouncement'
+    SysSystemAnnouncement:
+      type: object
+      required: [message, createdAt]
+      properties:
+        message: { type: string }
+        linkUrl: { type: string, description: A link to show with the message. Absent when none. }
+        createdAt: { type: string, format: date-time }
+    SysActiveJobInfo:
+      type: object
+      description: >-
+        One row, or a group of identical rows, of running or queued work. Field names are from the Java record
+        ActiveJobInfo; the endpoint itself is ADMINISTER_SYSTEM, so it was not live-verified.
+      required: [jobType, orgName, networkId, creationTime, cancelLink, totalCount]
+      properties:
+        jobType: { type: string }
+        orgName: { type: string }
+        networkId: { type: integer, format: int64 }
+        snapshotId: { type: integer, format: int64, description: Absent for network-level jobs. }
+        creationTime:
+          description: When the job was created, or the earliest creation time in a group. Serialization is set by Forward's mapper and was not checked.
+          type: string
+        waitingForOtherJobs: { type: integer, description: "1 when blocked by a stage-dependency job, 0 otherwise. For a group, the count." }
+        queued: { type: integer, description: "1 when waiting in the queue. For a group, the count." }
+        running: { type: integer, description: "1 when executing. For a group, the count." }
+        longestQueuedTimeInSeconds: { type: integer }
+        longestRunningTimeInSeconds: { type: integer }
+        durationInSeconds: { type: integer }
+        totalCount: { type: integer, description: "1, or the number of jobs in the group." }
+        cancelLink:
+          type: string
+          description: Opaque. Pass it to cancelJob unchanged.
+    SysCompletedJobInfo:
+      type: object
+      description: One row, or a group, of finished work. Field names from the Java record CompletedJobInfo; not live-verified.
+      properties:
+        jobType: { type: string }
+        orgName: { type: string }
+        networkId: { type: integer, format: int64 }
+        snapshotId: { type: integer, format: int64 }
+        creationTime: { type: string }
+        state: { type: string, enum: [SUCCEEDED, FAILED, CANCELED, TIMED_OUT] }
+        earliestStartTime: { type: string }
+        latestEndTime: { type: string }
+        longestQueueTimeInSeconds: { type: integer }
+        longestRunningTimeInSeconds: { type: integer }
+        durationInSeconds: { type: integer }
+        count: { type: integer }
+    SysLicense:
+      type: object
+      description: A license, as Forward records it. Observed live.
+      properties:
+        id: { type: string }
+        createdAt: { type: string, format: date-time }
+        startsAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        licensedTo: { type: string }
+        purchaseOrder: { type: string }
+        tier:
+          type: string
+          enum: [B, N, NP, S, NS, NSP]
+          description: The license tier. The observed value is NS.
+        replaces: { type: boolean }
+        standardDeviceCap: { type: integer }
+        liteDeviceCap: { type: integer }
+        cloudCreditHours: { type: integer, format: int64 }
+        edgeAssetCap: { type: integer }
+        type: { type: string, description: The observed value is TIER. }
+    SysLicenseDetails:
+      type: object
+      description: >-
+        A license and the signed key generated from it, once activated. invalidated is omitted when false. Observed
+        live; the Java field list is in LicenseDetails.java.
+      properties:
+        license:
+          $ref: '#/components/schemas/SysLicense'
+        invalidated: { type: boolean, description: Present only when true. }
+        signedLicenseKey: { type: string, description: "The ASCII signed key, when one exists. Secret-like; do not log." }
+        usedAt: { type: string, format: date-time, description: When the license was added to this deployment or activated. }
+        fingerprint: { type: string, description: The fingerprint of the instance the key is bound to. }
+    SysLicenseDetailsWithStatus:
+      allOf:
+        - $ref: '#/components/schemas/SysLicenseDetails'
+        - type: object
+          properties:
+            status:
+              type: string
+              enum: [NOT_ACTIVE_YET, ACTIVE, EXPIRED, REPLACED]
+    SysLicenseTierAndStatus:
+      type: object
+      description: The tier and status. Both are absent for an unlicensed organization.
+      properties:
+        licenseTier:
+          type: string
+          enum: [B, N, NP, S, NS, NSP]
+        licenseStatus:
+          type: string
+          enum: [SOFTWARE_CENTRAL, EXEMPT, ACTIVE, NOT_ACTIVE_YET, EXPIRED_RECENTLY, EXPIRED]
+    SysAsciiCodedSignedLicenseKey:
+      type: object
+      required: [signedLicenseKey]
+      properties:
+        signedLicenseKey:
+          type: string
+          description: The ASCII-encoded signed license key. Secret-like.
+    SysDecodedLicenseKey:
+      type: object
+      description: A preview of a license key. license and started are absent when the key is invalid.
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [VALID, INVALID_LICENSE, INVALID_SIGNATURE, INVALID_FINGERPRINT, EXPIRED, UNSUPPORTED_TYPE, WRONG_TIER, REPLACEMENT_PENDING, BAD_TRIAL_TIER, BAD_TIER_TRIAL_TIMING, CCH_DEBT_UNPAID, ALREADY_USED]
+        license:
+          $ref: '#/components/schemas/SysLicense'
+        started:
+          type: boolean
+          description: Whether the license has started by now.
+    SysInstanceFingerprint:
+      type: object
+      required: [instanceId]
+      properties:
+        instanceId:
+          type: string
+          description: The fingerprint, encoded.
+    SysOrgCollectionSettings:
+      type: object
+      description: >-
+        The organization-wide collection settings. Only settings that have been set are present. Fields not modelled
+        here (the rib route and redaction settings) are also returned. Timeouts are in minutes.
+      properties:
+        maxCommandAuthZPerSecond: { type: integer, minimum: 1, maximum: 1000 }
+        maxDeviceAuthNPerSecond: { type: integer, minimum: 1, maximum: 1000 }
+        maxScanConnectionsPerSecond: { type: integer, minimum: 1 }
+        perDeviceConcurrencyBoost: { type: integer, minimum: 0, description: Extra SSH connections per device for parallel data. }
+        perDeviceSnmpConcurrency:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Concurrent SNMP transactions per device. Forward's default is 4.
+        deviceCollectionTimeoutMinutes: { type: integer, minimum: 1 }
+        deviceDiscoveryTimeoutMinutes: { type: integer, minimum: 1 }
+        generalJobTimeoutMinutes: { type: integer, minimum: 1 }
+        snapshotCollectionTimeoutMinutes: { type: integer, minimum: 1 }
+        commandDelayMs: { type: integer, minimum: 0, description: Time to wait after each command is sent to a device. }
+        collectionRetries: { type: integer, minimum: 0, description: Retries after the first attempt. 0 turns retries off. }
+        collectionRetryDelayMillis: { type: integer, minimum: 0, description: The first retry delay. Doubles up to the maximum. }
+        collectionMaxRetryDelayMillis: { type: integer, minimum: 0 }
+        enableBetaCommands: { type: boolean }
+        disableCommandOutputLogging: { type: boolean }
+        enableSnmpCredDiscovery: { type: boolean }
+        passwordPrompts:
+          type: array
+          items: { type: string }
+          description: Custom password prompts, matched case-insensitively. No empty value and no colon.
+        collectFullConfigDeviceTypes:
+          type: array
+          items: { type: string }
+          description: Device types for which the full running configuration is collected.
+        disabledCommands:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/SysDisabledCommand'
+          description: Built-in collection commands switched off, keyed by device type name.
+        ribRouteLimit: { type: integer }
+        ribRouteSubnets: { type: array, items: { type: string } }
+        ribRouteVrfs: { type: array, items: { type: string } }
+        defaultRedactionAlgorithm: { type: string }
+        networkRedactionAlgorithmOverrides:
+          type: object
+          additionalProperties: { type: string }
+          description: Redaction algorithm per network id.
+      additionalProperties: true
+    SysOrgCollectionSettingsPatch:
+      type: object
+      description: >-
+        A partial change to the organization collection settings. Presence semantics: an omitted key is left alone; a
+        key sent as null is cleared, which resets it to Forward's default. The three collectionRetries and
+        collectionRetryDelayMillis and collectionMaxRetryDelayMillis keys merge into one stored retry config.
+        disabledCommands, when sent, replaces the whole stored map; an empty object clears every disabled command.
+        Source: OrgCollectionSettingsPatch.java.
+      properties:
+        maxCommandAuthZPerSecond: { type: [integer, "null"] }
+        maxDeviceAuthNPerSecond: { type: [integer, "null"] }
+        maxScanConnectionsPerSecond: { type: [integer, "null"] }
+        perDeviceConcurrencyBoost: { type: [integer, "null"] }
+        perDeviceSnmpConcurrency:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 100
+          description: 1 to 100. Anything else is a 400.
+        deviceCollectionTimeoutMinutes: { type: [integer, "null"] }
+        deviceDiscoveryTimeoutMinutes: { type: [integer, "null"] }
+        generalJobTimeoutMinutes: { type: [integer, "null"] }
+        snapshotCollectionTimeoutMinutes: { type: [integer, "null"] }
+        commandDelayMs: { type: [integer, "null"] }
+        collectionRetries:
+          type: [integer, "null"]
+          minimum: 0
+          description: Retries after the first attempt. 0 turns retries off. Negative is a 400.
+        collectionRetryDelayMillis: { type: [integer, "null"], minimum: 0 }
+        collectionMaxRetryDelayMillis: { type: [integer, "null"], minimum: 0 }
+        enableBetaCommands: { type: [boolean, "null"] }
+        disableCommandOutputLogging: { type: [boolean, "null"] }
+        enableSnmpCredDiscovery: { type: [boolean, "null"] }
+        passwordPrompts: { type: [array, "null"], items: { type: string } }
+        collectFullConfigDeviceTypes: { type: [array, "null"], items: { type: string } }
+        disabledCommands:
+          type: [object, "null"]
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/SysDisabledCommand'
+          description: Replaces the whole stored map. Each entry needs a command and both version bounds.
+    SysDisabledCommand:
+      type: object
+      description: One built-in collection command switched off for a range of software versions.
+      required: [command, version]
+      properties:
+        command:
+          type: string
+          description: A case-insensitive Java regular expression, matched against the command Forward would run.
+        version:
+          $ref: '#/components/schemas/SysDisabledCommandVersion'
+    SysDisabledCommandVersion:
+      type: object
+      description: The inclusive range of software versions, as release version strings.
+      required: [start, end]
+      properties:
+        start: { type: string }
+        end: { type: string }
+    SysCollectorCollectionSettings:
+      type: object
+      description: The collection settings stored for one collector. Zero values are omitted.
+      properties:
+        concurrency: { type: integer, description: Devices collected at once. }
+        snmpCollectionConcurrency: { type: integer }
+        vcenterConcurrency: { type: integer }
+    SysCollectorCollectionSettingsPatch:
+      type: object
+      description: A partial change to a collector's settings. An explicit null resets the field to Forward's default.
+      properties:
+        concurrency: { type: [integer, "null"] }
+        snmpCollectionConcurrency: { type: [integer, "null"] }
+        vcenterConcurrency: { type: [integer, "null"] }
+    SysPerformanceSettings:
+      type: object
+      description: Whether performance collection runs for a network, and how often. Source-only.
+      required: [enabled]
+      properties:
+        enabled: { type: boolean }
+        intervalMinutes: { type: integer, description: Absent when Forward's default applies. }
+    SysPerformanceSettingsPatch:
+      type: object
+      description: >-
+        A partial change. An omitted key is left alone. A null enabled is stored as false. Source: PerformanceSettingsPatch.java.
+      properties:
+        enabled: { type: [boolean, "null"] }
+        intervalMinutes: { type: [integer, "null"] }
+    SysCollectorMetricsResponse:
+      type: object
+      required: [metrics]
+      properties:
+        metrics:
+          type: array
+          description: The samples, oldest first.
+          items:
+            $ref: '#/components/schemas/SysCollectorMetricSample'
+    SysCollectorMetricSample:
+      type: object
+      description: >-
+        One sample uploaded by a collector. The series are CPU, memory, garbage collection, file descriptors, disk and
+        task executor. No network throughput is recorded.
+      properties:
+        timestamp: { type: string, format: date-time }
+        cpuMetrics:
+          type: object
+          properties:
+            cpuLoad: { type: number, description: "The host's recent load as a fraction 0 to 1. Below 0 means not measured yet." }
+            cpuCores: { type: integer }
+        memoryMetrics:
+          type: object
+          description: Megabytes.
+          properties:
+            vmMemTotalMb: { type: integer }
+            vmMemFreeMb: { type: integer }
+            jvmMemMaxMb: { type: integer }
+            jvmMemFreeMb: { type: integer, description: Free space within the heap the JVM has committed so far. }
+            procRssMb: { type: integer }
+        gcMetrics:
+          type: object
+          properties:
+            gcTimeSeconds: { type: integer, description: A cumulative counter since the collector JVM started. }
+            gcLoad: { type: number, description: The fraction of the interval since the previous sample spent in GC. }
+        fileMetrics:
+          type: object
+          properties:
+            fileDescriptorsMax: { type: integer }
+            fileDescriptorsOpen: { type: integer }
+        diskMetrics:
+          type: object
+          description: Megabytes, for the collector data volume, the OS volume and the temp volume.
+          properties:
+            collector: { $ref: '#/components/schemas/SysCollectorDiskUsage' }
+            os: { $ref: '#/components/schemas/SysCollectorDiskUsage' }
+            tmp: { $ref: '#/components/schemas/SysCollectorDiskUsage' }
+        taskMetrics:
+          type: object
+          properties:
+            concurrency: { type: integer, description: The executor's configured size. }
+            queueSize: { type: integer }
+            tasksStarted: { type: integer, description: A running total since the collector process started. }
+            tasksFinished: { type: integer }
+    SysCollectorDiskUsage:
+      type: object
+      properties:
+        sizeMb: { type: integer }
+        availableMb: { type: integer }
+    SysCollectorCredentials:
+      type: object
+      description: >-
+        A collector's name and, in a response, its username and new password. The password is shown once and is never
+        returned again.
+      required: [collectorName]
+      properties:
+        collectorName: { type: string }
+        username: { type: string, description: Returned in the response. Unchanged by a reset. }
+        password: { type: string, writeOnly: true, description: Returned in the response only. Secret. }
+    SysStoredProxyServer:
+      allOf:
+        - $ref: '#/components/schemas/SysProxyServerConfig'
+        - $ref: '#/components/schemas/Attribution'
+    SysProxyServerConfig:
+      type: object
+      description: An internet proxy used for collection. The password is a secret reference, never the value. Source-only except the fields shown in the example.
+      required: [name, host, port, protocol]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        host: { type: string }
+        port: { type: integer, minimum: 1, maximum: 65535 }
+        username: { type: string, description: Absent when none is set. }
+        password: { type: string, description: A secret reference when a password is set. Absent otherwise. }
+        protocol: { type: string, enum: [http, https] }
+        disableCertChecking: { type: boolean }
+    SysNewProxyServer:
+      type: object
+      description: The fields for a new proxy. name, host and port are required by the service, not by the schema.
+      properties:
+        name: { type: string }
+        host: { type: string }
+        port: { type: integer, minimum: 1, maximum: 65535 }
+        username: { type: string }
+        password: { type: string, writeOnly: true }
+        protocol: { type: string, enum: [http, https] }
+        disableCertChecking: { type: boolean }
+    SysProxyServerConfigPatch:
+      type: object
+      description: >-
+        A partial change to a proxy. An omitted key is left alone. An explicit null clears username, password or
+        disableCertChecking. host, port and protocol cannot be cleared.
+      properties:
+        name: { type: string, description: A null or omitted name keeps the stored name. }
+        host: { type: string }
+        port: { type: integer, minimum: 1, maximum: 65535 }
+        username: { type: [string, "null"] }
+        password: { type: [string, "null"], writeOnly: true }
+        protocol: { type: string, enum: [http, https] }
+        disableCertChecking: { type: [boolean, "null"] }
+    SysApprovedCliCommands:
+      type: object
+      description: >-
+        The CLI commands endpoint profiles may run. signedAt and the uploaded fields are absent for the system defaults.
+      required: [commands]
+      properties:
+        commands:
+          type: array
+          items: { type: string, description: A regular expression. }
+        signedAt: { type: string, format: date-time }
+        uploadedAt: { type: string, format: date-time }
+        uploadedById: { type: string, description: The id of the user who uploaded the file. }
+    SysCliCommandAssessment:
+      type: object
+      required: [approved, unapproved]
+      properties:
+        approved:
+          type: array
+          items: { type: string }
+        unapproved:
+          type: array
+          items: { type: string }
+    SysDeploymentArtifact:
+      type: object
+      description: >-
+        One installer or upgrade artifact, with every version Forward still serves. Source-only (Software Central is
+        off on the hosted account).
+      required: [id, name, deploymentTypes, workflow, versions]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        deploymentTypes:
+          type: array
+          items:
+            type: string
+            enum: [VMWARE_HYPERVISOR, AWS_EC2, AWS_GOVCLOUD_EC2, AZURE_VM, AZURE_GOV_VM, GCP_VM, KVM_HYPERVISOR]
+        workflow: { type: string, enum: [INSTALLATION, APP_UPGRADE], description: INSTALLATION stands up a new instance. APP_UPGRADE moves an existing one forward. }
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SysDeploymentArtifactVersion'
+    SysDeploymentArtifactVersion:
+      type: object
+      description: One downloadable file. Source-only.
+      required: [id, version, fileType, sizeInBytes, uploadedAt]
+      properties:
+        id: { type: string }
+        baseVersion: { type: string }
+        minBaseVersion: { type: string }
+        maxBaseVersion: { type: string }
+        version: { type: string }
+        fileType: { type: string, enum: [OVA, TAR_GZ, AIRGAP, PACKAGE] }
+        sizeInBytes: { type: integer, format: int64 }
+        sha256: { type: string, description: The SHA-256 digest of the file. }
+        uploadedBy: { type: string, description: The id of the user who uploaded it. }
+        uploadedAt: { type: integer, format: int64, description: Epoch milliseconds. }
+    SysRestoreStatus:
+      type: object
+      description: 'How a snapshot restore is going. Source-only: the fields are the Java RestoreStatus record.'
+      required: [status, startMillis]
+      properties:
+        status:
+          $ref: '#/components/schemas/SysCbrOperationStatus'
+        startMillis: { type: integer, format: int64, description: "When the restore began, as epoch milliseconds." }
+        stage:
+          type: string
+          enum: [DOWNLOADING, UNPACKING]
+          description: Present while the restore runs. Absent before it starts and after it finishes or fails.
+        maxProgress: { type: integer, format: int64, description: Present while the restore runs. }
+        currentProgress: { type: integer, format: int64, description: Present while the restore runs. }
+        errorMessage: { type: string, description: Present only when the restore has failed. }

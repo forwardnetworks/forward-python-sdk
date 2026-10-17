@@ -1129,6 +1129,22 @@ paths:
               schema: { $ref: "#/components/schemas/ConfigValue" }
               example: { session_timeout: 60 }
 
+    delete:
+      operationId: clearGlobalConfigValue
+      summary: Remove a global default override for an org property
+      description: >-
+        Requires the Forward administrator role (@RequiresForwardAdmin). Source-only: removes the stored global value,
+        so the fixed default applies again.
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - name: property
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: The global value was removed. No body.
   /orgs/{orgId}/config/{property}:
     get:
       operationId: getOrgScopedConfigValue
@@ -3265,6 +3281,51 @@ paths:
                 createdBy: "100"
                 authorizationKey: "collector-a1b2c3d4:9f8e7d6c5b4a3210"
 
+    get:
+      operationId: listCollectors
+      summary: The organization's collectors, with their status
+      description: >-
+        Requires the VIEW_COLLECTORS organization permission (@Requires(org = VIEW_COLLECTORS)). includeNetworks defaults
+        to true.
+      x-forward-stability: unpublished
+      tags: [Collector Binding]
+      parameters:
+        - name: includeNetworks
+          in: query
+          required: false
+          description: Whether each collector lists the networks it serves. Defaults to true.
+          schema: { type: boolean, default: true }
+      responses:
+        "200":
+          description: The collectors.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CollectorWithStatus'
+              example:
+                # from live GET on the hosted ADP account (one of 4); tenant names, IPs and ids replaced
+                - id: "<collector-id>"
+                  orgId: "<org-id>"
+                  name: "<collector-name>"
+                  username: "<collector-username>"
+                  createdAt: 1725891706091
+                  createdBy: "<user-id>"
+                  isDefault: false
+                  connectionStatus: CONNECTED
+                  health:
+                    status: HEALTHY
+                    issues: []
+                  version: "26.9.0-18"
+                  features:
+                    latest: 35
+                    updatable: true
+                  updateStatus: UP_TO_DATE
+                  collectorUpdating: false
+                  externalIp: "192.0.2.10"
+                  internalIps: ["192.0.2.20"]
+                  networkIds: ["<network-id>"]
   /collectors/{collectorName}:
     delete:
       operationId: deleteCollectorAccount
@@ -9590,37 +9651,6 @@ paths:
                   $ref: '#/components/schemas/SrcDeviceStatus'
               # live-verified: GET (read-only account): empty array
               example: []
-  /networks/{networkId}/aws-cap-credentials/{credentialId}:
-    get:
-      operationId: getAwsCapCredential
-      summary: Read an AWS CAP credential
-      description: 'Returns one AWS CAP credential by id. Gated by VIEW_DEVICE_CREDENTIALS. Forward answers 404 ''AWS CAP credential ... not found''. The response includes clientCertificateBase64 (secret material, per Java) as well as the id, server URL and password-secret id. Source-only: no credential id was reachable on the read-only account.'
-      x-forward-stability: unpublished
-      tags:
-      - Cloud Accounts
-      parameters:
-      - name: networkId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: credentialId
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: The credential.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SrcAwsCapCredential'
-              # from source: client-structs/src/main/java/com/forwardnetworks/client/model/AwsCapCredential.java; placeholder values, the secret id is not the secret
-              example:
-                id: AWS-1
-                baseCapServerUrl: https://cap.example.invalid
-                clientCertificatePasswordId: S-1
   /deviceConnTypes:
     get:
       operationId: listDeviceConnTypes
@@ -11885,47 +11915,6 @@ paths:
               # from source: app/src/test/java/com/forwardnetworks/cv/nqe/assist/DocAssistFollowupTest.java
               example: { followupQuestions: [q1, q2] }
 
-  /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}:
-    patch:
-      operationId: editChangeSetCommitNote
-      summary: Replace a committed version's note
-      description: >-
-        note is a required query parameter and must not be blank. Requires the
-        MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization
-        property. Source-only: the read-only account cannot list change sets (403 live).
-      x-forward-stability: unpublished
-      tags: [Change Sets]
-      parameters:
-        - { name: networkId, in: path, required: true, schema: { type: string } }
-        - { name: changeSetId, in: path, required: true, schema: { type: string } }
-        - { name: commitId, in: path, required: true, schema: { type: string } }
-        - { name: note, in: query, required: true, description: The new note. Must not be blank., schema: { type: string } }
-      responses:
-        "200":
-          description: The commit's metadata after the change.
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ChangeSetCommit" }
-              # from source: ChangeSetCommit fields; placeholder values
-              example: { commitId: "1", committedAt: "2026-01-01T00:00:00Z", committedBy: example, committedById: "1", note: "Reviewed" }
-
-    delete:
-      operationId: deleteChangeSetCommit
-      summary: Delete a committed version and the predicted snapshots made from it
-      description: >-
-        Removes the version from the change set's history and deletes the predicted
-        snapshots made from it, in one transaction. This cannot be undone. Requires
-        the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING
-        organization property. Source-only: not called live.
-      x-forward-stability: unpublished
-      tags: [Change Sets]
-      parameters:
-        - { name: networkId, in: path, required: true, schema: { type: string } }
-        - { name: changeSetId, in: path, required: true, schema: { type: string } }
-        - { name: commitId, in: path, required: true, schema: { type: string } }
-      responses:
-        "204": { description: Deleted. }
-
   /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}?action=restore:
     post:
       operationId: restoreChangeSetCommit
@@ -13204,52 +13193,6 @@ paths:
               example:
                 enabled: true
                 intervalMinutes: 5
-  /collectors:
-    get:
-      operationId: listCollectors
-      summary: The organization's collectors, with their status
-      description: >-
-        Requires the VIEW_COLLECTORS organization permission (@Requires(org = VIEW_COLLECTORS)). includeNetworks defaults
-        to true.
-      x-forward-stability: unpublished
-      tags: [Collector Binding]
-      parameters:
-        - name: includeNetworks
-          in: query
-          required: false
-          description: Whether each collector lists the networks it serves. Defaults to true.
-          schema: { type: boolean, default: true }
-      responses:
-        "200":
-          description: The collectors.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CollectorWithStatus'
-              example:
-                # from live GET on the hosted ADP account (one of 4); tenant names, IPs and ids replaced
-                - id: "<collector-id>"
-                  orgId: "<org-id>"
-                  name: "<collector-name>"
-                  username: "<collector-username>"
-                  createdAt: 1725891706091
-                  createdBy: "<user-id>"
-                  isDefault: false
-                  connectionStatus: CONNECTED
-                  health:
-                    status: HEALTHY
-                    issues: []
-                  version: "26.9.0-18"
-                  features:
-                    latest: 35
-                    updatable: true
-                  updateStatus: UP_TO_DATE
-                  collectorUpdating: false
-                  externalIp: "192.0.2.10"
-                  internalIps: ["192.0.2.20"]
-                  networkIds: ["<network-id>"]
   /collectors/{collectorName}/metrics:
     get:
       operationId: getCollectorMetrics
@@ -13458,23 +13401,6 @@ paths:
                 port: 8443
                 protocol: https
                 disableCertChecking: true
-  /global-config/{property}:
-    delete:
-      operationId: clearGlobalConfigValue
-      summary: Remove a global default override for an org property
-      description: >-
-        Requires the Forward administrator role (@RequiresForwardAdmin). Source-only: removes the stored global value,
-        so the fixed default applies again.
-      x-forward-stability: unpublished
-      tags: [Configuration]
-      parameters:
-        - name: property
-          in: path
-          required: true
-          schema: { type: string }
-      responses:
-        "204":
-          description: The global value was removed. No body.
   /snapshots/{snapshotId}?action=restore:
     post:
       operationId: restoreSnapshotFromBackup
@@ -13730,145 +13656,6 @@ paths:
         - { name: commitId, in: path, required: true, schema: { type: string } }
       responses:
         "204": { description: Deleted. }
-  /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}?action=restore:
-    post:
-      operationId: restoreChangeSetCommit
-      summary: Restore the change set to a commit
-      description: >-
-        Makes the change set's draft match the commit again (ChangeSetController.restoreCommit). Requires
-        MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.
-      x-forward-stability: unpublished
-      tags: [Change Sets]
-      parameters:
-        - { name: networkId, in: path, required: true, schema: { type: string } }
-        - { name: changeSetId, in: path, required: true, schema: { type: string } }
-        - { name: commitId, in: path, required: true, schema: { type: string } }
-      responses:
-        "200":
-          description: The commit the draft was restored from.
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ChangeSetCommit" }
-              # from source: returns ChangeSetCommitMetadata; placeholder values
-              example: { commitId: "9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978", note: "staged for review", committedAt: "2026-09-11T10:02:00Z" }
-  /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}?action=restoreAsNew:
-    post:
-      operationId: restoreChangeSetCommitAsNew
-      summary: Start a new change set from a commit
-      description: >-
-        Creates a new change set from the commit (ChangeSetController.restoreAsNew). Requires MANAGE_CHANGE_SETS and
-        PREDICT_MODELING, and the network snapshot must have finished CREATION. Source-only.
-      x-forward-stability: unpublished
-      tags: [Change Sets]
-      parameters:
-        - { name: networkId, in: path, required: true, schema: { type: string } }
-        - { name: changeSetId, in: path, required: true, schema: { type: string } }
-        - { name: commitId, in: path, required: true, schema: { type: string } }
-        - name: targetName
-          in: query
-          required: false
-          description: Name of the new change set. Forward reads it as nullable.
-          schema: { type: string }
-        - name: targetBaseSnapshotId
-          in: query
-          required: false
-          description: Base snapshot for the new change set. Forward reads it as nullable.
-          schema: { type: string }
-      responses:
-        "200":
-          description: The new change set's commit.
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/CommittedChangeSet" }
-              # from source: returns FilteredCommittedChangeSet; placeholder values
-              example:
-                commitId: "9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978"
-                note: "restored as new"
-                committedAt: "2026-09-11T10:05:00Z"
-  /networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/config:
-    get:
-      operationId: getChangeSetDeviceDraftConfig
-      summary: The draft configuration of one device
-      description: >-
-        Returns the device's configuration in the change set's draft as text (ChangeSetController.getDraftConfig).
-        Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.
-      x-forward-stability: unpublished
-      tags: [Change Sets]
-      parameters:
-        - { name: networkId, in: path, required: true, schema: { type: string } }
-        - { name: changeSetId, in: path, required: true, schema: { type: string } }
-        - { name: deviceName, in: path, required: true, schema: { type: string } }
-      responses:
-        "200":
-          description: The configuration text.
-          content:
-            text/plain:
-              schema: { type: string }
-    put:
-      operationId: setChangeSetDeviceDraftConfig
-      summary: Replace the draft configuration of one device
-      description: >-
-        Replaces the device's draft configuration with the text in the body (ChangeSetController.saveDeviceConfig,
-        text/plain, 204). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Forward caps configuration at 2 MB (Go SDK
-        addendum; not re-checked in Java). Source-only.
-      x-forward-stability: unpublished
-      tags: [Change Sets]
-      parameters:
-        - { name: networkId, in: path, required: true, schema: { type: string } }
-        - { name: changeSetId, in: path, required: true, schema: { type: string } }
-        - { name: deviceName, in: path, required: true, schema: { type: string } }
-      requestBody:
-        required: true
-        content:
-          text/plain:
-            schema: { type: string }
-      responses:
-        "204": { description: Saved. }
-  /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}/devices/{deviceName}/config:
-    get:
-      operationId: getChangeSetCommitDeviceConfig
-      summary: The configuration of one device at a commit
-      description: >-
-        Returns the device's configuration as committed, as text (ChangeSetController.getCommittedConfig). Requires
-        MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.
-      x-forward-stability: unpublished
-      tags: [Change Sets]
-      parameters:
-        - { name: networkId, in: path, required: true, schema: { type: string } }
-        - { name: changeSetId, in: path, required: true, schema: { type: string } }
-        - { name: commitId, in: path, required: true, schema: { type: string } }
-        - { name: deviceName, in: path, required: true, schema: { type: string } }
-      responses:
-        "200":
-          description: The configuration text.
-          content:
-            text/plain:
-              schema: { type: string }
-  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/config?action=preview:
-    post:
-      operationId: previewChangeSetDeviceConfig
-      summary: Preview the configuration after applying commands
-      description: >-
-        Takes commands as text and returns the configuration the device would have if they were applied to its base
-        snapshot's configuration (ChangeSetController.previewUpdatedConfig). Requires MANAGE_CHANGE_SETS and
-        PREDICT_MODELING. Source-only.
-      x-forward-stability: unpublished
-      tags: [Change Sets]
-      parameters:
-        - { name: networkId, in: path, required: true, schema: { type: string } }
-        - { name: changeSetId, in: path, required: true, schema: { type: string } }
-        - { name: deviceName, in: path, required: true, schema: { type: string } }
-      requestBody:
-        required: true
-        content:
-          text/plain:
-            schema: { type: string }
-      responses:
-        "200":
-          description: The configuration text after the commands.
-          content:
-            text/plain:
-              schema: { type: string }
   /networks/{networkId}/aws-cap-credentials/{credentialId}:
     get:
       operationId: getAwsCapCredential

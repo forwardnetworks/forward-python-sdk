@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from forward_sdk._generated import models
 from forward_sdk._ops import rest as ops
 from forward_sdk._sync.services._base import Service
 
@@ -20,6 +21,18 @@ __all__ = ["CollectorsService"]
 
 class CollectorsService(Service):
     """Collectors."""
+
+    def create_collector_account(
+        self,
+        *,
+        body: Any,
+    ) -> models.CollectorWithAuthKey:
+        """Register a new collector account for the org.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["createCollectorAccount"](body=body))
+        return models.CollectorWithAuthKey.model_validate(payload or {})
 
     def delete_collector_account(
         self,

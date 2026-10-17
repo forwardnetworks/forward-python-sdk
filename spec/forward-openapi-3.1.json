@@ -24737,35 +24737,65 @@
         "x-forward-stability": "unpublished"
       },
       "post": {
-        "description": "Only collectors that support remote upgrade and auto-start are queued. Returns the names of the collectors that will be upgraded.",
-        "operationId": "upgradeCollectors",
+        "operationId": "createCollectorAccount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "collectorName": "wells-demo-collector"
+              },
+              "schema": {
+                "properties": {
+                  "collectorName": {
+                    "description": "Unique per org.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "collectorName"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
               "application/json": {
-                "example": [
-                  "wells-demo-collector"
-                ],
+                "example": {
+                  "authorizationKey": "collector-a1b2c3d4:9f8e7d6c5b4a3210",
+                  "createdAt": 1788949865425,
+                  "createdBy": "100",
+                  "id": "77",
+                  "name": "wells-demo-collector",
+                  "orgId": "12",
+                  "username": "collector-a1b2c3d4"
+                },
                 "schema": {
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
+                  "$ref": "#/components/schemas/CollectorWithAuthKey"
                 }
               }
             },
-            "description": "Collector names queued for upgrade."
+            "description": "The new collector account, with its one-time install auth key."
           }
         },
-        "summary": "Upgrade every online collector in the org that supports it",
+        "summary": "Register a new collector account for the org",
         "tags": [
           "Collectors"
         ],
-        "x-forward-fixed-query": [
-          [
-            "action",
-            "upgrade"
-          ]
+        "x-forward-operation-variants": [
+          {
+            "operationId": "upgradeCollectors",
+            "summary": "Upgrade every online collector in the org that supports it",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "upgrade"
+              ]
+            ]
+          }
         ],
         "x-forward-stability": "unpublished"
       }
@@ -28667,6 +28697,82 @@
           "Configuration"
         ],
         "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "The fixed default only. This never reflects an org's override, so it keeps reporting the default after an org value has been set. That is correct behaviour and easily mistaken for a failed write.",
+        "operationId": "getGlobalConfigValue",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "firewall_predict": false
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigValue"
+                }
+              }
+            },
+            "description": "The property and its global default."
+          }
+        },
+        "summary": "An org property's global default",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "put": {
+        "description": "Forward administrators only. Properties declared org-scoped have an immutable default and refuse with \"Permission denied. Global default value cannot be changed for PROPERTY\"; set those per org instead.",
+        "operationId": "setGlobalConfigValue",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "value",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "session_timeout": 60
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigValue"
+                }
+              }
+            },
+            "description": "The property and its new default."
+          }
+        },
+        "summary": "Change an org property's global default",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/integrations/infoblox": {
@@ -31456,7 +31562,7 @@
         "x-forward-stability": "unpublished"
       },
       "post": {
-        "description": "Makes the change set's draft match the commit again (ChangeSetController.restoreCommit). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.",
+        "description": "Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property. Source-only: not called live.",
         "operationId": "restoreChangeSetCommit",
         "parameters": [
           {
@@ -31489,19 +31595,20 @@
             "content": {
               "application/json": {
                 "example": {
-                  "commitId": "9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978",
-                  "committedAt": "2026-09-11T10:02:00Z",
-                  "note": "staged for review"
+                  "commitId": "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+                  "committedAt": "1970-01-02T10:17:36.789Z",
+                  "committedById": "-1",
+                  "note": "Change testing"
                 },
                 "schema": {
                   "$ref": "#/components/schemas/ChangeSetCommit"
                 }
               }
             },
-            "description": "The commit the draft was restored from."
+            "description": "The restored commit's metadata."
           }
         },
-        "summary": "Restore the change set to a commit",
+        "summary": "Restore a committed version as the change set's draft",
         "tags": [
           "Change Sets"
         ],
@@ -31514,7 +31621,7 @@
         "x-forward-operation-variants": [
           {
             "operationId": "restoreChangeSetCommitAsNew",
-            "summary": "Start a new change set from a commit",
+            "summary": "Copy a committed version into a new change set",
             "x-forward-fixed-query": [
               [
                 "action",
@@ -31609,8 +31716,8 @@
     },
     "/networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}/devices/{deviceName}/config": {
       "get": {
-        "description": "Returns the device's configuration as committed, as text (ChangeSetController.getCommittedConfig). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.",
-        "operationId": "getChangeSetCommitDeviceConfig",
+        "description": "Returns the configuration as plain text. Compare it with the draft or another version for a per-device diff. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property, and device access for the caller. Source-only: not called live.",
+        "operationId": "getChangeSetCommittedDeviceConfig",
         "parameters": [
           {
             "in": "path",
@@ -31654,10 +31761,10 @@
                 }
               }
             },
-            "description": "The configuration text."
+            "description": "The device's configuration as UTF-8 text."
           }
         },
-        "summary": "The configuration of one device at a commit",
+        "summary": "Read one device's configuration as a committed version has it",
         "tags": [
           "Change Sets"
         ],
@@ -32028,7 +32135,7 @@
     },
     "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/config": {
       "post": {
-        "description": "Takes commands as text and returns the configuration the device would have if they were applied to its base snapshot's configuration (ChangeSetController.previewUpdatedConfig). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.",
+        "description": "The body is CLI command text, sent as text/plain. The response is the configuration that would result, as text/plain. Nothing is staged. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property, and device access for the caller. Source-only: not called live.",
         "operationId": "previewChangeSetDeviceConfig",
         "parameters": [
           {
@@ -32075,10 +32182,10 @@
                 }
               }
             },
-            "description": "The configuration text after the commands."
+            "description": "The configuration that would result, as UTF-8 text."
           }
         },
-        "summary": "Preview the configuration after applying commands",
+        "summary": "Preview a device's configuration with CLI commands applied",
         "tags": [
           "Change Sets"
         ],
@@ -33101,8 +33208,8 @@
     },
     "/networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/config": {
       "get": {
-        "description": "Returns the device's configuration in the change set's draft as text (ChangeSetController.getDraftConfig). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Source-only.",
-        "operationId": "getChangeSetDeviceDraftConfig",
+        "description": "Returns the configuration as plain text. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property, and device access for the caller. Source-only: not called live. The Go SDK says Forward answers 404 with no draft or no change for the device; the source was not traced to confirm that.",
+        "operationId": "getChangeSetDraftDeviceConfig",
         "parameters": [
           {
             "in": "path",
@@ -33138,18 +33245,18 @@
                 }
               }
             },
-            "description": "The configuration text."
+            "description": "The device's configuration as UTF-8 text."
           }
         },
-        "summary": "The draft configuration of one device",
+        "summary": "Read one device's configuration as the draft would leave it",
         "tags": [
           "Change Sets"
         ],
         "x-forward-stability": "unpublished"
       },
       "put": {
-        "description": "Replaces the device's draft configuration with the text in the body (ChangeSetController.saveDeviceConfig, text/plain, 204). Requires MANAGE_CHANGE_SETS and PREDICT_MODELING. Forward caps configuration at 2 MB (Go SDK addendum; not re-checked in Java). Source-only.",
-        "operationId": "setChangeSetDeviceDraftConfig",
+        "description": "The body is the complete running configuration, as text/plain. It replaces any staged commands for that device, since a device has either commands or a configuration file. The limit is 2 MB of UTF-8 bytes; a larger body is refused with 400. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property, and device access for the caller. Source-only: not called live.",
+        "operationId": "saveChangeSetDraftDeviceConfig",
         "parameters": [
           {
             "in": "path",
@@ -33191,7 +33298,7 @@
             "description": "Saved."
           }
         },
-        "summary": "Replace the draft configuration of one device",
+        "summary": "Replace a device's whole configuration in the draft",
         "tags": [
           "Change Sets"
         ],

@@ -70,7 +70,10 @@ retries would re-stampede the server.
 A request whose body is not safe to repeat, such as creating a network or
 committing queries, is retried **only** on a connection error, where the server
 demonstrably never received it. A read timeout on such a request is surfaced
-rather than silently repeating work that may already have happened.
+rather than silently repeating work that may already have happened. The one
+exception is Forward's rate-limit 429 ("Rate limit exceeded"): that limiter
+refuses before the request reaches its handler, so repeating even a create
+cannot do the work twice. Any other 429 is not repeated for such a request.
 
 Streaming responses are retried while connecting, but not once the body has
 started arriving, since a partly consumed stream cannot be rewound without
@@ -82,6 +85,15 @@ streaming.
 `ForwardAuthError`, `ForwardPermissionError` and `ForwardNotFoundError` can each
 mean several different things, including a missing licence or an
 undeployed feature. See [availability](gating.md).
+
+Two more cases look like the ordinary kind of the same status:
+
+- `error.endpoint_not_served` is true for a 404 that means Forward has no route
+  for the request ("No endpoint GET /api/backups."), as opposed to a missing
+  resource. A delete through such a route deleted nothing.
+- `error.account_locked` is true for a 401 that means the account is locked, not
+  that the credential is wrong. The wording is from Forward's source and has not
+  been seen live.
 
 ## When the response cannot be read
 

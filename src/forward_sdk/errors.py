@@ -20,6 +20,7 @@ documented hint about what can gate an operation at all.
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -270,6 +271,41 @@ class ForwardAPIError(ForwardError):
         """
         detail = getattr(self.error_info, "message", None) or self.text
         return classify_denial(detail)
+
+    def _message(self) -> str:
+        """Forward's message, from the parsed body, else the raw one, else the text."""
+        parsed = getattr(self.error_info, "message", None)
+        if parsed:
+            return str(parsed)
+        try:
+            raw = json.loads(self.text)
+        except ValueError:
+            return self.text
+        message = raw.get("message") if isinstance(raw, dict) else None
+        return str(message) if message else self.text
+
+    @property
+    def endpoint_not_served(self) -> bool:
+        """Whether Forward has no route for this request, rather than no such resource.
+
+        Spring answers 404 ``No endpoint GET /api/backups.`` for a route this
+        deployment does not map (backups on a hosted instance, say). It looks like
+        a missing resource, and is not one: deleting through it did not delete
+        anything, and retrying will not help.
+        """
+        return self.status == 404 and self._message().lstrip().startswith("No endpoint ")
+
+    @property
+    def account_locked(self) -> bool:
+        """Whether the 401 is because the account is locked, not because the credential is wrong.
+
+        Forward says ``User account is locked: <name>`` for a user and
+        ``Account is locked`` for an API token (source-verified; not seen live).
+        """
+        message = self._message()
+        return self.status == 401 and (
+            message.startswith("User account is locked") or message.strip() == "Account is locked"
+        )
 
     @property
     def gating(self) -> tuple[str, ...]:

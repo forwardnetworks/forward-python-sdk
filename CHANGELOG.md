@@ -29,6 +29,9 @@ All notable changes to this project are documented here. The format follows
   GCP and AWS cloud-account fields.
 - `spec/unpublished.yaml` is checked for repeated keys. YAML keeps the last of two equal
   keys, which had silently dropped operations when two drafts described one path.
+- `error.endpoint_not_served` and `error.account_locked` on API errors: a 404 for a route
+  Forward does not map (not a missing resource), and a 401 for a locked account (not a
+  wrong credential).
 
 ### Fixed
 

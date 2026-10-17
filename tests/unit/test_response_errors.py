@@ -6,8 +6,14 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
-from forward_sdk._http import parse_error_body
-from forward_sdk.errors import ForwardError, ForwardResponseError
+from forward_sdk._http import parse_error_body, raise_for_response
+from forward_sdk.errors import (
+    ForwardAPIError,
+    ForwardAuthError,
+    ForwardError,
+    ForwardNotFoundError,
+    ForwardResponseError,
+)
 from forward_sdk.models import Network
 from forward_sdk.telemetry import Counters, CounterSnapshot
 
@@ -109,3 +115,43 @@ class TestCounterSnapshotIsLoggable:
     def test_an_unknown_counter_raises_keyerror(self) -> None:
         with pytest.raises(KeyError):
             CounterSnapshot()["not_a_counter"]
+
+
+class TestWhatKindOfRefusalA404Or401Is:
+    """A 404 can be a route Forward does not serve, a 401 a locked account.
+
+    Both look like the ordinary kind of the same status, and acting on the
+    ordinary reading is wrong: a "not found" DELETE did not delete anything,
+    and a locked account is not fixed by a new password.
+    """
+
+    @staticmethod
+    def raised(status: int, message: str) -> ForwardAPIError:
+        response = httpx.Response(
+            status,
+            json={"message": message, "status": str(status)},
+            request=httpx.Request("GET", "https://forward.test/api/x"),
+        )
+        with pytest.raises(ForwardAPIError) as caught:
+            raise_for_response(response, operation=None)
+        return caught.value
+
+    def test_a_route_forward_does_not_map(self) -> None:
+        error = self.raised(404, "No endpoint GET /api/backups.")
+        assert isinstance(error, ForwardNotFoundError)
+        assert error.endpoint_not_served is True
+
+    def test_a_missing_resource_is_not_a_missing_route(self) -> None:
+        assert self.raised(404, "Network 7 not found").endpoint_not_served is False
+
+    @pytest.mark.parametrize("message", ["User account is locked: alice", "Account is locked"])
+    def test_a_locked_account(self, message: str) -> None:
+        error = self.raised(401, message)
+        assert isinstance(error, ForwardAuthError)
+        assert error.account_locked is True
+
+    def test_a_wrong_credential_is_not_a_locked_account(self) -> None:
+        assert self.raised(401, "Bad credentials").account_locked is False
+
+    def test_the_status_matters_as_much_as_the_words(self) -> None:
+        assert self.raised(403, "Account is locked").account_locked is False

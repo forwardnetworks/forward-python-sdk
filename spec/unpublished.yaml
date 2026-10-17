@@ -11197,6 +11197,723 @@ paths:
               example:
                 queries: []
 
+  /snapshots/{snapshotId}/checks-report:
+    get:
+      operationId: getCheckCategoryReport
+      summary: Download one category of a snapshot's checks as an Excel workbook
+      description: >-
+        Returns the checks of one category (NQE, PREDEFINED, INTENT or ADVANCED)
+        as an .xlsx workbook. Requires the VIEW_CHECKS network permission, and
+        the NQE category also requires USE_NQE. The snapshot must have reached
+        the CREATION stage. dir limits an INTENT report to one directory, starts
+        with "/", and is refused for any other category. The type value is
+        case-sensitive: "intent" is refused. Live: NQE, PREDEFINED, INTENT and
+        ADVANCED all returned the workbook; a missing type returned 400.
+      x-forward-stability: unpublished
+      tags: [Checks]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+        - name: type
+          in: query
+          required: true
+          description: The check category to report.
+          schema: { type: string, enum: [NQE, PREDEFINED, INTENT, ADVANCED] }
+        - name: dir
+          in: query
+          required: false
+          description: Directory of intent checks to report. Only valid with type=INTENT. Must start with "/".
+          schema: { type: string }
+      responses:
+        "200":
+          description: The check report workbook.
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+
+  /snapshots/{snapshotId}/checksReport:
+    get:
+      operationId: getChecksReport
+      summary: Download all of a snapshot's checks as an Excel workbook
+      description: >-
+        Returns every check result of the snapshot as one .xlsx workbook.
+        Requires the VIEW_CHECKS network permission and a snapshot that has
+        reached the CREATION stage. Live: returned the workbook for a processed
+        snapshot.
+      x-forward-stability: unpublished
+      tags: [Checks]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The check report workbook.
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+
+  /snapshots/{snapshotId}/progress:
+    get:
+      operationId: getSnapshotProgress
+      summary: Report how far a snapshot's processing has got, stage by stage
+      description: >-
+        Returns each processing stage (CREATION, TEXT_SEARCH_INDEX, REACHABILITY
+        and ADVANCED_REACHABILITY) with its operation state. done is true when
+        every stage except ADVANCED_REACHABILITY has finished. startedAt,
+        updatedAt and numObjects are omitted once the progress events have been
+        deleted after processing; the live check saw that form. Requires the
+        VIEW_NETWORK_AND_SNAPSHOTS network permission. Live: 404 for an unknown
+        snapshot.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The snapshot's processing progress.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisSnapshotProgress" }
+              # from live response: GET /snapshots/{snapshotId}/progress (trimmed to the fields Forward sent)
+              example:
+                networkId: "155541"
+                snapshotId: "1437911"
+                stages:
+                  - { stage: CREATION, operationState: SUCCEEDED }
+                  - { stage: TEXT_SEARCH_INDEX, operationState: SUCCEEDED }
+                  - { stage: REACHABILITY, operationState: SUCCEEDED }
+                  - { stage: ADVANCED_REACHABILITY, operationState: NOT_TRIGGERED }
+                done: true
+
+  /snapshots/{snapshotId}/processEstimate:
+    get:
+      operationId: getSnapshotProcessEstimate
+      summary: Estimate how long each processing stage will take for a snapshot
+      description: >-
+        Returns Forward's per-stage duration estimate, in milliseconds, keyed by
+        ProgressStage name. Only stages with historical data appear. Requires
+        the VIEW_NETWORK_AND_SNAPSHOTS network permission. The
+        ?for=advancedReachability variant (which adds advanced reachability
+        stages) is not ported here.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Estimated stage durations.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisProcessEstimate" }
+              # from live response: GET /snapshots/{snapshotId}/processEstimate
+              example:
+                stageToDuration:
+                  DEVICE_MODEL_GENERATION: 317705
+                  SNAPSHOT_GENERATION: 351051
+                  FLOWLET_COMPUTATION: 0
+                  FLOWLET_LINK_INDEX_COMPUTATION: 29499
+                  SHERLOCK_DEVICE_INDEXING: 88184
+
+  /snapshot-processing-queue:
+    get:
+      operationId: listSnapshotProcessingQueue
+      summary: List snapshots waiting to be processed in the organization
+      description: >-
+        Lists the snapshots queued for processing across the organization. Requires
+        the VIEW_SNAPSHOT_QUEUE organization permission. Live: returned an empty
+        entries list when checked, so the entry shape is source-only.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      responses:
+        "200":
+          description: The queue.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisSnapshotProcessingQueue" }
+              # from live response: GET /snapshot-processing-queue (queue was empty)
+              example: { entries: [] }
+
+  /networks/{networkId}/collection-metrics:
+    get:
+      operationId: getNetworkCollectionMetrics
+      summary: Report per-device collection metrics for a snapshot
+      description: >-
+        Returns each device's collection start time, duration, slowest command and
+        error, for one snapshot. Without snapshotId the latest processed snapshot is
+        used. Requires the VIEW_NETWORK_AND_SNAPSHOTS network permission. The
+        response is a time-stamped array and can be large (5,202 devices live).
+        Forward answers 404 when the snapshot has no collection metrics, such as an
+        import (Go SDK; not checked live). Live: 200 with and without snapshotId.
+      x-forward-stability: unpublished
+      tags: [Network Collection]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: false, description: The snapshot to report. Defaults to the latest processed snapshot., schema: { type: string } }
+      responses:
+        "200":
+          description: Per-device collection metrics.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisCollectionMetrics" }
+              # from live response: GET /networks/{networkId}/collection-metrics (one device kept; device name redacted)
+              example:
+                snapshotId: "1437911"
+                snapshotTime: 1792214587109
+                collectionStartTime: 1792206004796
+                collectionEndTime: 1792214570408
+                metrics:
+                  - deviceName: "<redacted>"
+                    deviceType: UNKNOWN
+                    collectionStartTime: 1792208329796
+                    collectionDuration: 148000
+                    slowestCommand: show interface
+                    slowestCommandDuration: 63000
+                    connTypeDisplayName: Cisco NX-OS in ACI mode
+                    error: NONE
+
+  /snapshots/{snapshotId}/collection-log:
+    get:
+      operationId: getSnapshotCollectionLog
+      summary: Read the CLI execution log of a snapshot's collection
+      description: >-
+        Returns the commands the collectors ran, as plain text. An empty body means
+        the snapshot has no log. Requires the VIEW_NETWORK_AND_SNAPSHOTS network
+        permission and a snapshot that has stored its files. Live: 200 text/plain,
+        empty body for the checked snapshot.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The collection log as UTF-8 text. Empty when there is none.
+          content:
+            text/plain:
+              schema: { type: string }
+
+  /snapshots/{snapshotId}/logs:
+    get:
+      operationId: getSnapshotLogs
+      summary: Stream a snapshot's collection logs, optionally for one device
+      description: >-
+        Streams the collection log for every device, or for one device when
+        deviceName is given. deviceName must be the requested device name, otherwise
+        the log is empty. level filters by log level. backfilled=true reads the
+        backfill log and requires deviceName (400 without it, live). download=true
+        sets a file-name header. Requires the VIEW_NETWORK_AND_SNAPSHOTS network
+        permission. Forward answers 404 when the snapshot has no device collection
+        map. Live: the full log for one checked snapshot was about 550 MB, so read it
+        in a stream with a byte limit. The response carried no Content-Type header
+        live; the source declares text/plain; charset=utf-8.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: query, required: false, description: The requested device name to filter on., schema: { type: string } }
+        - { name: level, in: query, required: false, description: "Log level filter, such as WARN.", schema: { type: string } }
+        - { name: download, in: query, required: false, description: Send the log as a file download., schema: { type: boolean, default: false } }
+        - { name: backfilled, in: query, required: false, description: Read the backfill log. Needs deviceName., schema: { type: boolean, default: false } }
+      responses:
+        "200":
+          description: The collection log as UTF-8 text.
+          content:
+            text/plain:
+              schema: { type: string }
+
+  /collector/exceptions:
+    get:
+      operationId: listSnapshotCollectionExceptions
+      summary: List the collector exceptions raised while collecting a snapshot
+      description: >-
+        Returns the exceptions the collectors hit while collecting one snapshot,
+        de-duplicated by stack trace, with the first page of occurrences for each.
+        Requires the VIEW_NETWORK_AND_SNAPSHOTS network permission or a Forward
+        administrator. Live: 200 with snapshotId, and 400 when none of collectorId,
+        networkId or snapshotId is given. This operation covers only the snapshotId
+        variant; the collectorId and networkId variants of the same path are not
+        described here.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: query, required: true, description: The snapshot whose collection exceptions to list., schema: { type: string } }
+        - { name: limit, in: query, required: false, description: Maximum number of de-duplicated exceptions., schema: { type: integer, format: int32, default: 1000 } }
+        - { name: occurrencesLimit, in: query, required: false, description: Maximum occurrences returned for each exception., schema: { type: integer, format: int32, default: 10 } }
+      responses:
+        "200":
+          description: De-duplicated collection exceptions.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisCollectionExceptions" }
+              # from live response: GET /collector/exceptions?snapshotId= (one exception kept; stack trace cut to its first line; collector and device names redacted)
+              example:
+                actualNumDedupedExceptions: 12
+                collectorIdToName:
+                  C8126: "<redacted>"
+                dedupedExceptions:
+                  - stackTrace: "java.lang.Throwable: java.util.concurrent.ExecutionException: com.forwardnetworks.client.agent.M: Slow read rate detected"
+                    collectorVersion: 26.9.0-18
+                    actualNumOccurrences: 4
+                    occurrences:
+                      - collectorId: C8126
+                        deviceName: "<redacted>"
+                        collectorTaskId: P210670759
+                        timestamp: "2026-10-17T05:14:45.799Z"
+
+  /snapshots/{snapshotId}:
+    patch:
+      operationId: updateSnapshotNote
+      summary: Set or clear the note on a snapshot
+      description: >-
+        Body {note} replaces the snapshot note. note is required: send an empty
+        string to clear it. Requires the EDIT_SNAPSHOT_METADATA network permission.
+        Source-only: not called live (the read-only account cannot PATCH). The
+        response is the snapshot metadata object (SnapshotMeta in the source). No
+        schema or example is given for it; see the notes.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnalysisSnapshotUpdate" }
+      responses:
+        "200":
+          description: The snapshot metadata after the update.
+          content:
+            application/json:
+              schema: { type: object }
+              # from source: SnapshotMeta.java fields; placeholder values
+              example: { id: "1", note: "Before the change", createdAt: "2026-01-01T00:00:00Z", processedAt: "2026-01-01T00:10:00Z", processingTrigger: COLLECTION }
+
+  /snapshots/{snapshotId}?action=favorite:
+    patch:
+      operationId: favoriteSnapshot
+      summary: Mark a snapshot as a favorite
+      description: >-
+        A favorite snapshot is never deleted automatically by the network's
+        retention policy. Requires the EDIT_SNAPSHOT_METADATA network permission.
+        Source-only: not called live.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Empty object.
+          content:
+            application/json:
+              schema: { type: object }
+              # from source: web/src/main/java/com/forwardnetworks/cv/web/json/EmptyObject.java (serializes to {})
+              example: {}
+
+  /snapshots/{snapshotId}?action=unfavorite:
+    patch:
+      operationId: unfavoriteSnapshot
+      summary: Clear a snapshot's favorite mark
+      description: >-
+        Requires the EDIT_SNAPSHOT_METADATA network permission. Source-only: not
+        called live.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Empty object.
+          content:
+            application/json:
+              schema: { type: object }
+              # from source: web/src/main/java/com/forwardnetworks/cv/web/json/EmptyObject.java (serializes to {})
+              example: {}
+
+  /nqe-run-metrics:
+    get:
+      operationId: listNqeRunMetrics
+      summary: List recent NQE query runs with their timing
+      description: >-
+        Returns NQE query runs in the time window, with their duration and the
+        source they ran. from and to default to the last 7 days. minExecutionSeconds
+        drops runs shorter than that (default 10). limit caps the result (default
+        100). Requires the DEBUG_NQE organization permission. The action=export
+        variant (a ZIP) is not ported here. Live: 200, 100 items with the defaults.
+      x-forward-stability: unpublished
+      tags: [NQE]
+      parameters:
+        - { name: from, in: query, required: false, description: "Start of the window, inclusive. Defaults to seven days before now.", schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: false, description: "End of the window, inclusive. Defaults to now.", schema: { type: string, format: date-time } }
+        - { name: minExecutionSeconds, in: query, required: false, schema: { type: integer, format: int32, default: 10 } }
+        - { name: limit, in: query, required: false, schema: { type: integer, format: int32, default: 100 } }
+      responses:
+        "200":
+          description: NQE query runs, newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AnalysisNqeRunMetric" }
+              # from live response: GET /nqe-run-metrics (first item only; network name redacted)
+              example:
+                - taskId: "261014245"
+                  networkId: "155541"
+                  networkName: "<redacted>"
+                  snapshotId: "1435033"
+                  snapshotCreationInstant: 1791961149684
+                  executedAt: 1792002026164
+                  runDuration: 1200001
+                  sourceSetId: "NqeSourceSetId_02000000000000004228b52ffd2042bd010022c40c11b0256d4952a5c2436e9b48b7940f615601c63be65856c4b71d897c0c3959c6c9d16aaf628e0072fb90d0de5e364aa06d812000"
+                  trackingId: "69fee9c77a3d66cdac25cf4a374fe5f3"
+
+  /nqe/schema:
+    get:
+      operationId: getNqeSchema
+      summary: Get the NQE data model as a tree of inlined types
+      description: >-
+        Returns the NQE schema for the organization, with each type written out
+        inline. Pass snapshotId to extend the schema with that snapshot's data
+        (the snapshot must have reached CREATION). Requires the VIEW_NQE_LIBRARY
+        organization permission. The response is a large recursive tree (about
+        575 KB live). Live: 200 both with and without snapshotId. This operation
+        carries snapshotId as an optional value rather than a separate path key,
+        because the variant is chosen by the value's presence, not by a fixed value.
+      x-forward-stability: unpublished
+      tags: [NQE]
+      parameters:
+        - { name: snapshotId, in: query, required: false, description: Snapshot whose data extends the schema., schema: { type: string } }
+      responses:
+        "200":
+          description: The NQE schema as an inlined type tree.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisNqeInlinedType" }
+              # from live response: a leaf of the schema tree (GET /nqe/schema), not the whole 575 KB document
+              example: { type: String }
+
+  /nqe/queries/{queryId}/source-code:
+    get:
+      operationId: getNqeQuerySourceCode
+      summary: Read a library query's source at a commit
+      description: >-
+        Returns the query's source code and its SHA-1, plus intent and description
+        taken from its doc comment when present. commitId is required; the Javadoc
+        says it is optional, but the server answers 400 without it (live). Requires
+        the VIEW_NQE_LIBRARY organization permission. Forward answers 404 when the
+        query does not exist at that commit (source-only).
+      x-forward-stability: unpublished
+      tags: [NQE Repository]
+      parameters:
+        - { name: queryId, in: path, required: true, description: "Stable query id, Q_ for the organization repository or FQ_ for the Forward Library.", schema: { type: string } }
+        - { name: commitId, in: query, required: true, description: The commit to read the query at., schema: { type: string } }
+      responses:
+        "200":
+          description: The query's source code and metadata.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisNqeQuerySource" }
+              # from live response: GET /nqe/queries/{queryId}/source-code (sourceCode trimmed to its doc comment)
+              example:
+                intent: NTP Config Check
+                sourceCode: "/**\n * @intent NTP Config Check\n */\n"
+                # sourceCodeSha is the SHA-1 of the full query source, not of the trimmed sourceCode shown
+                sourceCodeSha: "25b046ac8b9bfbeddbaf1578d1c4977878a99e7a"
+
+  /nqe/query-assists:
+    post:
+      operationId: createNqeQueryAssist
+      summary: Generate an NQE query from a prompt
+      description: >-
+        Deprecated in Forward. Requires the AI_ALLOWED organization property. When
+        the organization has NQE_AI_ASSIST enabled, the server answers 410 Gone
+        ("Replaced by the Forward AI chat API."). Source-only: not called live.
+      x-forward-stability: unpublished
+      tags: [Forward AI]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnalysisNqeQueryAssistRequest" }
+      responses:
+        "200":
+          description: The generated query and whether it validated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisNqeQueryAssist" }
+              # from source: app/src/test/java/com/forwardnetworks/cv/nqe/assist/QueryAssistTest.java
+              example: { id: "1", query: "response query", validQuery: true }
+
+  /nqe/summary-assists:
+    post:
+      operationId: createNqeSummaryAssist
+      summary: Summarize an NQE query in plain language
+      description: >-
+        Requires the AI_ALLOWED organization property. Unlike the query and doc
+        assists, this operation is not deprecated and is not refused when
+        NQE_AI_ASSIST is enabled. Source-only: not called live. No example is
+        given because the source has no response fixture for it.
+      x-forward-stability: unpublished
+      tags: [Forward AI]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnalysisNqeSummaryAssistRequest" }
+      responses:
+        "200":
+          description: The generated summary.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisNqeSummaryAssist" }
+              # from source: the AnalysisNqeSummaryAssist fields; placeholder values
+              example: { id: "1", summary: "Lists the devices that match the query." }
+
+  /nqe/doc-assists:
+    post:
+      operationId: createNqeDocAssist
+      summary: Answer a question from the NQE documentation
+      description: >-
+        Deprecated in Forward. question must not be blank. previousMessages gives
+        prior turns for context. Requires the AI_ALLOWED organization property. When
+        NQE_AI_ASSIST is enabled, the server answers 410 Gone. Source-only: not
+        called live.
+      x-forward-stability: unpublished
+      tags: [Forward AI]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnalysisNqeDocAssistRequest" }
+      responses:
+        "200":
+          description: The answer and the documentation it drew on.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisNqeDocAssist" }
+              # from source: app/src/test/java/com/forwardnetworks/cv/nqe/assist/DocAssistTest.java
+              example:
+                id: "-1"
+                answer: answer1
+                references:
+                  - { name: ref1, path: /path1 }
+                  - { name: ref2, path: /path2 }
+
+  /nqe/doc-assists/{docAssistId}/followup:
+    post:
+      operationId: createNqeDocAssistFollowups
+      summary: Suggest follow-up questions for a documentation answer
+      description: >-
+        Deprecated in Forward. Requires the AI_ALLOWED organization property. When
+        NQE_AI_ASSIST is enabled, the server answers 410 Gone. Source-only: not
+        called live.
+      x-forward-stability: unpublished
+      tags: [Forward AI]
+      parameters:
+        - { name: docAssistId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnalysisNqeDocAssistFollowupRequest" }
+      responses:
+        "200":
+          description: Suggested follow-up questions.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisNqeDocAssistFollowup" }
+              # from source: app/src/test/java/com/forwardnetworks/cv/nqe/assist/DocAssistFollowupTest.java
+              example: { followupQuestions: [q1, q2] }
+
+  /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}:
+    patch:
+      operationId: editChangeSetCommitNote
+      summary: Replace a committed version's note
+      description: >-
+        note is a required query parameter and must not be blank. Requires the
+        MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization
+        property. Source-only: the read-only account cannot list change sets (403 live).
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: commitId, in: path, required: true, schema: { type: string } }
+        - { name: note, in: query, required: true, description: The new note. Must not be blank., schema: { type: string } }
+      responses:
+        "200":
+          description: The commit's metadata after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSetCommit" }
+              # from source: ChangeSetCommit fields; placeholder values
+              example: { commitId: "1", committedAt: "2026-01-01T00:00:00Z", committedBy: example, committedById: "1", note: "Reviewed" }
+
+    delete:
+      operationId: deleteChangeSetCommit
+      summary: Delete a committed version and the predicted snapshots made from it
+      description: >-
+        Removes the version from the change set's history and deletes the predicted
+        snapshots made from it, in one transaction. This cannot be undone. Requires
+        the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING
+        organization property. Source-only: not called live.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: commitId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted. }
+
+  /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}?action=restore:
+    post:
+      operationId: restoreChangeSetCommit
+      summary: Restore a committed version as the change set's draft
+      description: >-
+        Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING
+        organization property. Source-only: not called live.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: commitId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The restored commit's metadata.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangeSetCommit" }
+              # from source: app/src/test/java/com/forwardnetworks/cv/predict/ChangeSetCommitMetadataTest.java (note and attribution fields)
+              example:
+                commitId: "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a"
+                note: Change testing
+                committedById: "-1"
+                committedAt: "1970-01-02T10:17:36.789Z"
+
+  /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}?action=restoreAsNew:
+    post:
+      operationId: restoreChangeSetCommitAsNew
+      summary: Copy a committed version into a new change set
+      description: >-
+        targetName and targetBaseSnapshotId are optional. The base snapshot must
+        have reached the CREATION stage. The response is the new change set's
+        committed version, with devices the caller may not see listed in
+        hiddenDevices. Requires the MANAGE_CHANGE_SETS network permission and the
+        PREDICT_MODELING organization property. Source-only: not called live. The Go
+        SDK types this response as a plain commit; the source returns the full
+        committed change set.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: commitId, in: path, required: true, schema: { type: string } }
+        - { name: targetName, in: query, required: false, description: Name for the new change set. Forward chooses one when omitted., schema: { type: string } }
+        - { name: targetBaseSnapshotId, in: query, required: false, description: Snapshot the new change set is based on. Forward chooses one when omitted., schema: { type: string } }
+      responses:
+        "200":
+          description: The new change set's committed version.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommittedChangeSet" }
+              # from source: CommittedChangeSet fields; placeholder values
+              example: { id: "2", networkId: "1", name: "Restored change set", commitId: "1", committedAt: "2026-01-01T00:00:00Z", committedBy: example, deviceToChanges: {} }
+
+  /networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}/devices/{deviceName}/config:
+    get:
+      operationId: getChangeSetCommittedDeviceConfig
+      summary: Read one device's configuration as a committed version has it
+      description: >-
+        Returns the configuration as plain text. Compare it with the draft or
+        another version for a per-device diff. Requires the MANAGE_CHANGE_SETS
+        network permission and the PREDICT_MODELING organization property, and
+        device access for the caller. Source-only: not called live.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: commitId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The device's configuration as UTF-8 text.
+          content:
+            text/plain:
+              schema: { type: string }
+
+  /networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/config:
+    get:
+      operationId: getChangeSetDraftDeviceConfig
+      summary: Read one device's configuration as the draft would leave it
+      description: >-
+        Returns the configuration as plain text. Requires the MANAGE_CHANGE_SETS
+        network permission and the PREDICT_MODELING organization property, and
+        device access for the caller. Source-only: not called live. The Go SDK says
+        Forward answers 404 with no draft or no change for the device; the
+        source was not traced to confirm that.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The device's configuration as UTF-8 text.
+          content:
+            text/plain:
+              schema: { type: string }
+
+    put:
+      operationId: saveChangeSetDraftDeviceConfig
+      summary: Replace a device's whole configuration in the draft
+      description: >-
+        The body is the complete running configuration, as text/plain. It replaces
+        any staged commands for that device, since a device has either commands or a
+        configuration file. The limit is 2 MB of UTF-8 bytes; a larger body is refused
+        with 400. Requires the MANAGE_CHANGE_SETS network permission and the
+        PREDICT_MODELING organization property, and device access for the caller.
+        Source-only: not called live.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema: { type: string }
+      responses:
+        "204": { description: Saved. }
+
+  /networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/config?action=preview:
+    post:
+      operationId: previewChangeSetDeviceConfig
+      summary: Preview a device's configuration with CLI commands applied
+      description: >-
+        The body is CLI command text, sent as text/plain. The response is the
+        configuration that would result, as text/plain. Nothing is staged. Requires the
+        MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization
+        property, and device access for the caller. Source-only: not called live.
+      x-forward-stability: unpublished
+      tags: [Change Sets]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: changeSetId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema: { type: string }
+      responses:
+        "200":
+          description: The configuration that would result, as UTF-8 text.
+          content:
+            text/plain:
+              schema: { type: string }
+
 components:
   schemas:
     SnapshotStateChange:
@@ -16015,3 +16732,331 @@ components:
           items:
             $ref: '#/components/schemas/SyntheticDeviceQuery'
       description: SyntheticDevicesQueryCollection.java. Empty when the network has no processed snapshot.
+
+    AnalysisSnapshotProgress:
+      type: object
+      description: How far a snapshot's processing has got, stage by stage (ProcessingStageInfo list).
+      properties:
+        networkId: { type: string }
+        snapshotId: { type: string }
+        stages:
+          type: array
+          items: { $ref: "#/components/schemas/AnalysisSnapshotProgressStage" }
+        done:
+          type: boolean
+          description: True when every stage except ADVANCED_REACHABILITY has finished.
+
+    AnalysisSnapshotProgressStage:
+      type: object
+      properties:
+        stage:
+          type: string
+          description: Processing stage. Documented values are CREATION, TEXT_SEARCH_INDEX, REACHABILITY and ADVANCED_REACHABILITY; others may appear.
+        operationState:
+          type: string
+          description: "Operation state: NOT_TRIGGERED, QUEUED, COMPUTING, SUCCEEDED, FAILED, CANCELED or TIMED_OUT (source)."
+        startedAt:
+          type: integer
+          format: int64
+          description: When the stage started, in epoch milliseconds per the Go SDK. Omitted when not started or when the events were deleted.
+        updatedAt:
+          type: integer
+          format: int64
+          description: When the stage last reported, in epoch milliseconds per the Go SDK. Omitted with startedAt.
+        numObjects:
+          type: integer
+          format: int64
+          description: Running count of objects the stage has processed. Omitted unless updatedAt is set.
+
+    AnalysisProcessEstimate:
+      type: object
+      properties:
+        stageToDuration:
+          type: object
+          description: Estimated duration in milliseconds, keyed by ProgressStage name. Only stages with history appear.
+          additionalProperties: { type: integer, format: int64 }
+
+    AnalysisSnapshotProcessingQueue:
+      type: object
+      properties:
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/AnalysisSnapshotProcessingQueueEntry" }
+
+    AnalysisSnapshotProcessingQueueEntry:
+      type: object
+      description: One snapshot waiting in the processing queue. No live entry was seen, so the createdAt format is unverified.
+      properties:
+        snapshotId: { type: string }
+        createdAt:
+          type: integer
+          format: int64
+          description: When the request was queued. Wire format is set by the server mapper; the Go SDK reads it as epoch milliseconds. Unverified live.
+        isReprocessing: { type: boolean }
+
+    AnalysisCollectionMetrics:
+      type: object
+      description: Per-device collection metrics for one snapshot. Times are epoch milliseconds (live).
+      properties:
+        snapshotId: { type: string }
+        snapshotTime: { type: integer, format: int64 }
+        collectionStartTime: { type: integer, format: int64 }
+        collectionEndTime: { type: integer, format: int64 }
+        metrics:
+          type: array
+          items: { $ref: "#/components/schemas/AnalysisDeviceCollectionMetric" }
+
+    AnalysisDeviceCollectionMetric:
+      type: object
+      description: One device's collection. Fields the source leaves null are omitted.
+      properties:
+        deviceName: { type: string }
+        deviceType:
+          type: string
+          description: Device type enum name, such as SWITCH, ROUTER, FIREWALL or UNKNOWN (live).
+        sourceType:
+          type: string
+          description: Collection source type, such as CLASSIC or CLOUD. Omitted when unknown.
+        connTypeDisplayName: { type: string }
+        collectionStartTime:
+          type: integer
+          format: int64
+          description: Epoch milliseconds. Omitted when the device's collection did not start.
+        collectionDuration:
+          type: integer
+          format: int64
+          description: Milliseconds. Omitted when collection did not finish properly.
+        slowestCommand: { type: string }
+        slowestCommandDuration:
+          type: integer
+          format: int64
+          description: Milliseconds.
+        jumpServer:
+          type: string
+          description: Id of the jump server used. Omitted when none.
+        error:
+          type: string
+          description: "Collection or processing error enum name, or NONE. Live: NONE is sent for a device with no error. The Go SDK's empty-when-none reading is not what the server sends."
+
+    AnalysisCollectionExceptions:
+      type: object
+      properties:
+        actualNumDedupedExceptions:
+          type: integer
+          format: int32
+          description: Total distinct exceptions, which may exceed the page returned.
+        collectorIdToName:
+          type: object
+          additionalProperties: { type: string }
+        dedupedExceptions:
+          type: array
+          items: { $ref: "#/components/schemas/AnalysisDedupedCollectionException" }
+
+    AnalysisDedupedCollectionException:
+      type: object
+      properties:
+        stackTrace: { type: string }
+        collectorVersion: { type: string }
+        actualNumOccurrences:
+          type: integer
+          format: int32
+          description: Total occurrences of this exception, which may exceed the page of occurrences returned.
+        occurrences:
+          type: array
+          items: { $ref: "#/components/schemas/AnalysisCollectionExceptionOccurrence" }
+
+    AnalysisCollectionExceptionOccurrence:
+      type: object
+      properties:
+        collectorId: { type: string }
+        deviceName:
+          type: string
+          description: Omitted when the exception was not tied to a device.
+        collectorTaskId: { type: string }
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO-8601 instant, as sent live.
+
+    AnalysisSnapshotUpdate:
+      type: object
+      required: [note]
+      properties:
+        note:
+          type: string
+          description: The new note. Required; an empty string clears the note.
+
+    AnalysisNqeRunMetric:
+      type: object
+      description: One NQE query run. queryId and commitId appear only for runs of a committed query.
+      properties:
+        taskId: { type: string }
+        networkId: { type: string }
+        networkName: { type: string }
+        snapshotId: { type: string }
+        snapshotCreationInstant:
+          type: integer
+          format: int64
+          description: Epoch milliseconds when the snapshot was created (live).
+        executedAt:
+          type: integer
+          format: int64
+          description: Epoch milliseconds when the run executed (live).
+        runDuration:
+          type: integer
+          format: int64
+          description: Run time in milliseconds (live; the value matches the minExecutionSeconds scale).
+        sourceSetId: { type: string }
+        queryId: { type: string }
+        commitId: { type: string }
+        trackingId: { type: string }
+
+    AnalysisNqeInlinedType:
+      type: object
+      description: >-
+        One node of the NQE data model with member types written out inline. The
+        kind is in type: Record, Bag, List, OneOf or Reference, or a primitive name
+        such as String, Integer, Bool, IpAddress, Timestamp or Date (live). Records
+        carry fields, collections carry itemType and keyFields, OneOf carries
+        alternatives. Recursive.
+      properties:
+        type: { type: string }
+        name: { type: string }
+        keyFields:
+          type: array
+          items: { type: string }
+        itemType: { $ref: "#/components/schemas/AnalysisNqeInlinedType" }
+        fields:
+          type: array
+          items: { $ref: "#/components/schemas/AnalysisNqeInlinedField" }
+        alternatives:
+          type: array
+          items: { $ref: "#/components/schemas/AnalysisNqeInlinedAlternative" }
+        docString: { type: string }
+        deprecated:
+          type: string
+          description: Present when the type is deprecated.
+        restricted:
+          type: boolean
+          description: True when the caller's licence does not include this part of the model.
+
+    AnalysisNqeInlinedField:
+      type: object
+      properties:
+        name: { type: string }
+        index: { type: integer, format: int32 }
+        path:
+          type: string
+          description: Schema path of the field, such as /network/devices/name (live).
+        type: { $ref: "#/components/schemas/AnalysisNqeInlinedType" }
+        isNullable: { type: boolean }
+        docString: { type: string }
+        deprecated: { type: string }
+        preview:
+          type: boolean
+          description: True for preview fields. Omitted when false.
+
+    AnalysisNqeInlinedAlternative:
+      type: object
+      properties:
+        name: { type: string }
+        path: { type: string }
+        type: { $ref: "#/components/schemas/AnalysisNqeInlinedType" }
+        docString: { type: string }
+
+    AnalysisNqeQuerySource:
+      type: object
+      required: [sourceCode]
+      properties:
+        sourceCode: { type: string }
+        sourceCodeSha:
+          type: string
+          description: SHA-1 of sourceCode, 40 hex characters (live). The Go SDK does not map this field.
+        intent:
+          type: string
+          description: From the doc comment. Omitted when there is none.
+        description:
+          type: string
+          description: From the doc comment. Omitted when there is none.
+
+    AnalysisNqeQueryAssistRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt: { type: string }
+
+    AnalysisNqeQueryAssist:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Decimal id of the generated query assist.
+        query: { type: string }
+        validQuery: { type: boolean }
+
+    AnalysisNqeSummaryAssistRequest:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string }
+
+    AnalysisNqeSummaryAssist:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Decimal id of the summary.
+        summary: { type: string }
+
+    AnalysisNqeChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content: { type: string }
+
+    AnalysisNqeDocAssistRequest:
+      type: object
+      required: [question]
+      properties:
+        question:
+          type: string
+          description: Must not be blank.
+        previousMessages:
+          type: array
+          description: Prior turns, oldest first. Omitted when empty.
+          items: { $ref: "#/components/schemas/AnalysisNqeChatMessage" }
+
+    AnalysisNqeDocReference:
+      type: object
+      properties:
+        name: { type: string }
+        path: { type: string }
+
+    AnalysisNqeDocAssist:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Decimal id of the answer. Used by the followup operation.
+        answer: { type: string }
+        references:
+          type: array
+          items: { $ref: "#/components/schemas/AnalysisNqeDocReference" }
+
+    AnalysisNqeDocAssistFollowupRequest:
+      type: object
+      required: [answer]
+      properties:
+        answer:
+          type: string
+          description: The answer to suggest follow-up questions for.
+
+    AnalysisNqeDocAssistFollowup:
+      type: object
+      properties:
+        followupQuestions:
+          type: array
+          items: { type: string }

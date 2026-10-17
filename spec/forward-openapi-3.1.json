@@ -621,6 +621,546 @@
         ],
         "type": "object"
       },
+      "AnalysisCollectionExceptionOccurrence": {
+        "properties": {
+          "collectorId": {
+            "type": "string"
+          },
+          "collectorTaskId": {
+            "type": "string"
+          },
+          "deviceName": {
+            "description": "Omitted when the exception was not tied to a device.",
+            "type": "string"
+          },
+          "timestamp": {
+            "description": "ISO-8601 instant, as sent live.",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisCollectionExceptions": {
+        "properties": {
+          "actualNumDedupedExceptions": {
+            "description": "Total distinct exceptions, which may exceed the page returned.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "collectorIdToName": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "dedupedExceptions": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisDedupedCollectionException"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisCollectionMetrics": {
+        "description": "Per-device collection metrics for one snapshot. Times are epoch milliseconds (live).",
+        "properties": {
+          "collectionEndTime": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "collectionStartTime": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisDeviceCollectionMetric"
+            },
+            "type": "array"
+          },
+          "snapshotId": {
+            "type": "string"
+          },
+          "snapshotTime": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisDedupedCollectionException": {
+        "properties": {
+          "actualNumOccurrences": {
+            "description": "Total occurrences of this exception, which may exceed the page of occurrences returned.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "collectorVersion": {
+            "type": "string"
+          },
+          "occurrences": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisCollectionExceptionOccurrence"
+            },
+            "type": "array"
+          },
+          "stackTrace": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisDeviceCollectionMetric": {
+        "description": "One device's collection. Fields the source leaves null are omitted.",
+        "properties": {
+          "collectionDuration": {
+            "description": "Milliseconds. Omitted when collection did not finish properly.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "collectionStartTime": {
+            "description": "Epoch milliseconds. Omitted when the device's collection did not start.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "connTypeDisplayName": {
+            "type": "string"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "deviceType": {
+            "description": "Device type enum name, such as SWITCH, ROUTER, FIREWALL or UNKNOWN (live).",
+            "type": "string"
+          },
+          "error": {
+            "description": "Collection or processing error enum name, or NONE. Live: NONE is sent for a device with no error. The Go SDK's empty-when-none reading is not what the server sends.",
+            "type": "string"
+          },
+          "jumpServer": {
+            "description": "Id of the jump server used. Omitted when none.",
+            "type": "string"
+          },
+          "slowestCommand": {
+            "type": "string"
+          },
+          "slowestCommandDuration": {
+            "description": "Milliseconds.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "sourceType": {
+            "description": "Collection source type, such as CLASSIC or CLOUD. Omitted when unknown.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisNqeChatMessage": {
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ],
+        "type": "object"
+      },
+      "AnalysisNqeDocAssist": {
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "id": {
+            "description": "Decimal id of the answer. Used by the followup operation.",
+            "type": "string"
+          },
+          "references": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisNqeDocReference"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisNqeDocAssistFollowup": {
+        "properties": {
+          "followupQuestions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisNqeDocAssistFollowupRequest": {
+        "properties": {
+          "answer": {
+            "description": "The answer to suggest follow-up questions for.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "answer"
+        ],
+        "type": "object"
+      },
+      "AnalysisNqeDocAssistRequest": {
+        "properties": {
+          "previousMessages": {
+            "description": "Prior turns, oldest first. Omitted when empty.",
+            "items": {
+              "$ref": "#/components/schemas/AnalysisNqeChatMessage"
+            },
+            "type": "array"
+          },
+          "question": {
+            "description": "Must not be blank.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "type": "object"
+      },
+      "AnalysisNqeDocReference": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisNqeInlinedAlternative": {
+        "properties": {
+          "docString": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/AnalysisNqeInlinedType"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisNqeInlinedField": {
+        "properties": {
+          "deprecated": {
+            "type": "string"
+          },
+          "docString": {
+            "type": "string"
+          },
+          "index": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "isNullable": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "description": "Schema path of the field, such as /network/devices/name (live).",
+            "type": "string"
+          },
+          "preview": {
+            "description": "True for preview fields. Omitted when false.",
+            "type": "boolean"
+          },
+          "type": {
+            "$ref": "#/components/schemas/AnalysisNqeInlinedType"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisNqeInlinedType": {
+        "description": "One node of the NQE data model with member types written out inline. The kind is in type: Record, Bag, List, OneOf or Reference, or a primitive name such as String, Integer, Bool, IpAddress, Timestamp or Date (live). Records carry fields, collections carry itemType and keyFields, OneOf carries alternatives. Recursive.",
+        "properties": {
+          "alternatives": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisNqeInlinedAlternative"
+            },
+            "type": "array"
+          },
+          "deprecated": {
+            "description": "Present when the type is deprecated.",
+            "type": "string"
+          },
+          "docString": {
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisNqeInlinedField"
+            },
+            "type": "array"
+          },
+          "itemType": {
+            "$ref": "#/components/schemas/AnalysisNqeInlinedType"
+          },
+          "keyFields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "restricted": {
+            "description": "True when the caller's licence does not include this part of the model.",
+            "type": "boolean"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisNqeQueryAssist": {
+        "properties": {
+          "id": {
+            "description": "Decimal id of the generated query assist.",
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "validQuery": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisNqeQueryAssistRequest": {
+        "properties": {
+          "prompt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      },
+      "AnalysisNqeQuerySource": {
+        "properties": {
+          "description": {
+            "description": "From the doc comment. Omitted when there is none.",
+            "type": "string"
+          },
+          "intent": {
+            "description": "From the doc comment. Omitted when there is none.",
+            "type": "string"
+          },
+          "sourceCode": {
+            "type": "string"
+          },
+          "sourceCodeSha": {
+            "description": "SHA-1 of sourceCode, 40 hex characters (live). The Go SDK does not map this field.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sourceCode"
+        ],
+        "type": "object"
+      },
+      "AnalysisNqeRunMetric": {
+        "description": "One NQE query run. queryId and commitId appear only for runs of a committed query.",
+        "properties": {
+          "commitId": {
+            "type": "string"
+          },
+          "executedAt": {
+            "description": "Epoch milliseconds when the run executed (live).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "networkId": {
+            "type": "string"
+          },
+          "networkName": {
+            "type": "string"
+          },
+          "queryId": {
+            "type": "string"
+          },
+          "runDuration": {
+            "description": "Run time in milliseconds (live; the value matches the minExecutionSeconds scale).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "snapshotCreationInstant": {
+            "description": "Epoch milliseconds when the snapshot was created (live).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "snapshotId": {
+            "type": "string"
+          },
+          "sourceSetId": {
+            "type": "string"
+          },
+          "taskId": {
+            "type": "string"
+          },
+          "trackingId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisNqeSummaryAssist": {
+        "properties": {
+          "id": {
+            "description": "Decimal id of the summary.",
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisNqeSummaryAssistRequest": {
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "AnalysisProcessEstimate": {
+        "properties": {
+          "stageToDuration": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "description": "Estimated duration in milliseconds, keyed by ProgressStage name. Only stages with history appear.",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisSnapshotProcessingQueue": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisSnapshotProcessingQueueEntry"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisSnapshotProcessingQueueEntry": {
+        "description": "One snapshot waiting in the processing queue. No live entry was seen, so the createdAt format is unverified.",
+        "properties": {
+          "createdAt": {
+            "description": "When the request was queued. Wire format is set by the server mapper; the Go SDK reads it as epoch milliseconds. Unverified live.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "isReprocessing": {
+            "type": "boolean"
+          },
+          "snapshotId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisSnapshotProgress": {
+        "description": "How far a snapshot's processing has got, stage by stage (ProcessingStageInfo list).",
+        "properties": {
+          "done": {
+            "description": "True when every stage except ADVANCED_REACHABILITY has finished.",
+            "type": "boolean"
+          },
+          "networkId": {
+            "type": "string"
+          },
+          "snapshotId": {
+            "type": "string"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisSnapshotProgressStage"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisSnapshotProgressStage": {
+        "properties": {
+          "numObjects": {
+            "description": "Running count of objects the stage has processed. Omitted unless updatedAt is set.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "operationState": {
+            "description": "Operation state: NOT_TRIGGERED, QUEUED, COMPUTING, SUCCEEDED, FAILED, CANCELED or TIMED_OUT (source).",
+            "type": "string"
+          },
+          "stage": {
+            "description": "Processing stage. Documented values are CREATION, TEXT_SEARCH_INDEX, REACHABILITY and ADVANCED_REACHABILITY; others may appear.",
+            "type": "string"
+          },
+          "startedAt": {
+            "description": "When the stage started, in epoch milliseconds per the Go SDK. Omitted when not started or when the events were deleted.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "updatedAt": {
+            "description": "When the stage last reported, in epoch milliseconds per the Go SDK. Omitted with startedAt.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "AnalysisSnapshotUpdate": {
+        "properties": {
+          "note": {
+            "description": "The new note. Required; an empty string clears the note.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "note"
+        ],
+        "type": "object"
+      },
       "AnalyzedResourcePool": {
         "description": "resourcePools is absent when empty, meaning no valid combination was found.",
         "properties": {
@@ -21556,6 +22096,83 @@
         ]
       }
     },
+    "/collector/exceptions": {
+      "get": {
+        "description": "Returns the exceptions the collectors hit while collecting one snapshot, de-duplicated by stack trace, with the first page of occurrences for each. Requires the VIEW_NETWORK_AND_SNAPSHOTS network permission or a Forward administrator. Live: 200 with snapshotId, and 400 when none of collectorId, networkId or snapshotId is given. This operation covers only the snapshotId variant; the collectorId and networkId variants of the same path are not described here.",
+        "operationId": "listSnapshotCollectionExceptions",
+        "parameters": [
+          {
+            "description": "The snapshot whose collection exceptions to list.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum number of de-duplicated exceptions.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 1000,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum occurrences returned for each exception.",
+            "in": "query",
+            "name": "occurrencesLimit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "actualNumDedupedExceptions": 12,
+                  "collectorIdToName": {
+                    "C8126": "<redacted>"
+                  },
+                  "dedupedExceptions": [
+                    {
+                      "actualNumOccurrences": 4,
+                      "collectorVersion": "26.9.0-18",
+                      "occurrences": [
+                        {
+                          "collectorId": "C8126",
+                          "collectorTaskId": "P210670759",
+                          "deviceName": "<redacted>",
+                          "timestamp": "2026-10-17T05:14:45.799Z"
+                        }
+                      ],
+                      "stackTrace": "java.lang.Throwable: java.util.concurrent.ExecutionException: com.forwardnetworks.client.agent.M: Slow read rate detected"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisCollectionExceptions"
+                }
+              }
+            },
+            "description": "De-duplicated collection exceptions."
+          }
+        },
+        "summary": "List the collector exceptions raised while collecting a snapshot",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/collectors": {
       "post": {
         "operationId": "createCollectorAccount",
@@ -27349,6 +27966,182 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}": {
+      "delete": {
+        "description": "Removes the version from the change set's history and deletes the predicted snapshots made from it, in one transaction. This cannot be undone. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property. Source-only: not called live.",
+        "operationId": "deleteChangeSetCommit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "commitId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a committed version and the predicted snapshots made from it",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "note is a required query parameter and must not be blank. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property. Source-only: the read-only account cannot list change sets (403 live).",
+        "operationId": "editChangeSetCommitNote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "commitId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The new note. Must not be blank.",
+            "in": "query",
+            "name": "note",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "commitId": "1",
+                  "committedAt": "2026-01-01T00:00:00Z",
+                  "committedBy": "example",
+                  "committedById": "1",
+                  "note": "Reviewed"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeSetCommit"
+                }
+              }
+            },
+            "description": "The commit's metadata after the change."
+          }
+        },
+        "summary": "Replace a committed version's note",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property. Source-only: not called live.",
+        "operationId": "restoreChangeSetCommit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "commitId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "commitId": "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+                  "committedAt": "1970-01-02T10:17:36.789Z",
+                  "committedById": "-1",
+                  "note": "Change testing"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeSetCommit"
+                }
+              }
+            },
+            "description": "The restored commit's metadata."
+          }
+        },
+        "summary": "Restore a committed version as the change set's draft",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "restore"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "restoreChangeSetCommitAsNew",
+            "summary": "Copy a committed version into a new change set",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "restoreAsNew"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}/devices/{deviceName}/bgp-advertisements": {
       "get": {
         "operationId": "getCommitBgpAdvertisementDiffs",
@@ -27426,6 +28219,63 @@
             "view",
             "diffs"
           ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/commits/{commitId}/devices/{deviceName}/config": {
+      "get": {
+        "description": "Returns the configuration as plain text. Compare it with the draft or another version for a per-device diff. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property, and device access for the caller. Source-only: not called live.",
+        "operationId": "getChangeSetCommittedDeviceConfig",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "commitId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The device's configuration as UTF-8 text."
+          }
+        },
+        "summary": "Read one device's configuration as a committed version has it",
+        "tags": [
+          "Change Sets"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -27787,6 +28637,71 @@
           [
             "action",
             "validate"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}/config": {
+      "post": {
+        "description": "The body is CLI command text, sent as text/plain. The response is the configuration that would result, as text/plain. Nothing is staged. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property, and device access for the caller. Source-only: not called live.",
+        "operationId": "previewChangeSetDeviceConfig",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The configuration that would result, as UTF-8 text."
+          }
+        },
+        "summary": "Preview a device's configuration with CLI commands applied",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "preview"
           ]
         ],
         "x-forward-stability": "unpublished"
@@ -28794,6 +29709,105 @@
           }
         },
         "summary": "Stage CLI commands for one device",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/draft/devices/{deviceName}/config": {
+      "get": {
+        "description": "Returns the configuration as plain text. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property, and device access for the caller. Source-only: not called live. The Go SDK says Forward answers 404 with no draft or no change for the device; the source was not traced to confirm that.",
+        "operationId": "getChangeSetDraftDeviceConfig",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The device's configuration as UTF-8 text."
+          }
+        },
+        "summary": "Read one device's configuration as the draft would leave it",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "put": {
+        "description": "The body is the complete running configuration, as text/plain. It replaces any staged commands for that device, since a device has either commands or a configuration file. The limit is 2 MB of UTF-8 bytes; a larger body is refused with 400. Requires the MANAGE_CHANGE_SETS network permission and the PREDICT_MODELING organization property, and device access for the caller. Source-only: not called live.",
+        "operationId": "saveChangeSetDraftDeviceConfig",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Saved."
+          }
+        },
+        "summary": "Replace a device's whole configuration in the draft",
         "tags": [
           "Change Sets"
         ],
@@ -30564,6 +31578,66 @@
         "summary": "Test an existing account's connectivity",
         "tags": [
           "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/collection-metrics": {
+      "get": {
+        "description": "Returns each device's collection start time, duration, slowest command and error, for one snapshot. Without snapshotId the latest processed snapshot is used. Requires the VIEW_NETWORK_AND_SNAPSHOTS network permission. The response is a time-stamped array and can be large (5,202 devices live). Forward answers 404 when the snapshot has no collection metrics, such as an import (Go SDK; not checked live). Live: 200 with and without snapshotId.",
+        "operationId": "getNetworkCollectionMetrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to report. Defaults to the latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "collectionEndTime": 1792214570408,
+                  "collectionStartTime": 1792206004796,
+                  "metrics": [
+                    {
+                      "collectionDuration": 148000,
+                      "collectionStartTime": 1792208329796,
+                      "connTypeDisplayName": "Cisco NX-OS in ACI mode",
+                      "deviceName": "<redacted>",
+                      "deviceType": "UNKNOWN",
+                      "error": "NONE",
+                      "slowestCommand": "show interface",
+                      "slowestCommandDuration": 63000
+                    }
+                  ],
+                  "snapshotId": "1437911",
+                  "snapshotTime": 1792214587109
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisCollectionMetrics"
+                }
+              }
+            },
+            "description": "Per-device collection metrics."
+          }
+        },
+        "summary": "Report per-device collection metrics for a snapshot",
+        "tags": [
+          "Network Collection"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -44349,6 +45423,183 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/nqe-run-metrics": {
+      "get": {
+        "description": "Returns NQE query runs in the time window, with their duration and the source they ran. from and to default to the last 7 days. minExecutionSeconds drops runs shorter than that (default 10). limit caps the result (default 100). Requires the DEBUG_NQE organization permission. The action=export variant (a ZIP) is not ported here. Live: 200, 100 items with the defaults.",
+        "operationId": "listNqeRunMetrics",
+        "parameters": [
+          {
+            "description": "Start of the window, inclusive. Defaults to seven days before now.",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the window, inclusive. Defaults to now.",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "minExecutionSeconds",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "executedAt": 1792002026164,
+                    "networkId": "155541",
+                    "networkName": "<redacted>",
+                    "runDuration": 1200001,
+                    "snapshotCreationInstant": 1791961149684,
+                    "snapshotId": "1435033",
+                    "sourceSetId": "NqeSourceSetId_02000000000000004228b52ffd2042bd010022c40c11b0256d4952a5c2436e9b48b7940f615601c63be65856c4b71d897c0c3959c6c9d16aaf628e0072fb90d0de5e364aa06d812000",
+                    "taskId": "261014245",
+                    "trackingId": "69fee9c77a3d66cdac25cf4a374fe5f3"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AnalysisNqeRunMetric"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "NQE query runs, newest first."
+          }
+        },
+        "summary": "List recent NQE query runs with their timing",
+        "tags": [
+          "NQE"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/nqe/doc-assists": {
+      "post": {
+        "description": "Deprecated in Forward. question must not be blank. previousMessages gives prior turns for context. Requires the AI_ALLOWED organization property. When NQE_AI_ASSIST is enabled, the server answers 410 Gone. Source-only: not called live.",
+        "operationId": "createNqeDocAssist",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisNqeDocAssistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "answer": "answer1",
+                  "id": "-1",
+                  "references": [
+                    {
+                      "name": "ref1",
+                      "path": "/path1"
+                    },
+                    {
+                      "name": "ref2",
+                      "path": "/path2"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisNqeDocAssist"
+                }
+              }
+            },
+            "description": "The answer and the documentation it drew on."
+          }
+        },
+        "summary": "Answer a question from the NQE documentation",
+        "tags": [
+          "Forward AI"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/nqe/doc-assists/{docAssistId}/followup": {
+      "post": {
+        "description": "Deprecated in Forward. Requires the AI_ALLOWED organization property. When NQE_AI_ASSIST is enabled, the server answers 410 Gone. Source-only: not called live.",
+        "operationId": "createNqeDocAssistFollowups",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "docAssistId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisNqeDocAssistFollowupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "followupQuestions": [
+                    "q1",
+                    "q2"
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisNqeDocAssistFollowup"
+                }
+              }
+            },
+            "description": "Suggested follow-up questions."
+          }
+        },
+        "summary": "Suggest follow-up questions for a documentation answer",
+        "tags": [
+          "Forward AI"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/nqe/queries": {
       "get": {
         "operationId": "getNqeQueries",
@@ -44425,6 +45676,92 @@
         "summary": "List the commits that touched a query",
         "tags": [
           "NQE Repository"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/nqe/queries/{queryId}/source-code": {
+      "get": {
+        "description": "Returns the query's source code and its SHA-1, plus intent and description taken from its doc comment when present. commitId is required; the Javadoc says it is optional, but the server answers 400 without it (live). Requires the VIEW_NQE_LIBRARY organization permission. Forward answers 404 when the query does not exist at that commit (source-only).",
+        "operationId": "getNqeQuerySourceCode",
+        "parameters": [
+          {
+            "description": "Stable query id, Q_ for the organization repository or FQ_ for the Forward Library.",
+            "in": "path",
+            "name": "queryId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The commit to read the query at.",
+            "in": "query",
+            "name": "commitId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "intent": "NTP Config Check",
+                  "sourceCode": "/**\n * @intent NTP Config Check\n */\n",
+                  "sourceCodeSha": "25b046ac8b9bfbeddbaf1578d1c4977878a99e7a"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisNqeQuerySource"
+                }
+              }
+            },
+            "description": "The query's source code and metadata."
+          }
+        },
+        "summary": "Read a library query's source at a commit",
+        "tags": [
+          "NQE Repository"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/nqe/query-assists": {
+      "post": {
+        "description": "Deprecated in Forward. Requires the AI_ALLOWED organization property. When the organization has NQE_AI_ASSIST enabled, the server answers 410 Gone (\"Replaced by the Forward AI chat API.\"). Source-only: not called live.",
+        "operationId": "createNqeQueryAssist",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisNqeQueryAssistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "1",
+                  "query": "response query",
+                  "validQuery": true
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisNqeQueryAssist"
+                }
+              }
+            },
+            "description": "The generated query and whether it validated."
+          }
+        },
+        "summary": "Generate an NQE query from a prompt",
+        "tags": [
+          "Forward AI"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -44603,6 +45940,80 @@
         "summary": "List queries in a repository at a commit",
         "tags": [
           "NQE Repository"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/nqe/schema": {
+      "get": {
+        "description": "Returns the NQE schema for the organization, with each type written out inline. Pass snapshotId to extend the schema with that snapshot's data (the snapshot must have reached CREATION). Requires the VIEW_NQE_LIBRARY organization permission. The response is a large recursive tree (about 575 KB live). Live: 200 both with and without snapshotId. This operation carries snapshotId as an optional value rather than a separate path key, because the variant is chosen by the value's presence, not by a fixed value.",
+        "operationId": "getNqeSchema",
+        "parameters": [
+          {
+            "description": "Snapshot whose data extends the schema.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "type": "String"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisNqeInlinedType"
+                }
+              }
+            },
+            "description": "The NQE schema as an inlined type tree."
+          }
+        },
+        "summary": "Get the NQE data model as a tree of inlined types",
+        "tags": [
+          "NQE"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/nqe/summary-assists": {
+      "post": {
+        "description": "Requires the AI_ALLOWED organization property. Unlike the query and doc assists, this operation is not deprecated and is not refused when NQE_AI_ASSIST is enabled. Source-only: not called live. No example is given because the source has no response fixture for it.",
+        "operationId": "createNqeSummaryAssist",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisNqeSummaryAssistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "1",
+                  "summary": "Lists the devices that match the query."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisNqeSummaryAssist"
+                }
+              }
+            },
+            "description": "The generated summary."
+          }
+        },
+        "summary": "Summarize an NQE query in plain language",
+        "tags": [
+          "Forward AI"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -44915,6 +46326,32 @@
         ]
       }
     },
+    "/snapshot-processing-queue": {
+      "get": {
+        "description": "Lists the snapshots queued for processing across the organization. Requires the VIEW_SNAPSHOT_QUEUE organization permission. Live: returned an empty entries list when checked, so the entry shape is source-only.",
+        "operationId": "listSnapshotProcessingQueue",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "entries": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisSnapshotProcessingQueue"
+                }
+              }
+            },
+            "description": "The queue."
+          }
+        },
+        "summary": "List snapshots waiting to be processed in the organization",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/snapshots/{snapshotId}": {
       "delete": {
         "operationId": "deleteSnapshot",
@@ -44981,6 +46418,76 @@
         "tags": [
           "Network Snapshots"
         ]
+      },
+      "patch": {
+        "description": "Body {note} replaces the snapshot note. note is required: send an empty string to clear it. Requires the EDIT_SNAPSHOT_METADATA network permission. Source-only: not called live (the read-only account cannot PATCH). The response is the snapshot metadata object (SnapshotMeta in the source). No schema or example is given for it; see the notes.",
+        "operationId": "updateSnapshotNote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisSnapshotUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-01-01T00:00:00Z",
+                  "id": "1",
+                  "note": "Before the change",
+                  "processedAt": "2026-01-01T00:10:00Z",
+                  "processingTrigger": "COLLECTION"
+                },
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The snapshot metadata after the update."
+          }
+        },
+        "summary": "Set or clear the note on a snapshot",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "favoriteSnapshot",
+            "summary": "Mark a snapshot as a favorite",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "favorite"
+              ]
+            ]
+          },
+          {
+            "operationId": "unfavoriteSnapshot",
+            "summary": "Clear a snapshot's favorite mark",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "unfavorite"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
       },
       "post": {
         "description": "Exports a network Snapshot as a .zip file, optionally limiting which devices are included and optionally\n[obfuscating](https://docs.fwd.app/latest/application/settings/system/obfuscate-snapshot/) sensitive data.\n\nTo limit which devices are included, specify either `\"includeDevices\"` or `\"excludeDevices\"`. To obfuscate,\nspecify an `\"obfuscationKey\"`.",
@@ -45496,6 +47003,64 @@
         ]
       }
     },
+    "/snapshots/{snapshotId}/checks-report": {
+      "get": {
+        "description": "Returns the checks of one category (NQE, PREDEFINED, INTENT or ADVANCED) as an .xlsx workbook. Requires the VIEW_CHECKS network permission, and the NQE category also requires USE_NQE. The snapshot must have reached the CREATION stage. dir limits an INTENT report to one directory, starts with \"/\", and is refused for any other category. The type value is case-sensitive: \"intent\" is refused. Live: NQE, PREDEFINED, INTENT and ADVANCED all returned the workbook; a missing type returned 400.",
+        "operationId": "getCheckCategoryReport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The check category to report.",
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "NQE",
+                "PREDEFINED",
+                "INTENT",
+                "ADVANCED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Directory of intent checks to report. Only valid with type=INTENT. Must start with \"/\".",
+            "in": "query",
+            "name": "dir",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The check report workbook."
+          }
+        },
+        "summary": "Download one category of a snapshot's checks as an Excel workbook",
+        "tags": [
+          "Checks"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/snapshots/{snapshotId}/checks/{checkId}": {
       "delete": {
         "operationId": "deactivateCheck",
@@ -45591,6 +47156,73 @@
         "tags": [
           "Checks"
         ]
+      }
+    },
+    "/snapshots/{snapshotId}/checksReport": {
+      "get": {
+        "description": "Returns every check result of the snapshot as one .xlsx workbook. Requires the VIEW_CHECKS network permission and a snapshot that has reached the CREATION stage. Live: returned the workbook for a processed snapshot.",
+        "operationId": "getChecksReport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The check report workbook."
+          }
+        },
+        "summary": "Download all of a snapshot's checks as an Excel workbook",
+        "tags": [
+          "Checks"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/snapshots/{snapshotId}/collection-log": {
+      "get": {
+        "description": "Returns the commands the collectors ran, as plain text. An empty body means the snapshot has no log. Requires the VIEW_NETWORK_AND_SNAPSHOTS network permission and a snapshot that has stored its files. Live: 200 text/plain, empty body for the checked snapshot.",
+        "operationId": "getSnapshotCollectionLog",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The collection log as UTF-8 text. Empty when there is none."
+          }
+        },
+        "summary": "Read the CLI execution log of a snapshot's collection",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/snapshots/{snapshotId}/exceptions": {
@@ -45802,6 +47434,77 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/snapshots/{snapshotId}/logs": {
+      "get": {
+        "description": "Streams the collection log for every device, or for one device when deviceName is given. deviceName must be the requested device name, otherwise the log is empty. level filters by log level. backfilled=true reads the backfill log and requires deviceName (400 without it, live). download=true sets a file-name header. Requires the VIEW_NETWORK_AND_SNAPSHOTS network permission. Forward answers 404 when the snapshot has no device collection map. Live: the full log for one checked snapshot was about 550 MB, so read it in a stream with a byte limit. The response carried no Content-Type header live; the source declares text/plain; charset=utf-8.",
+        "operationId": "getSnapshotLogs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The requested device name to filter on.",
+            "in": "query",
+            "name": "deviceName",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Log level filter, such as WARN.",
+            "in": "query",
+            "name": "level",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Send the log as a file download.",
+            "in": "query",
+            "name": "download",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Read the backfill log. Needs deviceName.",
+            "in": "query",
+            "name": "backfilled",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The collection log as UTF-8 text."
+          }
+        },
+        "summary": "Stream a snapshot's collection logs, optionally for one device",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/snapshots/{snapshotId}/metrics": {
       "get": {
         "description": "Returns collection and processing health metrics of a Snapshot.",
@@ -45841,6 +47544,104 @@
         "tags": [
           "Network Snapshots"
         ]
+      }
+    },
+    "/snapshots/{snapshotId}/processEstimate": {
+      "get": {
+        "description": "Returns Forward's per-stage duration estimate, in milliseconds, keyed by ProgressStage name. Only stages with historical data appear. Requires the VIEW_NETWORK_AND_SNAPSHOTS network permission. The ?for=advancedReachability variant (which adds advanced reachability stages) is not ported here.",
+        "operationId": "getSnapshotProcessEstimate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "stageToDuration": {
+                    "DEVICE_MODEL_GENERATION": 317705,
+                    "FLOWLET_COMPUTATION": 0,
+                    "FLOWLET_LINK_INDEX_COMPUTATION": 29499,
+                    "SHERLOCK_DEVICE_INDEXING": 88184,
+                    "SNAPSHOT_GENERATION": 351051
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisProcessEstimate"
+                }
+              }
+            },
+            "description": "Estimated stage durations."
+          }
+        },
+        "summary": "Estimate how long each processing stage will take for a snapshot",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/snapshots/{snapshotId}/progress": {
+      "get": {
+        "description": "Returns each processing stage (CREATION, TEXT_SEARCH_INDEX, REACHABILITY and ADVANCED_REACHABILITY) with its operation state. done is true when every stage except ADVANCED_REACHABILITY has finished. startedAt, updatedAt and numObjects are omitted once the progress events have been deleted after processing; the live check saw that form. Requires the VIEW_NETWORK_AND_SNAPSHOTS network permission. Live: 404 for an unknown snapshot.",
+        "operationId": "getSnapshotProgress",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "done": true,
+                  "networkId": "155541",
+                  "snapshotId": "1437911",
+                  "stages": [
+                    {
+                      "operationState": "SUCCEEDED",
+                      "stage": "CREATION"
+                    },
+                    {
+                      "operationState": "SUCCEEDED",
+                      "stage": "TEXT_SEARCH_INDEX"
+                    },
+                    {
+                      "operationState": "SUCCEEDED",
+                      "stage": "REACHABILITY"
+                    },
+                    {
+                      "operationState": "NOT_TRIGGERED",
+                      "stage": "ADVANCED_REACHABILITY"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisSnapshotProgress"
+                }
+              }
+            },
+            "description": "The snapshot's processing progress."
+          }
+        },
+        "summary": "Report how far a snapshot's processing has got, stage by stage",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/snapshots/{snapshotId}/topology": {

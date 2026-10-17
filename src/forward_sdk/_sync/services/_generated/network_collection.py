@@ -20,6 +20,25 @@ __all__ = ["NetworkCollectionService"]
 class NetworkCollectionService(Service):
     """Network Collection."""
 
+    def get_network_collection_metrics(
+        self,
+        *,
+        network_id: str | None = None,
+        snapshot_id: str | None = None,
+    ) -> models.AnalysisCollectionMetrics:
+        """Report per-device collection metrics for a snapshot.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getNetworkCollectionMetrics"](
+                network_id=self._network(network_id), snapshot_id=self._snapshot(snapshot_id)
+            )
+        )
+        return models.AnalysisCollectionMetrics.model_validate(payload or {})
+
     def list_device_statuses(
         self,
         *,

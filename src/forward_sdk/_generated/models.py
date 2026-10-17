@@ -201,6 +201,296 @@ class AliasType(OpenEnum):
     logical_network = "LOGICAL_NETWORK"
 
 
+class AnalysisCollectionExceptionOccurrence(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    collector_task_id: Annotated[str | None, Field(alias="collectorTaskId")] = None
+    device_name: Annotated[str | None, Field(alias="deviceName")] = None
+    """
+    Omitted when the exception was not tied to a device.
+    """
+    timestamp: AwareDatetime | None = None
+    """
+    ISO-8601 instant, as sent live.
+    """
+
+
+class AnalysisDedupedCollectionException(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    actual_num_occurrences: Annotated[int | None, Field(alias="actualNumOccurrences")] = None
+    """
+    Total occurrences of this exception, which may exceed the page of occurrences returned.
+    """
+    collector_version: Annotated[str | None, Field(alias="collectorVersion")] = None
+    occurrences: list[AnalysisCollectionExceptionOccurrence] | None = None
+    stack_trace: Annotated[str | None, Field(alias="stackTrace")] = None
+
+
+class AnalysisDeviceCollectionMetric(ForwardModel):
+    """
+    One device's collection. Fields the source leaves null are omitted.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collection_duration: Annotated[int | None, Field(alias="collectionDuration")] = None
+    """
+    Milliseconds. Omitted when collection did not finish properly.
+    """
+    collection_start_time: Annotated[int | None, Field(alias="collectionStartTime")] = None
+    """
+    Epoch milliseconds. Omitted when the device's collection did not start.
+    """
+    conn_type_display_name: Annotated[str | None, Field(alias="connTypeDisplayName")] = None
+    device_name: Annotated[str | None, Field(alias="deviceName")] = None
+    device_type: Annotated[str | None, Field(alias="deviceType")] = None
+    """
+    Device type enum name, such as SWITCH, ROUTER, FIREWALL or UNKNOWN (live).
+    """
+    error: str | None = None
+    """
+    Collection or processing error enum name, or NONE. Live: NONE is sent for a device with no error. The Go SDK's empty-when-none reading is not what the server sends.
+    """
+    jump_server: Annotated[str | None, Field(alias="jumpServer")] = None
+    """
+    Id of the jump server used. Omitted when none.
+    """
+    slowest_command: Annotated[str | None, Field(alias="slowestCommand")] = None
+    slowest_command_duration: Annotated[int | None, Field(alias="slowestCommandDuration")] = None
+    """
+    Milliseconds.
+    """
+    source_type: Annotated[str | None, Field(alias="sourceType")] = None
+    """
+    Collection source type, such as CLASSIC or CLOUD. Omitted when unknown.
+    """
+
+
+class Role(OpenEnum):
+    user = "user"
+    assistant = "assistant"
+
+
+class AnalysisNqeChatMessage(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    content: str
+    role: Role
+
+
+class AnalysisNqeDocAssistFollowup(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    followup_questions: Annotated[list[str] | None, Field(alias="followupQuestions")] = None
+
+
+class AnalysisNqeDocAssistFollowupRequest(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    answer: str
+    """
+    The answer to suggest follow-up questions for.
+    """
+
+
+class AnalysisNqeDocAssistRequest(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    previous_messages: Annotated[
+        list[AnalysisNqeChatMessage] | None, Field(alias="previousMessages")
+    ] = None
+    """
+    Prior turns, oldest first. Omitted when empty.
+    """
+    question: str
+    """
+    Must not be blank.
+    """
+
+
+class AnalysisNqeDocReference(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    name: str | None = None
+    path: str | None = None
+
+
+class AnalysisNqeQueryAssist(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    id: str | None = None
+    """
+    Decimal id of the generated query assist.
+    """
+    query: str | None = None
+    valid_query: Annotated[bool | None, Field(alias="validQuery")] = None
+
+
+class AnalysisNqeQueryAssistRequest(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    prompt: str
+
+
+class AnalysisNqeQuerySource(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    description: str | None = None
+    """
+    From the doc comment. Omitted when there is none.
+    """
+    intent: str | None = None
+    """
+    From the doc comment. Omitted when there is none.
+    """
+    source_code: Annotated[str, Field(alias="sourceCode")]
+    source_code_sha: Annotated[str | None, Field(alias="sourceCodeSha")] = None
+    """
+    SHA-1 of sourceCode, 40 hex characters (live). The Go SDK does not map this field.
+    """
+
+
+class AnalysisNqeRunMetric(ForwardModel):
+    """
+    One NQE query run. queryId and commitId appear only for runs of a committed query.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    commit_id: Annotated[str | None, Field(alias="commitId")] = None
+    executed_at: Annotated[int | None, Field(alias="executedAt")] = None
+    """
+    Epoch milliseconds when the run executed (live).
+    """
+    network_id: Annotated[str | None, Field(alias="networkId")] = None
+    network_name: Annotated[str | None, Field(alias="networkName")] = None
+    query_id: Annotated[str | None, Field(alias="queryId")] = None
+    run_duration: Annotated[int | None, Field(alias="runDuration")] = None
+    """
+    Run time in milliseconds (live; the value matches the minExecutionSeconds scale).
+    """
+    snapshot_creation_instant: Annotated[int | None, Field(alias="snapshotCreationInstant")] = None
+    """
+    Epoch milliseconds when the snapshot was created (live).
+    """
+    snapshot_id: Annotated[str | None, Field(alias="snapshotId")] = None
+    source_set_id: Annotated[str | None, Field(alias="sourceSetId")] = None
+    task_id: Annotated[str | None, Field(alias="taskId")] = None
+    tracking_id: Annotated[str | None, Field(alias="trackingId")] = None
+
+
+class AnalysisNqeSummaryAssist(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    id: str | None = None
+    """
+    Decimal id of the summary.
+    """
+    summary: str | None = None
+
+
+class AnalysisNqeSummaryAssistRequest(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    query: str
+
+
+class AnalysisProcessEstimate(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    stage_to_duration: Annotated[dict[str, int] | None, Field(alias="stageToDuration")] = None
+    """
+    Estimated duration in milliseconds, keyed by ProgressStage name. Only stages with history appear.
+    """
+
+
+class AnalysisSnapshotProcessingQueueEntry(ForwardModel):
+    """
+    One snapshot waiting in the processing queue. No live entry was seen, so the createdAt format is unverified.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[int | None, Field(alias="createdAt")] = None
+    """
+    When the request was queued. Wire format is set by the server mapper; the Go SDK reads it as epoch milliseconds. Unverified live.
+    """
+    is_reprocessing: Annotated[bool | None, Field(alias="isReprocessing")] = None
+    snapshot_id: Annotated[str | None, Field(alias="snapshotId")] = None
+
+
+class AnalysisSnapshotProgressStage(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    num_objects: Annotated[int | None, Field(alias="numObjects")] = None
+    """
+    Running count of objects the stage has processed. Omitted unless updatedAt is set.
+    """
+    operation_state: Annotated[str | None, Field(alias="operationState")] = None
+    """
+    Operation state: NOT_TRIGGERED, QUEUED, COMPUTING, SUCCEEDED, FAILED, CANCELED or TIMED_OUT (source).
+    """
+    stage: str | None = None
+    """
+    Processing stage. Documented values are CREATION, TEXT_SEARCH_INDEX, REACHABILITY and ADVANCED_REACHABILITY; others may appear.
+    """
+    started_at: Annotated[int | None, Field(alias="startedAt")] = None
+    """
+    When the stage started, in epoch milliseconds per the Go SDK. Omitted when not started or when the events were deleted.
+    """
+    updated_at: Annotated[int | None, Field(alias="updatedAt")] = None
+    """
+    When the stage last reported, in epoch milliseconds per the Go SDK. Omitted with startedAt.
+    """
+
+
+class AnalysisSnapshotUpdate(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    note: str
+    """
+    The new note. Required; an empty string clears the note.
+    """
+
+
 class ApiVersion(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -9022,6 +9312,78 @@ class Aliases(ForwardModel):
     aliases: list[Alias]
 
 
+class AnalysisCollectionExceptions(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    actual_num_deduped_exceptions: Annotated[
+        int | None, Field(alias="actualNumDedupedExceptions")
+    ] = None
+    """
+    Total distinct exceptions, which may exceed the page returned.
+    """
+    collector_id_to_name: Annotated[dict[str, str] | None, Field(alias="collectorIdToName")] = None
+    deduped_exceptions: Annotated[
+        list[AnalysisDedupedCollectionException] | None, Field(alias="dedupedExceptions")
+    ] = None
+
+
+class AnalysisCollectionMetrics(ForwardModel):
+    """
+    Per-device collection metrics for one snapshot. Times are epoch milliseconds (live).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collection_end_time: Annotated[int | None, Field(alias="collectionEndTime")] = None
+    collection_start_time: Annotated[int | None, Field(alias="collectionStartTime")] = None
+    metrics: list[AnalysisDeviceCollectionMetric] | None = None
+    snapshot_id: Annotated[str | None, Field(alias="snapshotId")] = None
+    snapshot_time: Annotated[int | None, Field(alias="snapshotTime")] = None
+
+
+class AnalysisNqeDocAssist(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    answer: str | None = None
+    id: str | None = None
+    """
+    Decimal id of the answer. Used by the followup operation.
+    """
+    references: list[AnalysisNqeDocReference] | None = None
+
+
+class AnalysisSnapshotProcessingQueue(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    entries: list[AnalysisSnapshotProcessingQueueEntry] | None = None
+
+
+class AnalysisSnapshotProgress(ForwardModel):
+    """
+    How far a snapshot's processing has got, stage by stage (ProcessingStageInfo list).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    done: bool | None = None
+    """
+    True when every stage except ADVANCED_REACHABILITY has finished.
+    """
+    network_id: Annotated[str | None, Field(alias="networkId")] = None
+    snapshot_id: Annotated[str | None, Field(alias="snapshotId")] = None
+    stages: list[AnalysisSnapshotProgressStage] | None = None
+
+
 class AnalyzedResourcePool(ForwardModel):
     """
     resourcePools is absent when empty, meaning no valid combination was found.
@@ -14859,3 +15221,65 @@ class ChecksDiff(ForwardModel):
         populate_by_name=True,
     )
     checks: list[CheckResultDiffEntry] | None = None
+
+
+class AnalysisNqeInlinedAlternative(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    doc_string: Annotated[str | None, Field(alias="docString")] = None
+    name: str | None = None
+    path: str | None = None
+    type: AnalysisNqeInlinedType | None = None
+
+
+class AnalysisNqeInlinedField(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    deprecated: str | None = None
+    doc_string: Annotated[str | None, Field(alias="docString")] = None
+    index: int | None = None
+    is_nullable: Annotated[bool | None, Field(alias="isNullable")] = None
+    name: str | None = None
+    path: str | None = None
+    """
+    Schema path of the field, such as /network/devices/name (live).
+    """
+    preview: bool | None = None
+    """
+    True for preview fields. Omitted when false.
+    """
+    type: AnalysisNqeInlinedType | None = None
+
+
+class AnalysisNqeInlinedType(ForwardModel):
+    """
+    One node of the NQE data model with member types written out inline. The kind is in type: Record, Bag, List, OneOf or Reference, or a primitive name such as String, Integer, Bool, IpAddress, Timestamp or Date (live). Records carry fields, collections carry itemType and keyFields, OneOf carries alternatives. Recursive.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    alternatives: list[AnalysisNqeInlinedAlternative] | None = None
+    deprecated: str | None = None
+    """
+    Present when the type is deprecated.
+    """
+    doc_string: Annotated[str | None, Field(alias="docString")] = None
+    fields: list[AnalysisNqeInlinedField] | None = None
+    item_type: Annotated[AnalysisNqeInlinedType | None, Field(alias="itemType")] = None
+    key_fields: Annotated[list[str] | None, Field(alias="keyFields")] = None
+    name: str | None = None
+    restricted: bool | None = None
+    """
+    True when the caller's licence does not include this part of the model.
+    """
+    type: str | None = None
+
+
+AnalysisNqeInlinedAlternative.model_rebuild()
+AnalysisNqeInlinedField.model_rebuild()

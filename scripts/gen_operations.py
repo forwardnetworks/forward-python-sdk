@@ -85,6 +85,7 @@ def build_param(doc: dict[str, Any], raw: Any) -> dict[str, Any]:
         "schema_type": schema.get("type"),
         "enum": tuple(str(v) for v in enum),
         "description": " ".join(description.split()) if description else None,
+        "pre_encoded": bool(param.get("x-forward-pre-encoded")),
     }
 
 
@@ -188,6 +189,8 @@ def render(operations: list[dict[str, Any]]) -> str:
                     bits.append(f'schema_type="{param["schema_type"]}"')
                 if param["enum"]:
                     bits.append(f"enum={param['enum']!r}")
+                if param["pre_encoded"]:
+                    bits.append("pre_encoded=True")
                 lines.append(f"            ParamDef({', '.join(bits)}),")
             lines.append("        ),")
         if op["parent_tag"]:

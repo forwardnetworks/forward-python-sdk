@@ -32,6 +32,8 @@ class ParamDef:
     schema_type: str | None = None
     enum: tuple[str, ...] = ()
     description: str | None = None
+    #: The value arrives already percent-encoded and is put in the path as it is.
+    pre_encoded: bool = False
 
 
 @dataclass(frozen=True, slots=True)

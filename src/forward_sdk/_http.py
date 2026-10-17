@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import email.utils
 import random
-from collections.abc import Iterable, Mapping, Sequence
+import re
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from datetime import datetime, timezone
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 import httpx
 from pydantic import ValidationError
@@ -59,14 +60,36 @@ def quote_segment(value: str) -> str:
     return quote(str(value), safe="")
 
 
-def build_path(template: str, values: Mapping[str, Any]) -> str:
-    """Fill ``{placeholders}`` in an operation path, quoting each value."""
+_PRE_ENCODED = re.compile(r"[A-Za-z0-9._~%!$&'()*+,;=:@-]+")
+
+
+def _pre_encoded_segment(name: str, value: str) -> str:
+    """Check a value Forward hands out already encoded for the path, and keep it as is.
+
+    Encoding it again turns each ``%2F`` into ``%252F``, which Forward answers with
+    400. It must still be one plain segment, so a separator, a query, or a dot
+    segment is refused rather than passed on.
+    """
+    if not _PRE_ENCODED.fullmatch(value) or unquote(value) in (".", ".."):
+        raise ValueError(f"path parameter {name!r} is not a single encoded path segment")
+    return value
+
+
+def build_path(template: str, values: Mapping[str, Any], pre_encoded: Collection[str] = ()) -> str:
+    """Fill ``{placeholders}`` in an operation path, quoting each value.
+
+    Names in ``pre_encoded`` take values Forward supplied already percent-encoded
+    (a job's ``cancelLink``), which are not quoted a second time.
+    """
     path = template
     for name, value in values.items():
         placeholder = "{" + name + "}"
         if placeholder in path:
             if value is None or value == "":
                 raise ValueError(f"path parameter {name!r} must not be empty")
+            if name in pre_encoded:
+                path = path.replace(placeholder, _pre_encoded_segment(name, str(value)))
+                continue
             if str(value) in (".", ".."):
                 # Dots are unreserved, so quoting leaves them alone, and the HTTP
                 # client then collapses the segment: a device named ".." would

@@ -12584,6 +12584,7 @@ paths:
         - name: cancelJobId
           in: path
           required: true
+          x-forward-pre-encoded: true
           description: >-
             The cancelLink from a row of listActiveJobs. It is base64 underneath and already percent-encoded for the
             path. Do not encode it again.

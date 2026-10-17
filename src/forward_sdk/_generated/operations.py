@@ -785,7 +785,7 @@ OPERATIONS: dict[str, OpDef] = {
         path="/jobs/{cancelJobId}",
         tag="Jobs",
         parameters=(
-            ParamDef(name="cancelJobId", location="path", required=True, schema_type="string"),
+            ParamDef(name="cancelJobId", location="path", required=True, schema_type="string", pre_encoded=True),
         ),
         stability="unpublished",
         gating=('admin',),

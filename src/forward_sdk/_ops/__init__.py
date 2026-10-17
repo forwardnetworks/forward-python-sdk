@@ -147,7 +147,11 @@ def spec_for(
     kwargs.setdefault("idempotent", operation.method in IDEMPOTENT_METHODS)
     return RequestSpec(
         operation=operation,
-        path=build_path(operation.path, path_params or {}),
+        path=build_path(
+            operation.path,
+            path_params or {},
+            {p.name for p in operation.parameters if p.pre_encoded},
+        ),
         params=encode_query(query, operation.fixed_query),
         json=json,
         accept=accept,

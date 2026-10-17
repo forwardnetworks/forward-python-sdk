@@ -29199,7 +29199,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "x-forward-pre-encoded": true
           }
         ],
         "responses": {

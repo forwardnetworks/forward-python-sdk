@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from forward_sdk._http import build_path, encode_query
+from forward_sdk._ops import spec_for
 
 TEMPLATE = "/networks/{networkId}/classic-devices/{deviceName}"
 
@@ -39,3 +40,20 @@ def test_a_bare_dispatch_key_is_replaced_by_the_callers_value() -> None:
     ]
     # Without a value the bare key still goes out, so the route keeps matching.
     assert encode_query({}, fixed) == [("action", "duplicate"), ("targetNetworkId", "")]
+
+
+class TestPreEncodedValues:
+    """A job's cancelLink is handed out already encoded; encoding it again breaks it."""
+
+    def test_the_cancel_link_is_not_encoded_twice(self) -> None:
+        link = "AbC%2BdEf%3D%3D"
+        spec = spec_for("cancelJob", path_params={"cancelJobId": link})
+        assert spec.path == f"/jobs/{link}"
+
+    def test_it_is_still_one_plain_segment(self) -> None:
+        for bad in ("a/b", "a?x=1", "..", "%2e%2e", "a b", "a#b"):
+            with pytest.raises(ValueError, match="single encoded path segment"):
+                spec_for("cancelJob", path_params={"cancelJobId": bad})
+
+    def test_ordinary_parameters_are_still_quoted(self) -> None:
+        assert build_path("/x/{n}", {"n": "a%2Fb"}) == "/x/a%252Fb"

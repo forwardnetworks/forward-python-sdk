@@ -1117,6 +1117,75 @@ class CloudExistingAccountDiscovery(ForwardModel):
     type: Type14 | None = None
 
 
+class CloudObjectFile(ForwardModel):
+    """
+    A stored file behind a cloud object (StoredFile.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    creation_date_millis: Annotated[int | None, Field(alias="creationDateMillis")] = None
+    """
+    0 for the dummy entry.
+    """
+    file_name: Annotated[str, Field(alias="fileName")]
+    id: str
+    size: int | None = None
+    """
+    Bytes; 0 for the dummy entry.
+    """
+
+
+class Node(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    id: str | None = None
+
+
+class CoveredTopo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    hosts: list[dict[str, Any]] | None = None
+    links: list[dict[str, Any]] | None = None
+    nodes: list[Node] | None = None
+
+
+class CloudObjectInfo(ForwardModel):
+    """
+    One cloud object with the topology it covers (CloudObjectInfo.java). Fields not listed are not modelled.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cloud_type: Annotated[str | None, Field(alias="cloudType")] = None
+    """
+    The provider, such as AWS.
+    """
+    covered_topo: Annotated[CoveredTopo | None, Field(alias="coveredTopo")] = None
+    device_info: Annotated[dict[str, Any] | None, Field(alias="deviceInfo")] = None
+    """
+    Present for an object Forward models as a device. Provider-specific; not modelled.
+    """
+    id: str
+    name: str | None = None
+    """
+    The object's name, omitted when Forward has none (CloudObjectInfo.java).
+    """
+    type: str | None = None
+    vendor: str | None = None
+    """
+    Observed on the live server; not a field of CloudObjectInfo.java at the checked-out source.
+    """
+
+
 class CloudType(OpenEnum):
     aws = "AWS"
     gcp = "GCP"
@@ -1139,6 +1208,22 @@ class CloudObjectMetadata(ForwardModel):
     processing_error: Annotated[str | None, Field(alias="processingError")] = None
     type: str | None = None
     vpcs: list[str] | None = None
+
+
+class CloudObjectPage(ForwardModel):
+    """
+    A page of cloud objects (CloudObjects.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cloud_objects: Annotated[list[CloudObjectMetadata], Field(alias="cloudObjects")]
+    total_cloud_objects: Annotated[int, Field(alias="totalCloudObjects")]
+    """
+    All objects in the snapshot, not only this page.
+    """
 
 
 class CloudResourcePool(ForwardModel):
@@ -1923,6 +2008,96 @@ class DashboardWidget(ForwardModel):
     w: int
     x: int
     y: int
+
+
+class Result(OpenEnum):
+    success = "SUCCESS"
+    failure = "FAILURE"
+
+
+class DataFileAssessment(ForwardModel):
+    """
+    The result of assessDataFileReplacement.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    result: Result
+
+
+class Inference(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    data_format: Annotated[str | None, Field(alias="dataFormat")] = None
+    """
+    JSON, CSV or TEXT. Omitted when no format was recognised.
+    """
+    errors: list[str]
+    """
+    Non-empty means Forward would not accept the file as this type.
+    """
+    schema_: Annotated[dict[str, Any] | None, Field(alias="schema")] = None
+    """
+    The inferred NQE type, in the InlinedType form GET /api/nqe/schema uses. Omitted when nothing was inferred.
+    """
+    warnings: list[str]
+
+
+class DataFileInference(ForwardModel):
+    """
+    DataFileInference.java with InferenceResultWithSchema (the schema's inner shape is not modelled).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    content: str
+    """
+    For CSV, the first rows of the file; otherwise the whole content.
+    """
+    inference: Inference
+
+
+class DataFilePatch(ForwardModel):
+    """
+    At least one field must be present. Omitted fields are left alone; description: null clears it; name: null is treated as omitted; nqeName: null is refused (DataFilePatch.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    description: str | None = None
+    """
+    New description. An explicit null clears it.
+    """
+    name: str | None = None
+    """
+    New name (lower-cased). Refused if a collection source in an attached network already uses it.
+    """
+    nqe_name: Annotated[str | None, Field(alias="nqeName", min_length=1)] = None
+    """
+    New NQE name. Must not be blank; null is refused.
+    """
+
+
+class DataFileType(OpenEnum):
+    """
+    A data file's format. STIG is the STIG policy file's type; that file has a fixed name and is in every network.
+    """
+
+    csv = "CSV"
+    json = "JSON"
+    xml = "XML"
+    xlsx = "XLSX"
+    yaml = "YAML"
+    text = "TEXT"
+    stig = "STIG"
 
 
 class DefaultColumnFilter(ForwardModel):
@@ -3270,12 +3445,8 @@ class L3VpnPatch(ForwardModel):
     name: str | None = None
 
 
-class L7Application(ForwardModel):
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    id: str | None = None
+class L7Application(Node):
+    pass
 
 
 class LineRange(ForwardModel):
@@ -4433,7 +4604,7 @@ class NqePanelIds(ForwardModel):
     panel_ids: Annotated[list[str], Field(alias="panelIds")]
 
 
-class Result(ForwardModel):
+class Result1(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
         populate_by_name=True,
@@ -4450,7 +4621,7 @@ class NqePanelMetrics(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    results: list[Result] | None = None
+    results: list[Result1] | None = None
 
 
 class Repository(OpenEnum):
@@ -5019,6 +5190,75 @@ class SrcIpLocationType(OpenEnum):
     multicast = "MULTICAST"
 
 
+class PerfDataPoint(ForwardModel):
+    """
+    One datapoint (DataPoint.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    instant: int
+    """
+    Epoch milliseconds (Jackson NUMBER shape of Instant; the live envelope ints are 13 digits).
+    """
+    value: float
+
+
+class PerfDeviceMetricHistory(ForwardModel):
+    """
+    One device's series (DeviceMetricHistory.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    data: list[PerfDataPoint]
+    device_name: Annotated[str, Field(alias="deviceName")]
+
+
+class PerfDeviceMetricHistoryResponse(ForwardModel):
+    """
+    DeviceMetricHistoryResponse.java.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    metrics: list[PerfDeviceMetricHistory]
+
+
+class Direction1(OpenEnum):
+    ingress = "INGRESS"
+    egress = "EGRESS"
+
+
+class PerfInterfaceWithDirection(ForwardModel):
+    """
+    An interface and a direction (InterfaceWithDirection.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_name: Annotated[str, Field(alias="deviceName")]
+    direction: Direction1
+    interface_name: Annotated[str, Field(alias="interfaceName")]
+
+
+class PerfUnhealthyThreshold(OpenEnum):
+    """
+    The severity a usage breached (UnhealthyThreshold.java).
+    """
+
+    high = "HIGH"
+    medium = "MEDIUM"
+
+
 class PortRange(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -5390,6 +5630,166 @@ class ScopedUserObject(ForwardModel):
     scope_id: Annotated[str | None, Field(alias="scopeId")] = None
 
 
+class Status6(OpenEnum):
+    valid = "VALID"
+    irrelevant = "IRRELEVANT"
+    inactive = "INACTIVE"
+    timeout = "TIMEOUT"
+    unlicensed = "UNLICENSED"
+    processing = "PROCESSING"
+    requires_additional_snapshot_processing = "REQUIRES_ADDITIONAL_SNAPSHOT_PROCESSING"
+
+
+class ScorecardCheckScore(ForwardModel):
+    """
+    A check's result inside a scored category (KpiCheck with its score, source KpiCheckStatus). Fields beyond these are not modelled.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    check_id: Annotated[str | None, Field(alias="checkId")] = None
+    enabled: bool | None = None
+    goal: float | None = None
+    id: str | None = None
+    name: str | None = None
+    note: str | None = None
+    score: float | None = None
+    """
+    The check's score on the snapshot.
+    """
+    status: Status6 | None = None
+    type: str | None = None
+    weight: int | None = None
+
+
+class ScorecardDefinition(ForwardModel):
+    """
+    A scorecard definition (Scorecard.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    category_weights: Annotated[dict[str, int], Field(alias="categoryWeights")]
+    """
+    KPI category id to weight.
+    """
+    description: str | None = None
+    id: str
+    name: str
+    system_managed: Annotated[bool, Field(alias="systemManaged")]
+
+
+class ScorecardKpiCategoryScore(ForwardModel):
+    """
+    A KPI category as scored on one snapshot (KpiCategoryWithScore).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    checks: list[ScorecardCheckScore] | None = None
+    description: str | None = None
+    id: str
+    name: str
+    score: float | None = None
+    """
+    The category's score on this snapshot.
+    """
+    system_managed: Annotated[bool | None, Field(alias="systemManaged")] = None
+    """
+    true for the Forward-managed categories.
+    """
+    weight: int
+
+
+class ScorecardKpiCheck(ForwardModel):
+    """
+    A check inside a KPI category.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    enabled: bool | None = None
+    goal: float | None = None
+    id: str | None = None
+    name: str | None = None
+    note: str | None = None
+    type: str | None = None
+    """
+    The check type, such as NQE.
+    """
+    weight: int | None = None
+
+
+class ScorecardKpiCheckDefinition(ForwardModel):
+    """
+    A check definition inside a KPI category definition.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    goal: float | None = None
+    id: str | None = None
+    weight: int | None = None
+
+
+class Status7(OpenEnum):
+    unlicensed = "UNLICENSED"
+    requires_additional_snapshot_processing = "REQUIRES_ADDITIONAL_SNAPSHOT_PROCESSING"
+    processing = "PROCESSING"
+    processed = "PROCESSED"
+
+
+class ScorecardSnapshot(ForwardModel):
+    """
+    A scorecard scored on one snapshot (SnapshotScorecard.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    categories: list[ScorecardKpiCategoryScore]
+    description: str | None = None
+    id: str
+    name: str
+    score: float | None = None
+    """
+    Overall score between 0 and 1; null unless status is PROCESSED.
+    """
+    status: Status7 | None = None
+    system_managed: Annotated[bool | None, Field(alias="systemManaged")] = None
+
+
+class ScorecardTrendPoint(ForwardModel):
+    """
+    One point in a scorecard's trend (ScorecardPoint.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    instant: int
+    """
+    The snapshot's time, epoch milliseconds.
+    """
+    score: float | None = None
+    """
+    Null when Forward could not compute a score for that snapshot.
+    """
+    snapshot_id: Annotated[str, Field(alias="snapshotId")]
+
+
 class SearchIntent(OpenEnum):
     prefer_violations = "PREFER_VIOLATIONS"
     prefer_delivered = "PREFER_DELIVERED"
@@ -5646,6 +6046,116 @@ class ProcessingTrigger(OpenEnum):
     import_ = "IMPORT"
     reprocess = "REPROCESS"
     fork = "FORK"
+
+
+class LastMonth(OpenEnum):
+    """
+    7 to 30 days old.
+    """
+
+    all = "ALL"
+    one_per_day = "ONE_PER_DAY"
+    one_per_two_days = "ONE_PER_TWO_DAYS"
+    one_per_week = "ONE_PER_WEEK"
+
+
+class LastQuarter(OpenEnum):
+    """
+    30 to 90 days old.
+    """
+
+    all = "ALL"
+    one_per_day = "ONE_PER_DAY"
+    one_per_week = "ONE_PER_WEEK"
+    one_per_two_weeks = "ONE_PER_TWO_WEEKS"
+    none = "NONE"
+
+
+class LastWeek(OpenEnum):
+    """
+    0 to 7 days old.
+    """
+
+    all = "ALL"
+
+
+class LastYear(OpenEnum):
+    """
+    90 to 365 days old.
+    """
+
+    one_per_day = "ONE_PER_DAY"
+    one_per_week = "ONE_PER_WEEK"
+    one_per_month = "ONE_PER_MONTH"
+    none = "NONE"
+
+
+class Older(OpenEnum):
+    """
+    Over a year old.
+    """
+
+    one_per_day = "ONE_PER_DAY"
+    one_per_week = "ONE_PER_WEEK"
+    one_per_month = "ONE_PER_MONTH"
+    one_per_quarter = "ONE_PER_QUARTER"
+    none = "NONE"
+
+
+class SnapshotRetentionPolicy(ForwardModel):
+    """
+    A network's snapshot thinning policy (SnapshotRetentionPolicy.java). The bands' allowed values are the Java constants listed there.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    enabled: bool
+    """
+    false keeps every snapshot.
+    """
+    last_month: Annotated[LastMonth, Field(alias="lastMonth")]
+    """
+    7 to 30 days old.
+    """
+    last_quarter: Annotated[LastQuarter, Field(alias="lastQuarter")]
+    """
+    30 to 90 days old.
+    """
+    last_week: Annotated[LastWeek, Field(alias="lastWeek")]
+    """
+    0 to 7 days old.
+    """
+    last_year: Annotated[LastYear, Field(alias="lastYear")]
+    """
+    90 to 365 days old.
+    """
+    older: Older
+    """
+    Over a year old.
+    """
+
+
+class SnapshotRetentionSnapshot(ForwardModel):
+    """
+    The fields of SnapshotMeta.java this fragment names. Not the whole object: others are omitted, not modelled.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collection_task_id: Annotated[str | None, Field(alias="collectionTaskId")] = None
+    created_at: Annotated[AwareDatetime | None, Field(alias="createdAt")] = None
+    id: str | None = None
+    is_draft: Annotated[bool | None, Field(alias="isDraft")] = None
+    latest_collection_millis: Annotated[int | None, Field(alias="latestCollectionMillis")] = None
+    network_id: Annotated[str | None, Field(alias="networkId")] = None
+    note: str | None = None
+    oldest_collection_millis: Annotated[int | None, Field(alias="oldestCollectionMillis")] = None
+    processed_at: Annotated[AwareDatetime | None, Field(alias="processedAt")] = None
+    restored_at: Annotated[AwareDatetime | None, Field(alias="restoredAt")] = None
 
 
 class SnapshotState(OpenEnum):
@@ -6314,7 +6824,7 @@ class CollectionSourceType(OpenEnum):
     controller_managed = "CONTROLLER_MANAGED"
 
 
-class Status6(OpenEnum):
+class Status8(OpenEnum):
     production = "PRODUCTION"
     tech_preview = "TECH_PREVIEW"
     internal = "INTERNAL"
@@ -6338,7 +6848,7 @@ class SrcDeviceConnTypeInfo(ForwardModel):
     secondary_cli_credential_types: Annotated[
         list[str] | None, Field(alias="secondaryCliCredentialTypes")
     ] = None
-    status: Status6
+    status: Status8
     vendor: str
 
 
@@ -7141,6 +7651,37 @@ class SummaryAssistResponse(ForwardModel):
     summary: str | None = None
 
 
+class SyntheticDeviceQuery(ForwardModel):
+    """
+    A saved query usable by a synthetic node (SyntheticDevicesQuery.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    path: str
+    """
+    The query's path in the query library.
+    """
+    query_id: Annotated[str, Field(alias="queryId")]
+    """
+    A global NQE query id.
+    """
+
+
+class SyntheticDeviceQueryCollection(ForwardModel):
+    """
+    SyntheticDevicesQueryCollection.java. Empty when the network has no processed snapshot.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    queries: list[SyntheticDeviceQuery]
+
+
 class SyntheticNatEntry(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -7220,7 +7761,7 @@ class TextRegion(ForwardModel):
     """
 
 
-class Status7(OpenEnum):
+class Status9(OpenEnum):
     neutral = "NEUTRAL"
     ok = "OK"
     warning = "WARNING"
@@ -7232,7 +7773,7 @@ class ThresholdRule(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status7 | None = None
+    status: Status9 | None = None
     value: float | None = None
     """
     Null marks the default rule.
@@ -7549,7 +8090,7 @@ class UserAccountApiTokenAndSecret(ForwardModel):
     token: UserAccountApiToken
 
 
-class Status8(OpenEnum):
+class Status10(OpenEnum):
     active = "ACTIVE"
     expired = "EXPIRED"
 
@@ -7563,7 +8104,7 @@ class UserAccountApiTokenView(UserAccountApiToken):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status8 | None = None
+    status: Status10 | None = None
 
 
 class UserAccountBulkEdit(ForwardModel):
@@ -7869,6 +8410,99 @@ class VrfFilter(ForwardModel):
     """
 
 
+class VulnCustomLabelCount(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_count: Annotated[int, Field(alias="deviceCount")]
+    """
+    Named deviceCount in Forward, but the count is of CVEs on this route (source: CveOsInfoWithDeviceCounts.CustomLabelDeviceCount).
+    """
+    label: str
+
+
+class VulnCustomStatusCount(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_count: Annotated[int, Field(alias="deviceCount")]
+    """
+    Named deviceCount in Forward, but the count is of CVEs on this route.
+    """
+    status: CustomCveStatus
+
+
+class Summary(OpenEnum):
+    vulnerable = "VULNERABLE"
+    potentially_vulnerable = "POTENTIALLY_VULNERABLE"
+    not_vulnerable = "NOT_VULNERABLE"
+
+
+class VulnDeviceCounts(InventoryDeviceInfo):
+    """
+    A device with its CVE counts (DeviceWithCveCounts.java). It is InventoryDeviceInfo plus the fields listed. The custom lists are present only when the org has custom CVE analysis.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    age_to_cve_count: Annotated[dict[str, int] | None, Field(alias="ageToCveCount")] = None
+    """
+    CVE count per age bucket: MONTH, YEAR, OLDER.
+    """
+    custom_label_counts: Annotated[
+        list[VulnCustomLabelCount] | None, Field(alias="customLabelCounts")
+    ] = None
+    custom_status_counts: Annotated[
+        list[VulnCustomStatusCount] | None, Field(alias="customStatusCounts")
+    ] = None
+    has_exploit_to_cve_count: Annotated[
+        dict[str, int] | None, Field(alias="hasExploitToCveCount")
+    ] = None
+    """
+    Keys "true" and "false".
+    """
+    internet_addressable: Annotated[bool | None, Field(alias="internetAddressable")] = None
+    """
+    Omitted when Forward has not computed internet exposure for the snapshot, which is not the same as false.
+    """
+    location_id: Annotated[str | None, Field(alias="locationId")] = None
+    result_to_cve_count: Annotated[dict[str, int], Field(alias="resultToCveCount")]
+    """
+    CVE count per detection result. A result with no CVEs is absent.
+    """
+    severity_to_cve_count: Annotated[dict[str, int] | None, Field(alias="severityToCveCount")] = (
+        None
+    )
+    """
+    CVE count per severity; keys NONE, LOW, MEDIUM, HIGH, CRITICAL.
+    """
+    summary: Summary
+
+
+class VulnDeviceList(ForwardModel):
+    """
+    DeviceVulnerabilities.java.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    devices: list[VulnDeviceCounts]
+    index_created_at: Annotated[AwareDatetime | None, Field(alias="indexCreatedAt")] = None
+    """
+    When the CVE index behind this result was built.
+    """
+    total_devices: Annotated[int, Field(alias="totalDevices")]
+    """
+    All devices analysed for CVEs, across every CVE; filters do not change it.
+    """
+
+
 class VulnerabilityDetectionResult(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -7930,7 +8564,7 @@ class VulnerabilityDevice(ForwardModel):
     """
 
 
-class Status9(OpenEnum):
+class Status11(OpenEnum):
     """
     The device’s vulnerability status for the CVE.
     """
@@ -7962,7 +8596,7 @@ class VulnerabilityDeviceWithResult(VulnerabilityDevice):
     The device’s [detection result](https://docs.fwd.app/latest/application/security/vulnerability/#detection-results)
     for the CVE.
     """
-    status: Annotated[Status9 | None, Field(examples=["VULNERABLE"])] = None
+    status: Annotated[Status11 | None, Field(examples=["VULNERABLE"])] = None
     """
     The device’s vulnerability status for the CVE.
     """
@@ -9915,6 +10549,67 @@ class DataConnectorTestResult(ForwardModel):
     """
 
 
+class DataFileCreateRequest(ForwardModel):
+    """
+    The JSON part named request of addDataFile (DataFileCreateRequest.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    description: str | None = None
+    file_type: Annotated[DataFileType, Field(alias="fileType")]
+    headers: list[str] | None = None
+    """
+    Column names, for a CSV with no header row only. No duplicates.
+    """
+    name: str
+    """
+    Data file name. Forward lower-cases it. Must be unique (case-insensitively) in the org.
+    """
+    nqe_name: Annotated[str | None, Field(alias="nqeName")] = None
+    """
+    Name queries use for the file (network.extensions.<nqeName>). Defaults to the name without its extension (for STIG, the name).
+    """
+
+
+class DataFileInfo(Attribution):
+    """
+    A data file (DataFileInfo.java). createdBy*/updatedBy* come from the Attribution schema; the uploaded* fields are the upload's attribution.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    content_md5_hex: Annotated[str | None, Field(alias="contentMd5Hex")] = None
+    """
+    MD5 of the stored content. Set on GET /data-files only (source DataFileInfo doc).
+    """
+    description: str | None = None
+    is_empty: Annotated[bool | None, Field(alias="isEmpty")] = None
+    """
+    true for a placeholder imported from a snapshot, which cannot be downloaded. Omitted when false.
+    """
+    is_included_in_all_networks: Annotated[bool | None, Field(alias="isIncludedInAllNetworks")] = (
+        None
+    )
+    """
+    true only for the STIG policy file. Omitted otherwise.
+    """
+    name: str
+    network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
+    """
+    Networks the file is attached to. Omitted when none.
+    """
+    nqe_name: Annotated[str, Field(alias="nqeName")]
+    type: DataFileType
+    uploaded_at: Annotated[str | None, Field(alias="uploadedAt")] = None
+    uploaded_by: Annotated[str | None, Field(alias="uploadedBy")] = None
+    uploaded_by_id: Annotated[str | None, Field(alias="uploadedById")] = None
+
+
 class Device(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -11649,6 +12344,120 @@ class PathSearchBulkRequest(ForwardModel):
     """
 
 
+class PerfInterfaceMetricHistory(ForwardModel):
+    """
+    One interface's series (InterfaceMetricHistory.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    data: list[PerfDataPoint]
+    interface_with_direction: Annotated[
+        PerfInterfaceWithDirection, Field(alias="interfaceWithDirection")
+    ]
+
+
+class PerfInterfaceMetricHistoryResponse(ForwardModel):
+    """
+    InterfaceMetricHistoryResponse.java.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    metrics: list[PerfInterfaceMetricHistory]
+
+
+class PerfThresholdExceedance(ForwardModel):
+    """
+    Threshold exceedance for a metric value (ThresholdExceedance.java). Omitted when no severity was breached.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    percentage: Annotated[float, Field(ge=0.0, le=1.0)]
+    """
+    Fraction of datapoints above this severity's threshold.
+    """
+    prev_percentage: Annotated[float | None, Field(alias="prevPercentage", ge=0.0, le=1.0)] = None
+    """
+    The same fraction for the preceding window of equal length. Omitted when there is none.
+    """
+    severity: PerfUnhealthyThreshold
+
+
+class PerfUnhealthyDevice(ForwardModel):
+    """
+    The thresholds one device breached. Each key is omitted when that usage was fine (UnhealthyDevice.java, NON_DEFAULT).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cpu_usage: Annotated[PerfUnhealthyThreshold | None, Field(alias="cpuUsage")] = None
+    interface_usage: Annotated[PerfUnhealthyThreshold | None, Field(alias="interfaceUsage")] = None
+    memory_usage: Annotated[PerfUnhealthyThreshold | None, Field(alias="memoryUsage")] = None
+
+
+class PerfUnhealthyDevices(ForwardModel):
+    """
+    UnhealthyDevices.java.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    devices: dict[str, PerfUnhealthyDevice]
+    """
+    Keyed by device name.
+    """
+    end_time: Annotated[int, Field(alias="endTime")]
+    """
+    End of the window, epoch milliseconds.
+    """
+    start_time: Annotated[int, Field(alias="startTime")]
+    """
+    Start of the window, epoch milliseconds.
+    """
+
+
+class PerfUnhealthyInterface(ForwardModel):
+    """
+    UnhealthyInterface.java.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    interface_name: Annotated[str, Field(alias="interfaceName")]
+    threshold: PerfUnhealthyThreshold
+
+
+class PerfUnhealthyInterfaces(ForwardModel):
+    """
+    UnhealthyInterfaces.java.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    end_time: Annotated[int, Field(alias="endTime")]
+    interfaces: dict[str, list[PerfUnhealthyInterface]]
+    """
+    Keyed by device name; devices with none are left out.
+    """
+    start_time: Annotated[int, Field(alias="startTime")]
+
+
 class PredefinedCheck(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -11758,6 +12567,38 @@ class ScopedServiceObject(ForwardModel):
     description: str | None = None
     name: str | None = None
     scope_id: Annotated[str | None, Field(alias="scopeId")] = None
+
+
+class ScorecardKpiCategory(ForwardModel):
+    """
+    A KPI category (KpiCategory.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    checks: list[ScorecardKpiCheck]
+    description: str | None = None
+    id: str
+    name: str
+    system_managed: Annotated[bool, Field(alias="systemManaged")]
+
+
+class ScorecardKpiCategoryDefinition(ForwardModel):
+    """
+    A KPI category definition (KpiCategoryDef.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    checks: list[ScorecardKpiCheckDefinition]
+    description: str | None = None
+    id: str
+    name: str
+    system_managed: Annotated[bool, Field(alias="systemManaged")]
 
 
 class SecurityRuleDiffEntry(ForwardModel):
@@ -12075,6 +12916,22 @@ class SnapshotMetrics(ForwardModel):
     """
     Current state of the Snapshot
     """
+
+
+class SnapshotRetentionPreview(ForwardModel):
+    """
+    DeletedSnapshots.java.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    count: int
+    """
+    Equals the length of deletedSnapshots.
+    """
+    deleted_snapshots: Annotated[list[SnapshotRetentionSnapshot], Field(alias="deletedSnapshots")]
 
 
 class SnmpEndpointProfile(SnmpEndpointProfileDef):
@@ -13238,6 +14095,72 @@ class PathSearchResponse(ForwardModel):
     """
     L7 values from the request that were unrecognized by the system
     """
+
+
+class PerfDeviceMetric(ForwardModel):
+    """
+    One device in the top list (DeviceMetric.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_name: Annotated[str, Field(alias="deviceName")]
+    location_id: Annotated[str, Field(alias="locationId")]
+    tags: list[str]
+    threshold_exceedance: Annotated[
+        PerfThresholdExceedance | None, Field(alias="thresholdExceedance")
+    ] = None
+    value: float
+    """
+    The aggregated metric value.
+    """
+    vendor_os: Annotated[VendorOs, Field(alias="vendorOs")]
+
+
+class PerfDeviceMetrics(ForwardModel):
+    """
+    The top devices (DeviceMetrics.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    metrics: list[PerfDeviceMetric]
+
+
+class PerfInterfaceMetric(ForwardModel):
+    """
+    One interface in the top list (InterfaceMetric.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_name: Annotated[str, Field(alias="deviceName")]
+    direction: Direction1
+    interface_name: Annotated[str, Field(alias="interfaceName")]
+    location_id: Annotated[str, Field(alias="locationId")]
+    tags: list[str]
+    threshold_exceedance: Annotated[
+        PerfThresholdExceedance | None, Field(alias="thresholdExceedance")
+    ] = None
+    value: float
+
+
+class PerfInterfaceMetrics(ForwardModel):
+    """
+    The top interfaces (InterfaceMetrics.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    metrics: list[PerfInterfaceMetric]
 
 
 class ReachabilityCheck(ForwardModel):

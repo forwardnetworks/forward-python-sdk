@@ -19,6 +19,7 @@ from forward_sdk._async.services._generated.change_set_directories import (
 from forward_sdk._async.services._generated.checks import AsyncChecksService
 from forward_sdk._async.services._generated.classic_devices import AsyncClassicDevicesService
 from forward_sdk._async.services._generated.cloud_accounts import AsyncCloudAccountsService
+from forward_sdk._async.services._generated.cloud_objects import AsyncCloudObjectsService
 from forward_sdk._async.services._generated.collection_schedules import (
     AsyncCollectionSchedulesService,
 )
@@ -54,9 +55,13 @@ from forward_sdk._async.services._generated.network_topology import AsyncNetwork
 from forward_sdk._async.services._generated.nqe_panels import AsyncNQEPanelsService
 from forward_sdk._async.services._generated.organizations import AsyncOrganizationsService
 from forward_sdk._async.services._generated.path_search import AsyncPathSearchService
+from forward_sdk._async.services._generated.performance_metrics import (
+    AsyncPerformanceMetricsService,
+)
 from forward_sdk._async.services._generated.predict_assist import AsyncPredictAssistService
 from forward_sdk._async.services._generated.resource_pools import AsyncResourcePoolsService
 from forward_sdk._async.services._generated.saml import AsyncSAMLService
+from forward_sdk._async.services._generated.scorecards import AsyncScorecardsService
 from forward_sdk._async.services._generated.security_matrix import AsyncSecurityMatrixService
 from forward_sdk._async.services._generated.security_matrix_filters import (
     AsyncSecurityMatrixFiltersService,
@@ -66,6 +71,7 @@ from forward_sdk._async.services._generated.snapshot_diff_details import (
     AsyncSnapshotDiffDetailsService,
 )
 from forward_sdk._async.services._generated.snmp_credentials import AsyncSNMPCredentialsService
+from forward_sdk._async.services._generated.synthetic_devices import AsyncSyntheticDevicesService
 from forward_sdk._async.services._generated.system_administration import (
     AsyncSystemAdministrationService,
 )
@@ -93,6 +99,7 @@ __all__ = [
     "AsyncChecksService",
     "AsyncClassicDevicesService",
     "AsyncCloudAccountsService",
+    "AsyncCloudObjectsService",
     "AsyncCollectionSchedulesService",
     "AsyncCollectionSourcesService",
     "AsyncCollectorBindingService",
@@ -125,14 +132,17 @@ __all__ = [
     "AsyncNetworkTopologyService",
     "AsyncOrganizationsService",
     "AsyncPathSearchService",
+    "AsyncPerformanceMetricsService",
     "AsyncPredictAssistService",
     "AsyncResourcePoolsService",
     "AsyncSAMLService",
     "AsyncSNMPCredentialsService",
+    "AsyncScorecardsService",
     "AsyncSecurityMatrixFiltersService",
     "AsyncSecurityMatrixService",
     "AsyncSecurityZonesService",
     "AsyncSnapshotDiffDetailsService",
+    "AsyncSyntheticDevicesService",
     "AsyncSystemAdministrationService",
     "AsyncTrustedCertificatesService",
     "AsyncUserAccountsService",
@@ -159,6 +169,7 @@ class AsyncGeneratedServices:
     checks: AsyncChecksService
     classic_devices: AsyncClassicDevicesService
     cloud_accounts: AsyncCloudAccountsService
+    cloud_objects: AsyncCloudObjectsService
     collection_schedules: AsyncCollectionSchedulesService
     collection_sources: AsyncCollectionSourcesService
     collector_binding: AsyncCollectorBindingService
@@ -190,14 +201,17 @@ class AsyncGeneratedServices:
     network_topology: AsyncNetworkTopologyService
     organizations: AsyncOrganizationsService
     path_search: AsyncPathSearchService
+    performance_metrics: AsyncPerformanceMetricsService
     predict_assist: AsyncPredictAssistService
     resource_pools: AsyncResourcePoolsService
     saml: AsyncSAMLService
     snmp_credentials: AsyncSNMPCredentialsService
+    scorecards: AsyncScorecardsService
     security_matrix: AsyncSecurityMatrixService
     security_matrix_filters: AsyncSecurityMatrixFiltersService
     security_zones: AsyncSecurityZonesService
     snapshot_diff_details: AsyncSnapshotDiffDetailsService
+    synthetic_devices: AsyncSyntheticDevicesService
     system_administration: AsyncSystemAdministrationService
     trusted_certificates: AsyncTrustedCertificatesService
     user_accounts: AsyncUserAccountsService
@@ -216,6 +230,7 @@ class AsyncGeneratedServices:
         self.checks = AsyncChecksService(transport)
         self.classic_devices = AsyncClassicDevicesService(transport)
         self.cloud_accounts = AsyncCloudAccountsService(transport)
+        self.cloud_objects = AsyncCloudObjectsService(transport)
         self.collection_schedules = AsyncCollectionSchedulesService(transport)
         self.collection_sources = AsyncCollectionSourcesService(transport)
         self.collector_binding = AsyncCollectorBindingService(transport)
@@ -247,14 +262,17 @@ class AsyncGeneratedServices:
         self.network_topology = AsyncNetworkTopologyService(transport)
         self.organizations = AsyncOrganizationsService(transport)
         self.path_search = AsyncPathSearchService(transport)
+        self.performance_metrics = AsyncPerformanceMetricsService(transport)
         self.predict_assist = AsyncPredictAssistService(transport)
         self.resource_pools = AsyncResourcePoolsService(transport)
         self.saml = AsyncSAMLService(transport)
         self.snmp_credentials = AsyncSNMPCredentialsService(transport)
+        self.scorecards = AsyncScorecardsService(transport)
         self.security_matrix = AsyncSecurityMatrixService(transport)
         self.security_matrix_filters = AsyncSecurityMatrixFiltersService(transport)
         self.security_zones = AsyncSecurityZonesService(transport)
         self.snapshot_diff_details = AsyncSnapshotDiffDetailsService(transport)
+        self.synthetic_devices = AsyncSyntheticDevicesService(transport)
         self.system_administration = AsyncSystemAdministrationService(transport)
         self.trusted_certificates = AsyncTrustedCertificatesService(transport)
         self.user_accounts = AsyncUserAccountsService(transport)
@@ -275,6 +293,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Checks": "checks",
     "Classic Devices": "classic_devices",
     "Cloud Accounts": "cloud_accounts",
+    "Cloud Objects": "cloud_objects",
     "Collection Schedules": "collection_schedules",
     "Collection Sources": "collection_sources",
     "Collector Binding": "collector_binding",
@@ -306,14 +325,17 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Topology": "network_topology",
     "Organizations": "organizations",
     "Path Search": "path_search",
+    "Performance Metrics": "performance_metrics",
     "Predict Assist": "predict_assist",
     "Resource Pools": "resource_pools",
     "SAML": "saml",
     "SNMP Credentials": "snmp_credentials",
+    "Scorecards": "scorecards",
     "Security Matrix": "security_matrix",
     "Security Matrix Filters": "security_matrix_filters",
     "Security Zones": "security_zones",
     "Snapshot Diff Details": "snapshot_diff_details",
+    "Synthetic Devices": "synthetic_devices",
     "System Administration": "system_administration",
     "Trusted Certificates": "trusted_certificates",
     "User Accounts": "user_accounts",

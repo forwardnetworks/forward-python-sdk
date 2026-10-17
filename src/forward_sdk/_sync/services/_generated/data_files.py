@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from forward_sdk._generated import models
 from forward_sdk._ops import rest as ops
 from forward_sdk._sync.services._base import Service
 
@@ -20,6 +21,87 @@ __all__ = ["DataFilesService"]
 
 class DataFilesService(Service):
     """Data Files."""
+
+    def add_data_file(
+        self,
+        *,
+        body: Any,
+    ) -> models.DataFileInfo:
+        """Upload a new data file.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["addDataFile"](body=body))
+        return models.DataFileInfo.model_validate(payload or {})
+
+    def add_data_file_to_network(
+        self,
+        *,
+        data_file_name: str,
+        network_id: str | None = None,
+    ) -> Any:
+        """Attach a data file to a network.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["addDataFileToNetwork"](
+                network_id=self._network(network_id), data_file_name=data_file_name
+            )
+        )
+        return payload
+
+    def assess_data_file_replacement(
+        self,
+        *,
+        data_file_name: str,
+        body: Any,
+    ) -> models.DataFileAssessment:
+        """Check whether new content would break queries that read the file.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["assessDataFileReplacement"](data_file_name=data_file_name, body=body)
+        )
+        return models.DataFileAssessment.model_validate(payload or {})
+
+    def delete_data_file(
+        self,
+        *,
+        data_file_name: str,
+    ) -> Any:
+        """Delete a data file from the organization's library.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["deleteDataFile"](data_file_name=data_file_name))
+        return payload
+
+    def download_data_file(
+        self,
+        *,
+        data_file_name: str,
+    ) -> Any:
+        """Download a data file's stored content.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["downloadDataFile"](data_file_name=data_file_name))
+        return payload
+
+    def get_data_file_schema(
+        self,
+        *,
+        data_file_name: str,
+    ) -> models.DataFileInference:
+        """The type Forward infers from a stored data file.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["getDataFileSchema"](data_file_name=data_file_name))
+        return models.DataFileInference.model_validate(payload or {})
 
     def get_data_files(
         self,
@@ -42,3 +124,73 @@ class DataFilesService(Service):
             )
         )
         return payload
+
+    def infer_data_file_schema(
+        self,
+        *,
+        body: Any,
+    ) -> models.DataFileInference:
+        """Preview the type Forward would infer for a file.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["inferDataFileSchema"](body=body))
+        return models.DataFileInference.model_validate(payload or {})
+
+    def list_data_files(
+        self,
+    ) -> list[models.DataFileInfo]:
+        """List the organization's data files.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["listDataFiles"]())
+        return [models.DataFileInfo.model_validate(row) for row in payload or []]
+
+    def patch_data_file(
+        self,
+        *,
+        data_file_name: str,
+        body: Any,
+    ) -> models.DataFileInfo:
+        """Change a data file's name, NQE name or description.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["patchDataFile"](data_file_name=data_file_name, body=body)
+        )
+        return models.DataFileInfo.model_validate(payload or {})
+
+    def remove_data_file_from_network(
+        self,
+        *,
+        data_file_name: str,
+        network_id: str | None = None,
+    ) -> Any:
+        """Detach a data file from a network.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["removeDataFileFromNetwork"](
+                network_id=self._network(network_id), data_file_name=data_file_name
+            )
+        )
+        return payload
+
+    def replace_data_file_content(
+        self,
+        *,
+        data_file_name: str,
+        body: Any,
+    ) -> models.DataFileInfo:
+        """Replace a data file's content.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["replaceDataFileContent"](data_file_name=data_file_name, body=body)
+        )
+        return models.DataFileInfo.model_validate(payload or {})

@@ -3487,6 +3487,91 @@
         },
         "type": "object"
       },
+      "CloudObjectFile": {
+        "description": "A stored file behind a cloud object (StoredFile.java).",
+        "properties": {
+          "creationDateMillis": {
+            "description": "0 for the dummy entry.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "size": {
+            "description": "Bytes; 0 for the dummy entry.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "fileName"
+        ],
+        "type": "object"
+      },
+      "CloudObjectInfo": {
+        "description": "One cloud object with the topology it covers (CloudObjectInfo.java). Fields not listed are not modelled.",
+        "properties": {
+          "cloudType": {
+            "description": "The provider, such as AWS.",
+            "type": "string"
+          },
+          "coveredTopo": {
+            "properties": {
+              "hosts": {
+                "items": {
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "links": {
+                "items": {
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "nodes": {
+                "items": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "deviceInfo": {
+            "description": "Present for an object Forward models as a device. Provider-specific; not modelled.",
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "description": "The object's name, omitted when Forward has none (CloudObjectInfo.java).",
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "vendor": {
+            "description": "Observed on the live server; not a field of CloudObjectInfo.java at the checked-out source.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
       "CloudObjectMetadata": {
         "additionalProperties": true,
         "properties": {
@@ -3531,6 +3616,26 @@
             "type": "array"
           }
         },
+        "type": "object"
+      },
+      "CloudObjectPage": {
+        "description": "A page of cloud objects (CloudObjects.java).",
+        "properties": {
+          "cloudObjects": {
+            "items": {
+              "$ref": "#/components/schemas/CloudObjectMetadata"
+            },
+            "type": "array"
+          },
+          "totalCloudObjects": {
+            "description": "All objects in the snapshot, not only this page.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cloudObjects",
+          "totalCloudObjects"
+        ],
         "type": "object"
       },
       "CloudResourcePool": {
@@ -5392,6 +5497,188 @@
           "connectors"
         ],
         "type": "object"
+      },
+      "DataFileAssessment": {
+        "description": "The result of assessDataFileReplacement.",
+        "properties": {
+          "result": {
+            "enum": [
+              "SUCCESS",
+              "FAILURE"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "type": "object"
+      },
+      "DataFileCreateRequest": {
+        "description": "The JSON part named request of addDataFile (DataFileCreateRequest.java).",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "fileType": {
+            "$ref": "#/components/schemas/DataFileType"
+          },
+          "headers": {
+            "description": "Column names, for a CSV with no header row only. No duplicates.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "Data file name. Forward lower-cases it. Must be unique (case-insensitively) in the org.",
+            "type": "string"
+          },
+          "nqeName": {
+            "description": "Name queries use for the file (network.extensions.<nqeName>). Defaults to the name without its extension (for STIG, the name).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "fileType"
+        ],
+        "type": "object"
+      },
+      "DataFileInference": {
+        "description": "DataFileInference.java with InferenceResultWithSchema (the schema's inner shape is not modelled).",
+        "properties": {
+          "content": {
+            "description": "For CSV, the first rows of the file; otherwise the whole content.",
+            "type": "string"
+          },
+          "inference": {
+            "properties": {
+              "dataFormat": {
+                "description": "JSON, CSV or TEXT. Omitted when no format was recognised.",
+                "type": "string"
+              },
+              "errors": {
+                "description": "Non-empty means Forward would not accept the file as this type.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "schema": {
+                "description": "The inferred NQE type, in the InlinedType form GET /api/nqe/schema uses. Omitted when nothing was inferred.",
+                "type": "object"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "warnings",
+              "errors"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "content",
+          "inference"
+        ],
+        "type": "object"
+      },
+      "DataFileInfo": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Attribution"
+          },
+          {
+            "properties": {
+              "contentMd5Hex": {
+                "description": "MD5 of the stored content. Set on GET /data-files only (source DataFileInfo doc).",
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "isEmpty": {
+                "description": "true for a placeholder imported from a snapshot, which cannot be downloaded. Omitted when false.",
+                "type": "boolean"
+              },
+              "isIncludedInAllNetworks": {
+                "description": "true only for the STIG policy file. Omitted otherwise.",
+                "type": "boolean"
+              },
+              "name": {
+                "type": "string"
+              },
+              "networkIds": {
+                "description": "Networks the file is attached to. Omitted when none.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "nqeName": {
+                "type": "string"
+              },
+              "type": {
+                "$ref": "#/components/schemas/DataFileType"
+              },
+              "uploadedAt": {
+                "type": "string"
+              },
+              "uploadedBy": {
+                "type": "string"
+              },
+              "uploadedById": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "nqeName",
+              "type"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A data file (DataFileInfo.java). createdBy*/updatedBy* come from the Attribution schema; the uploaded* fields are the upload's attribution."
+      },
+      "DataFilePatch": {
+        "description": "At least one field must be present. Omitted fields are left alone; description: null clears it; name: null is treated as omitted; nqeName: null is refused (DataFilePatch.java).",
+        "properties": {
+          "description": {
+            "description": "New description. An explicit null clears it.",
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "New name (lower-cased). Refused if a collection source in an attached network already uses it.",
+            "type": "string"
+          },
+          "nqeName": {
+            "description": "New NQE name. Must not be blank; null is refused.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DataFileType": {
+        "description": "A data file's format. STIG is the STIG policy file's type; that file has a fixed name and is in every network.",
+        "enum": [
+          "CSV",
+          "JSON",
+          "XML",
+          "XLSX",
+          "YAML",
+          "TEXT",
+          "STIG"
+        ],
+        "type": "string"
       },
       "DefaultColumnFilter": {
         "properties": {
@@ -13186,6 +13473,347 @@
         },
         "type": "object"
       },
+      "PerfDataPoint": {
+        "description": "One datapoint (DataPoint.java).",
+        "properties": {
+          "instant": {
+            "description": "Epoch milliseconds (Jackson NUMBER shape of Instant; the live envelope ints are 13 digits).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "value": {
+            "format": "float",
+            "type": "number"
+          }
+        },
+        "required": [
+          "instant",
+          "value"
+        ],
+        "type": "object"
+      },
+      "PerfDeviceMetric": {
+        "description": "One device in the top list (DeviceMetric.java).",
+        "properties": {
+          "deviceName": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "thresholdExceedance": {
+            "$ref": "#/components/schemas/PerfThresholdExceedance"
+          },
+          "value": {
+            "description": "The aggregated metric value.",
+            "format": "float",
+            "type": "number"
+          },
+          "vendorOs": {
+            "$ref": "#/components/schemas/VendorOs"
+          }
+        },
+        "required": [
+          "deviceName",
+          "vendorOs",
+          "tags",
+          "locationId",
+          "value"
+        ],
+        "type": "object"
+      },
+      "PerfDeviceMetricHistory": {
+        "description": "One device's series (DeviceMetricHistory.java).",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PerfDataPoint"
+            },
+            "type": "array"
+          },
+          "deviceName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "deviceName",
+          "data"
+        ],
+        "type": "object"
+      },
+      "PerfDeviceMetricHistoryResponse": {
+        "description": "DeviceMetricHistoryResponse.java.",
+        "properties": {
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/PerfDeviceMetricHistory"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "metrics"
+        ],
+        "type": "object"
+      },
+      "PerfDeviceMetrics": {
+        "description": "The top devices (DeviceMetrics.java).",
+        "properties": {
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/PerfDeviceMetric"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "metrics"
+        ],
+        "type": "object"
+      },
+      "PerfInterfaceMetric": {
+        "description": "One interface in the top list (InterfaceMetric.java).",
+        "properties": {
+          "deviceName": {
+            "type": "string"
+          },
+          "direction": {
+            "enum": [
+              "INGRESS",
+              "EGRESS"
+            ],
+            "type": "string"
+          },
+          "interfaceName": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "thresholdExceedance": {
+            "$ref": "#/components/schemas/PerfThresholdExceedance"
+          },
+          "value": {
+            "format": "float",
+            "type": "number"
+          }
+        },
+        "required": [
+          "deviceName",
+          "interfaceName",
+          "tags",
+          "locationId",
+          "direction",
+          "value"
+        ],
+        "type": "object"
+      },
+      "PerfInterfaceMetricHistory": {
+        "description": "One interface's series (InterfaceMetricHistory.java).",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PerfDataPoint"
+            },
+            "type": "array"
+          },
+          "interfaceWithDirection": {
+            "$ref": "#/components/schemas/PerfInterfaceWithDirection"
+          }
+        },
+        "required": [
+          "interfaceWithDirection",
+          "data"
+        ],
+        "type": "object"
+      },
+      "PerfInterfaceMetricHistoryResponse": {
+        "description": "InterfaceMetricHistoryResponse.java.",
+        "properties": {
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/PerfInterfaceMetricHistory"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "metrics"
+        ],
+        "type": "object"
+      },
+      "PerfInterfaceMetrics": {
+        "description": "The top interfaces (InterfaceMetrics.java).",
+        "properties": {
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/PerfInterfaceMetric"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "metrics"
+        ],
+        "type": "object"
+      },
+      "PerfInterfaceWithDirection": {
+        "description": "An interface and a direction (InterfaceWithDirection.java).",
+        "properties": {
+          "deviceName": {
+            "type": "string"
+          },
+          "direction": {
+            "enum": [
+              "INGRESS",
+              "EGRESS"
+            ],
+            "type": "string"
+          },
+          "interfaceName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "deviceName",
+          "interfaceName",
+          "direction"
+        ],
+        "type": "object"
+      },
+      "PerfThresholdExceedance": {
+        "description": "Threshold exceedance for a metric value (ThresholdExceedance.java). Omitted when no severity was breached.",
+        "properties": {
+          "percentage": {
+            "description": "Fraction of datapoints above this severity's threshold.",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "prevPercentage": {
+            "description": "The same fraction for the preceding window of equal length. Omitted when there is none.",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/PerfUnhealthyThreshold"
+          }
+        },
+        "required": [
+          "severity",
+          "percentage"
+        ],
+        "type": "object"
+      },
+      "PerfUnhealthyDevice": {
+        "description": "The thresholds one device breached. Each key is omitted when that usage was fine (UnhealthyDevice.java, NON_DEFAULT).",
+        "properties": {
+          "cpuUsage": {
+            "$ref": "#/components/schemas/PerfUnhealthyThreshold"
+          },
+          "interfaceUsage": {
+            "$ref": "#/components/schemas/PerfUnhealthyThreshold"
+          },
+          "memoryUsage": {
+            "$ref": "#/components/schemas/PerfUnhealthyThreshold"
+          }
+        },
+        "type": "object"
+      },
+      "PerfUnhealthyDevices": {
+        "description": "UnhealthyDevices.java.",
+        "properties": {
+          "devices": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PerfUnhealthyDevice"
+            },
+            "description": "Keyed by device name.",
+            "type": "object"
+          },
+          "endTime": {
+            "description": "End of the window, epoch milliseconds.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "startTime": {
+            "description": "Start of the window, epoch milliseconds.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "startTime",
+          "endTime",
+          "devices"
+        ],
+        "type": "object"
+      },
+      "PerfUnhealthyInterface": {
+        "description": "UnhealthyInterface.java.",
+        "properties": {
+          "interfaceName": {
+            "type": "string"
+          },
+          "threshold": {
+            "$ref": "#/components/schemas/PerfUnhealthyThreshold"
+          }
+        },
+        "required": [
+          "interfaceName",
+          "threshold"
+        ],
+        "type": "object"
+      },
+      "PerfUnhealthyInterfaces": {
+        "description": "UnhealthyInterfaces.java.",
+        "properties": {
+          "endTime": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "interfaces": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/PerfUnhealthyInterface"
+              },
+              "type": "array"
+            },
+            "description": "Keyed by device name; devices with none are left out.",
+            "type": "object"
+          },
+          "startTime": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "startTime",
+          "endTime",
+          "interfaces"
+        ],
+        "type": "object"
+      },
+      "PerfUnhealthyThreshold": {
+        "description": "The severity a usage breached (UnhealthyThreshold.java).",
+        "enum": [
+          "HIGH",
+          "MEDIUM"
+        ],
+        "type": "string"
+      },
       "PortRange": {
         "properties": {
           "end": {
@@ -13917,6 +14545,289 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ScorecardCheckScore": {
+        "description": "A check's result inside a scored category (KpiCheck with its score, source KpiCheckStatus). Fields beyond these are not modelled.",
+        "properties": {
+          "checkId": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "goal": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "score": {
+            "description": "The check's score on the snapshot.",
+            "type": "number"
+          },
+          "status": {
+            "enum": [
+              "VALID",
+              "IRRELEVANT",
+              "INACTIVE",
+              "TIMEOUT",
+              "UNLICENSED",
+              "PROCESSING",
+              "REQUIRES_ADDITIONAL_SNAPSHOT_PROCESSING"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ScorecardDefinition": {
+        "description": "A scorecard definition (Scorecard.java).",
+        "properties": {
+          "categoryWeights": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "KPI category id to weight.",
+            "type": "object"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "systemManaged": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "categoryWeights",
+          "systemManaged"
+        ],
+        "type": "object"
+      },
+      "ScorecardKpiCategory": {
+        "description": "A KPI category (KpiCategory.java).",
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ScorecardKpiCheck"
+            },
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "systemManaged": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "checks",
+          "systemManaged"
+        ],
+        "type": "object"
+      },
+      "ScorecardKpiCategoryDefinition": {
+        "description": "A KPI category definition (KpiCategoryDef.java).",
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ScorecardKpiCheckDefinition"
+            },
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "systemManaged": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "checks",
+          "systemManaged"
+        ],
+        "type": "object"
+      },
+      "ScorecardKpiCategoryScore": {
+        "description": "A KPI category as scored on one snapshot (KpiCategoryWithScore).",
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ScorecardCheckScore"
+            },
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "score": {
+            "description": "The category's score on this snapshot.",
+            "type": "number"
+          },
+          "systemManaged": {
+            "description": "true for the Forward-managed categories.",
+            "type": "boolean"
+          },
+          "weight": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "weight"
+        ],
+        "type": "object"
+      },
+      "ScorecardKpiCheck": {
+        "description": "A check inside a KPI category.",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "goal": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "type": {
+            "description": "The check type, such as NQE.",
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ScorecardKpiCheckDefinition": {
+        "description": "A check definition inside a KPI category definition.",
+        "properties": {
+          "goal": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ScorecardSnapshot": {
+        "description": "A scorecard scored on one snapshot (SnapshotScorecard.java).",
+        "properties": {
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/ScorecardKpiCategoryScore"
+            },
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "score": {
+            "description": "Overall score between 0 and 1; null unless status is PROCESSED.",
+            "nullable": true,
+            "type": "number"
+          },
+          "status": {
+            "enum": [
+              "UNLICENSED",
+              "REQUIRES_ADDITIONAL_SNAPSHOT_PROCESSING",
+              "PROCESSING",
+              "PROCESSED"
+            ],
+            "type": "string"
+          },
+          "systemManaged": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "categories"
+        ],
+        "type": "object"
+      },
+      "ScorecardTrendPoint": {
+        "description": "One point in a scorecard's trend (ScorecardPoint.java).",
+        "properties": {
+          "instant": {
+            "description": "The snapshot's time, epoch milliseconds.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "score": {
+            "description": "Null when Forward could not compute a score for that snapshot.",
+            "nullable": true,
+            "type": "number"
+          },
+          "snapshotId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshotId",
+          "instant"
+        ],
         "type": "object"
       },
       "SearchIntent": {
@@ -14674,6 +15585,134 @@
             "examples": [
               "PROCESSING"
             ]
+          }
+        },
+        "type": "object"
+      },
+      "SnapshotRetentionPolicy": {
+        "description": "A network's snapshot thinning policy (SnapshotRetentionPolicy.java). The bands' allowed values are the Java constants listed there.",
+        "properties": {
+          "enabled": {
+            "description": "false keeps every snapshot.",
+            "type": "boolean"
+          },
+          "lastMonth": {
+            "description": "7 to 30 days old.",
+            "enum": [
+              "ALL",
+              "ONE_PER_DAY",
+              "ONE_PER_TWO_DAYS",
+              "ONE_PER_WEEK"
+            ],
+            "type": "string"
+          },
+          "lastQuarter": {
+            "description": "30 to 90 days old.",
+            "enum": [
+              "ALL",
+              "ONE_PER_DAY",
+              "ONE_PER_WEEK",
+              "ONE_PER_TWO_WEEKS",
+              "NONE"
+            ],
+            "type": "string"
+          },
+          "lastWeek": {
+            "description": "0 to 7 days old.",
+            "enum": [
+              "ALL"
+            ],
+            "type": "string"
+          },
+          "lastYear": {
+            "description": "90 to 365 days old.",
+            "enum": [
+              "ONE_PER_DAY",
+              "ONE_PER_WEEK",
+              "ONE_PER_MONTH",
+              "NONE"
+            ],
+            "type": "string"
+          },
+          "older": {
+            "description": "Over a year old.",
+            "enum": [
+              "ONE_PER_DAY",
+              "ONE_PER_WEEK",
+              "ONE_PER_MONTH",
+              "ONE_PER_QUARTER",
+              "NONE"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "lastWeek",
+          "lastMonth",
+          "lastQuarter",
+          "lastYear",
+          "older"
+        ],
+        "type": "object"
+      },
+      "SnapshotRetentionPreview": {
+        "description": "DeletedSnapshots.java.",
+        "properties": {
+          "count": {
+            "description": "Equals the length of deletedSnapshots.",
+            "type": "integer"
+          },
+          "deletedSnapshots": {
+            "items": {
+              "$ref": "#/components/schemas/SnapshotRetentionSnapshot"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "deletedSnapshots"
+        ],
+        "type": "object"
+      },
+      "SnapshotRetentionSnapshot": {
+        "description": "The fields of SnapshotMeta.java this fragment names. Not the whole object: others are omitted, not modelled.",
+        "properties": {
+          "collectionTaskId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isDraft": {
+            "type": "boolean"
+          },
+          "latestCollectionMillis": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "networkId": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "oldestCollectionMillis": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "processedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "restoredAt": {
+            "format": "date-time",
+            "type": "string"
           }
         },
         "type": "object"
@@ -17249,6 +18288,39 @@
         },
         "type": "object"
       },
+      "SyntheticDeviceQuery": {
+        "description": "A saved query usable by a synthetic node (SyntheticDevicesQuery.java).",
+        "properties": {
+          "path": {
+            "description": "The query's path in the query library.",
+            "type": "string"
+          },
+          "queryId": {
+            "description": "A global NQE query id.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "queryId",
+          "path"
+        ],
+        "type": "object"
+      },
+      "SyntheticDeviceQueryCollection": {
+        "description": "SyntheticDevicesQueryCollection.java. Empty when the network has no processed snapshot.",
+        "properties": {
+          "queries": {
+            "items": {
+              "$ref": "#/components/schemas/SyntheticDeviceQuery"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "queries"
+        ],
+        "type": "object"
+      },
       "SyntheticNatEntry": {
         "properties": {
           "insideAddress": {
@@ -18221,6 +19293,136 @@
         "required": [
           "type",
           "value"
+        ],
+        "type": "object"
+      },
+      "VulnCustomLabelCount": {
+        "properties": {
+          "deviceCount": {
+            "description": "Named deviceCount in Forward, but the count is of CVEs on this route (source: CveOsInfoWithDeviceCounts.CustomLabelDeviceCount).",
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "deviceCount"
+        ],
+        "type": "object"
+      },
+      "VulnCustomStatusCount": {
+        "properties": {
+          "deviceCount": {
+            "description": "Named deviceCount in Forward, but the count is of CVEs on this route.",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CustomCveStatus"
+          }
+        },
+        "required": [
+          "status",
+          "deviceCount"
+        ],
+        "type": "object"
+      },
+      "VulnDeviceCounts": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/InventoryDeviceInfo"
+          },
+          {
+            "properties": {
+              "ageToCveCount": {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "description": "CVE count per age bucket: MONTH, YEAR, OLDER.",
+                "type": "object"
+              },
+              "customLabelCounts": {
+                "items": {
+                  "$ref": "#/components/schemas/VulnCustomLabelCount"
+                },
+                "type": "array"
+              },
+              "customStatusCounts": {
+                "items": {
+                  "$ref": "#/components/schemas/VulnCustomStatusCount"
+                },
+                "type": "array"
+              },
+              "hasExploitToCveCount": {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "description": "Keys \"true\" and \"false\".",
+                "type": "object"
+              },
+              "internetAddressable": {
+                "description": "Omitted when Forward has not computed internet exposure for the snapshot, which is not the same as false.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "locationId": {
+                "type": "string"
+              },
+              "resultToCveCount": {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "description": "CVE count per detection result. A result with no CVEs is absent.",
+                "type": "object"
+              },
+              "severityToCveCount": {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "description": "CVE count per severity; keys NONE, LOW, MEDIUM, HIGH, CRITICAL.",
+                "type": "object"
+              },
+              "summary": {
+                "enum": [
+                  "VULNERABLE",
+                  "POTENTIALLY_VULNERABLE",
+                  "NOT_VULNERABLE"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "resultToCveCount",
+              "summary"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A device with its CVE counts (DeviceWithCveCounts.java). It is InventoryDeviceInfo plus the fields listed. The custom lists are present only when the org has custom CVE analysis."
+      },
+      "VulnDeviceList": {
+        "description": "DeviceVulnerabilities.java.",
+        "properties": {
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/VulnDeviceCounts"
+            },
+            "type": "array"
+          },
+          "indexCreatedAt": {
+            "description": "When the CVE index behind this result was built.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "totalDevices": {
+            "description": "All devices analysed for CVEs, across every CVE; filters do not change it.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "devices",
+          "totalDevices"
         ],
         "type": "object"
       },
@@ -20687,6 +21889,612 @@
         "tags": [
           "System Administration"
         ]
+      }
+    },
+    "/data-files": {
+      "get": {
+        "description": "Lists every data file in the organization, with its attribution and the networks it is attached to. Gated by the org operation VIEW_DATA_FILES (DataFileController.get, @Requires).",
+        "operationId": "listDataFiles",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "contentMd5Hex": "4db4e627ee10eafe8b7b391cef9e022d",
+                    "createdAt": "2026-04-28T16:05:56.659259451Z",
+                    "createdById": "12509",
+                    "description": "NetBox device type library model/part-number aliases for Forward NetBox NQE mapping tests.",
+                    "name": "netbox_device_type_aliases.json",
+                    "networkIds": [
+                      "255235",
+                      "248580",
+                      "257412"
+                    ],
+                    "nqeName": "netbox_device_type_aliases",
+                    "type": "JSON",
+                    "updatedAt": "2026-04-28T16:05:56.659259451Z",
+                    "updatedById": "12509",
+                    "uploadedAt": "2026-04-28T17:24:00.061232522Z",
+                    "uploadedById": "12509"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DataFileInfo"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The data files."
+          }
+        },
+        "summary": "List the organization's data files",
+        "tags": [
+          "Data Files"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Uploads a data file and returns it with status 201 and a Location header. The file is attached to no network until addDataFileToNetwork. Refused (source, DataFileController.add and DataFileCreateRequest): files over 50 MB, headers on a non-CSV file, duplicate headers, a STIG type under any name but the STIG policy file's, and a STIG policy file under any type but STIG. Gated by the org operation MANAGE_DATA_FILES.",
+        "operationId": "addDataFile",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "request": {
+                  "contentType": "application/json"
+                }
+              },
+              "schema": {
+                "properties": {
+                  "file": {
+                    "format": "binary",
+                    "type": "string"
+                  },
+                  "request": {
+                    "$ref": "#/components/schemas/DataFileCreateRequest"
+                  }
+                },
+                "required": [
+                  "request",
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "contentMd5Hex": "4db4e627ee10eafe8b7b391cef9e022d",
+                  "createdAt": "2026-04-28T16:05:56.659259451Z",
+                  "createdById": "12509",
+                  "description": "NetBox device type library model/part-number aliases for Forward NetBox NQE mapping tests.",
+                  "name": "netbox_device_type_aliases.json",
+                  "networkIds": [
+                    "255235",
+                    "248580",
+                    "257412"
+                  ],
+                  "nqeName": "netbox_device_type_aliases",
+                  "type": "JSON",
+                  "updatedAt": "2026-04-28T16:05:56.659259451Z",
+                  "updatedById": "12509",
+                  "uploadedAt": "2026-04-28T17:24:00.061232522Z",
+                  "uploadedById": "12509"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DataFileInfo"
+                }
+              }
+            },
+            "description": "The data file. Same DataFileInfo DTO as the GET; the example is the live GET's item, not a response to this POST."
+          }
+        },
+        "summary": "Upload a new data file",
+        "tags": [
+          "Data Files"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "inferDataFileSchema",
+            "summary": "Preview the type Forward would infer for a file",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "inferSchema"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/data-files/{dataFileName}": {
+      "delete": {
+        "description": "Removes the file from the organization and so from every network it was attached to. The content is not kept anywhere else. A file that does not exist answers 404 ('No data file with name ... exists.'). Gated by MANAGE_DATA_FILES.",
+        "operationId": "deleteDataFile",
+        "parameters": [
+          {
+            "description": "The data file's name (Forward lower-cases it).",
+            "in": "path",
+            "name": "dataFileName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file was deleted. The response has no body."
+          }
+        },
+        "summary": "Delete a data file from the organization's library",
+        "tags": [
+          "Data Files"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "Returns the stored content as an attachment. The Content-Type follows the file's type: text/csv, application/json, text/plain, or application/xml for XML and XLSX (source DataFileType.getContentType). A file with no content is refused with 400 'File cannot be downloaded as it has no content.' Gated by VIEW_DATA_FILES. The controller is declared produces=JSON, so the request's Accept header must admit the file's type (the Go SDK sends 'application/json, */*').",
+        "operationId": "downloadDataFile",
+        "parameters": [
+          {
+            "description": "The data file's name (Forward lower-cases it).",
+            "in": "path",
+            "name": "dataFileName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": "[{\"name\": \"example\", \"value\": 1}]",
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The stored content, as an attachment."
+          }
+        },
+        "summary": "Download a data file's stored content",
+        "tags": [
+          "Data Files"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "content"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Changes details, not content. Omitted fields are left alone. name renames the file (lower-cased; a name a collection source already uses in an attached network is refused with 400). nqeName changes the field queries read it by and may not be blank or null. description: an explicit null clears it, which is how Forward's JsonProp distinguishes null from omitted. At least one field must be present. Refused for the STIG policy file. A missing file answers 404 (Go SDK; the service throws NotFound). Gated by MANAGE_DATA_FILES.",
+        "operationId": "patchDataFile",
+        "parameters": [
+          {
+            "description": "The data file's name (Forward lower-cases it).",
+            "in": "path",
+            "name": "dataFileName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataFilePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "contentMd5Hex": "4db4e627ee10eafe8b7b391cef9e022d",
+                  "createdAt": "2026-04-28T16:05:56.659259451Z",
+                  "createdById": "12509",
+                  "description": "NetBox device type library model/part-number aliases for Forward NetBox NQE mapping tests.",
+                  "name": "netbox_device_type_aliases.json",
+                  "networkIds": [
+                    "255235",
+                    "248580",
+                    "257412"
+                  ],
+                  "nqeName": "netbox_device_type_aliases",
+                  "type": "JSON",
+                  "updatedAt": "2026-04-28T16:05:56.659259451Z",
+                  "updatedById": "12509",
+                  "uploadedAt": "2026-04-28T17:24:00.061232522Z",
+                  "uploadedById": "12509"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DataFileInfo"
+                }
+              }
+            },
+            "description": "The updated data file."
+          }
+        },
+        "summary": "Change a data file's name, NQE name or description",
+        "tags": [
+          "Data Files"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Replaces the content of an existing file and returns it. The file keeps its name, type, NQE name and network attachments. Forward checks that the new content parses as the file's type and infers its NQE type, but does NOT check that queries which read the file still work, so incompatible content is accepted. Call assessDataFileReplacement first. Up to 50 MB. Gated by MANAGE_DATA_FILES.",
+        "operationId": "replaceDataFileContent",
+        "parameters": [
+          {
+            "description": "The data file's name (Forward lower-cases it).",
+            "in": "path",
+            "name": "dataFileName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "file": {
+                    "format": "binary",
+                    "type": "string"
+                  },
+                  "headerRow": {
+                    "description": "Column names for a CSV that has no header row. Optional: a multipart part named headerRow is omitted when there are no headers.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "contentMd5Hex": "4db4e627ee10eafe8b7b391cef9e022d",
+                  "createdAt": "2026-04-28T16:05:56.659259451Z",
+                  "createdById": "12509",
+                  "description": "NetBox device type library model/part-number aliases for Forward NetBox NQE mapping tests.",
+                  "name": "netbox_device_type_aliases.json",
+                  "networkIds": [
+                    "255235",
+                    "248580",
+                    "257412"
+                  ],
+                  "nqeName": "netbox_device_type_aliases",
+                  "type": "JSON",
+                  "updatedAt": "2026-04-28T16:05:56.659259451Z",
+                  "updatedById": "12509",
+                  "uploadedAt": "2026-04-28T17:24:00.061232522Z",
+                  "uploadedById": "12509"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DataFileInfo"
+                }
+              }
+            },
+            "description": "The file with its new content."
+          }
+        },
+        "summary": "Replace a data file's content",
+        "tags": [
+          "Data Files"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "assessDataFileReplacement",
+            "summary": "Check whether new content would break queries that read the file",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "assess"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/data-files/{dataFileName}/schema": {
+      "get": {
+        "description": "Returns the stored content and what Forward infers from it, in the same form as inferDataFileSchema. Refused with 400 for the STIG policy file. Gated by VIEW_DATA_FILES.",
+        "operationId": "getDataFileSchema",
+        "parameters": [
+          {
+            "description": "The data file's name (Forward lower-cases it).",
+            "in": "path",
+            "name": "dataFileName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "content": "VENDOR,Env,Function,Usage,OWNER,PARENT,Component,PART-ID,LDOS_Date,LDOS_Year,FY,FQ,STATUS,REPLACEMENT,HW_COST,SFP_Cost,SW_60Mos,Support_60Mos,LCM_60Mos,Labor_Cost,TOTAL_COST,DATE\r",
+                  "inference": {
+                    "dataFormat": "CSV",
+                    "errors": [],
+                    "schema": {
+                      "itemType": {
+                        "fields": [
+                          {
+                            "index": 0,
+                            "isNullable": false,
+                            "name": "VENDOR",
+                            "path": "/network/VENDOR",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 1,
+                            "isNullable": false,
+                            "name": "Env",
+                            "path": "/network/Env",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 2,
+                            "isNullable": false,
+                            "name": "Function",
+                            "path": "/network/Function",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 3,
+                            "isNullable": false,
+                            "name": "Usage",
+                            "path": "/network/Usage",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 4,
+                            "isNullable": false,
+                            "name": "OWNER",
+                            "path": "/network/OWNER",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 5,
+                            "isNullable": false,
+                            "name": "PARENT",
+                            "path": "/network/PARENT",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 6,
+                            "isNullable": false,
+                            "name": "Component",
+                            "path": "/network/Component",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 7,
+                            "isNullable": false,
+                            "name": "PART-ID",
+                            "path": "/network/\"PART-ID\"",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 8,
+                            "isNullable": false,
+                            "name": "LDOS_Date",
+                            "path": "/network/LDOS_Date",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 9,
+                            "isNullable": false,
+                            "name": "LDOS_Year",
+                            "path": "/network/LDOS_Year",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 10,
+                            "isNullable": false,
+                            "name": "FY",
+                            "path": "/network/FY",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 11,
+                            "isNullable": false,
+                            "name": "FQ",
+                            "path": "/network/FQ",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 12,
+                            "isNullable": false,
+                            "name": "STATUS",
+                            "path": "/network/STATUS",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 13,
+                            "isNullable": false,
+                            "name": "REPLACEMENT",
+                            "path": "/network/REPLACEMENT",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 14,
+                            "isNullable": false,
+                            "name": "HW_COST",
+                            "path": "/network/HW_COST",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 15,
+                            "isNullable": false,
+                            "name": "SFP_Cost",
+                            "path": "/network/SFP_Cost",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 16,
+                            "isNullable": false,
+                            "name": "SW_60Mos",
+                            "path": "/network/SW_60Mos",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 17,
+                            "isNullable": false,
+                            "name": "Support_60Mos",
+                            "path": "/network/Support_60Mos",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 18,
+                            "isNullable": false,
+                            "name": "LCM_60Mos",
+                            "path": "/network/LCM_60Mos",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 19,
+                            "isNullable": false,
+                            "name": "Labor_Cost",
+                            "path": "/network/Labor_Cost",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "index": 20,
+                            "isNullable": true,
+                            "name": "TOTAL_COST",
+                            "path": "/network/TOTAL_COST",
+                            "type": {
+                              "type": "Integer"
+                            }
+                          },
+                          {
+                            "index": 21,
+                            "isNullable": false,
+                            "name": "DATE",
+                            "path": "/network/DATE",
+                            "type": {
+                              "type": "String"
+                            }
+                          }
+                        ],
+                        "type": "Record"
+                      },
+                      "type": "Bag"
+                    },
+                    "warnings": []
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DataFileInference"
+                }
+              }
+            },
+            "description": "The content and its inference."
+          }
+        },
+        "summary": "The type Forward infers from a stored data file",
+        "tags": [
+          "Data Files"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/deployment-config": {
@@ -27962,6 +29770,238 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/cloud-objects": {
+      "get": {
+        "description": "Lists the cloud objects in a snapshot, in Forward's order. offset and limit page the list; without them Forward returns every object, and on this account that was 221,337 objects in a 41 MB response. snapshotId defaults to the latest processed snapshot. Gated by VIEW_NETWORK_AND_SNAPSHOTS; the snapshot must have reached CREATION.",
+        "operationId": "listCloudObjects",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Objects to skip.",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Most objects to return.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Snapshot to read. Omit for the latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "cloudObjects": [
+                    {
+                      "accountName": "example-account",
+                      "cloudType": "AWS",
+                      "id": "eni-0517e81b6597b2315",
+                      "locationIds": [
+                        "AWS.us-west-2"
+                      ],
+                      "type": "AWS_INTERFACE",
+                      "vpcs": [
+                        "vpc-0381c625944c2f3b5"
+                      ]
+                    },
+                    {
+                      "accountName": "example-account",
+                      "cloudType": "AWS",
+                      "id": "eni-054b0f147da000ef1",
+                      "locationIds": [
+                        "AWS.us-east-1"
+                      ],
+                      "type": "AWS_INTERFACE",
+                      "vpcs": [
+                        "vpc-0e60e7cd9f7a0a698"
+                      ]
+                    }
+                  ],
+                  "totalCloudObjects": 221337
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CloudObjectPage"
+                }
+              }
+            },
+            "description": "A page of objects."
+          }
+        },
+        "summary": "The cloud objects collected into a snapshot",
+        "tags": [
+          "Cloud Objects"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/cloud-objects/{objectId}": {
+      "get": {
+        "description": "Returns one cloud object by the provider's own id (for example eni-..., rtb-..., sg-...). coveredTopo and deviceInfo are provider-specific coveredTopo is modelled loosely (nodes, links, hosts); deviceInfo and the provider-specific fields are not. snapshotId defaults to the latest processed snapshot. Gated by VIEW_NETWORK_AND_SNAPSHOTS; the snapshot must have reached CREATION.",
+        "operationId": "getCloudObject",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The provider's id for the object.",
+            "in": "path",
+            "name": "objectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Snapshot to read. Omit for the latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "cloudType": "AWS",
+                  "coveredTopo": {
+                    "hosts": [],
+                    "links": [],
+                    "nodes": [
+                      {
+                        "id": "subnet-00fefe6991410f295"
+                      }
+                    ]
+                  },
+                  "id": "eni-0517e81b6597b2315",
+                  "type": "AWS_INTERFACE",
+                  "vendor": "AMAZON"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CloudObjectInfo"
+                }
+              }
+            },
+            "description": "The object."
+          }
+        },
+        "summary": "One cloud object, with the topology it covers",
+        "tags": [
+          "Cloud Objects"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/cloud-objects/{objectId}/files": {
+      "get": {
+        "description": "Lists the stored files for the object. By default only the files Forward generated for it (generatedOnly=true). An object that exists with no stored files gets one non-existent dummy PROPERTIES entry (source, CloudObjectController), so a non-empty list is not proof of content. Gated by VIEW_COLLECTED_FILES; the snapshot must have reached STORED_FILES.",
+        "operationId": "listCloudObjectFiles",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The object's id.",
+            "in": "path",
+            "name": "objectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "false to include every collected file.",
+            "in": "query",
+            "name": "generatedOnly",
+            "required": false,
+            "schema": {
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Snapshot to read. Omit for the latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "creationDateMillis": 0,
+                    "fileName": "eni-0517e81b6597b2315!FAB!,properties.gen",
+                    "id": "-1",
+                    "size": 0
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CloudObjectFile"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The stored files."
+          }
+        },
+        "summary": "The stored files behind a cloud object",
+        "tags": [
+          "Cloud Objects"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/cloudAccountDiscovery": {
       "post": {
         "description": "Long-polls until discovery finishes.",
@@ -32540,6 +34580,316 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/data-files/{dataFileName}": {
+      "delete": {
+        "description": "Detaches the file from one network. Snapshots taken afterwards do not carry it, so a query that reads it sees status MISSING. The STIG policy file cannot be removed from any network (400). Gated by the network operation DELETE_COLLECTION_SOURCES.",
+        "operationId": "removeDataFileFromNetwork",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The data file's name (Forward lower-cases it).",
+            "in": "path",
+            "name": "dataFileName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Detached. No body."
+          }
+        },
+        "summary": "Detach a data file from a network",
+        "tags": [
+          "Data Files"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Attaches the file to the network so its next snapshots collect it. The STIG policy file is refused with 400 (it is in every network already). Gated by the org operation MANAGE_DATA_FILES and the network operation MANAGE_COLLECTION_SOURCES (both @Requires).",
+        "operationId": "addDataFileToNetwork",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The data file's name (Forward lower-cases it).",
+            "in": "path",
+            "name": "dataFileName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Attached. No body."
+          }
+        },
+        "summary": "Attach a data file to a network",
+        "tags": [
+          "Data Files"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/device-metrics": {
+      "get": {
+        "description": "Returns the top 50 devices by the aggregation of their datapoints, in descending order. Gated by VIEW_PERFORMANCE_DATA and the snapshot must have reached CREATION. The Go SDK also sends direction, interface, interfaceFilter, startTime and maxSamples on this route; the Java controller does not read them (Spring ignores unknown query parameters).",
+        "operationId": "getDeviceMetrics",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Days of data to aggregate, 1 to 30 (source: 'days' must be between 1 and 30).",
+            "in": "query",
+            "name": "days",
+            "required": true,
+            "schema": {
+              "maximum": 30,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The device metric.",
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "CPU",
+                "MEMORY"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "A device-name glob.",
+            "in": "query",
+            "name": "device",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only devices with at least one of these tags.",
+            "in": "query",
+            "name": "tags",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "Only devices at these locations.",
+            "in": "query",
+            "name": "locationIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "Only devices of these vendor OS values.",
+            "in": "query",
+            "name": "vendorOs",
+            "required": false,
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/VendorOs"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "Snapshot to read. Omit for the latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the period (exclusive). Defaults to now (source).",
+            "in": "query",
+            "name": "endTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "MAX by default. P95 is refused with 400 unless the org property PERF_AGGREGATION_SELECTOR is set (source: validateAggregation).",
+            "in": "query",
+            "name": "aggregation",
+            "required": false,
+            "schema": {
+              "default": "MAX",
+              "enum": [
+                "MAX",
+                "P95"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "metrics": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PerfDeviceMetrics"
+                }
+              }
+            },
+            "description": "The top devices."
+          }
+        },
+        "summary": "The devices with the highest CPU or memory utilization",
+        "tags": [
+          "Performance Metrics"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/device-metrics-history": {
+      "post": {
+        "description": "Returns datapoints for each listed device over the period. Body: {devices: [names]}. Gated by VIEW_PERFORMANCE_DATA. The Go SDK's DeviceMetricHistoryDocument returns the same response unparsed; it is one operation here. Source only: not called.",
+        "operationId": "getDeviceMetricHistory",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Exactly one of days or startTime (source). 1 to 30.",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "maximum": 30,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Start of the period. Exactly one of days or startTime.",
+            "in": "query",
+            "name": "startTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the period (exclusive). Defaults to now (source).",
+            "in": "query",
+            "name": "endTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Datapoints to return per series (default 400).",
+            "in": "query",
+            "name": "maxSamples",
+            "required": false,
+            "schema": {
+              "default": 400,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The device metric.",
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "CPU",
+                "MEMORY"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "metrics": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PerfDeviceMetricHistoryResponse"
+                }
+              }
+            },
+            "description": "One series per device."
+          }
+        },
+        "summary": "A device's CPU or memory utilization over time",
+        "tags": [
+          "Performance Metrics"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/device-statuses": {
       "get": {
         "description": "Returns collection status for devices the collector has recently reported. Gated by VIEW_NETWORK_AND_SNAPSHOTS. Returns an empty array when the network has no collector (Java). Live-verified empty only.",
@@ -32944,6 +35294,145 @@
             ]
           }
         ]
+      }
+    },
+    "/networks/{networkId}/device-vulnerabilities": {
+      "get": {
+        "description": "Returns the devices that have at least one possible CVE, each with counts of its CVEs by detection result, severity, age and known exploit, in one call. An empty snapshotId uses the latest processed snapshot. totalDevices counts devices across every CVE, so it does not change with the filters (source doc on DeviceVulnerabilities). Gated by VIEW_SECURITY_ANALYSIS; the snapshot must have reached CREATION. The Java controller also has view=metrics and /{deviceName} variants that the Go SDK does not port; they are not in this fragment.",
+        "operationId": "listDeviceVulnerabilities",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Snapshot to read. Omit for the latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only CVEs of this severity.",
+            "in": "query",
+            "name": "severity",
+            "required": false,
+            "schema": {
+              "enum": [
+                "NONE",
+                "LOW",
+                "MEDIUM",
+                "HIGH",
+                "CRITICAL"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "MONTH is up to 30 days since publication, YEAR up to 365, OLDER anything else, including no date (source CveAge).",
+            "in": "query",
+            "name": "age",
+            "required": false,
+            "schema": {
+              "enum": [
+                "MONTH",
+                "YEAR",
+                "OLDER"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "true for CVEs with a known exploit, false for those without.",
+            "in": "query",
+            "name": "exploit",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "devices": [
+                    {
+                      "ageToCveCount": {
+                        "OLDER": 9,
+                        "YEAR": 33
+                      },
+                      "configFile": "redacted",
+                      "deviceType": "SWITCH",
+                      "hasExploitToCveCount": {
+                        "false": 41,
+                        "true": 1
+                      },
+                      "locationId": "23",
+                      "managementIps": [
+                        "192.0.2.1"
+                      ],
+                      "model": "DCS-7010T-48-R",
+                      "name": "redacted-device",
+                      "os": "arista_eos",
+                      "osVersion": "4.28.8.1M",
+                      "resultToCveCount": {
+                        "NOT_VULNERABLE": 25,
+                        "OS_VULNERABLE": 5,
+                        "UNIMPLEMENTED": 7,
+                        "VULNERABLE": 5
+                      },
+                      "severityToCveCount": {
+                        "CRITICAL": 7,
+                        "HIGH": 11,
+                        "LOW": 6,
+                        "MEDIUM": 18
+                      },
+                      "summary": "VULNERABLE",
+                      "tags": [
+                        "DC",
+                        "vrf_None",
+                        "Arista",
+                        "Mgmt-Net",
+                        "Mgmt_Lo0",
+                        "Network",
+                        "AMRS",
+                        "Switch",
+                        "N.Patel",
+                        "Non-Edge",
+                        "Maintain",
+                        "DC01",
+                        "Auth_Forward",
+                        "EoS_New",
+                        "EoS"
+                      ],
+                      "vendor": "ARISTA"
+                    }
+                  ],
+                  "indexCreatedAt": "2026-10-17T19:55:21.097462962Z",
+                  "totalDevices": 4719
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/VulnDeviceList"
+                }
+              }
+            },
+            "description": "The devices and their CVE counts."
+          }
+        },
+        "summary": "Each device with the CVEs that may affect it",
+        "tags": [
+          "Vulnerability Analysis"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/deviceDiscovery": {
@@ -34551,6 +37040,341 @@
         ]
       }
     },
+    "/networks/{networkId}/interesting-path-queries": {
+      "get": {
+        "description": "Runs Forward's interesting-path search on a snapshot and returns the ranked paths. It is synchronous and expensive: it blocks until done or maxSeconds passes. The snapshot must have reached the ADVANCED_REACHABILITY stage: otherwise Forward answers 400 'Advanced reachability <STATE> for snapshot <id>.' (observed on this account, state NOT_TRIGGERED). Gated by VIEW_PATHS. The success body is not observed, so this operation carries no example.",
+        "operationId": "getInterestingPathQueries",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The kind of path to search for.",
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "LOADBALANCER",
+                "FIREWALL",
+                "IP_MPLS_BLACKHOLE",
+                "IP_MPLS_DROP",
+                "L2_STORM",
+                "FORWARDING_DOMAIN_BLACKHOLE",
+                "NON_STATIC_L3_LOOP"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "A soft deadline in seconds; Forward returns what it has found by then.",
+            "in": "query",
+            "name": "maxSeconds",
+            "required": false,
+            "schema": {
+              "default": 300,
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Snapshot to read. Omit for the latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {},
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The interesting paths. The body is not modelled: no successful response was observed, and the JSON field names could not be traced to a Java DTO."
+          }
+        },
+        "summary": "Interesting paths in a snapshot (synchronous)",
+        "tags": [
+          "Path Search"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/interface-metrics": {
+      "get": {
+        "description": "Returns the top 50 interfaces by the aggregation of their datapoints. interface (exact device and interface match) and interfaceFilter (partial match) are mutually exclusive, and snapshotId is required with interfaceFilter (source comments). Gated by VIEW_PERFORMANCE_DATA and the snapshot must have reached CREATION.",
+        "operationId": "getInterfaceMetrics",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The interface metric.",
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "UTILIZATION",
+                "PACKET_LOSS",
+                "ERROR"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Days of data to aggregate.",
+            "in": "query",
+            "name": "days",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Exact device and interface match, parsed by Forward's DevicePort.",
+            "in": "query",
+            "name": "interface",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Partial device and interface match. Needs snapshotId.",
+            "in": "query",
+            "name": "interfaceFilter",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only devices with at least one of these tags.",
+            "in": "query",
+            "name": "tags",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "Only devices at these locations.",
+            "in": "query",
+            "name": "locationIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "Only this direction.",
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "enum": [
+                "INGRESS",
+                "EGRESS"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Snapshot to read. Omit for the latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the period (exclusive). Defaults to now (source).",
+            "in": "query",
+            "name": "endTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "MAX by default. P95 is refused with 400 unless the org property PERF_AGGREGATION_SELECTOR is set (source: validateAggregation).",
+            "in": "query",
+            "name": "aggregation",
+            "required": false,
+            "schema": {
+              "default": "MAX",
+              "enum": [
+                "MAX",
+                "P95"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "metrics": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PerfInterfaceMetrics"
+                }
+              }
+            },
+            "description": "The top interfaces."
+          }
+        },
+        "summary": "The interfaces with the highest utilization, error or packet-loss rates",
+        "tags": [
+          "Performance Metrics"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/interface-metrics-history": {
+      "post": {
+        "description": "Returns datapoints for each listed interface and direction over the period. Body: {interfaces: [{deviceName, interfaceName, direction}]}. Gated by VIEW_PERFORMANCE_DATA. The Go SDK's InterfaceMetricHistoryDocument returns the same response unparsed; it is one operation here. Source only: not called.",
+        "operationId": "getInterfaceMetricHistory",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Exactly one of days or startTime (source). 1 to 30.",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "maximum": 30,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Start of the period. Exactly one of days or startTime.",
+            "in": "query",
+            "name": "startTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the period (exclusive). Defaults to now (source).",
+            "in": "query",
+            "name": "endTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Datapoints to return per series (default 400).",
+            "in": "query",
+            "name": "maxSamples",
+            "required": false,
+            "schema": {
+              "default": 400,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The interface metric.",
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "UTILIZATION",
+                "PACKET_LOSS",
+                "ERROR"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "interfaces": {
+                    "items": {
+                      "$ref": "#/components/schemas/PerfInterfaceWithDirection"
+                    },
+                    "type": "array",
+                    "uniqueItems": true
+                  }
+                },
+                "required": [
+                  "interfaces"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "metrics": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PerfInterfaceMetricHistoryResponse"
+                }
+              }
+            },
+            "description": "One series per interface."
+          }
+        },
+        "summary": "An interface's utilization, error or packet-loss rate over time",
+        "tags": [
+          "Performance Metrics"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/internet-exposure": {
       "get": {
         "operationId": "getInternetExposure",
@@ -35669,6 +38493,74 @@
         "tags": [
           "Jump Servers"
         ]
+      }
+    },
+    "/networks/{networkId}/kpi-categories": {
+      "get": {
+        "description": "Returns the network's KPI categories with their checks. Gated by VIEW_SCORECARDS.",
+        "operationId": "listKpiCategories",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "checks": [
+                      {
+                        "enabled": true,
+                        "goal": 1.0,
+                        "id": "FQ_c3e31d389e8d9d73c55a7f5833e4628c0a835aa3",
+                        "name": "STIG Findings - Cat I",
+                        "note": "Verify compliance with all high severity Forward-supported STIG rules.",
+                        "type": "NQE",
+                        "weight": 7
+                      }
+                    ],
+                    "description": "Measures the compliance of the network devices against 350+ of DISA's Network Device Management STIGs (Security Technical Implementation Guides).",
+                    "id": "-1",
+                    "name": "Security",
+                    "systemManaged": true
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScorecardKpiCategory"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The categories."
+          }
+        },
+        "summary": "The KPI categories, with their checks",
+        "tags": [
+          "Scorecards"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "listKpiCategoryDefinitions",
+            "summary": "The KPI category definitions",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "definitions"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/l2-vpns": {
@@ -38799,6 +41691,129 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/scorecards": {
+      "get": {
+        "description": "Returns each scorecard with its KPI categories and their scores on the given snapshot. snapshotId is required: there is no latest default (source: @RequestParam snapshotId). The contents depend on the organization's licence tier (source: LicenseTierAndStatus), and a scorecard can report status UNLICENSED or PROCESSING. Gated by VIEW_SCORECARDS; the snapshot must have reached START.",
+        "operationId": "getScorecardsForSnapshot",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to score.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "categories": [
+                      {
+                        "checks": [
+                          {
+                            "checkId": "6174141",
+                            "enabled": true,
+                            "goal": 1.0,
+                            "id": "FQ_c3e31d389e8d9d73c55a7f5833e4628c0a835aa3",
+                            "name": "STIG Findings - Cat I",
+                            "note": "Verify compliance with all high severity Forward-supported STIG rules.",
+                            "score": 0.57205135,
+                            "status": "VALID",
+                            "type": "NQE",
+                            "weight": 7
+                          }
+                        ],
+                        "description": "Measures the compliance of the network devices against 350+ of DISA's Network Device Management STIGs (Security Technical Implementation Guides).",
+                        "id": "-1",
+                        "name": "Security",
+                        "score": 0.5605408,
+                        "systemManaged": true,
+                        "weight": 1
+                      },
+                      {
+                        "checks": [
+                          {
+                            "checkId": "4499810",
+                            "enabled": true,
+                            "goal": 1.0,
+                            "id": "FQ_d885c4d4d82ea9d4fee7469bed2b66e1df77509e",
+                            "name": "VLAN Consistency",
+                            "note": "Verifies that VLANs are configured consistently across all VLAN trunk links",
+                            "score": 0.33957794,
+                            "status": "VALID",
+                            "type": "NQE",
+                            "weight": 1
+                          }
+                        ],
+                        "description": "Measures the sanity and correctness of the device interfaces configuration and state.",
+                        "id": "-2",
+                        "name": "Interface Correctness",
+                        "score": 0.7472931,
+                        "systemManaged": true,
+                        "weight": 1
+                      }
+                    ],
+                    "id": "2",
+                    "name": "Everest_Score_Card",
+                    "score": 0.82453394,
+                    "status": "PROCESSED",
+                    "systemManaged": false
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScorecardSnapshot"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The scored scorecards."
+          }
+        },
+        "summary": "Every scorecard, scored on one snapshot",
+        "tags": [
+          "Scorecards"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "listScorecardDefinitions",
+            "summary": "The scorecard definitions",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "definitions"
+              ]
+            ]
+          },
+          {
+            "operationId": "getScorecardTrends",
+            "summary": "Each scorecard's score over time",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "trends"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/security-matrix": {
       "get": {
         "operationId": "getSecurityMatrix",
@@ -39204,6 +42219,136 @@
         "summary": "Change a saved security matrix filter",
         "tags": [
           "Security Matrix Filters"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/snapshotRetentionPolicy": {
+      "get": {
+        "description": "Returns the saved policy. The Go SDK says it returns the deployment's default until one is saved; the service source was not read to confirm. Gated by VIEW_COLLECTION_SETTINGS.",
+        "operationId": "getSnapshotRetentionPolicy",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "enabled": true,
+                  "lastMonth": "ONE_PER_DAY",
+                  "lastQuarter": "ONE_PER_WEEK",
+                  "lastWeek": "ALL",
+                  "lastYear": "ONE_PER_WEEK",
+                  "older": "ONE_PER_WEEK"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotRetentionPolicy"
+                }
+              }
+            },
+            "description": "The policy."
+          }
+        },
+        "summary": "The network's snapshot thinning policy",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "put": {
+        "description": "Replaces the policy. It changes which snapshots the daily cleanup deletes, so a stricter policy is a later deletion; previewSnapshotRetention shows what would go. lastWeek must be ALL, and each later period may not be finer than the one before, with the per-period sets enforced by SnapshotRetentionPolicy's constructor (source). Only on-prem deployments accept it: on cloud the controller throws NotFoundException (the Go SDK reports the message 'policy modification not allowed on cloud'; the Java source passes no message). Gated by EDIT_COLLECTION_SETTINGS and DELETE_SNAPSHOT. Source only: not called.",
+        "operationId": "setSnapshotRetentionPolicy",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnapshotRetentionPolicy"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {},
+                "schema": {
+                  "maxProperties": 0,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The policy was saved."
+          }
+        },
+        "summary": "Replace the snapshot thinning policy",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/snapshotRetentionPolicy/trigger": {
+      "post": {
+        "description": "Lists the snapshots the policy would delete if the cleanup ran now, and deletes nothing. Only dryRun=true is modelled here. Without dryRun the same route deletes the snapshots synchronously (Java default dryRun=false); the Go SDK does not expose that, and a wrapper must never omit the parameter. Forward always keeps the 10 newest processed snapshots, favourites, and forks with their ancestors (Go note on the policy; not re-verified). Gated by DELETE_SNAPSHOT. Source only: not called.",
+        "operationId": "previewSnapshotRetention",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "count": 0,
+                  "deletedSnapshots": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotRetentionPreview"
+                }
+              }
+            },
+            "description": "What the next pass would delete."
+          }
+        },
+        "summary": "Preview which snapshots the retention policy would delete",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "dryRun",
+            "true"
+          ]
         ],
         "x-forward-stability": "unpublished"
       }
@@ -39972,6 +43117,126 @@
         "summary": "One container with its parsed T-API model",
         "tags": [
           "TAPI Network Containers"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/unhealthy-devices": {
+      "get": {
+        "description": "Returns the devices whose CPU, memory or interface usage breached a threshold in the HEALTH_ISSUE_LIFETIME window ending at endTime (source). Omit endTime for the default. Gated by VIEW_PERFORMANCE_DATA; the snapshot must have reached START.",
+        "operationId": "getUnhealthyDevices",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the period (exclusive). Defaults to now (source).",
+            "in": "query",
+            "name": "endTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Snapshot to read. Omit for the latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "devices": {},
+                  "endTime": 1792268975506,
+                  "startTime": 1792182575506
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PerfUnhealthyDevices"
+                }
+              }
+            },
+            "description": "The unhealthy devices in the window."
+          }
+        },
+        "summary": "Devices with a CPU, memory or interface usage problem",
+        "tags": [
+          "Performance Metrics"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/unhealthy-interfaces": {
+      "post": {
+        "description": "Takes a JSON array of device names and returns the interfaces on them that breached a usage threshold in the window ending at endTime. Devices with no unhealthy interface are left out. Gated by VIEW_PERFORMANCE_DATA; the snapshot must have reached START. Source only: this account is read-only, so the POST was not called.",
+        "operationId": "getUnhealthyInterfaces",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the period (exclusive). Defaults to now (source).",
+            "in": "query",
+            "name": "endTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "endTime": 1792268975506,
+                  "interfaces": {},
+                  "startTime": 1792182575506
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PerfUnhealthyInterfaces"
+                }
+              }
+            },
+            "description": "The unhealthy interfaces, keyed by device."
+          }
+        },
+        "summary": "Unhealthy interfaces on the given devices",
+        "tags": [
+          "Performance Metrics"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -42832,6 +46097,62 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/synthetic-device-queries": {
+      "get": {
+        "description": "Lists the parameterless saved queries whose row type is the connection record for this kind of synthetic device, typed against the network's latest processed snapshot (empty when there is none; source SyntheticDeviceController). networkId is a query parameter, not a path segment. type WAN_CIRCUIT, ENCRYPTOR and TAPI_OPTICAL are valid enum values but answer 400 '<TYPE> type not supported' (source SyntheticDeviceController.getNqeType). Gated by VIEW_NETWORK_AND_SNAPSHOTS.",
+        "operationId": "listSyntheticDeviceQueries",
+        "parameters": [
+          {
+            "description": "The synthetic device type.",
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "INTERNET",
+                "INTRANET",
+                "L2VPN",
+                "L3VPN",
+                "WAN_CIRCUIT",
+                "ENCRYPTOR",
+                "TAPI_OPTICAL",
+                "ADJACENT_NETWORK"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "The network.",
+            "in": "query",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "queries": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SyntheticDeviceQueryCollection"
+                }
+              }
+            },
+            "description": "The compatible queries."
+          }
+        },
+        "summary": "Saved NQE queries a synthetic node of this type can use",
+        "tags": [
+          "Synthetic Devices"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/trusted-certificates": {
       "get": {
         "description": "Requires any signed-in user (@RequiresUser). Forward returns a bare JSON array.",
@@ -44553,6 +47874,18 @@
     {
       "description": "Connections to Infoblox, ServiceNow (incidents and CMDB) and end-host scanners such as Rapid7.",
       "name": "Integrations"
+    },
+    {
+      "description": "Device and interface utilization and health, from the performance data collected for a snapshot.",
+      "name": "Performance Metrics"
+    },
+    {
+      "description": "Scorecards and the KPI categories they are scored from.",
+      "name": "Scorecards"
+    },
+    {
+      "description": "Cloud resources (VPCs, subnets, instances and so on) collected into a snapshot.",
+      "name": "Cloud Objects"
     }
   ]
 }

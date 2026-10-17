@@ -93,6 +93,13 @@ tags:
   - name: Integrations
     description: Connections to Infoblox, ServiceNow (incidents and CMDB) and end-host scanners such as Rapid7.
 
+  - name: Performance Metrics
+    description: Device and interface utilization and health, from the performance data collected for a snapshot.
+  - name: Scorecards
+    description: Scorecards and the KPI categories they are scored from.
+  - name: Cloud Objects
+    description: Cloud resources (VPCs, subnets, instances and so on) collected into a snapshot.
+
 x-extend-schemas:
   NewClassicDevice:
     properties:
@@ -9517,6 +9524,1679 @@ paths:
               - 128t_conductor_full
               - 128t_conductor
 
+  /data-files:
+    get:
+      operationId: listDataFiles
+      summary: List the organization's data files
+      description: Lists every data file in the organization, with its attribution and the networks it is attached to. Gated by the org operation VIEW_DATA_FILES (DataFileController.get, @Requires).
+      x-forward-stability: unpublished
+      tags: [Data Files]
+      responses:
+        '200':
+          description: The data files.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DataFileInfo'
+              # from source: live GET /data-files (netbox_device_type_aliases.json); networkIds trimmed from 57 to 3
+              example:
+              - name: netbox_device_type_aliases.json
+                nqeName: netbox_device_type_aliases
+                description: NetBox device type library model/part-number aliases for Forward NetBox NQE mapping tests.
+                type: JSON
+                createdById: '12509'
+                createdAt: '2026-04-28T16:05:56.659259451Z'
+                updatedById: '12509'
+                updatedAt: '2026-04-28T16:05:56.659259451Z'
+                uploadedById: '12509'
+                uploadedAt: '2026-04-28T17:24:00.061232522Z'
+                networkIds: ['255235', '248580', '257412']
+                contentMd5Hex: 4db4e627ee10eafe8b7b391cef9e022d
+    post:
+      operationId: addDataFile
+      summary: Upload a new data file
+      description: 'Uploads a data file and returns it with status 201 and a Location header. The file is attached to no network until addDataFileToNetwork. Refused (source, DataFileController.add and DataFileCreateRequest): files over 50 MB, headers on a non-CSV file, duplicate headers, a STIG type under any name but the STIG policy file''s, and a STIG policy file under any type but STIG. Gated by the org operation MANAGE_DATA_FILES.'
+      x-forward-stability: unpublished
+      tags: [Data Files]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [request, file]
+              properties:
+                request:
+                  $ref: '#/components/schemas/DataFileCreateRequest'
+                file:
+                  type: string
+                  format: binary
+            encoding:
+              request:
+                contentType: application/json
+      responses:
+        '201':
+          description: The data file. Same DataFileInfo DTO as the GET; the example is the live GET's item, not a response to this POST.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataFileInfo'
+              # from source: same DataFileInfo DTO as live GET /data-files (this POST's own response not observed)
+              example:
+                name: netbox_device_type_aliases.json
+                nqeName: netbox_device_type_aliases
+                description: NetBox device type library model/part-number aliases for Forward NetBox NQE mapping tests.
+                type: JSON
+                createdById: '12509'
+                createdAt: '2026-04-28T16:05:56.659259451Z'
+                updatedById: '12509'
+                updatedAt: '2026-04-28T16:05:56.659259451Z'
+                uploadedById: '12509'
+                uploadedAt: '2026-04-28T17:24:00.061232522Z'
+                networkIds: ['255235', '248580', '257412']
+                contentMd5Hex: 4db4e627ee10eafe8b7b391cef9e022d
+  /data-files?action=inferSchema:
+    post:
+      operationId: inferDataFileSchema
+      summary: Preview the type Forward would infer for a file
+      description: 'Returns what Forward would make of the uploaded content as the given file type (format, NQE type and diagnostics) without storing anything. Multipart: file and fileType. Refused for files over 50 MB. The DataFileController checks the uploaded part''s name against the STIG policy file name; the Go SDK refuses fileType STIG. Gated by MANAGE_DATA_FILES (no write happens).'
+      x-forward-stability: unpublished
+      tags: [Data Files]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, fileType]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                fileType:
+                  type: string
+                  enum: [CSV, JSON, XML, XLSX, YAML, TEXT, STIG]
+      responses:
+        '200':
+          description: What Forward infers from the content.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataFileInference'
+              # from source: same DataFileInference DTO as live GET /data-files/{name}/schema (a CSV data file); content cut to its first line. This POST's own response not observed.
+              example:
+                content: "VENDOR,Env,Function,Usage,OWNER,PARENT,Component,PART-ID,LDOS_Date,LDOS_Year,FY,FQ,STATUS,REPLACEMENT,HW_COST,SFP_Cost,SW_60Mos,Support_60Mos,LCM_60Mos,Labor_Cost,TOTAL_COST,DATE\r"
+                inference:
+                  errors: []
+                  warnings: []
+                  dataFormat: CSV
+                  schema:
+                    type: Bag
+                    itemType:
+                      type: Record
+                      fields:
+                      - name: VENDOR
+                        index: 0
+                        type:
+                          type: String
+                        path: /network/VENDOR
+                        isNullable: false
+                      - name: Env
+                        index: 1
+                        type:
+                          type: String
+                        path: /network/Env
+                        isNullable: false
+                      - name: Function
+                        index: 2
+                        type:
+                          type: String
+                        path: /network/Function
+                        isNullable: false
+                      - name: Usage
+                        index: 3
+                        type:
+                          type: String
+                        path: /network/Usage
+                        isNullable: false
+                      - name: OWNER
+                        index: 4
+                        type:
+                          type: String
+                        path: /network/OWNER
+                        isNullable: false
+                      - name: PARENT
+                        index: 5
+                        type:
+                          type: String
+                        path: /network/PARENT
+                        isNullable: false
+                      - name: Component
+                        index: 6
+                        type:
+                          type: String
+                        path: /network/Component
+                        isNullable: false
+                      - name: PART-ID
+                        index: 7
+                        type:
+                          type: String
+                        path: /network/"PART-ID"
+                        isNullable: false
+                      - name: LDOS_Date
+                        index: 8
+                        type:
+                          type: String
+                        path: /network/LDOS_Date
+                        isNullable: false
+                      - name: LDOS_Year
+                        index: 9
+                        type:
+                          type: String
+                        path: /network/LDOS_Year
+                        isNullable: false
+                      - name: FY
+                        index: 10
+                        type:
+                          type: String
+                        path: /network/FY
+                        isNullable: false
+                      - name: FQ
+                        index: 11
+                        type:
+                          type: String
+                        path: /network/FQ
+                        isNullable: false
+                      - name: STATUS
+                        index: 12
+                        type:
+                          type: String
+                        path: /network/STATUS
+                        isNullable: false
+                      - name: REPLACEMENT
+                        index: 13
+                        type:
+                          type: String
+                        path: /network/REPLACEMENT
+                        isNullable: false
+                      - name: HW_COST
+                        index: 14
+                        type:
+                          type: String
+                        path: /network/HW_COST
+                        isNullable: false
+                      - name: SFP_Cost
+                        index: 15
+                        type:
+                          type: String
+                        path: /network/SFP_Cost
+                        isNullable: false
+                      - name: SW_60Mos
+                        index: 16
+                        type:
+                          type: String
+                        path: /network/SW_60Mos
+                        isNullable: false
+                      - name: Support_60Mos
+                        index: 17
+                        type:
+                          type: String
+                        path: /network/Support_60Mos
+                        isNullable: false
+                      - name: LCM_60Mos
+                        index: 18
+                        type:
+                          type: String
+                        path: /network/LCM_60Mos
+                        isNullable: false
+                      - name: Labor_Cost
+                        index: 19
+                        type:
+                          type: String
+                        path: /network/Labor_Cost
+                        isNullable: false
+                      - name: TOTAL_COST
+                        index: 20
+                        type:
+                          type: Integer
+                        path: /network/TOTAL_COST
+                        isNullable: true
+                      - name: DATE
+                        index: 21
+                        type:
+                          type: String
+                        path: /network/DATE
+                        isNullable: false
+  /data-files/{dataFileName}?view=content:
+    get:
+      operationId: downloadDataFile
+      summary: Download a data file's stored content
+      description: 'Returns the stored content as an attachment. The Content-Type follows the file''s type: text/csv, application/json, text/plain, or application/xml for XML and XLSX (source DataFileType.getContentType). A file with no content is refused with 400 ''File cannot be downloaded as it has no content.'' Gated by VIEW_DATA_FILES. The controller is declared produces=JSON, so the request''s Accept header must admit the file''s type (the Go SDK sends ''application/json, */*'').'
+      x-forward-stability: unpublished
+      tags: [Data Files]
+      parameters:
+      - name: dataFileName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The data file's name (Forward lower-cases it).
+      responses:
+        '200':
+          description: The stored content, as an attachment.
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                type: string
+                format: binary
+              # The stored bytes of a JSON-typed data file, whatever they are; this
+              # only shows the kind of content, not a shape Forward defines.
+              example: '[{"name": "example", "value": 1}]'
+            text/plain:
+              schema:
+                type: string
+                format: binary
+            application/xml:
+              schema:
+                type: string
+                format: binary
+  /data-files/{dataFileName}/schema:
+    get:
+      operationId: getDataFileSchema
+      summary: The type Forward infers from a stored data file
+      description: Returns the stored content and what Forward infers from it, in the same form as inferDataFileSchema. Refused with 400 for the STIG policy file. Gated by VIEW_DATA_FILES.
+      x-forward-stability: unpublished
+      tags: [Data Files]
+      parameters:
+      - name: dataFileName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The data file's name (Forward lower-cases it).
+      responses:
+        '200':
+          description: The content and its inference.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataFileInference'
+              # from source: live GET /data-files/{name}/schema on a CSV data file; content cut to its first line
+              example:
+                content: "VENDOR,Env,Function,Usage,OWNER,PARENT,Component,PART-ID,LDOS_Date,LDOS_Year,FY,FQ,STATUS,REPLACEMENT,HW_COST,SFP_Cost,SW_60Mos,Support_60Mos,LCM_60Mos,Labor_Cost,TOTAL_COST,DATE\r"
+                inference:
+                  errors: []
+                  warnings: []
+                  dataFormat: CSV
+                  schema:
+                    type: Bag
+                    itemType:
+                      type: Record
+                      fields:
+                      - name: VENDOR
+                        index: 0
+                        type:
+                          type: String
+                        path: /network/VENDOR
+                        isNullable: false
+                      - name: Env
+                        index: 1
+                        type:
+                          type: String
+                        path: /network/Env
+                        isNullable: false
+                      - name: Function
+                        index: 2
+                        type:
+                          type: String
+                        path: /network/Function
+                        isNullable: false
+                      - name: Usage
+                        index: 3
+                        type:
+                          type: String
+                        path: /network/Usage
+                        isNullable: false
+                      - name: OWNER
+                        index: 4
+                        type:
+                          type: String
+                        path: /network/OWNER
+                        isNullable: false
+                      - name: PARENT
+                        index: 5
+                        type:
+                          type: String
+                        path: /network/PARENT
+                        isNullable: false
+                      - name: Component
+                        index: 6
+                        type:
+                          type: String
+                        path: /network/Component
+                        isNullable: false
+                      - name: PART-ID
+                        index: 7
+                        type:
+                          type: String
+                        path: /network/"PART-ID"
+                        isNullable: false
+                      - name: LDOS_Date
+                        index: 8
+                        type:
+                          type: String
+                        path: /network/LDOS_Date
+                        isNullable: false
+                      - name: LDOS_Year
+                        index: 9
+                        type:
+                          type: String
+                        path: /network/LDOS_Year
+                        isNullable: false
+                      - name: FY
+                        index: 10
+                        type:
+                          type: String
+                        path: /network/FY
+                        isNullable: false
+                      - name: FQ
+                        index: 11
+                        type:
+                          type: String
+                        path: /network/FQ
+                        isNullable: false
+                      - name: STATUS
+                        index: 12
+                        type:
+                          type: String
+                        path: /network/STATUS
+                        isNullable: false
+                      - name: REPLACEMENT
+                        index: 13
+                        type:
+                          type: String
+                        path: /network/REPLACEMENT
+                        isNullable: false
+                      - name: HW_COST
+                        index: 14
+                        type:
+                          type: String
+                        path: /network/HW_COST
+                        isNullable: false
+                      - name: SFP_Cost
+                        index: 15
+                        type:
+                          type: String
+                        path: /network/SFP_Cost
+                        isNullable: false
+                      - name: SW_60Mos
+                        index: 16
+                        type:
+                          type: String
+                        path: /network/SW_60Mos
+                        isNullable: false
+                      - name: Support_60Mos
+                        index: 17
+                        type:
+                          type: String
+                        path: /network/Support_60Mos
+                        isNullable: false
+                      - name: LCM_60Mos
+                        index: 18
+                        type:
+                          type: String
+                        path: /network/LCM_60Mos
+                        isNullable: false
+                      - name: Labor_Cost
+                        index: 19
+                        type:
+                          type: String
+                        path: /network/Labor_Cost
+                        isNullable: false
+                      - name: TOTAL_COST
+                        index: 20
+                        type:
+                          type: Integer
+                        path: /network/TOTAL_COST
+                        isNullable: true
+                      - name: DATE
+                        index: 21
+                        type:
+                          type: String
+                        path: /network/DATE
+                        isNullable: false
+  /data-files/{dataFileName}:
+    patch:
+      operationId: patchDataFile
+      summary: Change a data file's name, NQE name or description
+      description: 'Changes details, not content. Omitted fields are left alone. name renames the file (lower-cased; a name a collection source already uses in an attached network is refused with 400). nqeName changes the field queries read it by and may not be blank or null. description: an explicit null clears it, which is how Forward''s JsonProp distinguishes null from omitted. At least one field must be present. Refused for the STIG policy file. A missing file answers 404 (Go SDK; the service throws NotFound). Gated by MANAGE_DATA_FILES.'
+      x-forward-stability: unpublished
+      tags: [Data Files]
+      parameters:
+      - name: dataFileName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The data file's name (Forward lower-cases it).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataFilePatch'
+      responses:
+        '200':
+          description: The updated data file.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataFileInfo'
+              # from source: same DataFileInfo DTO as live GET /data-files; this PATCH's own response not observed
+              example:
+                name: netbox_device_type_aliases.json
+                nqeName: netbox_device_type_aliases
+                description: NetBox device type library model/part-number aliases for Forward NetBox NQE mapping tests.
+                type: JSON
+                createdById: '12509'
+                createdAt: '2026-04-28T16:05:56.659259451Z'
+                updatedById: '12509'
+                updatedAt: '2026-04-28T16:05:56.659259451Z'
+                uploadedById: '12509'
+                uploadedAt: '2026-04-28T17:24:00.061232522Z'
+                networkIds: ['255235', '248580', '257412']
+                contentMd5Hex: 4db4e627ee10eafe8b7b391cef9e022d
+    post:
+      operationId: replaceDataFileContent
+      summary: Replace a data file's content
+      description: Replaces the content of an existing file and returns it. The file keeps its name, type, NQE name and network attachments. Forward checks that the new content parses as the file's type and infers its NQE type, but does NOT check that queries which read the file still work, so incompatible content is accepted. Call assessDataFileReplacement first. Up to 50 MB. Gated by MANAGE_DATA_FILES.
+      x-forward-stability: unpublished
+      tags: [Data Files]
+      parameters:
+      - name: dataFileName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The data file's name (Forward lower-cases it).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                headerRow:
+                  type: array
+                  items:
+                    type: string
+                  description: 'Column names for a CSV that has no header row. Optional: a multipart part named headerRow is omitted when there are no headers.'
+      responses:
+        '200':
+          description: The file with its new content.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataFileInfo'
+              # from source: same DataFileInfo DTO as live GET /data-files; this POST's own response not observed
+              example:
+                name: netbox_device_type_aliases.json
+                nqeName: netbox_device_type_aliases
+                description: NetBox device type library model/part-number aliases for Forward NetBox NQE mapping tests.
+                type: JSON
+                createdById: '12509'
+                createdAt: '2026-04-28T16:05:56.659259451Z'
+                updatedById: '12509'
+                updatedAt: '2026-04-28T16:05:56.659259451Z'
+                uploadedById: '12509'
+                uploadedAt: '2026-04-28T17:24:00.061232522Z'
+                networkIds: ['255235', '248580', '257412']
+                contentMd5Hex: 4db4e627ee10eafe8b7b391cef9e022d
+    delete:
+      operationId: deleteDataFile
+      summary: Delete a data file from the organization's library
+      description: Removes the file from the organization and so from every network it was attached to. The content is not kept anywhere else. A file that does not exist answers 404 ('No data file with name ... exists.'). Gated by MANAGE_DATA_FILES.
+      x-forward-stability: unpublished
+      tags: [Data Files]
+      parameters:
+      - name: dataFileName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The data file's name (Forward lower-cases it).
+      responses:
+        '200':
+          description: The file was deleted. The response has no body.
+  /data-files/{dataFileName}?action=assess:
+    post:
+      operationId: assessDataFileReplacement
+      summary: Check whether new content would break queries that read the file
+      description: 'Answers whether the content could replace the file without breaking existing queries: true (SUCCESS) when the new content''s inferred NQE type is a subtype of the stored one. Content that does not parse as the file''s type is FAILURE, not an error. Changes nothing. Refused for the STIG policy file. Gated by MANAGE_DATA_FILES.'
+      x-forward-stability: unpublished
+      tags: [Data Files]
+      parameters:
+      - name: dataFileName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The data file's name (Forward lower-cases it).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                headerRow:
+                  type: array
+                  items:
+                    type: string
+                  description: 'Column names for a CSV that has no header row. Optional: a multipart part named headerRow is omitted when there are no headers.'
+      responses:
+        '200':
+          description: Whether the replacement is compatible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataFileAssessment'
+              # from source: DataFileController.assessReplaceFile returns Map.of("result", "SUCCESS"); the other value is FAILURE
+              example:
+                result: SUCCESS
+  /networks/{networkId}/data-files/{dataFileName}:
+    post:
+      operationId: addDataFileToNetwork
+      summary: Attach a data file to a network
+      description: Attaches the file to the network so its next snapshots collect it. The STIG policy file is refused with 400 (it is in every network already). Gated by the org operation MANAGE_DATA_FILES and the network operation MANAGE_COLLECTION_SOURCES (both @Requires).
+      x-forward-stability: unpublished
+      tags: [Data Files]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: dataFileName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The data file's name (Forward lower-cases it).
+      responses:
+        '204':
+          description: Attached. No body.
+    delete:
+      operationId: removeDataFileFromNetwork
+      summary: Detach a data file from a network
+      description: Detaches the file from one network. Snapshots taken afterwards do not carry it, so a query that reads it sees status MISSING. The STIG policy file cannot be removed from any network (400). Gated by the network operation DELETE_COLLECTION_SOURCES.
+      x-forward-stability: unpublished
+      tags: [Data Files]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: dataFileName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The data file's name (Forward lower-cases it).
+      responses:
+        '204':
+          description: Detached. No body.
+  /networks/{networkId}/device-metrics:
+    get:
+      operationId: getDeviceMetrics
+      summary: The devices with the highest CPU or memory utilization
+      description: Returns the top 50 devices by the aggregation of their datapoints, in descending order. Gated by VIEW_PERFORMANCE_DATA and the snapshot must have reached CREATION. The Go SDK also sends direction, interface, interfaceFilter, startTime and maxSamples on this route; the Java controller does not read them (Spring ignores unknown query parameters).
+      x-forward-stability: unpublished
+      tags: [Performance Metrics]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: days
+        in: query
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 30
+        description: 'Days of data to aggregate, 1 to 30 (source: ''days'' must be between 1 and 30).'
+      - name: type
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [CPU, MEMORY]
+        description: The device metric.
+      - name: device
+        in: query
+        required: false
+        schema:
+          type: string
+        description: A device-name glob.
+      - name: tags
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+        description: Only devices with at least one of these tags.
+      - name: locationIds
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+        description: Only devices at these locations.
+      - name: vendorOs
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/VendorOs'
+        description: Only devices of these vendor OS values.
+      - name: snapshotId
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Snapshot to read. Omit for the latest processed snapshot.
+      - name: endTime
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+        description: End of the period (exclusive). Defaults to now (source).
+      - name: aggregation
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [MAX, P95]
+          default: MAX
+        description: 'MAX by default. P95 is refused with 400 unless the org property PERF_AGGREGATION_SELECTOR is set (source: validateAggregation).'
+      responses:
+        '200':
+          description: The top devices.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfDeviceMetrics'
+              # from source: live GET device-metrics (type=CPU, days=1); no items on this account's snapshot, so the list is empty
+              example:
+                metrics: []
+  /networks/{networkId}/interface-metrics:
+    get:
+      operationId: getInterfaceMetrics
+      summary: The interfaces with the highest utilization, error or packet-loss rates
+      description: Returns the top 50 interfaces by the aggregation of their datapoints. interface (exact device and interface match) and interfaceFilter (partial match) are mutually exclusive, and snapshotId is required with interfaceFilter (source comments). Gated by VIEW_PERFORMANCE_DATA and the snapshot must have reached CREATION.
+      x-forward-stability: unpublished
+      tags: [Performance Metrics]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: type
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [UTILIZATION, PACKET_LOSS, ERROR]
+        description: The interface metric.
+      - name: days
+        in: query
+        required: true
+        schema:
+          type: integer
+        description: Days of data to aggregate.
+      - name: interface
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Exact device and interface match, parsed by Forward's DevicePort.
+      - name: interfaceFilter
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Partial device and interface match. Needs snapshotId.
+      - name: tags
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+        description: Only devices with at least one of these tags.
+      - name: locationIds
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+        description: Only devices at these locations.
+      - name: direction
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [INGRESS, EGRESS]
+        description: Only this direction.
+      - name: snapshotId
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Snapshot to read. Omit for the latest processed snapshot.
+      - name: endTime
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+        description: End of the period (exclusive). Defaults to now (source).
+      - name: aggregation
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [MAX, P95]
+          default: MAX
+        description: 'MAX by default. P95 is refused with 400 unless the org property PERF_AGGREGATION_SELECTOR is set (source: validateAggregation).'
+      responses:
+        '200':
+          description: The top interfaces.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfInterfaceMetrics'
+              # from source: live GET interface-metrics (type=UTILIZATION, days=1); no items on this account's snapshot, so the list is empty
+              example:
+                metrics: []
+  /networks/{networkId}/unhealthy-devices:
+    get:
+      operationId: getUnhealthyDevices
+      summary: Devices with a CPU, memory or interface usage problem
+      description: Returns the devices whose CPU, memory or interface usage breached a threshold in the HEALTH_ISSUE_LIFETIME window ending at endTime (source). Omit endTime for the default. Gated by VIEW_PERFORMANCE_DATA; the snapshot must have reached START.
+      x-forward-stability: unpublished
+      tags: [Performance Metrics]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: endTime
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+        description: End of the period (exclusive). Defaults to now (source).
+      - name: snapshotId
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Snapshot to read. Omit for the latest processed snapshot.
+      responses:
+        '200':
+          description: The unhealthy devices in the window.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfUnhealthyDevices'
+              # from source: live GET unhealthy-devices (snapshotId given); the device map was empty on this account
+              example:
+                startTime: 1792182575506
+                endTime: 1792268975506
+                devices: {}
+  /networks/{networkId}/unhealthy-interfaces:
+    post:
+      operationId: getUnhealthyInterfaces
+      summary: Unhealthy interfaces on the given devices
+      description: 'Takes a JSON array of device names and returns the interfaces on them that breached a usage threshold in the window ending at endTime. Devices with no unhealthy interface are left out. Gated by VIEW_PERFORMANCE_DATA; the snapshot must have reached START. Source only: this account is read-only, so the POST was not called.'
+      x-forward-stability: unpublished
+      tags: [Performance Metrics]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: endTime
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+        description: End of the period (exclusive). Defaults to now (source).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+      responses:
+        '200':
+          description: The unhealthy interfaces, keyed by device.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfUnhealthyInterfaces'
+              # from source: constructed from the DTO (UnhealthyInterfaces.java): empty result; startTime/endTime copied from the live unhealthy-devices response, not observed for this POST
+              example:
+                startTime: 1792182575506
+                endTime: 1792268975506
+                interfaces: {}
+  /networks/{networkId}/device-metrics-history:
+    post:
+      operationId: getDeviceMetricHistory
+      summary: A device's CPU or memory utilization over time
+      description: 'Returns datapoints for each listed device over the period. Body: {devices: [names]}. Gated by VIEW_PERFORMANCE_DATA. The Go SDK''s DeviceMetricHistoryDocument returns the same response unparsed; it is one operation here. Source only: not called.'
+      x-forward-stability: unpublished
+      tags: [Performance Metrics]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: days
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 30
+        description: Exactly one of days or startTime (source). 1 to 30.
+      - name: startTime
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+        description: Start of the period. Exactly one of days or startTime.
+      - name: endTime
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+        description: End of the period (exclusive). Defaults to now (source).
+      - name: maxSamples
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 400
+        description: Datapoints to return per series (default 400).
+      - name: type
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [CPU, MEMORY]
+        description: The device metric.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceSet'
+      responses:
+        '200':
+          description: One series per device.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfDeviceMetricHistoryResponse'
+              # from source: constructed from DeviceMetricHistoryResponse.java: no observed series; empty result shown
+              example:
+                metrics: []
+  /networks/{networkId}/interface-metrics-history:
+    post:
+      operationId: getInterfaceMetricHistory
+      summary: An interface's utilization, error or packet-loss rate over time
+      description: 'Returns datapoints for each listed interface and direction over the period. Body: {interfaces: [{deviceName, interfaceName, direction}]}. Gated by VIEW_PERFORMANCE_DATA. The Go SDK''s InterfaceMetricHistoryDocument returns the same response unparsed; it is one operation here. Source only: not called.'
+      x-forward-stability: unpublished
+      tags: [Performance Metrics]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: days
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 30
+        description: Exactly one of days or startTime (source). 1 to 30.
+      - name: startTime
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+        description: Start of the period. Exactly one of days or startTime.
+      - name: endTime
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+        description: End of the period (exclusive). Defaults to now (source).
+      - name: maxSamples
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 400
+        description: Datapoints to return per series (default 400).
+      - name: type
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [UTILIZATION, PACKET_LOSS, ERROR]
+        description: The interface metric.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [interfaces]
+              properties:
+                interfaces:
+                  type: array
+                  uniqueItems: true
+                  items:
+                    $ref: '#/components/schemas/PerfInterfaceWithDirection'
+      responses:
+        '200':
+          description: One series per interface.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfInterfaceMetricHistoryResponse'
+              # from source: constructed from InterfaceMetricHistoryResponse.java: no observed series; empty result shown
+              example:
+                metrics: []
+  /networks/{networkId}/scorecards:
+    get:
+      operationId: getScorecardsForSnapshot
+      summary: Every scorecard, scored on one snapshot
+      description: 'Returns each scorecard with its KPI categories and their scores on the given snapshot. snapshotId is required: there is no latest default (source: @RequestParam snapshotId). The contents depend on the organization''s licence tier (source: LicenseTierAndStatus), and a scorecard can report status UNLICENSED or PROCESSING. Gated by VIEW_SCORECARDS; the snapshot must have reached START.'
+      x-forward-stability: unpublished
+      tags: [Scorecards]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: snapshotId
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The snapshot to score.
+      responses:
+        '200':
+          description: The scored scorecards.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScorecardSnapshot'
+              # from source: live GET scorecards?snapshotId= (1 of 4 scorecards, 2 of its categories, 1 check each, trimmed)
+              example:
+              - id: '2'
+                name: Everest_Score_Card
+                categories:
+                - id: '-1'
+                  name: Security
+                  description: Measures the compliance of the network devices against 350+ of DISA's Network Device Management STIGs (Security Technical Implementation Guides).
+                  systemManaged: true
+                  checks:
+                  - name: STIG Findings - Cat I
+                    note: Verify compliance with all high severity Forward-supported STIG rules.
+                    type: NQE
+                    enabled: true
+                    id: FQ_c3e31d389e8d9d73c55a7f5833e4628c0a835aa3
+                    weight: 7
+                    goal: 1.0
+                    checkId: '6174141'
+                    score: 0.57205135
+                    status: VALID
+                  weight: 1
+                  score: 0.5605408
+                - id: '-2'
+                  name: Interface Correctness
+                  description: Measures the sanity and correctness of the device interfaces configuration and state.
+                  systemManaged: true
+                  checks:
+                  - name: VLAN Consistency
+                    note: Verifies that VLANs are configured consistently across all VLAN trunk links
+                    type: NQE
+                    enabled: true
+                    id: FQ_d885c4d4d82ea9d4fee7469bed2b66e1df77509e
+                    weight: 1
+                    goal: 1.0
+                    checkId: '4499810'
+                    score: 0.33957794
+                    status: VALID
+                  weight: 1
+                  score: 0.7472931
+                status: PROCESSED
+                systemManaged: false
+                score: 0.82453394
+  /networks/{networkId}/scorecards?view=definitions:
+    get:
+      operationId: listScorecardDefinitions
+      summary: The scorecard definitions
+      description: Returns the network's scorecard definitions. Forward documents this view as for debugging purposes. Gated by VIEW_SCORECARDS.
+      x-forward-stability: unpublished
+      tags: [Scorecards]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      responses:
+        '200':
+          description: The definitions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScorecardDefinition'
+              # from source: live GET scorecards?view=definitions (2 of 4, trimmed)
+              example:
+              - id: '2'
+                name: Everest_Score_Card
+                categoryWeights:
+                  '-1': 1
+                  '-2': 1
+                  '-3': 1
+                  '-4': 1
+                systemManaged: false
+              - id: '5'
+                name: StigTest
+                categoryWeights:
+                  '-1': 1
+                systemManaged: false
+  /networks/{networkId}/scorecards?view=trends:
+    get:
+      operationId: getScorecardTrends
+      summary: Each scorecard's score over time
+      description: Returns up to maxPoints snapshots per scorecard between start and end inclusive, in chronological order, keyed by scorecard id. start must precede end and maxPoints must be at least 2 (source). Gated by VIEW_SCORECARDS.
+      x-forward-stability: unpublished
+      tags: [Scorecards]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: start
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+        description: Start of the period.
+      - name: end
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+        description: End of the period (inclusive).
+      - name: maxPoints
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 2
+          default: 30
+        description: Most snapshots to return per scorecard.
+      responses:
+        '200':
+          description: Points per scorecard id.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ScorecardTrendPoint'
+              # from source: live GET scorecards?view=trends (2 of 4 scorecards, 2 points each, trimmed)
+              example:
+                '-1':
+                - snapshotId: '1398614'
+                  instant: 1788672304091
+                  score: 0.753343
+                - snapshotId: '1411126'
+                  instant: 1789881737225
+                  score: 0.75220966
+                '2':
+                - snapshotId: '1398614'
+                  instant: 1788672304091
+                  score: 0.83078563
+                - snapshotId: '1411126'
+                  instant: 1789881737225
+                  score: 0.8233316
+  /networks/{networkId}/kpi-categories:
+    get:
+      operationId: listKpiCategories
+      summary: The KPI categories, with their checks
+      description: Returns the network's KPI categories with their checks. Gated by VIEW_SCORECARDS.
+      x-forward-stability: unpublished
+      tags: [Scorecards]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      responses:
+        '200':
+          description: The categories.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScorecardKpiCategory'
+              # from source: live GET kpi-categories (1 of 5 categories, 1 check, trimmed)
+              example:
+              - id: '-1'
+                name: Security
+                description: Measures the compliance of the network devices against 350+ of DISA's Network Device Management STIGs (Security Technical Implementation Guides).
+                checks:
+                - name: STIG Findings - Cat I
+                  note: Verify compliance with all high severity Forward-supported STIG rules.
+                  type: NQE
+                  enabled: true
+                  id: FQ_c3e31d389e8d9d73c55a7f5833e4628c0a835aa3
+                  weight: 7
+                  goal: 1.0
+                systemManaged: true
+  /networks/{networkId}/kpi-categories?view=definitions:
+    get:
+      operationId: listKpiCategoryDefinitions
+      summary: The KPI category definitions
+      description: Returns the KPI category definitions. Where listKpiCategories carries each check's result fields, this carries the check definitions (id, weight, goal). Gated by VIEW_SCORECARDS.
+      x-forward-stability: unpublished
+      tags: [Scorecards]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      responses:
+        '200':
+          description: The definitions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScorecardKpiCategoryDefinition'
+              # from source: live GET kpi-categories?view=definitions (1 of 5 categories, 2 checks, trimmed)
+              example:
+              - id: '-1'
+                name: Security
+                description: Measures the compliance of the network devices against 350+ of DISA's Network Device Management STIGs (Security Technical Implementation Guides).
+                checks:
+                - id: FQ_c3e31d389e8d9d73c55a7f5833e4628c0a835aa3
+                  weight: 7
+                  goal: 1.0
+                - id: FQ_3f1972b35e637189a898ca9925cde53cda5dd550
+                  weight: 3
+                  goal: 1.0
+                systemManaged: true
+  /networks/{networkId}/device-vulnerabilities:
+    get:
+      operationId: listDeviceVulnerabilities
+      summary: Each device with the CVEs that may affect it
+      description: Returns the devices that have at least one possible CVE, each with counts of its CVEs by detection result, severity, age and known exploit, in one call. An empty snapshotId uses the latest processed snapshot. totalDevices counts devices across every CVE, so it does not change with the filters (source doc on DeviceVulnerabilities). Gated by VIEW_SECURITY_ANALYSIS; the snapshot must have reached CREATION. The Java controller also has view=metrics and /{deviceName} variants that the Go SDK does not port; they are not in this fragment.
+      x-forward-stability: unpublished
+      tags: [Vulnerability Analysis]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: snapshotId
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Snapshot to read. Omit for the latest processed snapshot.
+      - name: severity
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [NONE, LOW, MEDIUM, HIGH, CRITICAL]
+        description: Only CVEs of this severity.
+      - name: age
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [MONTH, YEAR, OLDER]
+        description: MONTH is up to 30 days since publication, YEAR up to 365, OLDER anything else, including no date (source CveAge).
+      - name: exploit
+        in: query
+        required: false
+        schema:
+          type: boolean
+        description: true for CVEs with a known exploit, false for those without.
+      responses:
+        '200':
+          description: The devices and their CVE counts.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VulnDeviceList'
+              # from source: live GET device-vulnerabilities?snapshotId= (first of 4719 devices, trimmed; name, IP and configFile redacted)
+              example:
+                devices:
+                - deviceType: SWITCH
+                  model: DCS-7010T-48-R
+                  vendor: ARISTA
+                  tags: [DC, vrf_None, Arista, Mgmt-Net, Mgmt_Lo0, Network, AMRS, Switch, N.Patel, Non-Edge, Maintain, DC01, Auth_Forward, EoS_New, EoS]
+                  name: redacted-device
+                  osVersion: 4.28.8.1M
+                  managementIps: [192.0.2.1]
+                  os: arista_eos
+                  configFile: redacted
+                  locationId: '23'
+                  resultToCveCount:
+                    VULNERABLE: 5
+                    OS_VULNERABLE: 5
+                    UNIMPLEMENTED: 7
+                    NOT_VULNERABLE: 25
+                  severityToCveCount:
+                    LOW: 6
+                    MEDIUM: 18
+                    HIGH: 11
+                    CRITICAL: 7
+                  ageToCveCount:
+                    YEAR: 33
+                    OLDER: 9
+                  hasExploitToCveCount:
+                    'false': 41
+                    'true': 1
+                  summary: VULNERABLE
+                totalDevices: 4719
+                indexCreatedAt: '2026-10-17T19:55:21.097462962Z'
+  /networks/{networkId}/cloud-objects:
+    get:
+      operationId: listCloudObjects
+      summary: The cloud objects collected into a snapshot
+      description: Lists the cloud objects in a snapshot, in Forward's order. offset and limit page the list; without them Forward returns every object, and on this account that was 221,337 objects in a 41 MB response. snapshotId defaults to the latest processed snapshot. Gated by VIEW_NETWORK_AND_SNAPSHOTS; the snapshot must have reached CREATION.
+      x-forward-stability: unpublished
+      tags: [Cloud Objects]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+        description: Objects to skip.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+        description: Most objects to return.
+      - name: snapshotId
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Snapshot to read. Omit for the latest processed snapshot.
+      responses:
+        '200':
+          description: A page of objects.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CloudObjectPage'
+              # from source: live GET cloud-objects?limit=2 with no snapshotId (latest processed); accountName redacted
+              example:
+                cloudObjects:
+                - id: eni-0517e81b6597b2315
+                  accountName: example-account
+                  type: AWS_INTERFACE
+                  locationIds: [AWS.us-west-2]
+                  vpcs: [vpc-0381c625944c2f3b5]
+                  cloudType: AWS
+                - id: eni-054b0f147da000ef1
+                  accountName: example-account
+                  type: AWS_INTERFACE
+                  locationIds: [AWS.us-east-1]
+                  vpcs: [vpc-0e60e7cd9f7a0a698]
+                  cloudType: AWS
+                totalCloudObjects: 221337
+  /networks/{networkId}/cloud-objects/{objectId}:
+    get:
+      operationId: getCloudObject
+      summary: One cloud object, with the topology it covers
+      description: Returns one cloud object by the provider's own id (for example eni-..., rtb-..., sg-...). coveredTopo and deviceInfo are provider-specific coveredTopo is modelled loosely (nodes, links, hosts); deviceInfo and the provider-specific fields are not. snapshotId defaults to the latest processed snapshot. Gated by VIEW_NETWORK_AND_SNAPSHOTS; the snapshot must have reached CREATION.
+      x-forward-stability: unpublished
+      tags: [Cloud Objects]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: objectId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The provider's id for the object.
+      - name: snapshotId
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Snapshot to read. Omit for the latest processed snapshot.
+      responses:
+        '200':
+          description: The object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CloudObjectInfo'
+              # from source: live GET cloud-objects/{eni id} (latest processed snapshot)
+              example:
+                cloudType: AWS
+                type: AWS_INTERFACE
+                id: eni-0517e81b6597b2315
+                coveredTopo:
+                  nodes:
+                  - id: subnet-00fefe6991410f295
+                  links: []
+                  hosts: []
+                vendor: AMAZON
+  /networks/{networkId}/cloud-objects/{objectId}/files:
+    get:
+      operationId: listCloudObjectFiles
+      summary: The stored files behind a cloud object
+      description: Lists the stored files for the object. By default only the files Forward generated for it (generatedOnly=true). An object that exists with no stored files gets one non-existent dummy PROPERTIES entry (source, CloudObjectController), so a non-empty list is not proof of content. Gated by VIEW_COLLECTED_FILES; the snapshot must have reached STORED_FILES.
+      x-forward-stability: unpublished
+      tags: [Cloud Objects]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: objectId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The object's id.
+      - name: generatedOnly
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: true
+        description: false to include every collected file.
+      - name: snapshotId
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Snapshot to read. Omit for the latest processed snapshot.
+      responses:
+        '200':
+          description: The stored files.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CloudObjectFile'
+              # from source: live GET cloud-objects/{eni id}/files; the one entry is the dummy PROPERTIES file described above
+              example:
+              - id: '-1'
+                creationDateMillis: 0
+                size: 0
+                fileName: eni-0517e81b6597b2315!FAB!,properties.gen
+  /networks/{networkId}/interesting-path-queries:
+    get:
+      operationId: getInterestingPathQueries
+      summary: Interesting paths in a snapshot (synchronous)
+      description: 'Runs Forward''s interesting-path search on a snapshot and returns the ranked paths. It is synchronous and expensive: it blocks until done or maxSeconds passes. The snapshot must have reached the ADVANCED_REACHABILITY stage: otherwise Forward answers 400 ''Advanced reachability <STATE> for snapshot <id>.'' (observed on this account, state NOT_TRIGGERED). Gated by VIEW_PATHS. The success body is not observed, so this operation carries no example.'
+      x-forward-stability: unpublished
+      tags: [Path Search]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      - name: type
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [LOADBALANCER, FIREWALL, IP_MPLS_BLACKHOLE, IP_MPLS_DROP, L2_STORM, FORWARDING_DOMAIN_BLACKHOLE, NON_STATIC_L3_LOOP]
+        description: The kind of path to search for.
+      - name: maxSeconds
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+          default: 300
+        description: A soft deadline in seconds; Forward returns what it has found by then.
+      - name: snapshotId
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Snapshot to read. Omit for the latest processed snapshot.
+      responses:
+        '200':
+          description: 'The interesting paths. The body is not modelled: no successful response was observed, and the JSON field names could not be traced to a Java DTO.'
+          content:
+            application/json:
+              schema:
+                type: object
+              # No successful response has been observed, so there is nothing to show.
+              example: {}
+  /networks/{networkId}/snapshotRetentionPolicy:
+    get:
+      operationId: getSnapshotRetentionPolicy
+      summary: The network's snapshot thinning policy
+      description: Returns the saved policy. The Go SDK says it returns the deployment's default until one is saved; the service source was not read to confirm. Gated by VIEW_COLLECTION_SETTINGS.
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      responses:
+        '200':
+          description: The policy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotRetentionPolicy'
+              # from source: live GET snapshotRetentionPolicy
+              example:
+                enabled: true
+                lastWeek: ALL
+                lastMonth: ONE_PER_DAY
+                lastQuarter: ONE_PER_WEEK
+                lastYear: ONE_PER_WEEK
+                older: ONE_PER_WEEK
+    put:
+      operationId: setSnapshotRetentionPolicy
+      summary: Replace the snapshot thinning policy
+      description: 'Replaces the policy. It changes which snapshots the daily cleanup deletes, so a stricter policy is a later deletion; previewSnapshotRetention shows what would go. lastWeek must be ALL, and each later period may not be finer than the one before, with the per-period sets enforced by SnapshotRetentionPolicy''s constructor (source). Only on-prem deployments accept it: on cloud the controller throws NotFoundException (the Go SDK reports the message ''policy modification not allowed on cloud''; the Java source passes no message). Gated by EDIT_COLLECTION_SETTINGS and DELETE_SNAPSHOT. Source only: not called.'
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnapshotRetentionPolicy'
+      responses:
+        '200':
+          description: The policy was saved.
+          content:
+            application/json:
+              schema:
+                type: object
+                maxProperties: 0
+              # from source: EmptyObject.get() serialises to {} (web/json/EmptyObject.java)
+              example: {}
+  /networks/{networkId}/snapshotRetentionPolicy/trigger?dryRun=true:
+    post:
+      operationId: previewSnapshotRetention
+      summary: Preview which snapshots the retention policy would delete
+      description: 'Lists the snapshots the policy would delete if the cleanup ran now, and deletes nothing. Only dryRun=true is modelled here. Without dryRun the same route deletes the snapshots synchronously (Java default dryRun=false); the Go SDK does not expose that, and a wrapper must never omit the parameter. Forward always keeps the 10 newest processed snapshots, favourites, and forks with their ancestors (Go note on the policy; not re-verified). Gated by DELETE_SNAPSHOT. Source only: not called.'
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+      - name: networkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Network id.
+      responses:
+        '200':
+          description: What the next pass would delete.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotRetentionPreview'
+              # from source: constructed from DeletedSnapshots.java: an empty preview shown; the item shape is SnapshotMeta.java
+              example:
+                count: 0
+                deletedSnapshots: []
+  /synthetic-device-queries:
+    get:
+      operationId: listSyntheticDeviceQueries
+      summary: Saved NQE queries a synthetic node of this type can use
+      description: Lists the parameterless saved queries whose row type is the connection record for this kind of synthetic device, typed against the network's latest processed snapshot (empty when there is none; source SyntheticDeviceController). networkId is a query parameter, not a path segment. type WAN_CIRCUIT, ENCRYPTOR and TAPI_OPTICAL are valid enum values but answer 400 '<TYPE> type not supported' (source SyntheticDeviceController.getNqeType). Gated by VIEW_NETWORK_AND_SNAPSHOTS.
+      x-forward-stability: unpublished
+      tags: [Synthetic Devices]
+      parameters:
+      - name: type
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [INTERNET, INTRANET, L2VPN, L3VPN, WAN_CIRCUIT, ENCRYPTOR, TAPI_OPTICAL, ADJACENT_NETWORK]
+        description: The synthetic device type.
+      - name: networkId
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The network.
+      responses:
+        '200':
+          description: The compatible queries.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyntheticDeviceQueryCollection'
+              # from source: live GET synthetic-device-queries?type=INTERNET (this network had no compatible query)
+              example:
+                queries: []
+
 components:
   schemas:
     SnapshotStateChange:
@@ -13619,3 +15299,719 @@ components:
       - vendor
       - collectionSourceType
       description: 'Connection-type metadata (live keys: name, protocol, status, vendor, collectionSourceType, plus secondaryCliCredentialTypes, httpCredentialType, relatedTypes where present). Java DeviceConnTypeInfo declares different field names; the live serialization was used.'
+
+    DataFileType:
+      type: string
+      enum: [CSV, JSON, XML, XLSX, YAML, TEXT, STIG]
+      description: A data file's format. STIG is the STIG policy file's type; that file has a fixed name and is in every network.
+    DataFileCreateRequest:
+      type: object
+      required: [name, fileType]
+      properties:
+        name:
+          type: string
+          description: Data file name. Forward lower-cases it. Must be unique (case-insensitively) in the org.
+        nqeName:
+          type: string
+          description: Name queries use for the file (network.extensions.<nqeName>). Defaults to the name without its extension (for STIG, the name).
+        description:
+          type: string
+        fileType:
+          $ref: '#/components/schemas/DataFileType'
+        headers:
+          type: array
+          items:
+            type: string
+          description: Column names, for a CSV with no header row only. No duplicates.
+      description: The JSON part named request of addDataFile (DataFileCreateRequest.java).
+    DataFileInfo:
+      allOf:
+      - $ref: '#/components/schemas/Attribution'
+      - type: object
+        required: [name, nqeName, type]
+        properties:
+          name:
+            type: string
+          nqeName:
+            type: string
+          description:
+            type: string
+          type:
+            $ref: '#/components/schemas/DataFileType'
+          networkIds:
+            type: array
+            items:
+              type: string
+            description: Networks the file is attached to. Omitted when none.
+          isEmpty:
+            type: boolean
+            description: true for a placeholder imported from a snapshot, which cannot be downloaded. Omitted when false.
+          isIncludedInAllNetworks:
+            type: boolean
+            description: true only for the STIG policy file. Omitted otherwise.
+          contentMd5Hex:
+            type: string
+            description: MD5 of the stored content. Set on GET /data-files only (source DataFileInfo doc).
+          uploadedById:
+            type: string
+          uploadedAt:
+            type: string
+          uploadedBy:
+            type: string
+      description: A data file (DataFileInfo.java). createdBy*/updatedBy* come from the Attribution schema; the uploaded* fields are the upload's attribution.
+    DataFilePatch:
+      type: object
+      description: 'At least one field must be present. Omitted fields are left alone; description: null clears it; name: null is treated as omitted; nqeName: null is refused (DataFilePatch.java).'
+      properties:
+        name:
+          type: string
+          description: New name (lower-cased). Refused if a collection source in an attached network already uses it.
+        nqeName:
+          type: string
+          minLength: 1
+          description: New NQE name. Must not be blank; null is refused.
+        description:
+          type: string
+          nullable: true
+          description: New description. An explicit null clears it.
+    DataFileInference:
+      type: object
+      required: [content, inference]
+      properties:
+        content:
+          type: string
+          description: For CSV, the first rows of the file; otherwise the whole content.
+        inference:
+          type: object
+          required: [warnings, errors]
+          properties:
+            dataFormat:
+              type: string
+              description: JSON, CSV or TEXT. Omitted when no format was recognised.
+            warnings:
+              type: array
+              items:
+                type: string
+            errors:
+              type: array
+              items:
+                type: string
+              description: Non-empty means Forward would not accept the file as this type.
+            schema:
+              type: object
+              description: The inferred NQE type, in the InlinedType form GET /api/nqe/schema uses. Omitted when nothing was inferred.
+      description: DataFileInference.java with InferenceResultWithSchema (the schema's inner shape is not modelled).
+    DataFileAssessment:
+      type: object
+      required: [result]
+      properties:
+        result:
+          type: string
+          enum: [SUCCESS, FAILURE]
+      description: The result of assessDataFileReplacement.
+    PerfDataPoint:
+      type: object
+      required: [instant, value]
+      properties:
+        instant:
+          type: integer
+          format: int64
+          description: Epoch milliseconds (Jackson NUMBER shape of Instant; the live envelope ints are 13 digits).
+        value:
+          type: number
+          format: float
+      description: One datapoint (DataPoint.java).
+    PerfUnhealthyThreshold:
+      type: string
+      enum: [HIGH, MEDIUM]
+      description: The severity a usage breached (UnhealthyThreshold.java).
+    PerfThresholdExceedance:
+      type: object
+      required: [severity, percentage]
+      properties:
+        severity:
+          $ref: '#/components/schemas/PerfUnhealthyThreshold'
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Fraction of datapoints above this severity's threshold.
+        prevPercentage:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: The same fraction for the preceding window of equal length. Omitted when there is none.
+      description: Threshold exceedance for a metric value (ThresholdExceedance.java). Omitted when no severity was breached.
+    PerfDeviceMetric:
+      type: object
+      required: [deviceName, vendorOs, tags, locationId, value]
+      properties:
+        deviceName:
+          type: string
+        vendorOs:
+          $ref: '#/components/schemas/VendorOs'
+        tags:
+          type: array
+          items:
+            type: string
+        locationId:
+          type: string
+        thresholdExceedance:
+          $ref: '#/components/schemas/PerfThresholdExceedance'
+        value:
+          type: number
+          format: float
+          description: The aggregated metric value.
+      description: One device in the top list (DeviceMetric.java).
+    PerfDeviceMetrics:
+      type: object
+      required: [metrics]
+      properties:
+        metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerfDeviceMetric'
+      description: The top devices (DeviceMetrics.java).
+    PerfInterfaceWithDirection:
+      type: object
+      required: [deviceName, interfaceName, direction]
+      properties:
+        deviceName:
+          type: string
+        interfaceName:
+          type: string
+        direction:
+          type: string
+          enum: [INGRESS, EGRESS]
+      description: An interface and a direction (InterfaceWithDirection.java).
+    PerfInterfaceMetric:
+      type: object
+      required: [deviceName, interfaceName, tags, locationId, direction, value]
+      properties:
+        deviceName:
+          type: string
+        interfaceName:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        locationId:
+          type: string
+        direction:
+          type: string
+          enum: [INGRESS, EGRESS]
+        thresholdExceedance:
+          $ref: '#/components/schemas/PerfThresholdExceedance'
+        value:
+          type: number
+          format: float
+      description: One interface in the top list (InterfaceMetric.java).
+    PerfInterfaceMetrics:
+      type: object
+      required: [metrics]
+      properties:
+        metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerfInterfaceMetric'
+      description: The top interfaces (InterfaceMetrics.java).
+    PerfDeviceMetricHistory:
+      type: object
+      required: [deviceName, data]
+      properties:
+        deviceName:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerfDataPoint'
+      description: One device's series (DeviceMetricHistory.java).
+    PerfDeviceMetricHistoryResponse:
+      type: object
+      required: [metrics]
+      properties:
+        metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerfDeviceMetricHistory'
+      description: DeviceMetricHistoryResponse.java.
+    PerfInterfaceMetricHistory:
+      type: object
+      required: [interfaceWithDirection, data]
+      properties:
+        interfaceWithDirection:
+          $ref: '#/components/schemas/PerfInterfaceWithDirection'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerfDataPoint'
+      description: One interface's series (InterfaceMetricHistory.java).
+    PerfInterfaceMetricHistoryResponse:
+      type: object
+      required: [metrics]
+      properties:
+        metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerfInterfaceMetricHistory'
+      description: InterfaceMetricHistoryResponse.java.
+    PerfUnhealthyDevice:
+      type: object
+      description: The thresholds one device breached. Each key is omitted when that usage was fine (UnhealthyDevice.java, NON_DEFAULT).
+      properties:
+        cpuUsage:
+          $ref: '#/components/schemas/PerfUnhealthyThreshold'
+        memoryUsage:
+          $ref: '#/components/schemas/PerfUnhealthyThreshold'
+        interfaceUsage:
+          $ref: '#/components/schemas/PerfUnhealthyThreshold'
+    PerfUnhealthyDevices:
+      type: object
+      required: [startTime, endTime, devices]
+      properties:
+        startTime:
+          type: integer
+          format: int64
+          description: Start of the window, epoch milliseconds.
+        endTime:
+          type: integer
+          format: int64
+          description: End of the window, epoch milliseconds.
+        devices:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/PerfUnhealthyDevice'
+          description: Keyed by device name.
+      description: UnhealthyDevices.java.
+    PerfUnhealthyInterface:
+      type: object
+      required: [interfaceName, threshold]
+      properties:
+        interfaceName:
+          type: string
+        threshold:
+          $ref: '#/components/schemas/PerfUnhealthyThreshold'
+      description: UnhealthyInterface.java.
+    PerfUnhealthyInterfaces:
+      type: object
+      required: [startTime, endTime, interfaces]
+      properties:
+        startTime:
+          type: integer
+          format: int64
+        endTime:
+          type: integer
+          format: int64
+        interfaces:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/PerfUnhealthyInterface'
+          description: Keyed by device name; devices with none are left out.
+      description: UnhealthyInterfaces.java.
+    ScorecardCheckScore:
+      type: object
+      properties:
+        checkId:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+        note:
+          type: string
+        type:
+          type: string
+        enabled:
+          type: boolean
+        weight:
+          type: integer
+        goal:
+          type: number
+        score:
+          type: number
+          description: The check's score on the snapshot.
+        status:
+          type: string
+          enum: [VALID, IRRELEVANT, INACTIVE, TIMEOUT, UNLICENSED, PROCESSING, REQUIRES_ADDITIONAL_SNAPSHOT_PROCESSING]
+      description: A check's result inside a scored category (KpiCheck with its score, source KpiCheckStatus). Fields beyond these are not modelled.
+    ScorecardKpiCategoryScore:
+      type: object
+      required: [id, name, weight]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        systemManaged:
+          type: boolean
+          description: true for the Forward-managed categories.
+        weight:
+          type: integer
+        score:
+          type: number
+          description: The category's score on this snapshot.
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScorecardCheckScore'
+      description: A KPI category as scored on one snapshot (KpiCategoryWithScore).
+    ScorecardSnapshot:
+      type: object
+      required: [id, name, categories]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        score:
+          type: number
+          nullable: true
+          description: Overall score between 0 and 1; null unless status is PROCESSED.
+        status:
+          type: string
+          enum: [UNLICENSED, REQUIRES_ADDITIONAL_SNAPSHOT_PROCESSING, PROCESSING, PROCESSED]
+        systemManaged:
+          type: boolean
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScorecardKpiCategoryScore'
+      description: A scorecard scored on one snapshot (SnapshotScorecard.java).
+    ScorecardDefinition:
+      type: object
+      required: [id, name, categoryWeights, systemManaged]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        categoryWeights:
+          type: object
+          additionalProperties:
+            type: integer
+          description: KPI category id to weight.
+        systemManaged:
+          type: boolean
+      description: A scorecard definition (Scorecard.java).
+    ScorecardTrendPoint:
+      type: object
+      required: [snapshotId, instant]
+      properties:
+        snapshotId:
+          type: string
+        instant:
+          type: integer
+          format: int64
+          description: The snapshot's time, epoch milliseconds.
+        score:
+          type: number
+          nullable: true
+          description: Null when Forward could not compute a score for that snapshot.
+      description: One point in a scorecard's trend (ScorecardPoint.java).
+    ScorecardKpiCheck:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        note:
+          type: string
+        type:
+          type: string
+          description: The check type, such as NQE.
+        enabled:
+          type: boolean
+        weight:
+          type: integer
+        goal:
+          type: number
+      description: A check inside a KPI category.
+    ScorecardKpiCategory:
+      type: object
+      required: [id, name, checks, systemManaged]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        systemManaged:
+          type: boolean
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScorecardKpiCheck'
+      description: A KPI category (KpiCategory.java).
+    ScorecardKpiCheckDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+        weight:
+          type: integer
+        goal:
+          type: number
+      description: A check definition inside a KPI category definition.
+    ScorecardKpiCategoryDefinition:
+      type: object
+      required: [id, name, checks, systemManaged]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        systemManaged:
+          type: boolean
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScorecardKpiCheckDefinition'
+      description: A KPI category definition (KpiCategoryDef.java).
+    VulnDeviceCounts:
+      allOf:
+      - $ref: '#/components/schemas/InventoryDeviceInfo'
+      - type: object
+        properties:
+          locationId:
+            type: string
+          resultToCveCount:
+            type: object
+            additionalProperties:
+              type: integer
+            description: CVE count per detection result. A result with no CVEs is absent.
+          severityToCveCount:
+            type: object
+            additionalProperties:
+              type: integer
+            description: CVE count per severity; keys NONE, LOW, MEDIUM, HIGH, CRITICAL.
+          ageToCveCount:
+            type: object
+            additionalProperties:
+              type: integer
+            description: 'CVE count per age bucket: MONTH, YEAR, OLDER.'
+          hasExploitToCveCount:
+            type: object
+            additionalProperties:
+              type: integer
+            description: Keys "true" and "false".
+          internetAddressable:
+            type: boolean
+            nullable: true
+            description: Omitted when Forward has not computed internet exposure for the snapshot, which is not the same as false.
+          customLabelCounts:
+            type: array
+            items:
+              $ref: '#/components/schemas/VulnCustomLabelCount'
+          customStatusCounts:
+            type: array
+            items:
+              $ref: '#/components/schemas/VulnCustomStatusCount'
+          summary:
+            type: string
+            enum: [VULNERABLE, POTENTIALLY_VULNERABLE, NOT_VULNERABLE]
+        required: [resultToCveCount, summary]
+      description: A device with its CVE counts (DeviceWithCveCounts.java). It is InventoryDeviceInfo plus the fields listed. The custom lists are present only when the org has custom CVE analysis.
+    VulnCustomLabelCount:
+      type: object
+      required: [label, deviceCount]
+      properties:
+        label:
+          type: string
+        deviceCount:
+          type: integer
+          description: 'Named deviceCount in Forward, but the count is of CVEs on this route (source: CveOsInfoWithDeviceCounts.CustomLabelDeviceCount).'
+    VulnCustomStatusCount:
+      type: object
+      required: [status, deviceCount]
+      properties:
+        status:
+          $ref: '#/components/schemas/CustomCveStatus'
+        deviceCount:
+          type: integer
+          description: Named deviceCount in Forward, but the count is of CVEs on this route.
+    VulnDeviceList:
+      type: object
+      required: [devices, totalDevices]
+      properties:
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/VulnDeviceCounts'
+        totalDevices:
+          type: integer
+          description: All devices analysed for CVEs, across every CVE; filters do not change it.
+        indexCreatedAt:
+          type: string
+          format: date-time
+          description: When the CVE index behind this result was built.
+      description: DeviceVulnerabilities.java.
+    CloudObjectPage:
+      type: object
+      required: [cloudObjects, totalCloudObjects]
+      properties:
+        cloudObjects:
+          type: array
+          items:
+            $ref: '#/components/schemas/CloudObjectMetadata'
+        totalCloudObjects:
+          type: integer
+          description: All objects in the snapshot, not only this page.
+      description: A page of cloud objects (CloudObjects.java).
+    CloudObjectInfo:
+      type: object
+      required: [id]
+      properties:
+        cloudType:
+          type: string
+          description: The provider, such as AWS.
+        type:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+          description: The object's name, omitted when Forward has none (CloudObjectInfo.java).
+        vendor:
+          type: string
+          description: Observed on the live server; not a field of CloudObjectInfo.java at the checked-out source.
+        coveredTopo:
+          type: object
+          properties:
+            nodes:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+            links:
+              type: array
+              items:
+                type: object
+            hosts:
+              type: array
+              items:
+                type: object
+        deviceInfo:
+          type: object
+          description: Present for an object Forward models as a device. Provider-specific; not modelled.
+      description: One cloud object with the topology it covers (CloudObjectInfo.java). Fields not listed are not modelled.
+    CloudObjectFile:
+      type: object
+      required: [id, fileName]
+      properties:
+        id:
+          type: string
+        fileName:
+          type: string
+        creationDateMillis:
+          type: integer
+          format: int64
+          description: 0 for the dummy entry.
+        size:
+          type: integer
+          format: int64
+          description: Bytes; 0 for the dummy entry.
+      description: A stored file behind a cloud object (StoredFile.java).
+    SnapshotRetentionPolicy:
+      type: object
+      required: [enabled, lastWeek, lastMonth, lastQuarter, lastYear, older]
+      properties:
+        enabled:
+          type: boolean
+          description: false keeps every snapshot.
+        lastWeek:
+          type: string
+          enum: [ALL]
+          description: 0 to 7 days old.
+        lastMonth:
+          type: string
+          enum: [ALL, ONE_PER_DAY, ONE_PER_TWO_DAYS, ONE_PER_WEEK]
+          description: 7 to 30 days old.
+        lastQuarter:
+          type: string
+          enum: [ALL, ONE_PER_DAY, ONE_PER_WEEK, ONE_PER_TWO_WEEKS, NONE]
+          description: 30 to 90 days old.
+        lastYear:
+          type: string
+          enum: [ONE_PER_DAY, ONE_PER_WEEK, ONE_PER_MONTH, NONE]
+          description: 90 to 365 days old.
+        older:
+          type: string
+          enum: [ONE_PER_DAY, ONE_PER_WEEK, ONE_PER_MONTH, ONE_PER_QUARTER, NONE]
+          description: Over a year old.
+      description: A network's snapshot thinning policy (SnapshotRetentionPolicy.java). The bands' allowed values are the Java constants listed there.
+    SnapshotRetentionPreview:
+      type: object
+      required: [count, deletedSnapshots]
+      properties:
+        count:
+          type: integer
+          description: Equals the length of deletedSnapshots.
+        deletedSnapshots:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotRetentionSnapshot'
+      description: DeletedSnapshots.java.
+    SnapshotRetentionSnapshot:
+      type: object
+      properties:
+        id:
+          type: string
+        networkId:
+          type: string
+        note:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        processedAt:
+          type: string
+          format: date-time
+        restoredAt:
+          type: string
+          format: date-time
+        oldestCollectionMillis:
+          type: integer
+          format: int64
+        latestCollectionMillis:
+          type: integer
+          format: int64
+        isDraft:
+          type: boolean
+        collectionTaskId:
+          type: string
+      description: 'The fields of SnapshotMeta.java this fragment names. Not the whole object: others are omitted, not modelled.'
+    SyntheticDeviceQuery:
+      type: object
+      required: [queryId, path]
+      properties:
+        queryId:
+          type: string
+          description: A global NQE query id.
+        path:
+          type: string
+          description: The query's path in the query library.
+      description: A saved query usable by a synthetic node (SyntheticDevicesQuery.java).
+    SyntheticDeviceQueryCollection:
+      type: object
+      required: [queries]
+      properties:
+        queries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyntheticDeviceQuery'
+      description: SyntheticDevicesQueryCollection.java. Empty when the network has no processed snapshot.

@@ -22,6 +22,7 @@ from forward_sdk._sync.services._generated.change_set_directories import (
 from forward_sdk._sync.services._generated.checks import ChecksService
 from forward_sdk._sync.services._generated.classic_devices import ClassicDevicesService
 from forward_sdk._sync.services._generated.cloud_accounts import CloudAccountsService
+from forward_sdk._sync.services._generated.cloud_objects import CloudObjectsService
 from forward_sdk._sync.services._generated.collection_schedules import (
     CollectionSchedulesService,
 )
@@ -57,9 +58,13 @@ from forward_sdk._sync.services._generated.network_topology import NetworkTopolo
 from forward_sdk._sync.services._generated.nqe_panels import NQEPanelsService
 from forward_sdk._sync.services._generated.organizations import OrganizationsService
 from forward_sdk._sync.services._generated.path_search import PathSearchService
+from forward_sdk._sync.services._generated.performance_metrics import (
+    PerformanceMetricsService,
+)
 from forward_sdk._sync.services._generated.predict_assist import PredictAssistService
 from forward_sdk._sync.services._generated.resource_pools import ResourcePoolsService
 from forward_sdk._sync.services._generated.saml import SAMLService
+from forward_sdk._sync.services._generated.scorecards import ScorecardsService
 from forward_sdk._sync.services._generated.security_matrix import SecurityMatrixService
 from forward_sdk._sync.services._generated.security_matrix_filters import (
     SecurityMatrixFiltersService,
@@ -69,6 +74,7 @@ from forward_sdk._sync.services._generated.snapshot_diff_details import (
     SnapshotDiffDetailsService,
 )
 from forward_sdk._sync.services._generated.snmp_credentials import SNMPCredentialsService
+from forward_sdk._sync.services._generated.synthetic_devices import SyntheticDevicesService
 from forward_sdk._sync.services._generated.system_administration import (
     SystemAdministrationService,
 )
@@ -96,6 +102,7 @@ __all__ = [
     "ChecksService",
     "ClassicDevicesService",
     "CloudAccountsService",
+    "CloudObjectsService",
     "CollectionSchedulesService",
     "CollectionSourcesService",
     "CollectorBindingService",
@@ -128,14 +135,17 @@ __all__ = [
     "NetworkTopologyService",
     "OrganizationsService",
     "PathSearchService",
+    "PerformanceMetricsService",
     "PredictAssistService",
     "ResourcePoolsService",
     "SAMLService",
     "SNMPCredentialsService",
+    "ScorecardsService",
     "SecurityMatrixFiltersService",
     "SecurityMatrixService",
     "SecurityZonesService",
     "SnapshotDiffDetailsService",
+    "SyntheticDevicesService",
     "SystemAdministrationService",
     "TrustedCertificatesService",
     "UserAccountsService",
@@ -162,6 +172,7 @@ class GeneratedServices:
     checks: ChecksService
     classic_devices: ClassicDevicesService
     cloud_accounts: CloudAccountsService
+    cloud_objects: CloudObjectsService
     collection_schedules: CollectionSchedulesService
     collection_sources: CollectionSourcesService
     collector_binding: CollectorBindingService
@@ -193,14 +204,17 @@ class GeneratedServices:
     network_topology: NetworkTopologyService
     organizations: OrganizationsService
     path_search: PathSearchService
+    performance_metrics: PerformanceMetricsService
     predict_assist: PredictAssistService
     resource_pools: ResourcePoolsService
     saml: SAMLService
     snmp_credentials: SNMPCredentialsService
+    scorecards: ScorecardsService
     security_matrix: SecurityMatrixService
     security_matrix_filters: SecurityMatrixFiltersService
     security_zones: SecurityZonesService
     snapshot_diff_details: SnapshotDiffDetailsService
+    synthetic_devices: SyntheticDevicesService
     system_administration: SystemAdministrationService
     trusted_certificates: TrustedCertificatesService
     user_accounts: UserAccountsService
@@ -219,6 +233,7 @@ class GeneratedServices:
         self.checks = ChecksService(transport)
         self.classic_devices = ClassicDevicesService(transport)
         self.cloud_accounts = CloudAccountsService(transport)
+        self.cloud_objects = CloudObjectsService(transport)
         self.collection_schedules = CollectionSchedulesService(transport)
         self.collection_sources = CollectionSourcesService(transport)
         self.collector_binding = CollectorBindingService(transport)
@@ -250,14 +265,17 @@ class GeneratedServices:
         self.network_topology = NetworkTopologyService(transport)
         self.organizations = OrganizationsService(transport)
         self.path_search = PathSearchService(transport)
+        self.performance_metrics = PerformanceMetricsService(transport)
         self.predict_assist = PredictAssistService(transport)
         self.resource_pools = ResourcePoolsService(transport)
         self.saml = SAMLService(transport)
         self.snmp_credentials = SNMPCredentialsService(transport)
+        self.scorecards = ScorecardsService(transport)
         self.security_matrix = SecurityMatrixService(transport)
         self.security_matrix_filters = SecurityMatrixFiltersService(transport)
         self.security_zones = SecurityZonesService(transport)
         self.snapshot_diff_details = SnapshotDiffDetailsService(transport)
+        self.synthetic_devices = SyntheticDevicesService(transport)
         self.system_administration = SystemAdministrationService(transport)
         self.trusted_certificates = TrustedCertificatesService(transport)
         self.user_accounts = UserAccountsService(transport)
@@ -278,6 +296,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Checks": "checks",
     "Classic Devices": "classic_devices",
     "Cloud Accounts": "cloud_accounts",
+    "Cloud Objects": "cloud_objects",
     "Collection Schedules": "collection_schedules",
     "Collection Sources": "collection_sources",
     "Collector Binding": "collector_binding",
@@ -309,14 +328,17 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Topology": "network_topology",
     "Organizations": "organizations",
     "Path Search": "path_search",
+    "Performance Metrics": "performance_metrics",
     "Predict Assist": "predict_assist",
     "Resource Pools": "resource_pools",
     "SAML": "saml",
     "SNMP Credentials": "snmp_credentials",
+    "Scorecards": "scorecards",
     "Security Matrix": "security_matrix",
     "Security Matrix Filters": "security_matrix_filters",
     "Security Zones": "security_zones",
     "Snapshot Diff Details": "snapshot_diff_details",
+    "Synthetic Devices": "synthetic_devices",
     "System Administration": "system_administration",
     "Trusted Certificates": "trusted_certificates",
     "User Accounts": "user_accounts",

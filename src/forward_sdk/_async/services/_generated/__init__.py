@@ -22,18 +22,24 @@ from forward_sdk._async.services._generated.cloud_accounts import AsyncCloudAcco
 from forward_sdk._async.services._generated.collection_schedules import (
     AsyncCollectionSchedulesService,
 )
+from forward_sdk._async.services._generated.collection_sources import AsyncCollectionSourcesService
 from forward_sdk._async.services._generated.collector_binding import AsyncCollectorBindingService
 from forward_sdk._async.services._generated.collector_tasks import AsyncCollectorTasksService
 from forward_sdk._async.services._generated.collectors import AsyncCollectorsService
 from forward_sdk._async.services._generated.configuration import AsyncConfigurationService
 from forward_sdk._async.services._generated.connectivity_tests import AsyncConnectivityTestsService
 from forward_sdk._async.services._generated.credentials import AsyncCredentialsService
+from forward_sdk._async.services._generated.custom_command_groups import (
+    AsyncCustomCommandGroupsService,
+)
 from forward_sdk._async.services._generated.dashboards import AsyncDashboardsService
 from forward_sdk._async.services._generated.data_connectors import AsyncDataConnectorsService
 from forward_sdk._async.services._generated.data_files import AsyncDataFilesService
+from forward_sdk._async.services._generated.device_discovery import AsyncDeviceDiscoveryService
 from forward_sdk._async.services._generated.encryptors import AsyncEncryptorsService
 from forward_sdk._async.services._generated.endpoint_profiles import AsyncEndpointProfilesService
 from forward_sdk._async.services._generated.firewall_predict import AsyncFirewallPredictService
+from forward_sdk._async.services._generated.integrations import AsyncIntegrationsService
 from forward_sdk._async.services._generated.internet_exposure import AsyncInternetExposureService
 from forward_sdk._async.services._generated.internet_node import AsyncInternetNodeService
 from forward_sdk._async.services._generated.intranet_nodes import AsyncIntranetNodesService
@@ -41,6 +47,7 @@ from forward_sdk._async.services._generated.jump_servers import AsyncJumpServers
 from forward_sdk._async.services._generated.l2vpns import AsyncL2vpnsService
 from forward_sdk._async.services._generated.l3vpns import AsyncL3vpnsService
 from forward_sdk._async.services._generated.legacy_collection import AsyncLegacyCollectionService
+from forward_sdk._async.services._generated.network_collection import AsyncNetworkCollectionService
 from forward_sdk._async.services._generated.network_endpoints import AsyncNetworkEndpointsService
 from forward_sdk._async.services._generated.network_locations import AsyncNetworkLocationsService
 from forward_sdk._async.services._generated.network_topology import AsyncNetworkTopologyService
@@ -87,19 +94,23 @@ __all__ = [
     "AsyncClassicDevicesService",
     "AsyncCloudAccountsService",
     "AsyncCollectionSchedulesService",
+    "AsyncCollectionSourcesService",
     "AsyncCollectorBindingService",
     "AsyncCollectorTasksService",
     "AsyncCollectorsService",
     "AsyncConfigurationService",
     "AsyncConnectivityTestsService",
     "AsyncCredentialsService",
+    "AsyncCustomCommandGroupsService",
     "AsyncDashboardsService",
     "AsyncDataConnectorsService",
     "AsyncDataFilesService",
+    "AsyncDeviceDiscoveryService",
     "AsyncEncryptorsService",
     "AsyncEndpointProfilesService",
     "AsyncFirewallPredictService",
     "AsyncGeneratedServices",
+    "AsyncIntegrationsService",
     "AsyncInternetExposureService",
     "AsyncInternetNodeService",
     "AsyncIntranetNodesService",
@@ -108,6 +119,7 @@ __all__ = [
     "AsyncL3vpnsService",
     "AsyncLegacyCollectionService",
     "AsyncNQEPanelsService",
+    "AsyncNetworkCollectionService",
     "AsyncNetworkEndpointsService",
     "AsyncNetworkLocationsService",
     "AsyncNetworkTopologyService",
@@ -148,18 +160,22 @@ class AsyncGeneratedServices:
     classic_devices: AsyncClassicDevicesService
     cloud_accounts: AsyncCloudAccountsService
     collection_schedules: AsyncCollectionSchedulesService
+    collection_sources: AsyncCollectionSourcesService
     collector_binding: AsyncCollectorBindingService
     collector_tasks: AsyncCollectorTasksService
     collectors: AsyncCollectorsService
     configuration: AsyncConfigurationService
     connectivity_tests: AsyncConnectivityTestsService
     credentials: AsyncCredentialsService
+    custom_command_groups: AsyncCustomCommandGroupsService
     dashboards: AsyncDashboardsService
     data_connectors: AsyncDataConnectorsService
     data_files: AsyncDataFilesService
+    device_discovery: AsyncDeviceDiscoveryService
     encryptors: AsyncEncryptorsService
     endpoint_profiles: AsyncEndpointProfilesService
     firewall_predict: AsyncFirewallPredictService
+    integrations: AsyncIntegrationsService
     internet_exposure: AsyncInternetExposureService
     internet_node: AsyncInternetNodeService
     intranet_nodes: AsyncIntranetNodesService
@@ -168,6 +184,7 @@ class AsyncGeneratedServices:
     l3vpns: AsyncL3vpnsService
     legacy_collection: AsyncLegacyCollectionService
     nqe_panels: AsyncNQEPanelsService
+    network_collection: AsyncNetworkCollectionService
     network_endpoints: AsyncNetworkEndpointsService
     network_locations: AsyncNetworkLocationsService
     network_topology: AsyncNetworkTopologyService
@@ -200,18 +217,22 @@ class AsyncGeneratedServices:
         self.classic_devices = AsyncClassicDevicesService(transport)
         self.cloud_accounts = AsyncCloudAccountsService(transport)
         self.collection_schedules = AsyncCollectionSchedulesService(transport)
+        self.collection_sources = AsyncCollectionSourcesService(transport)
         self.collector_binding = AsyncCollectorBindingService(transport)
         self.collector_tasks = AsyncCollectorTasksService(transport)
         self.collectors = AsyncCollectorsService(transport)
         self.configuration = AsyncConfigurationService(transport)
         self.connectivity_tests = AsyncConnectivityTestsService(transport)
         self.credentials = AsyncCredentialsService(transport)
+        self.custom_command_groups = AsyncCustomCommandGroupsService(transport)
         self.dashboards = AsyncDashboardsService(transport)
         self.data_connectors = AsyncDataConnectorsService(transport)
         self.data_files = AsyncDataFilesService(transport)
+        self.device_discovery = AsyncDeviceDiscoveryService(transport)
         self.encryptors = AsyncEncryptorsService(transport)
         self.endpoint_profiles = AsyncEndpointProfilesService(transport)
         self.firewall_predict = AsyncFirewallPredictService(transport)
+        self.integrations = AsyncIntegrationsService(transport)
         self.internet_exposure = AsyncInternetExposureService(transport)
         self.internet_node = AsyncInternetNodeService(transport)
         self.intranet_nodes = AsyncIntranetNodesService(transport)
@@ -220,6 +241,7 @@ class AsyncGeneratedServices:
         self.l3vpns = AsyncL3vpnsService(transport)
         self.legacy_collection = AsyncLegacyCollectionService(transport)
         self.nqe_panels = AsyncNQEPanelsService(transport)
+        self.network_collection = AsyncNetworkCollectionService(transport)
         self.network_endpoints = AsyncNetworkEndpointsService(transport)
         self.network_locations = AsyncNetworkLocationsService(transport)
         self.network_topology = AsyncNetworkTopologyService(transport)
@@ -254,18 +276,22 @@ SERVICE_TAGS: dict[str, str] = {
     "Classic Devices": "classic_devices",
     "Cloud Accounts": "cloud_accounts",
     "Collection Schedules": "collection_schedules",
+    "Collection Sources": "collection_sources",
     "Collector Binding": "collector_binding",
     "Collector Tasks": "collector_tasks",
     "Collectors": "collectors",
     "Configuration": "configuration",
     "Connectivity Tests": "connectivity_tests",
     "Credentials": "credentials",
+    "Custom Command Groups": "custom_command_groups",
     "Dashboards": "dashboards",
     "Data Connectors": "data_connectors",
     "Data Files": "data_files",
+    "Device Discovery": "device_discovery",
     "Encryptors": "encryptors",
     "Endpoint Profiles": "endpoint_profiles",
     "Firewall Predict": "firewall_predict",
+    "Integrations": "integrations",
     "Internet Exposure": "internet_exposure",
     "Internet Node": "internet_node",
     "Intranet Nodes": "intranet_nodes",
@@ -274,6 +300,7 @@ SERVICE_TAGS: dict[str, str] = {
     "L3VPNs": "l3vpns",
     "Legacy Collection": "legacy_collection",
     "NQE Panels": "nqe_panels",
+    "Network Collection": "network_collection",
     "Network Endpoints": "network_endpoints",
     "Network Locations": "network_locations",
     "Network Topology": "network_topology",

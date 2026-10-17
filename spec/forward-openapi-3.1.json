@@ -15334,6 +15334,1734 @@
         ],
         "type": "object"
       },
+      "SrcAttribution": {
+        "description": "Who created and last changed the record. Flattened into the parent object on the wire (Java @JsonUnwrapped Attribution). Email values are user identities.",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "updatedById": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SrcAwsCapCredential": {
+        "description": "An AWS CAP credential (Java AwsCapCredential<SecretId>, serialized with clientCertificateBase64). Source-only; not observed live because no credential id is reachable on the read-only account.",
+        "properties": {
+          "baseCapServerUrl": {
+            "type": "string"
+          },
+          "certificateAuthorityBase64": {
+            "description": "Certificate authority bundle, base64 (source-only; present when set).",
+            "type": "string"
+          },
+          "clientCertificateBase64": {
+            "description": "The client's PKCS12 certificate, base64. This is secret material that Java serializes into the response (source-only; the Go SDK reads it off the wire and drops it).",
+            "type": "string"
+          },
+          "clientCertificatePasswordId": {
+            "description": "Id of the secret holding the certificate password (an id, not the secret).",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SrcCloudDiscoveryParams": {
+        "description": "Discovery from existing cloud setups. Start only; Forward does not schedule it.",
+        "properties": {
+          "setupIds": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "CLOUD"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "setupIds"
+        ],
+        "type": "object"
+      },
+      "SrcCloudManagedSetup": {
+        "description": "One cloud-managed setup of any type. GET returns a bare array of every cloud setup in the network; the type query parameter is not read by Forward (see notes).",
+        "properties": {
+          "apiKeyId": {
+            "description": "HTTP credential id (MIST) or the credential the setup uses.",
+            "type": "string"
+          },
+          "collect": {
+            "type": "boolean"
+          },
+          "collectorId": {
+            "type": "string"
+          },
+          "concurrency": {
+            "type": "integer"
+          },
+          "hosts": {
+            "description": "MIST: Java MistSetup.hosts is a set of device names (strings). A Go SDK comment reports object elements after discovery; not verified.",
+            "items": {},
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "testResult": {
+            "description": "Last discovery outcome; shape per type (MIST: savedAt, error, discoveredHosts).",
+            "type": "object"
+          },
+          "type": {
+            "enum": [
+              "MERAKI",
+              "VELO_CLOUD",
+              "MIST"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "SrcCmdbConfigurationItemField": {
+        "description": "One field of a ServiceNow CMDB class (Java ConfigurationItemField).",
+        "properties": {
+          "className": {
+            "type": "string"
+          },
+          "dataType": {
+            "type": "string"
+          },
+          "element": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "mandatory": {
+            "type": "boolean"
+          },
+          "maxLength": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "element",
+          "dataType",
+          "mandatory",
+          "maxLength"
+        ],
+        "type": "object"
+      },
+      "SrcCmdbConfigurationItemSchema": {
+        "description": "One CMDB class and its fields (Java CmdbConfigurationItemSchema).",
+        "properties": {
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/SrcCmdbConfigurationItemField"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "fields"
+        ],
+        "type": "object"
+      },
+      "SrcControllerAndManagedDeviceSelection": {
+        "description": "Selects devices for a test or bulk delete. Exactly one of names or setupNames must be non-empty (Java Requests.validate, 400 otherwise).",
+        "properties": {
+          "names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "setupNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "SrcControllerInfo": {
+        "description": "A device name and address a controller or guest reported during a test.",
+        "properties": {
+          "ipAddress": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SrcControllerManagedSetup": {
+        "description": "A controller-managed setup. type is derived from the controllers' device types (Java ControllerManagedSetupType). Names are stored lowercase.",
+        "properties": {
+          "attribution": {
+            "$ref": "#/components/schemas/SrcAttribution"
+          },
+          "collectorId": {
+            "description": "Collector pin for the whole setup (for example C4). Absent means the network default collector.",
+            "type": "string"
+          },
+          "controllers": {
+            "items": {
+              "$ref": "#/components/schemas/SrcSetupDevice"
+            },
+            "type": "array"
+          },
+          "managedDevices": {
+            "description": "Guests collected through the controllers. Absent (not an empty list) when the setup has never had guests declared.",
+            "items": {
+              "$ref": "#/components/schemas/SrcSetupDevice"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "CISCO_ACI",
+              "SD_WAN"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "controllers"
+        ],
+        "type": "object"
+      },
+      "SrcControllerManagedSetupPatch": {
+        "description": "Partial update of a controller-managed setup (Java ControllerManagedSetupPatch, JsonProp fields). Absent and explicit null are different; see each field. A no-op patch is not written (Java compares before updating).",
+        "properties": {
+          "collectorId": {
+            "description": "PATCH presence semantics: absent leaves the collector unchanged; an explicit null unpins the setup so the network default applies.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "controllers": {
+            "description": "Replaces the whole controller list when present. Present but null or empty is rejected.",
+            "items": {
+              "$ref": "#/components/schemas/SrcSetupDevice"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "managedDevices": {
+            "description": "PATCH presence semantics: absent leaves the guests unchanged; an explicit null clears the guest list; an array replaces it.",
+            "items": {
+              "$ref": "#/components/schemas/SrcSetupDevice"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "name": {
+            "description": "Rename. Present but null is rejected by Java ('name' cannot be null).",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SrcCustomCommandGroup": {
+        "description": "A stored custom command group. A group holds commands (CLI) or oids (SNMP), never both. Live sample keys: name, deviceConnTypes, commands, type, disabled. Java omits empty fields (NON_EMPTY).",
+        "properties": {
+          "commands": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "deviceConnTypes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "devices": {
+            "description": "Device names or globs; omitted means every device of the types.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "oids": {
+            "items": {
+              "$ref": "#/components/schemas/SrcCustomOid"
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "CLI",
+              "SNMP"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "deviceConnTypes",
+          "type"
+        ],
+        "type": "object"
+      },
+      "SrcCustomCommandGroupUpdate": {
+        "description": "Partial update of a custom command group (Java CustomCommandGroupUpdate). Absent or null means unchanged for every field. Changing deviceConnTypes re-checks stored commands.",
+        "properties": {
+          "commands": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "deviceConnTypes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "devices": {
+            "description": "Null or absent leaves the devices unchanged; an empty array means every device of the types (Java requireNonNullElse).",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "oids": {
+            "items": {
+              "$ref": "#/components/schemas/SrcCustomOid"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "SrcCustomCommandsValidationRequest": {
+        "description": "Body of ?action=validate (Java CustomCommandsValidationRequest).",
+        "properties": {
+          "commands": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "deviceConnTypes": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "deviceConnTypes",
+          "commands"
+        ],
+        "type": "object"
+      },
+      "SrcCustomCommandsValidationResponse": {
+        "description": "Java marks unsupported NON_EMPTY, so the key is absent when every command is accepted.",
+        "properties": {
+          "unsupported": {
+            "items": {
+              "$ref": "#/components/schemas/SrcUnsupportedCustomCommand"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "SrcCustomOid": {
+        "description": "One SNMP custom OID (Java CustomOid).",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "oid": {
+            "description": "SNMP OID, dotted form.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "oid"
+        ],
+        "type": "object"
+      },
+      "SrcDeviceConnTypeInfo": {
+        "description": "Connection-type metadata (live keys: name, protocol, status, vendor, collectionSourceType, plus secondaryCliCredentialTypes, httpCredentialType, relatedTypes where present). Java DeviceConnTypeInfo declares different field names; the live serialization was used.",
+        "properties": {
+          "collectionSourceType": {
+            "enum": [
+              "CLASSIC",
+              "CONTROLLER_MANAGED"
+            ],
+            "type": "string"
+          },
+          "httpCredentialType": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "relatedTypes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "secondaryCliCredentialTypes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "PRODUCTION",
+              "TECH_PREVIEW",
+              "INTERNAL",
+              "UNDER_DEVELOPMENT"
+            ],
+            "type": "string"
+          },
+          "vendor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "vendor",
+          "collectionSourceType"
+        ],
+        "type": "object"
+      },
+      "SrcDeviceStatus": {
+        "description": "Per-device collection progress (Java DeviceStatus). Source-only except that the live account returned an empty list; time fields may be epoch or ISO (not verified).",
+        "properties": {
+          "collectionEndTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "collectionStartTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "collectionStatus": {
+            "description": "Collection state (Java State enum; values not read).",
+            "type": "string"
+          },
+          "currentCommandStatus": {
+            "type": "object"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "lastActivityTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "longestCommand": {
+            "type": "object"
+          },
+          "mayRetry": {
+            "type": "boolean"
+          },
+          "numAuthenticationFailures": {
+            "type": "integer"
+          },
+          "numConnectionFailures": {
+            "type": "integer"
+          },
+          "numConnectionTimeouts": {
+            "type": "integer"
+          },
+          "numLogChars": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "numLogMessages": {
+            "type": "integer"
+          },
+          "numUnexpectedPrompts": {
+            "type": "integer"
+          },
+          "totalCharsReceived": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SrcDirectDiscoveryParams": {
+        "description": "CDP and LLDP neighbours of the network's own classic devices. Carries no other fields; Forward builds the list.",
+        "properties": {
+          "type": {
+            "enum": [
+              "DIRECT"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "SrcDiscoveredDevice": {
+        "description": "A device a job found. Live keys: name, type, host, vendor, neighbors, jobId, discoveredAt. The other keys are from the Go SDK draft and not observed live. type is unknown when it could not be inferred.",
+        "properties": {
+          "cliCredentialId": {
+            "type": "string"
+          },
+          "cloudDiscoverySource": {
+            "type": "string"
+          },
+          "cloudLocationId": {
+            "type": "string"
+          },
+          "cloudSetupId": {
+            "type": "string"
+          },
+          "discoveredAt": {
+            "description": "Epoch milliseconds (live).",
+            "type": "integer"
+          },
+          "discoveredIps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "host": {
+            "type": "string"
+          },
+          "httpCredentialId": {
+            "type": "string"
+          },
+          "isReachable": {
+            "type": "boolean"
+          },
+          "jobId": {
+            "type": "string"
+          },
+          "jumpServerId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "neighbors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "snmpCredentialId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SrcDiscoveredDevices": {
+        "description": "Discovery jobs (always including the most recent) and the devices they found (Java getJobsAndDevices).",
+        "properties": {
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/SrcDiscoveredDevice"
+            },
+            "type": "array"
+          },
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/SrcDiscoveryJob"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "jobs",
+          "devices"
+        ],
+        "type": "object"
+      },
+      "SrcDiscoveryJob": {
+        "description": "One discovery run (live keys: collectorId, counts, endedAt, error, id, initialQueueSize, scheduledDiscoveryId, startedAt, startedBy, type). error is NONE unless the whole job failed (Go draft).",
+        "properties": {
+          "collectorId": {
+            "type": "string"
+          },
+          "counts": {
+            "description": "Live keys: queued, discovered, inaccessible.",
+            "properties": {
+              "discovered": {
+                "type": "integer"
+              },
+              "inaccessible": {
+                "type": "integer"
+              },
+              "queued": {
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "endedAt": {
+            "description": "Epoch milliseconds; absent while the job runs.",
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "initialQueueSize": {
+            "type": "integer"
+          },
+          "scheduledDiscoveryId": {
+            "type": "string"
+          },
+          "startedAt": {
+            "description": "Epoch milliseconds (live).",
+            "type": "integer"
+          },
+          "startedBy": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "SUBNET_SCAN",
+              "SEEDED",
+              "DIRECT",
+              "CLOUD"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "counts"
+        ],
+        "type": "object"
+      },
+      "SrcDiscoveryParams": {
+        "description": "Discovery parameters, dispatched on type (Java DeviceDiscoveryParams, JsonTypeInfo NAME on property type).",
+        "discriminator": {
+          "mapping": {
+            "CLOUD": "#/components/schemas/SrcCloudDiscoveryParams",
+            "DIRECT": "#/components/schemas/SrcDirectDiscoveryParams",
+            "SEEDED": "#/components/schemas/SrcSeededDiscoveryParams",
+            "SUBNET_SCAN": "#/components/schemas/SrcSubnetScanParams"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SrcSubnetScanParams"
+          },
+          {
+            "$ref": "#/components/schemas/SrcSeededDiscoveryParams"
+          },
+          {
+            "$ref": "#/components/schemas/SrcDirectDiscoveryParams"
+          },
+          {
+            "$ref": "#/components/schemas/SrcCloudDiscoveryParams"
+          }
+        ]
+      },
+      "SrcEndHostScanner": {
+        "description": "An end-host scanner collection source (Java EndHostScannerInfo, StoredEndHostScanner). The list endpoint returned an empty array on the live account, so only the empty case is observed.",
+        "properties": {
+          "attribution": {
+            "$ref": "#/components/schemas/SrcAttribution"
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "collectionDisabled": {
+            "type": "boolean"
+          },
+          "collectionError": {
+            "description": "Present when the last collection failed (Java DeviceCollectionError).",
+            "type": "object"
+          },
+          "collectorId": {
+            "type": "string"
+          },
+          "credentialId": {
+            "type": "string"
+          },
+          "disableSslValidation": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reportNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Scanner type (RAPID7 for this endpoint; Java EndHostScannerType).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "SrcInfobloxInstance": {
+        "description": "A configured Infoblox instance (Java InfobloxInstance). Profiles are removed by the legacy GET (withoutProfiles).",
+        "properties": {
+          "error": {
+            "type": "object"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "ipAddress": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "description": "Java InfobloxInstance has a password field with no JSON ignore annotation. Serialization was source-only (the account has no instances), so treat this as a secret echo to confirm before use.",
+            "type": "string"
+          },
+          "profileCount": {
+            "type": "integer"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "ipAddress",
+          "username"
+        ],
+        "type": "object"
+      },
+      "SrcInfobloxInstanceStatus": {
+        "description": "One Infoblox instance's status (view=status).",
+        "properties": {
+          "error": {
+            "description": "Present when the instance has an error (Java InfobloxInstanceError; fields not read).",
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "SrcInfobloxInstanceUpdate": {
+        "description": "Partial update (Java InfobloxInstanceUpdate). Absent or null means unchanged (Optional.ofNullable): this endpoint cannot clear a field.",
+        "properties": {
+          "ipAddress": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SrcInfobloxInstancesStatus": {
+        "description": "Statuses of all Infoblox instances of the organization.",
+        "properties": {
+          "instances": {
+            "items": {
+              "$ref": "#/components/schemas/SrcInfobloxInstanceStatus"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "instances"
+        ],
+        "type": "object"
+      },
+      "SrcInfobloxIntegration": {
+        "description": "The organization's Infoblox integration (Java InfobloxIntegration).",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "instances": {
+            "items": {
+              "$ref": "#/components/schemas/SrcInfobloxInstance"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "enabled",
+          "instances"
+        ],
+        "type": "object"
+      },
+      "SrcMistDiscoveredHost": {
+        "description": "One access point the collector enumerated (Java DiscoveredMistHost, confirmed from source; not observed live: the account has no Mist setups).",
+        "properties": {
+          "displayName": {
+            "description": "Defaults to name when empty.",
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "name": {
+            "description": "The AP MAC, lowercased.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "model"
+        ],
+        "type": "object"
+      },
+      "SrcMistDiscovery": {
+        "description": "Result of discovering a Mist setup's access points. Response shape from the Go SDK draft; not observed live.",
+        "properties": {
+          "hosts": {
+            "items": {
+              "$ref": "#/components/schemas/SrcMistDiscoveredHost"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "hosts"
+        ],
+        "type": "object"
+      },
+      "SrcMonthlySchedule": {
+        "description": "Monthly form. Java MonthlySchedule.",
+        "properties": {
+          "dayOfTheWeek": {
+            "maximum": 6,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "time": {
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "weekOfTheMonth": {
+            "maximum": 4,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dayOfTheWeek",
+          "weekOfTheMonth",
+          "time"
+        ],
+        "type": "object"
+      },
+      "SrcNewControllerManagedSetup": {
+        "description": "Body for creating a controller-managed setup (Java NewControllerManagedSetup).",
+        "properties": {
+          "collectorId": {
+            "description": "Pins the setup to one collector. Omitted means the network default.",
+            "type": "string"
+          },
+          "controllers": {
+            "items": {
+              "$ref": "#/components/schemas/SrcSetupDevice"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "managedDevices": {
+            "items": {
+              "$ref": "#/components/schemas/SrcSetupDevice"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "Lowercased by Forward on the way in.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "controllers"
+        ],
+        "type": "object"
+      },
+      "SrcNewCustomCommandGroup": {
+        "description": "Body of POST custom-command-groups. Exactly one of commands and oids must be set (Go draft, consistent with Java CustomCommandGroup). Commands with ':::' need a collector with CUSTOM_COMMAND_SEQUENCES (Java, 400 otherwise).",
+        "properties": {
+          "commands": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "deviceConnTypes": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "devices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "disabled": {
+            "description": "Absent creates the group enabled.",
+            "type": "boolean"
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "oids": {
+            "items": {
+              "$ref": "#/components/schemas/SrcCustomOid"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "deviceConnTypes"
+        ],
+        "type": "object"
+      },
+      "SrcNewInfobloxInstance": {
+        "description": "Body of POST integrations/infoblox/instances (Java NewInfobloxInstance). ipAddress is an IP address.",
+        "properties": {
+          "ipAddress": {
+            "type": "string"
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "password": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "username": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "ipAddress",
+          "username",
+          "password"
+        ],
+        "type": "object"
+      },
+      "SrcNewMistSetup": {
+        "description": "Body of POST cloud-managed-setups?type=MIST (Java CreateMistSetup). Required per Java Preconditions: name, region, apiKeyId.",
+        "properties": {
+          "apiKeyId": {
+            "description": "Id of the HTTP credential holding the Mist API token. Required.",
+            "type": "string"
+          },
+          "collect": {
+            "description": "Absent means true (Java: collect = !FALSE.equals(collect)).",
+            "type": "boolean"
+          },
+          "collectorId": {
+            "description": "Collector id (numeric, as Java parses it as a Long). Empty means the network default.",
+            "type": "string"
+          },
+          "concurrency": {
+            "description": "Optional; Java bounds it by CollectorCollectionSettings.MAX_CONCURRENCY (value not read).",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "hosts": {
+            "description": "Optional AP MAC collect filter. Discovery resets it; leave empty to collect every AP.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "region": {
+            "enum": [
+              "GLOBAL_01",
+              "GLOBAL_02",
+              "GLOBAL_03",
+              "GLOBAL_04",
+              "GLOBAL_05",
+              "EMEA_01",
+              "EMEA_02",
+              "EMEA_03",
+              "EMEA_04",
+              "APAC_01",
+              "APAC_02",
+              "APAC_03"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "region",
+          "apiKeyId"
+        ],
+        "type": "object"
+      },
+      "SrcRapid7SourceCreate": {
+        "description": "Body of POST rapid7-sources (Java NewRapid7Source). Java requires non-empty reportNames.",
+        "properties": {
+          "baseUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "collectionDisabled": {
+            "description": "Java primitive; omitted reads as false.",
+            "type": "boolean"
+          },
+          "collectorId": {
+            "type": "string"
+          },
+          "credentialId": {
+            "description": "Id of an HTTP credential of type LOGIN (Java validateCredentialId, 400 otherwise).",
+            "type": "string"
+          },
+          "disableSslValidation": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reportNames": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "baseUrl",
+          "credentialId",
+          "reportNames"
+        ],
+        "type": "object"
+      },
+      "SrcRapid7SourcePatch": {
+        "description": "Partial update of a Rapid7 source (Java Rapid7SourcePatch).",
+        "properties": {
+          "baseUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "collectionDisabled": {
+            "type": "boolean"
+          },
+          "collectorId": {
+            "description": "Absent leaves the collector unchanged; explicit null clears it (Java JsonProp).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "credentialId": {
+            "type": "string"
+          },
+          "disableSslValidation": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reportNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "SrcScheduledDiscovery": {
+        "description": "A stored scheduled discovery. Forward does not return hostsToSkip or subnetsToSkip.",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SrcScheduledDiscoveryParams"
+          },
+          "schedule": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SrcWeeklySchedule"
+              },
+              {
+                "$ref": "#/components/schemas/SrcMonthlySchedule"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "enabled",
+          "name"
+        ],
+        "type": "object"
+      },
+      "SrcScheduledDiscoveryDefinition": {
+        "description": "Body of POST scheduled-discoveries (Java ScheduledDiscoveryDefinition).",
+        "properties": {
+          "enabled": {
+            "description": "Java primitive boolean; omitted is read as false. An enabled schedule scans the customer network on its own.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Unique ignoring case (Forward returns 400 on a duplicate).",
+            "minLength": 1,
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SrcScheduledDiscoveryParams"
+          },
+          "schedule": {
+            "description": "Omitted or null means the discovery runs after every collection.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SrcWeeklySchedule"
+              },
+              {
+                "$ref": "#/components/schemas/SrcMonthlySchedule"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "params"
+        ],
+        "type": "object"
+      },
+      "SrcScheduledDiscoveryParams": {
+        "description": "Scheduled discovery accepts only SUBNET_SCAN, SEEDED and DIRECT (Java ScheduledDiscoveryDefinition SUPPORTED_DISCOVERY_TYPES).",
+        "discriminator": {
+          "mapping": {
+            "DIRECT": "#/components/schemas/SrcDirectDiscoveryParams",
+            "SEEDED": "#/components/schemas/SrcSeededDiscoveryParams",
+            "SUBNET_SCAN": "#/components/schemas/SrcSubnetScanParams"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SrcSubnetScanParams"
+          },
+          {
+            "$ref": "#/components/schemas/SrcSeededDiscoveryParams"
+          },
+          {
+            "$ref": "#/components/schemas/SrcDirectDiscoveryParams"
+          }
+        ]
+      },
+      "SrcSeededDiscoveryParams": {
+        "description": "Seeded discovery: follow seed devices' neighbours. Field names from Java SeededDeviceDiscoveryParams.",
+        "properties": {
+          "allowedSubnets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "hostsToSkip": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "jumpServerId": {
+            "type": "string"
+          },
+          "recursive": {
+            "type": "boolean"
+          },
+          "seedDevices": {
+            "description": "IP addresses of seed devices (Java seedDevices, InetAddress).",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "snmpCredentialId": {
+            "type": "string"
+          },
+          "subnetsToSkip": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "SEEDED"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "seedDevices"
+        ],
+        "type": "object"
+      },
+      "SrcServiceNowCmdbConfiguration": {
+        "description": "Body of POST integrations/servicenow-cmdb/configuration (Java ServiceNowCmdbConfiguration). Nested mapping objects are not modeled.",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "mappings": {
+            "description": "Configuration item mappings (Java CmdbConfigurationItemMapping; not modeled).",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "settings": {
+            "description": "Connection name, connection details, source name (Java ServiceNowCmdbSettings; nested shape not modeled).",
+            "type": "object"
+          },
+          "syncConfig": {
+            "description": "Java CmdbSyncConfig.",
+            "properties": {
+              "networkIds": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "SrcServiceNowCmdbConnectionDetails": {
+        "description": "ServiceNow connection details (Java ServiceNowCmdbConnectionDetails). Credentials are sent in the body.",
+        "properties": {
+          "certificate": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": "string"
+          },
+          "instanceUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "proxyConfig": {
+            "type": "object"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "instanceUrl",
+          "username",
+          "password"
+        ],
+        "type": "object"
+      },
+      "SrcServiceNowCmdbSchemaRequest": {
+        "description": "Body of POST integrations/servicenow-cmdb?view=schema (Java CmdbConnectionDetailsAndClassNames).",
+        "properties": {
+          "classNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "connectionDetails": {
+            "$ref": "#/components/schemas/SrcServiceNowCmdbConnectionDetails"
+          }
+        },
+        "required": [
+          "connectionDetails",
+          "classNames"
+        ],
+        "type": "object"
+      },
+      "SrcServiceNowSettings": {
+        "description": "The organization's ServiceNow connection (Java ServiceNowSettings). Source-only shape apart from the 404 when none is configured (live-verified).",
+        "properties": {
+          "autoCreate": {
+            "type": "boolean"
+          },
+          "autoCreateImpact": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "type": "string"
+          },
+          "autoCreateUrgency": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "type": "string"
+          },
+          "autoUpdate": {
+            "type": "boolean"
+          },
+          "certificate": {
+            "description": "X.509 certificate (on-premises only).",
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "instanceUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "password": {
+            "description": "Java serializes the stored password on GET (source-only; the live account has no ServiceNow settings, so GET returned 404).",
+            "type": "string"
+          },
+          "token": {
+            "description": "Alternative to username and password. Java serializes the stored token on GET (source-only).",
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "instanceUrl",
+          "enabled",
+          "autoCreate",
+          "autoUpdate"
+        ],
+        "type": "object"
+      },
+      "SrcSetupDevice": {
+        "description": "A controller or guest device in a controller-managed setup. Live sample keys: name, type, host, httpCredentialId, cliCredentialId, collect, attribution fields, testResult. Java DeviceSetup has more optional fields (port, credential2/3, terminalWidth, bgpAdvertisementCollectionOptions, snmpCollectionConfig...) that are not modeled here.",
+        "properties": {
+          "attribution": {
+            "$ref": "#/components/schemas/SrcAttribution"
+          },
+          "cliCredentialId": {
+            "type": "string"
+          },
+          "collect": {
+            "description": "Absent or null means collect (Java isCollectionEnabled treats null as enabled).",
+            "type": "boolean"
+          },
+          "host": {
+            "type": "string"
+          },
+          "httpCredentialId": {
+            "type": "string"
+          },
+          "jumpServerId": {
+            "type": "string"
+          },
+          "locationId": {
+            "description": "Atlas location; present only with with=locationId.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Device name. Controller and guest names share one namespace with classic devices.",
+            "type": "string"
+          },
+          "snmpCredentialId": {
+            "type": "string"
+          },
+          "tags": {
+            "description": "Active device tags; present only with with=tags. Element shape not modeled.",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "testResult": {
+            "$ref": "#/components/schemas/SrcSetupTestResult"
+          },
+          "type": {
+            "description": "Connection type of the device itself (for a guest, its own type, not the controller's).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SrcSetupTestResult": {
+        "description": "Last connectivity test result for a controller or guest (returned only with with=testResult). Live-verified keys: savedAt, startTime, endTime, controllerInfos, managedDevices, nameAliases, hostIps. error, errorPhase, discoveredType and the unauthorizedCommands and discovered*CredentialId keys are source-only (the live sample had no failing test). An empty result is not a pass unless endTime is set.",
+        "properties": {
+          "controllerInfos": {
+            "items": {
+              "$ref": "#/components/schemas/SrcControllerInfo"
+            },
+            "type": "array"
+          },
+          "dependentNameAndAliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "discoveredCliCredentialId": {
+            "type": "string"
+          },
+          "discoveredHttpCredentialId": {
+            "type": "string"
+          },
+          "discoveredSnmpCredentialId": {
+            "type": "string"
+          },
+          "discoveredType": {
+            "type": "string"
+          },
+          "endTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "errorPhase": {
+            "type": "string"
+          },
+          "hostIps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "managedDevices": {
+            "items": {
+              "$ref": "#/components/schemas/SrcControllerInfo"
+            },
+            "type": "array"
+          },
+          "nameAliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "unauthorizedCommands": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "SrcSubnetScanParams": {
+        "description": "Subnet scan parameters. Java requires subnets or hosts per the Go SDK's validate(); not confirmed in the Java source read.",
+        "properties": {
+          "connectionScanPorts": {
+            "items": {
+              "maximum": 65535,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "hostnamesToSkip": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "hosts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "jumpServerIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "protocols": {
+            "description": "Any of HTTP, HTTPS, SSH, TELNET, SNMP (Go draft); empty means Forward's default set.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "subnets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "subnetsToSkip": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tryDirectConnection": {
+            "type": "boolean"
+          },
+          "type": {
+            "enum": [
+              "SUBNET_SCAN"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "SrcUnsupportedCustomCommand": {
+        "description": "A command the asked device types do not allow.",
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "unsupportedConnTypes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "command",
+          "unsupportedConnTypes"
+        ],
+        "type": "object"
+      },
+      "SrcUpdateServiceNowSettings": {
+        "description": "Partial update of ServiceNow settings (Java UpdateServiceNowSettings). Give either token or username and password, never both (Java Preconditions). certificate is accepted on-premises only.",
+        "properties": {
+          "autoCreate": {
+            "type": "boolean"
+          },
+          "autoCreateImpact": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "type": "string"
+          },
+          "autoCreateUrgency": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "type": "string"
+          },
+          "autoUpdate": {
+            "type": "boolean"
+          },
+          "certificate": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "instanceUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SrcWeeklySchedule": {
+        "description": "Weekly form. Java WeeklySchedule takes daysOfTheWeek and times; timeZone optional.",
+        "properties": {
+          "daysOfTheWeek": {
+            "description": "Sun (0) to Sat (6).",
+            "items": {
+              "maximum": 6,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "times": {
+            "items": {
+              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "daysOfTheWeek",
+          "times"
+        ],
+        "type": "object"
+      },
       "StartCollectionResponse": {
         "properties": {
           "taskId": {
@@ -19265,6 +20993,77 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/deviceConnTypes": {
+      "get": {
+        "description": "Returns connection-type metadata keyed by type id. Any signed-in user (RequiresUser). for=ui adds internal types the UI needs; without it only exposed types are returned. Live-verified with for=ui (110 entries).",
+        "operationId": "listDeviceConnTypes",
+        "parameters": [
+          {
+            "description": "Use 'ui' to include internal types.",
+            "in": "query",
+            "name": "for",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "aruba_switch_ssh": {
+                    "collectionSourceType": "CLASSIC",
+                    "name": "Aruba Switch SSH (tech preview)",
+                    "protocol": "SSH",
+                    "secondaryCliCredentialTypes": [
+                      "PRIVILEGED_MODE"
+                    ],
+                    "status": "TECH_PREVIEW",
+                    "vendor": "aruba_switch"
+                  },
+                  "cisco_ios_xe_ssh": {
+                    "collectionSourceType": "CLASSIC",
+                    "name": "Cisco IOS-XE",
+                    "protocol": "SSH",
+                    "secondaryCliCredentialTypes": [
+                      "PRIVILEGED_MODE"
+                    ],
+                    "status": "PRODUCTION",
+                    "vendor": "cisco_ios_xe"
+                  }
+                },
+                "schema": {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/SrcDeviceConnTypeInfo"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Map of type id to metadata."
+          }
+        },
+        "summary": "List device connection types",
+        "tags": [
+          "Classic Devices"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "listCustomCommandGroupDeviceTypes",
+            "summary": "List device types that accept custom commands",
+            "x-forward-fixed-query": [
+              [
+                "for",
+                "custom-command-groups"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/diffs/{beforeSnapshotId}/{afterSnapshotId}/acl": {
       "get": {
         "operationId": "getAclDiffCount",
@@ -21434,6 +23233,333 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/integrations/infoblox": {
+      "get": {
+        "description": "Returns whether Infoblox is enabled and its instances (profiles removed). Gated by MANAGE_INFOBLOX_INTEGRATION (org operation). The Go SDK's ListInfobloxLegacy. Live-verified (enabled false, no instances). Source: the instance objects carry a password field (see schema).",
+        "operationId": "getInfobloxIntegration",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "enabled": false,
+                  "instances": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcInfobloxIntegration"
+                }
+              }
+            },
+            "description": "The integration."
+          }
+        },
+        "summary": "Read the Infoblox integration (legacy shape)",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/integrations/infoblox/instances": {
+      "get": {
+        "description": "Returns each instance's id and error state. Gated by MANAGE_INFOBLOX_INTEGRATION. Forward has no plain GET on /integrations/infoblox/instances: that path answers 400 'Parameter conditions view=status not met' (live-verified), so the Go SDK's ListInfoblox is wrong.",
+        "operationId": "listInfobloxInstanceStatuses",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "instances": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcInfobloxInstancesStatus"
+                }
+              }
+            },
+            "description": "Instance statuses."
+          }
+        },
+        "summary": "List Infoblox instance statuses",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "status"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Adds an instance. Gated by MANAGE_INFOBLOX_INTEGRATION; records a feature-usage event. Returns 201 with no body (the Go SDK expects a body and fills it in: a disagreement). Java rejects an empty name, username or password (Preconditions).",
+        "operationId": "createInfobloxInstance",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "ipAddress": "192.0.2.20",
+                "name": "example-ipam",
+                "password": "<redacted>",
+                "username": "api-user"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SrcNewInfobloxInstance"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created. No body."
+          }
+        },
+        "summary": "Add an Infoblox instance",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/integrations/infoblox/instances/{instanceId}": {
+      "delete": {
+        "description": "Deletes an instance. Gated by MANAGE_INFOBLOX_INTEGRATION. Returns 204. Go SDK treats 404 as already gone (deleteTolerant).",
+        "operationId": "deleteInfobloxInstance",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "instanceId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete an Infoblox instance",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Partial update: absent or null fields are unchanged. Gated by MANAGE_INFOBLOX_INTEGRATION. Returns 204. Live: not exercised.",
+        "operationId": "updateInfobloxInstance",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "instanceId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "username": "api-user"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SrcInfobloxInstanceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated. No body."
+          }
+        },
+        "summary": "Change an Infoblox instance",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/integrations/servicenow": {
+      "delete": {
+        "description": "Removes the organization's ServiceNow settings and unlinks its incidents. Gated by MANAGE_ORG_SETTINGS. Java returns an empty object (EmptyObject, '{}') with 200.",
+        "operationId": "deleteServiceNowSettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {},
+                "schema": {
+                  "maxProperties": 0,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Empty object."
+          }
+        },
+        "summary": "Remove the ServiceNow connection",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "Returns the organization's ServiceNow settings. Gated by RequiresUser (any signed-in user). Forward answers 404 'ServiceNow settings not found for org' when none is configured (live-verified on this account). With settings present the body includes secret fields (see schema; source-only).",
+        "operationId": "getServiceNowSettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "autoCreate": false,
+                  "autoCreateImpact": "HIGH",
+                  "autoCreateUrgency": "MEDIUM",
+                  "autoUpdate": true,
+                  "enabled": true,
+                  "instanceUrl": "https://example.service-now.invalid",
+                  "password": "<redacted>",
+                  "username": "api-user"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcServiceNowSettings"
+                }
+              }
+            },
+            "description": "The settings."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "apiUrl": "/api/integrations/servicenow",
+                  "httpMethod": "GET",
+                  "message": "ServiceNow settings not found for org <org-id>"
+                },
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "No ServiceNow settings for the organization."
+          }
+        },
+        "summary": "Read the ServiceNow connection",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Partial update. Gated by MANAGE_ORG_SETTINGS and the OUTBOUND_CONNECTIONS deployment property. A certificate is accepted on premises only. Returns 200 with the settings (the Go SDK expects no body). Live: not exercised.",
+        "operationId": "patchServiceNowSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "enabled": false
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SrcUpdateServiceNowSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "autoCreate": false,
+                  "autoCreateImpact": "HIGH",
+                  "autoCreateUrgency": "MEDIUM",
+                  "autoUpdate": true,
+                  "enabled": true,
+                  "instanceUrl": "https://example.service-now.invalid",
+                  "password": "<redacted>",
+                  "username": "api-user"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcServiceNowSettings"
+                }
+              }
+            },
+            "description": "The settings after the update."
+          }
+        },
+        "summary": "Change the ServiceNow connection",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/integrations/servicenow-cmdb": {
+      "post": {
+        "description": "Enables the configured CMDB sync. Gated by MANAGE_SERVICENOW_CMDB. Returns 204. Live: a GET of the CMDB status returns 404 'No ServiceNow CMDB configuration setup' on this account, so the enable path was not exercised.",
+        "operationId": "enableServiceNowCmdb",
+        "responses": {
+          "204": {
+            "description": "Enabled."
+          }
+        },
+        "summary": "Enable the ServiceNow CMDB sync",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "enable"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getServiceNowCmdbSchema",
+            "summary": "Read CMDB class schemas",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "schema"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/integrations/servicenow-cmdb/configuration": {
+      "post": {
+        "description": "Saves the CMDB configuration. Gated by MANAGE_SERVICENOW_CMDB and OUTBOUND_CONNECTIONS; the query ids in mappings are checked against the organization's NQE license tier (Java). Returns 200 with no body. Live: not exercised.",
+        "operationId": "saveServiceNowCmdbConfiguration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SrcServiceNowCmdbConfiguration"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Saved. No body."
+          }
+        },
+        "summary": "Save the CMDB configuration",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/l7-applications": {
       "get": {
         "operationId": "getL7Applications",
@@ -22308,6 +24434,52 @@
         "tags": [
           "Network Locations"
         ]
+      }
+    },
+    "/networks/{networkId}/aws-cap-credentials/{credentialId}": {
+      "get": {
+        "description": "Returns one AWS CAP credential by id. Gated by VIEW_DEVICE_CREDENTIALS. Forward answers 404 'AWS CAP credential ... not found'. The response includes clientCertificateBase64 (secret material, per Java) as well as the id, server URL and password-secret id. Source-only: no credential id was reachable on the read-only account.",
+        "operationId": "getAwsCapCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "credentialId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "baseCapServerUrl": "https://cap.example.invalid",
+                  "clientCertificatePasswordId": "S-1",
+                  "id": "AWS-1"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcAwsCapCredential"
+                }
+              }
+            },
+            "description": "The credential."
+          }
+        },
+        "summary": "Read an AWS CAP credential",
+        "tags": [
+          "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/blast-radius": {
@@ -25580,6 +27752,216 @@
         ]
       }
     },
+    "/networks/{networkId}/cloud-managed-setups": {
+      "get": {
+        "description": "Returns a bare array of every cloud-managed setup in the network (Meraki, VeloCloud and Mist). Gated by VIEW_COLLECTION_SOURCES. The optional 'with=tags' adds device tags. Java declares no 'type' parameter: a type=MIST query is ignored and the array includes every type (source; the Go SDK filters for MIST and expects a 'setups' envelope). Live: empty array.",
+        "operationId": "listCloudManagedSetups",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Include device tags.",
+            "explode": false,
+            "in": "query",
+            "name": "with",
+            "required": false,
+            "schema": {
+              "items": {
+                "enum": [
+                  "tags"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SrcCloudManagedSetup"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Every cloud setup."
+          }
+        },
+        "summary": "List cloud-managed setups",
+        "tags": [
+          "Collection Sources"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Creates a Mist setup. Gated by MANAGE_COLLECTION_SOURCES (Java; the Go SDK comment names an org property MIST_ONBOARDING, which is not present in the source tree). Forward discovers the organization from the API key. Returns 200 with the stored setup.",
+        "operationId": "createMistCloudManagedSetup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "apiKeyId": "H-1",
+                "collect": true,
+                "name": "example-mist",
+                "region": "GLOBAL_01"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SrcNewMistSetup"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "apiKeyId": "H-1",
+                  "collect": true,
+                  "hosts": [],
+                  "name": "example-mist",
+                  "region": "GLOBAL_01",
+                  "testResult": {
+                    "savedAt": "2026-01-01T00:00:00Z"
+                  },
+                  "type": "MIST"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcCloudManagedSetup"
+                }
+              }
+            },
+            "description": "The stored setup."
+          }
+        },
+        "summary": "Create a Juniper Mist setup",
+        "tags": [
+          "Collection Sources"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "type",
+            "MIST"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/cloud-managed-setups/{setupName}": {
+      "delete": {
+        "description": "Deletes the named cloud setup of any type. Gated by DELETE_COLLECTION_SOURCES. Returns 204; 404 when the network has no setup of that name. The Go SDK sends ?type=MIST, which Java ignores.",
+        "operationId": "deleteCloudManagedSetup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "setupName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a cloud-managed setup",
+        "tags": [
+          "Collection Sources"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Asks the bound collector to enumerate the organization's access points. Needs an online collector. Forward answers with a deferred result that waits for the collector task; a server-side ceiling of about 60 seconds applies (Go SDK note, source-only). Gated by MANAGE_COLLECTION_SOURCES. The setup must be of type MIST (400 otherwise). Live: not exercised.",
+        "operationId": "discoverMistSetupHosts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "setupName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "hosts": [
+                    {
+                      "displayName": "000000000001",
+                      "model": "AP-EXAMPLE",
+                      "name": "000000000001"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcMistDiscovery"
+                }
+              }
+            },
+            "description": "The access points the collector enumerated."
+          }
+        },
+        "summary": "Discover the access points of a Mist setup",
+        "tags": [
+          "Collection Sources"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "discover"
+          ],
+          [
+            "type",
+            "MIST"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/cloudAccountDiscovery": {
       "post": {
         "description": "Long-polls until discovery finishes.",
@@ -26827,6 +29209,2635 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/controller-managed-setups": {
+      "get": {
+        "description": "Lists the network's controller-managed setups (SD-WAN vManage/vBond/vSmart, Cisco ACI APIC). Gated by network operation VIEW_COLLECTION_SOURCES. Query 'with' adds per-device tags, location or the last connectivity test (with=testResult, live-verified); 'type' filters by setup type. Live: the response is an object with a 'setups' array. Setups are controllers plus guests; managedDevices is absent for a setup with no guests.",
+        "operationId": "listControllerManagedSetups",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Comma-separated extras to include on each device.",
+            "explode": false,
+            "in": "query",
+            "name": "with",
+            "required": false,
+            "schema": {
+              "items": {
+                "enum": [
+                  "tags",
+                  "locationId",
+                  "testResult"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Return only setups of this type.",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "enum": [
+                "CISCO_ACI",
+                "SD_WAN"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "setups": [
+                    {
+                      "controllers": [
+                        {
+                          "collect": true,
+                          "createdAt": "2026-05-27T11:43:35.471611426Z",
+                          "createdBy": "user@example.invalid",
+                          "createdById": "6864",
+                          "host": "192.0.2.1",
+                          "httpCredentialId": "H-1",
+                          "name": "name-2",
+                          "type": "cisco_apic_api",
+                          "updatedAt": "2026-06-13T13:21:27.365328812Z",
+                          "updatedById": "12509"
+                        },
+                        {
+                          "cliCredentialId": "L-4",
+                          "collect": true,
+                          "createdAt": "2026-05-27T11:43:35.471611426Z",
+                          "createdBy": "user@example.invalid",
+                          "createdById": "6864",
+                          "host": "192.0.2.2",
+                          "httpCredentialId": "H-1",
+                          "name": "name-3",
+                          "type": "cisco_apic_api",
+                          "updatedAt": "2026-05-27T11:43:35.471611426Z",
+                          "updatedBy": "user@example.invalid",
+                          "updatedById": "6864"
+                        }
+                      ],
+                      "createdAt": "2026-05-27T11:43:35.471611426Z",
+                      "createdBy": "user@example.invalid",
+                      "createdById": "6864",
+                      "managedDevices": [
+                        {
+                          "cliCredentialId": "L-4",
+                          "collect": true,
+                          "createdAt": "2026-05-27T11:43:35.471611426Z",
+                          "createdBy": "user@example.invalid",
+                          "createdById": "6864",
+                          "host": "192.0.2.3",
+                          "name": "name-4",
+                          "type": "cisco_nxos_aci_ssh",
+                          "updatedAt": "2026-10-08T15:42:06.280132109Z",
+                          "updatedBy": "user@example.invalid",
+                          "updatedById": "6864"
+                        },
+                        {
+                          "cliCredentialId": "L-4",
+                          "collect": true,
+                          "createdAt": "2026-05-27T11:43:35.471611426Z",
+                          "createdBy": "user@example.invalid",
+                          "createdById": "6864",
+                          "host": "192.0.2.4",
+                          "name": "name-5",
+                          "updatedAt": "2026-10-08T15:42:06.280132109Z",
+                          "updatedBy": "user@example.invalid",
+                          "updatedById": "6864"
+                        }
+                      ],
+                      "name": "name-1",
+                      "type": "CISCO_ACI",
+                      "updatedAt": "2026-08-31T13:48:12.093782511Z",
+                      "updatedBy": "user@example.invalid",
+                      "updatedById": "8274"
+                    }
+                  ]
+                },
+                "schema": {
+                  "properties": {
+                    "setups": {
+                      "items": {
+                        "$ref": "#/components/schemas/SrcControllerManagedSetup"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "setups"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Setups in a 'setups' envelope."
+          }
+        },
+        "summary": "List controller-managed setups",
+        "tags": [
+          "Collection Sources"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Creates a setup. Gated by MANAGE_COLLECTION_SOURCES; an SD_WAN setup additionally requires the SDWAN_SETUPS organization property (Java requireSdwanFlag, AccessDeniedException otherwise). The Go SDK notes Forward refuses (400) a device name already held by a classic device (not re-read in the service source); ?action=migrate takes such devices over. The name is lowercased. Returns 201 with the created setup.",
+        "operationId": "createControllerManagedSetup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "controllers": [
+                  {
+                    "collect": true,
+                    "host": "192.0.2.10",
+                    "httpCredentialId": "H-1",
+                    "name": "example-controller-1",
+                    "type": "cisco_apic_api"
+                  }
+                ],
+                "name": "example-setup"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SrcNewControllerManagedSetup"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "controllers": [
+                    {
+                      "collect": true,
+                      "createdAt": "2026-05-27T11:43:35.471611426Z",
+                      "createdBy": "user@example.invalid",
+                      "createdById": "6864",
+                      "host": "192.0.2.1",
+                      "httpCredentialId": "H-1",
+                      "name": "name-2",
+                      "type": "cisco_apic_api",
+                      "updatedAt": "2026-06-13T13:21:27.365328812Z",
+                      "updatedById": "12509"
+                    },
+                    {
+                      "cliCredentialId": "L-4",
+                      "collect": true,
+                      "createdAt": "2026-05-27T11:43:35.471611426Z",
+                      "createdBy": "user@example.invalid",
+                      "createdById": "6864",
+                      "host": "192.0.2.2",
+                      "httpCredentialId": "H-1",
+                      "name": "name-3",
+                      "type": "cisco_apic_api",
+                      "updatedAt": "2026-05-27T11:43:35.471611426Z",
+                      "updatedBy": "user@example.invalid",
+                      "updatedById": "6864"
+                    }
+                  ],
+                  "createdAt": "2026-05-27T11:43:35.471611426Z",
+                  "createdBy": "user@example.invalid",
+                  "createdById": "6864",
+                  "managedDevices": [
+                    {
+                      "cliCredentialId": "L-4",
+                      "collect": true,
+                      "createdAt": "2026-05-27T11:43:35.471611426Z",
+                      "createdBy": "user@example.invalid",
+                      "createdById": "6864",
+                      "host": "192.0.2.3",
+                      "name": "name-4",
+                      "type": "cisco_nxos_aci_ssh",
+                      "updatedAt": "2026-10-08T15:42:06.280132109Z",
+                      "updatedBy": "user@example.invalid",
+                      "updatedById": "6864"
+                    },
+                    {
+                      "cliCredentialId": "L-4",
+                      "collect": true,
+                      "createdAt": "2026-05-27T11:43:35.471611426Z",
+                      "createdBy": "user@example.invalid",
+                      "createdById": "6864",
+                      "host": "192.0.2.4",
+                      "name": "name-5",
+                      "updatedAt": "2026-10-08T15:42:06.280132109Z",
+                      "updatedBy": "user@example.invalid",
+                      "updatedById": "6864"
+                    }
+                  ],
+                  "name": "name-1",
+                  "type": "CISCO_ACI",
+                  "updatedAt": "2026-08-31T13:48:12.093782511Z",
+                  "updatedBy": "user@example.invalid",
+                  "updatedById": "8274"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcControllerManagedSetup"
+                }
+              }
+            },
+            "description": "The created setup."
+          }
+        },
+        "summary": "Create a controller-managed setup",
+        "tags": [
+          "Collection Sources"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "createControllerManagedSetupMigratingClassic",
+            "summary": "Create a setup and take over matching classic devices",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "migrate"
+              ]
+            ]
+          },
+          {
+            "operationId": "testControllerManagedSetups",
+            "summary": "Queue a connectivity test of selected devices",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "test"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/controller-managed-setups/{setupName}": {
+      "delete": {
+        "description": "Deletes the named setup. Gated by DELETE_COLLECTION_SOURCES. Java returns 204 for a found setup; the Go SDK treats 404 as already gone. Live: not exercised.",
+        "operationId": "deleteControllerManagedSetup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "setupName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a controller-managed setup",
+        "tags": [
+          "Collection Sources"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Partial update with PATCH presence semantics: absent leaves a field alone, explicit null clears (managedDevices, collectorId). Forward writes only when the result differs from the stored setup, so re-sending the same guests is a no-op. Gated by MANAGE_COLLECTION_SOURCES; SD_WAN requires SDWAN_SETUPS. Live: not exercised.",
+        "operationId": "patchControllerManagedSetup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "setupName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "managedDevices": []
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SrcControllerManagedSetupPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "controllers": [
+                    {
+                      "collect": true,
+                      "createdAt": "2026-05-27T11:43:35.471611426Z",
+                      "createdBy": "user@example.invalid",
+                      "createdById": "6864",
+                      "host": "192.0.2.1",
+                      "httpCredentialId": "H-1",
+                      "name": "name-2",
+                      "type": "cisco_apic_api",
+                      "updatedAt": "2026-06-13T13:21:27.365328812Z",
+                      "updatedById": "12509"
+                    },
+                    {
+                      "cliCredentialId": "L-4",
+                      "collect": true,
+                      "createdAt": "2026-05-27T11:43:35.471611426Z",
+                      "createdBy": "user@example.invalid",
+                      "createdById": "6864",
+                      "host": "192.0.2.2",
+                      "httpCredentialId": "H-1",
+                      "name": "name-3",
+                      "type": "cisco_apic_api",
+                      "updatedAt": "2026-05-27T11:43:35.471611426Z",
+                      "updatedBy": "user@example.invalid",
+                      "updatedById": "6864"
+                    }
+                  ],
+                  "createdAt": "2026-05-27T11:43:35.471611426Z",
+                  "createdBy": "user@example.invalid",
+                  "createdById": "6864",
+                  "managedDevices": [
+                    {
+                      "cliCredentialId": "L-4",
+                      "collect": true,
+                      "createdAt": "2026-05-27T11:43:35.471611426Z",
+                      "createdBy": "user@example.invalid",
+                      "createdById": "6864",
+                      "host": "192.0.2.3",
+                      "name": "name-4",
+                      "type": "cisco_nxos_aci_ssh",
+                      "updatedAt": "2026-10-08T15:42:06.280132109Z",
+                      "updatedBy": "user@example.invalid",
+                      "updatedById": "6864"
+                    },
+                    {
+                      "cliCredentialId": "L-4",
+                      "collect": true,
+                      "createdAt": "2026-05-27T11:43:35.471611426Z",
+                      "createdBy": "user@example.invalid",
+                      "createdById": "6864",
+                      "host": "192.0.2.4",
+                      "name": "name-5",
+                      "updatedAt": "2026-10-08T15:42:06.280132109Z",
+                      "updatedBy": "user@example.invalid",
+                      "updatedById": "6864"
+                    }
+                  ],
+                  "name": "name-1",
+                  "type": "CISCO_ACI",
+                  "updatedAt": "2026-08-31T13:48:12.093782511Z",
+                  "updatedBy": "user@example.invalid",
+                  "updatedById": "8274"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcControllerManagedSetup"
+                }
+              }
+            },
+            "description": "The setup as stored after the patch."
+          }
+        },
+        "summary": "Change a controller-managed setup",
+        "tags": [
+          "Collection Sources"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/custom-command-groups": {
+      "get": {
+        "description": "Lists the network's custom command groups (extra CLI commands or SNMP OIDs run on chosen device types). Gated by VIEW_CUSTOM_COLLECTION_GROUPS. The Go SDK's Get is this list filtered by name (no per-name read exists). Live-verified.",
+        "operationId": "listCustomCommandGroups",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "commands": [
+                      "show bfd peer det",
+                      "sh run  | inc bfd",
+                      "sho bfd peers detail | inc Tx|Peer"
+                    ],
+                    "deviceConnTypes": [
+                      "arista_eos_ssh"
+                    ],
+                    "disabled": false,
+                    "name": "name-6",
+                    "type": "CLI"
+                  },
+                  {
+                    "commands": [
+                      "sh int status",
+                      "sh ip int brief",
+                      "sh inventory",
+                      "sh environment",
+                      "sh module"
+                    ],
+                    "deviceConnTypes": [
+                      "cisco_ios_ssh",
+                      "cisco_ios_xe_ssh",
+                      "cisco_nxos_ssh"
+                    ],
+                    "devices": [
+                      "name-8",
+                      "name-9",
+                      "name-10",
+                      "name-11",
+                      "name-12",
+                      "name-13",
+                      "name-14",
+                      "name-15",
+                      "name-16",
+                      "name-17",
+                      "name-18",
+                      "name-19",
+                      "name-20",
+                      "name-21",
+                      "name-22",
+                      "name-23",
+                      "name-24",
+                      "name-25",
+                      "name-26",
+                      "name-27",
+                      "name-28",
+                      "name-29",
+                      "name-30",
+                      "name-31",
+                      "name-32",
+                      "name-33",
+                      "name-34",
+                      "name-35",
+                      "name-36",
+                      "name-37",
+                      "name-38",
+                      "name-39",
+                      "name-40",
+                      "name-41",
+                      "name-42",
+                      "name-43",
+                      "name-44",
+                      "name-45",
+                      "name-46",
+                      "name-47",
+                      "name-48",
+                      "name-49",
+                      "name-50",
+                      "name-51",
+                      "name-52",
+                      "name-53",
+                      "name-54",
+                      "name-55",
+                      "name-56",
+                      "name-57",
+                      "name-58",
+                      "name-59",
+                      "name-60",
+                      "name-61",
+                      "name-62",
+                      "name-63",
+                      "name-64",
+                      "name-65",
+                      "name-66",
+                      "name-67",
+                      "name-68",
+                      "name-69",
+                      "name-70",
+                      "name-71",
+                      "name-72",
+                      "name-73",
+                      "name-74",
+                      "name-75",
+                      "name-76",
+                      "name-77",
+                      "name-78",
+                      "name-79",
+                      "name-80",
+                      "name-81",
+                      "name-82",
+                      "name-83",
+                      "name-84",
+                      "name-85",
+                      "name-86",
+                      "name-87",
+                      "name-88",
+                      "name-89",
+                      "name-90",
+                      "name-91",
+                      "name-92",
+                      "name-93",
+                      "name-94",
+                      "name-95",
+                      "name-96",
+                      "name-97",
+                      "name-98",
+                      "name-99",
+                      "name-100",
+                      "name-101",
+                      "name-102",
+                      "name-103",
+                      "name-104",
+                      "name-105",
+                      "name-106",
+                      "name-107",
+                      "name-108",
+                      "name-109",
+                      "name-110",
+                      "name-111",
+                      "name-112",
+                      "name-113",
+                      "name-114",
+                      "name-115",
+                      "name-116",
+                      "name-117",
+                      "name-118",
+                      "name-119",
+                      "name-120",
+                      "name-121",
+                      "name-122",
+                      "name-123",
+                      "name-124",
+                      "name-125",
+                      "name-126",
+                      "name-127",
+                      "name-128",
+                      "name-129",
+                      "name-130",
+                      "name-131",
+                      "name-132",
+                      "name-133",
+                      "name-134",
+                      "name-135",
+                      "name-136",
+                      "name-137",
+                      "name-138",
+                      "name-139",
+                      "name-140",
+                      "name-141",
+                      "name-142",
+                      "name-143",
+                      "name-144",
+                      "name-145",
+                      "name-146",
+                      "name-147",
+                      "name-148",
+                      "name-149",
+                      "name-150",
+                      "name-151",
+                      "name-152",
+                      "name-153",
+                      "name-154",
+                      "name-155",
+                      "name-156",
+                      "name-157",
+                      "name-158",
+                      "name-159",
+                      "name-160",
+                      "name-161",
+                      "name-162",
+                      "name-163",
+                      "name-164",
+                      "name-165",
+                      "name-166",
+                      "name-167",
+                      "name-168",
+                      "name-169",
+                      "name-170",
+                      "name-171",
+                      "name-172",
+                      "name-173",
+                      "name-174",
+                      "name-175",
+                      "name-176",
+                      "name-177",
+                      "name-178",
+                      "name-179",
+                      "name-180",
+                      "name-181",
+                      "name-182",
+                      "name-183",
+                      "name-184",
+                      "name-185",
+                      "name-186",
+                      "name-187",
+                      "name-188",
+                      "name-189",
+                      "name-190",
+                      "name-191",
+                      "name-192",
+                      "name-193",
+                      "name-194",
+                      "name-195",
+                      "name-196",
+                      "name-197",
+                      "name-198",
+                      "name-199",
+                      "name-200",
+                      "name-201",
+                      "name-202",
+                      "name-203",
+                      "name-204",
+                      "name-205",
+                      "name-206",
+                      "name-207",
+                      "name-208",
+                      "name-209",
+                      "name-210",
+                      "name-211",
+                      "name-212",
+                      "name-213",
+                      "name-214",
+                      "name-215",
+                      "name-216",
+                      "name-217",
+                      "name-218",
+                      "name-219",
+                      "name-220",
+                      "name-221",
+                      "name-222",
+                      "name-223",
+                      "name-224",
+                      "name-225",
+                      "name-226",
+                      "name-227",
+                      "name-228",
+                      "name-229",
+                      "name-230",
+                      "name-231",
+                      "name-232",
+                      "name-233",
+                      "name-234",
+                      "name-235",
+                      "name-236",
+                      "name-237",
+                      "name-238",
+                      "name-239",
+                      "name-240",
+                      "name-241",
+                      "name-242",
+                      "name-243",
+                      "name-244",
+                      "name-245",
+                      "name-246",
+                      "name-247",
+                      "name-248",
+                      "name-249",
+                      "name-250",
+                      "name-251",
+                      "name-252",
+                      "name-253",
+                      "name-254",
+                      "name-255",
+                      "name-256",
+                      "name-257",
+                      "name-258",
+                      "name-259",
+                      "name-260",
+                      "name-261",
+                      "name-262",
+                      "name-263",
+                      "name-264",
+                      "name-265",
+                      "name-266",
+                      "name-267",
+                      "name-268",
+                      "name-269",
+                      "name-270",
+                      "name-271",
+                      "name-272",
+                      "name-273",
+                      "name-274",
+                      "name-275",
+                      "name-276",
+                      "name-277",
+                      "name-278",
+                      "name-279",
+                      "name-280",
+                      "name-281",
+                      "name-282",
+                      "name-283",
+                      "name-284",
+                      "name-285",
+                      "name-286",
+                      "name-287",
+                      "name-288",
+                      "name-289",
+                      "name-290",
+                      "name-291",
+                      "name-292",
+                      "name-293",
+                      "name-294",
+                      "name-295",
+                      "name-296",
+                      "name-297",
+                      "name-298",
+                      "name-299",
+                      "name-300",
+                      "name-301",
+                      "name-302",
+                      "name-303",
+                      "name-304",
+                      "name-305",
+                      "name-306",
+                      "name-307",
+                      "name-308",
+                      "name-309",
+                      "name-310",
+                      "name-311",
+                      "name-312",
+                      "name-313",
+                      "name-314",
+                      "name-315",
+                      "name-316",
+                      "name-317",
+                      "name-318",
+                      "name-319",
+                      "name-320",
+                      "name-321",
+                      "name-322",
+                      "name-323",
+                      "name-324",
+                      "name-325",
+                      "name-326",
+                      "name-327",
+                      "name-328",
+                      "name-329",
+                      "name-330",
+                      "name-331",
+                      "name-332",
+                      "name-333",
+                      "name-334",
+                      "name-335",
+                      "name-336",
+                      "name-337",
+                      "name-338",
+                      "name-339",
+                      "name-340",
+                      "name-341",
+                      "name-342",
+                      "name-343",
+                      "name-344",
+                      "name-345",
+                      "name-346",
+                      "name-347",
+                      "name-348",
+                      "name-349",
+                      "name-350",
+                      "name-351",
+                      "name-352",
+                      "name-353",
+                      "name-354",
+                      "name-355",
+                      "name-356",
+                      "name-357",
+                      "name-358",
+                      "name-359",
+                      "name-360",
+                      "name-361",
+                      "name-362",
+                      "name-363",
+                      "name-364",
+                      "name-365",
+                      "name-366",
+                      "name-367",
+                      "name-368",
+                      "name-369",
+                      "name-370",
+                      "name-371",
+                      "name-372",
+                      "name-373",
+                      "name-374",
+                      "name-375",
+                      "name-376",
+                      "name-377",
+                      "name-378",
+                      "name-379",
+                      "name-380",
+                      "name-381",
+                      "name-382",
+                      "name-383",
+                      "name-384",
+                      "name-385",
+                      "name-386",
+                      "name-387",
+                      "name-388",
+                      "name-389",
+                      "name-390",
+                      "name-391",
+                      "name-392",
+                      "name-393",
+                      "name-394",
+                      "name-395",
+                      "name-396",
+                      "name-397",
+                      "name-398",
+                      "name-399",
+                      "name-400",
+                      "name-401",
+                      "name-402",
+                      "name-403",
+                      "name-404",
+                      "name-405",
+                      "name-406",
+                      "name-407",
+                      "name-408",
+                      "name-409",
+                      "name-410",
+                      "name-411",
+                      "name-412",
+                      "name-413",
+                      "name-414",
+                      "name-415",
+                      "name-416",
+                      "name-417",
+                      "name-418",
+                      "name-419",
+                      "name-420",
+                      "name-421",
+                      "name-422",
+                      "name-423",
+                      "name-424",
+                      "name-425",
+                      "name-426",
+                      "name-427",
+                      "name-428",
+                      "name-429",
+                      "name-430",
+                      "name-431",
+                      "name-432",
+                      "name-433",
+                      "name-434",
+                      "name-435",
+                      "name-436",
+                      "name-437",
+                      "name-438",
+                      "name-439",
+                      "name-440",
+                      "name-441",
+                      "name-442",
+                      "name-443",
+                      "name-444",
+                      "name-445",
+                      "name-446",
+                      "name-447",
+                      "name-448",
+                      "name-449",
+                      "name-450",
+                      "name-451",
+                      "name-452",
+                      "name-453",
+                      "name-454",
+                      "name-455",
+                      "name-456",
+                      "name-457",
+                      "name-458",
+                      "name-459",
+                      "name-460",
+                      "name-461",
+                      "name-462",
+                      "name-463",
+                      "name-464",
+                      "name-465",
+                      "name-466",
+                      "name-467",
+                      "name-468",
+                      "name-469",
+                      "name-470",
+                      "name-471",
+                      "name-472",
+                      "name-473",
+                      "name-474",
+                      "name-475",
+                      "name-476",
+                      "name-477",
+                      "name-478",
+                      "name-479",
+                      "name-480",
+                      "name-481",
+                      "name-482",
+                      "name-483",
+                      "name-484",
+                      "name-485",
+                      "name-486",
+                      "name-487",
+                      "name-488",
+                      "name-489",
+                      "name-490",
+                      "name-491",
+                      "name-492",
+                      "name-493",
+                      "name-494",
+                      "name-495",
+                      "name-496",
+                      "name-497",
+                      "name-498",
+                      "name-499",
+                      "name-500",
+                      "name-501",
+                      "name-502",
+                      "name-503",
+                      "name-504",
+                      "name-505",
+                      "name-506",
+                      "name-507",
+                      "name-508",
+                      "name-509",
+                      "name-510",
+                      "name-511",
+                      "name-512",
+                      "name-513",
+                      "name-514",
+                      "name-515",
+                      "name-516",
+                      "name-517",
+                      "name-518",
+                      "name-519",
+                      "name-520",
+                      "name-521",
+                      "name-522",
+                      "name-523",
+                      "name-524",
+                      "name-525",
+                      "name-526",
+                      "name-527",
+                      "name-528",
+                      "name-529",
+                      "name-530",
+                      "name-531",
+                      "name-532",
+                      "name-533",
+                      "name-534",
+                      "name-535",
+                      "name-536",
+                      "name-537",
+                      "name-538",
+                      "name-539",
+                      "name-540",
+                      "name-541",
+                      "name-542",
+                      "name-543",
+                      "name-544",
+                      "name-545",
+                      "name-546",
+                      "name-547",
+                      "name-548",
+                      "name-549",
+                      "name-550",
+                      "name-551",
+                      "name-552",
+                      "name-553",
+                      "name-554",
+                      "name-555",
+                      "name-556",
+                      "name-557",
+                      "name-558",
+                      "name-559",
+                      "name-560",
+                      "name-561",
+                      "name-562",
+                      "name-563",
+                      "name-564",
+                      "name-565",
+                      "name-566",
+                      "name-567",
+                      "name-568",
+                      "name-569",
+                      "name-570",
+                      "name-571",
+                      "name-572",
+                      "name-573",
+                      "name-574",
+                      "name-575",
+                      "name-576",
+                      "name-577",
+                      "name-578",
+                      "name-579",
+                      "name-580",
+                      "name-581",
+                      "name-582",
+                      "name-583",
+                      "name-584",
+                      "name-585",
+                      "name-586",
+                      "name-587",
+                      "name-588",
+                      "name-589",
+                      "name-590",
+                      "name-591",
+                      "name-592",
+                      "name-593",
+                      "name-594",
+                      "name-595",
+                      "name-596",
+                      "name-597",
+                      "name-598",
+                      "name-599",
+                      "name-600",
+                      "name-601",
+                      "name-602",
+                      "name-603",
+                      "name-604",
+                      "name-605",
+                      "name-606",
+                      "name-607",
+                      "name-608",
+                      "name-609",
+                      "name-610",
+                      "name-611",
+                      "name-612",
+                      "name-613",
+                      "name-614",
+                      "name-615",
+                      "name-616",
+                      "name-617",
+                      "name-618",
+                      "name-619",
+                      "name-620",
+                      "name-621",
+                      "name-622",
+                      "name-623",
+                      "name-624",
+                      "name-625",
+                      "name-626",
+                      "name-627",
+                      "name-628",
+                      "name-629",
+                      "name-630",
+                      "name-631",
+                      "name-632",
+                      "name-633",
+                      "name-634",
+                      "name-635",
+                      "name-636",
+                      "name-637",
+                      "name-638",
+                      "name-639",
+                      "name-640",
+                      "name-641",
+                      "name-642",
+                      "name-643",
+                      "name-644",
+                      "name-645",
+                      "name-646",
+                      "name-647",
+                      "name-648",
+                      "name-649",
+                      "name-650",
+                      "name-651",
+                      "name-652",
+                      "name-653",
+                      "name-654",
+                      "name-655",
+                      "name-656",
+                      "name-657",
+                      "name-658",
+                      "name-659",
+                      "name-660",
+                      "name-661",
+                      "name-662",
+                      "name-663",
+                      "name-664",
+                      "name-665",
+                      "name-666",
+                      "name-667",
+                      "name-668",
+                      "name-669",
+                      "name-670",
+                      "name-671",
+                      "name-672",
+                      "name-673",
+                      "name-674",
+                      "name-675",
+                      "name-676",
+                      "name-677",
+                      "name-678",
+                      "name-679",
+                      "name-680",
+                      "name-681",
+                      "name-682",
+                      "name-683",
+                      "name-684",
+                      "name-685",
+                      "name-686",
+                      "name-687",
+                      "name-688",
+                      "name-689",
+                      "name-690",
+                      "name-691",
+                      "name-692",
+                      "name-693",
+                      "name-694",
+                      "name-695",
+                      "name-696",
+                      "name-697",
+                      "name-698",
+                      "name-699",
+                      "name-700",
+                      "name-701",
+                      "name-702",
+                      "name-703",
+                      "name-704",
+                      "name-705",
+                      "name-706",
+                      "name-707",
+                      "name-708",
+                      "name-709",
+                      "name-710",
+                      "name-711",
+                      "name-712",
+                      "name-713",
+                      "name-714",
+                      "name-715",
+                      "name-716",
+                      "name-717",
+                      "name-718",
+                      "name-719",
+                      "name-720",
+                      "name-721",
+                      "name-722",
+                      "name-723",
+                      "name-724",
+                      "name-725",
+                      "name-726",
+                      "name-727",
+                      "name-728",
+                      "name-729",
+                      "name-730",
+                      "name-731",
+                      "name-732",
+                      "name-733",
+                      "name-734",
+                      "name-735",
+                      "name-736",
+                      "name-737",
+                      "name-738",
+                      "name-739",
+                      "name-740",
+                      "name-741",
+                      "name-742",
+                      "name-743",
+                      "name-744",
+                      "name-745",
+                      "name-746",
+                      "name-747",
+                      "name-748",
+                      "name-749",
+                      "name-750",
+                      "name-751",
+                      "name-752",
+                      "name-753",
+                      "name-754",
+                      "name-755",
+                      "name-756",
+                      "name-757",
+                      "name-758",
+                      "name-759",
+                      "name-760",
+                      "name-761",
+                      "name-762",
+                      "name-763",
+                      "name-764",
+                      "name-765",
+                      "name-766",
+                      "name-767",
+                      "name-768",
+                      "name-769",
+                      "name-770",
+                      "name-771",
+                      "name-772",
+                      "name-773",
+                      "name-774",
+                      "name-775",
+                      "name-776",
+                      "name-777",
+                      "name-778",
+                      "name-779",
+                      "name-780",
+                      "name-781",
+                      "name-782",
+                      "name-783",
+                      "name-784",
+                      "name-785",
+                      "name-786",
+                      "name-787",
+                      "name-788",
+                      "name-789",
+                      "name-790",
+                      "name-791",
+                      "name-792",
+                      "name-793",
+                      "name-794",
+                      "name-795",
+                      "name-796",
+                      "name-797",
+                      "name-798",
+                      "name-799",
+                      "name-800",
+                      "name-801",
+                      "name-802",
+                      "name-803",
+                      "name-804",
+                      "name-805",
+                      "name-806",
+                      "name-807",
+                      "name-808",
+                      "name-809",
+                      "name-810",
+                      "name-811",
+                      "name-812",
+                      "name-813",
+                      "name-814",
+                      "name-815",
+                      "name-816",
+                      "name-817",
+                      "name-818",
+                      "name-819",
+                      "name-820",
+                      "name-821",
+                      "name-822",
+                      "name-823",
+                      "name-824",
+                      "name-825",
+                      "name-826",
+                      "name-827",
+                      "name-828",
+                      "name-829",
+                      "name-830",
+                      "name-831",
+                      "name-832",
+                      "name-833",
+                      "name-834",
+                      "name-835",
+                      "name-836",
+                      "name-837",
+                      "name-838",
+                      "name-839",
+                      "name-840",
+                      "name-841",
+                      "name-842",
+                      "name-843",
+                      "name-844",
+                      "name-845",
+                      "name-846",
+                      "name-847",
+                      "name-848",
+                      "name-849",
+                      "name-850",
+                      "name-851",
+                      "name-852",
+                      "name-853",
+                      "name-854",
+                      "name-855",
+                      "name-856",
+                      "name-857",
+                      "name-858",
+                      "name-859",
+                      "name-860",
+                      "name-861",
+                      "name-862",
+                      "name-863",
+                      "name-864",
+                      "name-865",
+                      "name-866",
+                      "name-867",
+                      "name-868",
+                      "name-869",
+                      "name-870",
+                      "name-871",
+                      "name-872",
+                      "name-873",
+                      "name-874",
+                      "name-875",
+                      "name-876",
+                      "name-877",
+                      "name-878",
+                      "name-879",
+                      "name-880",
+                      "name-881",
+                      "name-882",
+                      "name-883",
+                      "name-884",
+                      "name-885",
+                      "name-886",
+                      "name-887",
+                      "name-888",
+                      "name-889",
+                      "name-890",
+                      "name-891",
+                      "name-892",
+                      "name-893",
+                      "name-894",
+                      "name-895",
+                      "name-896",
+                      "name-897",
+                      "name-898",
+                      "name-899",
+                      "name-900",
+                      "name-901",
+                      "name-902",
+                      "name-903",
+                      "name-904",
+                      "name-905",
+                      "name-906",
+                      "name-907",
+                      "name-908",
+                      "name-909",
+                      "name-910",
+                      "name-911",
+                      "name-912",
+                      "name-913",
+                      "name-914",
+                      "name-915",
+                      "name-916",
+                      "name-917",
+                      "name-918",
+                      "name-919",
+                      "name-920",
+                      "name-921",
+                      "name-922",
+                      "name-923",
+                      "name-924",
+                      "name-925",
+                      "name-926",
+                      "name-927",
+                      "name-928",
+                      "name-929",
+                      "name-930",
+                      "name-931",
+                      "name-932",
+                      "name-933",
+                      "name-934",
+                      "name-935",
+                      "name-936",
+                      "name-937",
+                      "name-938",
+                      "name-939",
+                      "name-940",
+                      "name-941",
+                      "name-942",
+                      "name-943",
+                      "name-944",
+                      "name-945",
+                      "name-946",
+                      "name-947",
+                      "name-948",
+                      "name-949",
+                      "name-950",
+                      "name-951",
+                      "name-952",
+                      "name-953",
+                      "name-954",
+                      "name-955",
+                      "name-956",
+                      "name-957",
+                      "name-958",
+                      "name-959",
+                      "name-960",
+                      "name-961",
+                      "name-962",
+                      "name-963",
+                      "name-964",
+                      "name-965",
+                      "name-966",
+                      "name-967",
+                      "name-968",
+                      "name-969",
+                      "name-970",
+                      "name-971",
+                      "name-972",
+                      "name-973",
+                      "name-974",
+                      "name-975",
+                      "name-976",
+                      "name-977",
+                      "name-978",
+                      "name-979",
+                      "name-980",
+                      "name-981",
+                      "name-982",
+                      "name-983",
+                      "name-984",
+                      "name-985",
+                      "name-986",
+                      "name-987",
+                      "name-988",
+                      "name-989",
+                      "name-990",
+                      "name-991",
+                      "name-992",
+                      "name-993",
+                      "name-994",
+                      "name-995",
+                      "name-996",
+                      "name-997",
+                      "name-998",
+                      "name-999",
+                      "name-1000",
+                      "name-1001",
+                      "name-1002",
+                      "name-1003",
+                      "name-1004",
+                      "name-1005",
+                      "name-1006",
+                      "name-1007",
+                      "name-1008",
+                      "name-1009",
+                      "name-1010",
+                      "name-1011",
+                      "name-1012",
+                      "name-1013",
+                      "name-1014",
+                      "name-1015",
+                      "name-1016",
+                      "name-1017",
+                      "name-1018",
+                      "name-1019",
+                      "name-1020",
+                      "name-1021",
+                      "name-1022",
+                      "name-1023",
+                      "name-1024",
+                      "name-1025",
+                      "name-1026",
+                      "name-1027",
+                      "name-1028",
+                      "name-1029",
+                      "name-1030",
+                      "name-1031",
+                      "name-1032",
+                      "name-1033",
+                      "name-1034",
+                      "name-1035",
+                      "name-1036",
+                      "name-1037",
+                      "name-1038",
+                      "name-1039",
+                      "name-1040",
+                      "name-1041",
+                      "name-1042",
+                      "name-1043",
+                      "name-1044",
+                      "name-1045",
+                      "name-1046",
+                      "name-1047",
+                      "name-1048",
+                      "name-1049",
+                      "name-1050",
+                      "name-1051",
+                      "name-1052",
+                      "name-1053",
+                      "name-1054",
+                      "name-1055",
+                      "name-1056",
+                      "name-1057",
+                      "name-1058",
+                      "name-1059",
+                      "name-1060",
+                      "name-1061",
+                      "name-1062",
+                      "name-1063",
+                      "name-1064",
+                      "name-1065",
+                      "name-1066",
+                      "name-1067",
+                      "name-1068",
+                      "name-1069",
+                      "name-1070",
+                      "name-1071",
+                      "name-1072",
+                      "name-1073",
+                      "name-1074",
+                      "name-1075",
+                      "name-1076",
+                      "name-1077",
+                      "name-1078",
+                      "name-1079",
+                      "name-1080",
+                      "name-1081",
+                      "name-1082",
+                      "name-1083",
+                      "name-1084",
+                      "name-1085",
+                      "name-1086",
+                      "name-1087",
+                      "name-1088",
+                      "name-1089",
+                      "name-1090",
+                      "name-1091",
+                      "name-1092",
+                      "name-1093",
+                      "name-1094",
+                      "name-1095",
+                      "name-1096",
+                      "name-1097",
+                      "name-1098",
+                      "name-1099",
+                      "name-1100",
+                      "name-1101",
+                      "name-1102",
+                      "name-1103",
+                      "name-1104",
+                      "name-1105",
+                      "name-1106",
+                      "name-1107",
+                      "name-1108",
+                      "name-1109",
+                      "name-1110",
+                      "name-1111",
+                      "name-1112",
+                      "name-1113",
+                      "name-1114",
+                      "name-1115",
+                      "name-1116",
+                      "name-1117",
+                      "name-1118",
+                      "name-1119",
+                      "name-1120",
+                      "name-1121",
+                      "name-1122",
+                      "name-1123",
+                      "name-1124",
+                      "name-1125",
+                      "name-1126",
+                      "name-1127",
+                      "name-1128",
+                      "name-1129",
+                      "name-1130",
+                      "name-1131",
+                      "name-1132",
+                      "name-1133",
+                      "name-1134",
+                      "name-1135",
+                      "name-1136",
+                      "name-1137",
+                      "name-1138",
+                      "name-1139",
+                      "name-1140",
+                      "name-1141",
+                      "name-1142",
+                      "name-1143",
+                      "name-1144",
+                      "name-1145",
+                      "name-1146",
+                      "name-1147",
+                      "name-1148",
+                      "name-1149",
+                      "name-1150",
+                      "name-1151",
+                      "name-1152",
+                      "name-1153",
+                      "name-1154",
+                      "name-1155",
+                      "name-1156",
+                      "name-1157",
+                      "name-1158",
+                      "name-1159",
+                      "name-1160",
+                      "name-1161",
+                      "name-1162",
+                      "name-1163",
+                      "name-1164",
+                      "name-1165",
+                      "name-1166",
+                      "name-1167",
+                      "name-1168",
+                      "name-1169",
+                      "name-1170",
+                      "name-1171",
+                      "name-1172",
+                      "name-1173",
+                      "name-1174",
+                      "name-1175",
+                      "name-1176",
+                      "name-1177",
+                      "name-1178",
+                      "name-1179",
+                      "name-1180",
+                      "name-1181",
+                      "name-1182",
+                      "name-1183",
+                      "name-1184",
+                      "name-1185",
+                      "name-1186",
+                      "name-1187",
+                      "name-1188",
+                      "name-1189",
+                      "name-1190",
+                      "name-1191",
+                      "name-1192",
+                      "name-1193",
+                      "name-1194",
+                      "name-1195",
+                      "name-1196",
+                      "name-1197",
+                      "name-1198",
+                      "name-1199",
+                      "name-1200",
+                      "name-1201",
+                      "name-1202",
+                      "name-1203",
+                      "name-1204",
+                      "name-1205",
+                      "name-1206",
+                      "name-1207",
+                      "name-1208",
+                      "name-1209",
+                      "name-1210",
+                      "name-1211",
+                      "name-1212",
+                      "name-1213",
+                      "name-1214",
+                      "name-1215",
+                      "name-1216",
+                      "name-1217",
+                      "name-1218",
+                      "name-1219",
+                      "name-1220",
+                      "name-1221",
+                      "name-1222",
+                      "name-1223",
+                      "name-1224",
+                      "name-1225",
+                      "name-1226",
+                      "name-1227",
+                      "name-1228",
+                      "name-1229",
+                      "name-1230",
+                      "name-1231",
+                      "name-1232",
+                      "name-1233",
+                      "name-1234",
+                      "name-1235",
+                      "name-1236",
+                      "name-1237",
+                      "name-1238",
+                      "name-1239",
+                      "name-1240",
+                      "name-1241",
+                      "name-1242",
+                      "name-1243",
+                      "name-1244",
+                      "name-1245",
+                      "name-1246",
+                      "name-1247",
+                      "name-1248",
+                      "name-1249",
+                      "name-1250",
+                      "name-1251",
+                      "name-1252",
+                      "name-1253",
+                      "name-1254",
+                      "name-1255",
+                      "name-1256",
+                      "name-1257",
+                      "name-1258",
+                      "name-1259",
+                      "name-1260",
+                      "name-1261",
+                      "name-1262",
+                      "name-1263",
+                      "name-1264",
+                      "name-1265",
+                      "name-1266",
+                      "name-1267",
+                      "name-1268",
+                      "name-1269",
+                      "name-1270",
+                      "name-1271",
+                      "name-1272",
+                      "name-1273",
+                      "name-1274",
+                      "name-1275",
+                      "name-1276",
+                      "name-1277",
+                      "name-1278",
+                      "name-1279",
+                      "name-1280",
+                      "name-1281",
+                      "name-1282",
+                      "name-1283",
+                      "name-1284",
+                      "name-1285",
+                      "name-1286",
+                      "name-1287",
+                      "name-1288",
+                      "name-1289",
+                      "name-1290",
+                      "name-1291",
+                      "name-1292",
+                      "name-1293",
+                      "name-1294",
+                      "name-1295",
+                      "name-1296",
+                      "name-1297",
+                      "name-1298",
+                      "name-1299",
+                      "name-1300",
+                      "name-1301",
+                      "name-1302",
+                      "name-1303",
+                      "name-1304",
+                      "name-1305",
+                      "name-1306",
+                      "name-1307",
+                      "name-1308",
+                      "name-1309",
+                      "name-1310",
+                      "name-1311",
+                      "name-1312",
+                      "name-1313",
+                      "name-1314",
+                      "name-1315",
+                      "name-1316",
+                      "name-1317",
+                      "name-1318",
+                      "name-1319",
+                      "name-1320",
+                      "name-1321",
+                      "name-1322",
+                      "name-1323",
+                      "name-1324",
+                      "name-1325",
+                      "name-1326",
+                      "name-1327",
+                      "name-1328",
+                      "name-1329",
+                      "name-1330",
+                      "name-1331",
+                      "name-1332",
+                      "name-1333",
+                      "name-1334",
+                      "name-1335",
+                      "name-1336",
+                      "name-1337",
+                      "name-1338",
+                      "name-1339",
+                      "name-1340",
+                      "name-1341",
+                      "name-1342",
+                      "name-1343",
+                      "name-1344",
+                      "name-1345",
+                      "name-1346",
+                      "name-1347",
+                      "name-1348",
+                      "name-1349",
+                      "name-1350",
+                      "name-1351",
+                      "name-1352",
+                      "name-1353",
+                      "name-1354",
+                      "name-1355",
+                      "name-1356",
+                      "name-1357",
+                      "name-1358",
+                      "name-1359",
+                      "name-1360",
+                      "name-1361",
+                      "name-1362",
+                      "name-1363",
+                      "name-1364",
+                      "name-1365",
+                      "name-1366",
+                      "name-1367",
+                      "name-1368",
+                      "name-1369",
+                      "name-1370",
+                      "name-1371",
+                      "name-1372",
+                      "name-1373",
+                      "name-1374",
+                      "name-1375",
+                      "name-1376",
+                      "name-1377",
+                      "name-1378",
+                      "name-1379",
+                      "name-1380",
+                      "name-1381",
+                      "name-1382",
+                      "name-1383",
+                      "name-1384",
+                      "name-1385",
+                      "name-1386",
+                      "name-1387",
+                      "name-1388",
+                      "name-1389",
+                      "name-1390",
+                      "name-1391",
+                      "name-1392",
+                      "name-1393",
+                      "name-1394",
+                      "name-1395",
+                      "name-1396",
+                      "name-1397",
+                      "name-1398",
+                      "name-1399",
+                      "name-1400",
+                      "name-1401",
+                      "name-1402",
+                      "name-1403",
+                      "name-1404",
+                      "name-1405",
+                      "name-1406",
+                      "name-1407",
+                      "name-1408",
+                      "name-1409",
+                      "name-1410",
+                      "name-1411",
+                      "name-1412",
+                      "name-1413",
+                      "name-1414",
+                      "name-1415",
+                      "name-1416",
+                      "name-1417",
+                      "name-1418",
+                      "name-1419",
+                      "name-1420",
+                      "name-1421",
+                      "name-1422",
+                      "name-1423",
+                      "name-1424",
+                      "name-1425",
+                      "name-1426",
+                      "name-1427",
+                      "name-1428",
+                      "name-1429",
+                      "name-1430",
+                      "name-1431",
+                      "name-1432",
+                      "name-1433",
+                      "name-1434",
+                      "name-1435",
+                      "name-1436",
+                      "name-1437",
+                      "name-1438",
+                      "name-1439",
+                      "name-1440",
+                      "name-1441",
+                      "name-1442",
+                      "name-1443",
+                      "name-1444",
+                      "name-1445",
+                      "name-1446",
+                      "name-1447",
+                      "name-1448",
+                      "name-1449",
+                      "name-1450",
+                      "name-1451",
+                      "name-1452",
+                      "name-1453",
+                      "name-1454",
+                      "name-1455",
+                      "name-1456",
+                      "name-1457",
+                      "name-1458",
+                      "name-1459",
+                      "name-1460",
+                      "name-1461",
+                      "name-1462",
+                      "name-1463",
+                      "name-1464",
+                      "name-1465",
+                      "name-1466",
+                      "name-1467",
+                      "name-1468",
+                      "name-1469",
+                      "name-1470",
+                      "name-1471",
+                      "name-1472",
+                      "name-1473",
+                      "name-1474",
+                      "name-1475",
+                      "name-1476",
+                      "name-1477",
+                      "name-1478",
+                      "name-1479",
+                      "name-1480",
+                      "name-1481",
+                      "name-1482",
+                      "name-1483",
+                      "name-1484",
+                      "name-1485",
+                      "name-1486",
+                      "name-1487",
+                      "name-1488",
+                      "name-1489",
+                      "name-1490",
+                      "name-1491",
+                      "name-1492",
+                      "name-1493",
+                      "name-1494",
+                      "name-1495",
+                      "name-1496",
+                      "name-1497",
+                      "name-1498",
+                      "name-1499",
+                      "name-1500",
+                      "name-1501",
+                      "name-1502",
+                      "name-1503",
+                      "name-1504",
+                      "name-1505",
+                      "name-1506",
+                      "name-1507",
+                      "name-1508",
+                      "name-1509",
+                      "name-1510",
+                      "name-1511",
+                      "name-1512",
+                      "name-1513",
+                      "name-1514",
+                      "name-1515",
+                      "name-1516",
+                      "name-1517",
+                      "name-1518",
+                      "name-1519",
+                      "name-1520",
+                      "name-1521",
+                      "name-1522",
+                      "name-1523",
+                      "name-1524",
+                      "name-1525",
+                      "name-1526",
+                      "name-1527",
+                      "name-1528",
+                      "name-1529",
+                      "name-1530",
+                      "name-1531",
+                      "name-1532",
+                      "name-1533",
+                      "name-1534",
+                      "name-1535",
+                      "name-1536",
+                      "name-1537",
+                      "name-1538",
+                      "name-1539",
+                      "name-1540",
+                      "name-1541",
+                      "name-1542",
+                      "name-1543",
+                      "name-1544",
+                      "name-1545",
+                      "name-1546",
+                      "name-1547",
+                      "name-1548",
+                      "name-1549",
+                      "name-1550",
+                      "name-1551",
+                      "name-1552",
+                      "name-1553",
+                      "name-1554",
+                      "name-1555",
+                      "name-1556",
+                      "name-1557",
+                      "name-1558",
+                      "name-1559",
+                      "name-1560",
+                      "name-1561",
+                      "name-1562",
+                      "name-1563",
+                      "name-1564",
+                      "name-1565",
+                      "name-1566",
+                      "name-1567",
+                      "name-1568",
+                      "name-1569",
+                      "name-1570",
+                      "name-1571",
+                      "name-1572",
+                      "name-1573",
+                      "name-1574",
+                      "name-1575",
+                      "name-1576",
+                      "name-1577",
+                      "name-1578",
+                      "name-1579",
+                      "name-1580",
+                      "name-1581",
+                      "name-1582",
+                      "name-1583",
+                      "name-1584",
+                      "name-1585",
+                      "name-1586",
+                      "name-1587",
+                      "name-1588",
+                      "name-1589",
+                      "name-1590",
+                      "name-1591",
+                      "name-1592",
+                      "name-1593",
+                      "name-1594",
+                      "name-1595",
+                      "name-1596",
+                      "name-1597",
+                      "name-1598",
+                      "name-1599",
+                      "name-1600",
+                      "name-1601",
+                      "name-1602",
+                      "name-1603",
+                      "name-1604",
+                      "name-1605",
+                      "name-1606",
+                      "name-1607",
+                      "name-1608",
+                      "name-1609",
+                      "name-1610",
+                      "name-1611",
+                      "name-1612",
+                      "name-1613",
+                      "name-1614",
+                      "name-1615",
+                      "name-1616",
+                      "name-1617",
+                      "name-1618",
+                      "name-1619",
+                      "name-1620",
+                      "name-1621",
+                      "name-1622",
+                      "name-1623",
+                      "name-1624",
+                      "name-1625",
+                      "name-1626",
+                      "name-1627",
+                      "name-1628",
+                      "name-1629",
+                      "name-1630",
+                      "name-1631",
+                      "name-1632",
+                      "name-1633",
+                      "name-1634",
+                      "name-1635",
+                      "name-1636",
+                      "name-1637",
+                      "name-1638",
+                      "name-1639",
+                      "name-1640",
+                      "name-1641",
+                      "name-1642",
+                      "name-1643",
+                      "name-1644",
+                      "name-1645",
+                      "name-1646",
+                      "name-1647",
+                      "name-1648",
+                      "name-1649",
+                      "name-1650",
+                      "name-1651",
+                      "name-1652",
+                      "name-1653",
+                      "name-1654",
+                      "name-1655",
+                      "name-1656",
+                      "name-1657",
+                      "name-1658",
+                      "name-1659",
+                      "name-1660",
+                      "name-1661",
+                      "name-1662",
+                      "name-1663",
+                      "name-1664",
+                      "name-1665",
+                      "name-1666",
+                      "name-1667",
+                      "name-1668",
+                      "name-1669",
+                      "name-1670",
+                      "name-1671",
+                      "name-1672",
+                      "name-1673",
+                      "name-1674",
+                      "name-1675",
+                      "name-1676",
+                      "name-1677",
+                      "name-1678",
+                      "name-1679",
+                      "name-1680",
+                      "name-1681",
+                      "name-1682",
+                      "name-1683",
+                      "name-1684",
+                      "name-1685",
+                      "name-1686",
+                      "name-1687",
+                      "name-1688",
+                      "name-1689",
+                      "name-1690",
+                      "name-1691",
+                      "name-1692",
+                      "name-1693",
+                      "name-1694",
+                      "name-1695",
+                      "name-1696",
+                      "name-1697",
+                      "name-1698",
+                      "name-1699",
+                      "name-1700",
+                      "name-1701",
+                      "name-1702",
+                      "name-1703",
+                      "name-1704",
+                      "name-1705",
+                      "name-1706",
+                      "name-1707",
+                      "name-1708",
+                      "name-1709",
+                      "name-1710",
+                      "name-1711",
+                      "name-1712",
+                      "name-1713",
+                      "name-1714",
+                      "name-1715",
+                      "name-1716",
+                      "name-1717",
+                      "name-1718",
+                      "name-1719",
+                      "name-1720",
+                      "name-1721",
+                      "name-1722",
+                      "name-1723",
+                      "name-1724",
+                      "name-1725",
+                      "name-1726",
+                      "name-1727",
+                      "name-1728",
+                      "name-1729",
+                      "name-1730",
+                      "name-1731",
+                      "name-1732",
+                      "name-1733",
+                      "name-1734",
+                      "name-1735",
+                      "name-1736",
+                      "name-1737",
+                      "name-1738",
+                      "name-1739",
+                      "name-1740",
+                      "name-1741",
+                      "name-1742",
+                      "name-1743",
+                      "name-1744",
+                      "name-1745",
+                      "name-1746",
+                      "name-1747",
+                      "name-1748",
+                      "name-1749",
+                      "name-1750",
+                      "name-1751",
+                      "name-1752",
+                      "name-1753",
+                      "name-1754",
+                      "name-1755",
+                      "name-1756",
+                      "name-1757",
+                      "name-1758",
+                      "name-1759",
+                      "name-1760",
+                      "name-1761",
+                      "name-1762",
+                      "name-1763",
+                      "name-1764",
+                      "name-1765",
+                      "name-1766",
+                      "name-1767",
+                      "name-1768",
+                      "name-1769",
+                      "name-1770",
+                      "name-1771",
+                      "name-1772",
+                      "name-1773",
+                      "name-1774",
+                      "name-1775",
+                      "name-1776",
+                      "name-1777",
+                      "name-1778",
+                      "name-1779",
+                      "name-1780",
+                      "name-1781",
+                      "name-1782",
+                      "name-1783",
+                      "name-1784",
+                      "name-1785",
+                      "name-1786",
+                      "name-1787",
+                      "name-1788",
+                      "name-1789",
+                      "name-1790",
+                      "name-1791",
+                      "name-1792",
+                      "name-1793",
+                      "name-1794",
+                      "name-1795",
+                      "name-1796",
+                      "name-1797",
+                      "name-1798",
+                      "name-1799",
+                      "name-1800",
+                      "name-1801",
+                      "name-1802",
+                      "name-1803",
+                      "name-1804",
+                      "name-1805",
+                      "name-1806",
+                      "name-1807",
+                      "name-1808",
+                      "name-1809",
+                      "name-1810",
+                      "name-1811",
+                      "name-1812",
+                      "name-1813",
+                      "name-1814",
+                      "name-1815",
+                      "name-1816",
+                      "name-1817",
+                      "name-1818",
+                      "name-1819",
+                      "name-1820",
+                      "name-1821",
+                      "name-1822",
+                      "name-1823",
+                      "name-1824",
+                      "name-1825",
+                      "name-1826",
+                      "name-1827",
+                      "name-1828",
+                      "name-1829",
+                      "name-1830",
+                      "name-1831",
+                      "name-1832",
+                      "name-1833",
+                      "name-1834",
+                      "name-1835",
+                      "name-1836",
+                      "name-1837",
+                      "name-1838",
+                      "name-1839",
+                      "name-1840",
+                      "name-1841",
+                      "name-1842",
+                      "name-1843",
+                      "name-1844",
+                      "name-1845",
+                      "name-1846",
+                      "name-1847",
+                      "name-1848",
+                      "name-1849",
+                      "name-1850",
+                      "name-1851",
+                      "name-1852",
+                      "name-1853",
+                      "name-1854",
+                      "name-1855",
+                      "name-1856",
+                      "name-1857",
+                      "name-1858",
+                      "name-1859",
+                      "name-1860",
+                      "name-1861",
+                      "name-1862",
+                      "name-1863",
+                      "name-1864",
+                      "name-1865",
+                      "name-1866",
+                      "name-1867",
+                      "name-1868",
+                      "name-1869",
+                      "name-1870",
+                      "name-1871",
+                      "name-1872",
+                      "name-1873",
+                      "name-1874",
+                      "name-1875",
+                      "name-1876",
+                      "name-1877",
+                      "name-1878",
+                      "name-1879",
+                      "name-1880",
+                      "name-1881",
+                      "name-1882",
+                      "name-1883",
+                      "name-1884",
+                      "name-1885",
+                      "name-1886",
+                      "name-1887",
+                      "name-1888",
+                      "name-1889",
+                      "name-1890",
+                      "name-1891",
+                      "name-1892",
+                      "name-1893",
+                      "name-1894",
+                      "name-1895",
+                      "name-1896",
+                      "name-1897",
+                      "name-1898",
+                      "name-1899",
+                      "name-1900",
+                      "name-1901",
+                      "name-1902",
+                      "name-1903",
+                      "name-1904",
+                      "name-1905",
+                      "name-1906",
+                      "name-1907",
+                      "name-1908",
+                      "name-1909",
+                      "name-1910",
+                      "name-1911",
+                      "name-1912",
+                      "name-1913",
+                      "name-1914",
+                      "name-1915",
+                      "name-1916",
+                      "name-1917",
+                      "name-1918",
+                      "name-1919",
+                      "name-1920",
+                      "name-1921",
+                      "name-1922",
+                      "name-1923",
+                      "name-1924",
+                      "name-1925",
+                      "name-1926",
+                      "name-1927",
+                      "name-1928",
+                      "name-1929",
+                      "name-1930",
+                      "name-1931",
+                      "name-1932",
+                      "name-1933",
+                      "name-1934",
+                      "name-1935",
+                      "name-1936",
+                      "name-1937",
+                      "name-1938",
+                      "name-1939",
+                      "name-1940",
+                      "name-1941",
+                      "name-1942",
+                      "name-1943",
+                      "name-1944",
+                      "name-1945",
+                      "name-1946",
+                      "name-1947",
+                      "name-1948",
+                      "name-1949",
+                      "name-1950",
+                      "name-1951",
+                      "name-1952",
+                      "name-1953",
+                      "name-1954",
+                      "name-1955",
+                      "name-1956",
+                      "name-1957",
+                      "name-1958",
+                      "name-1959",
+                      "name-1960",
+                      "name-1961",
+                      "name-1962",
+                      "name-1963",
+                      "name-1964",
+                      "name-1965",
+                      "name-1966",
+                      "name-1967",
+                      "name-1968",
+                      "name-1969",
+                      "name-1970",
+                      "name-1971",
+                      "name-1972",
+                      "name-1973",
+                      "name-1974",
+                      "name-1975",
+                      "name-1976",
+                      "name-1977",
+                      "name-1978",
+                      "name-1979",
+                      "name-1980",
+                      "name-1981",
+                      "name-1982",
+                      "name-1983",
+                      "name-1984",
+                      "name-1985",
+                      "name-1986",
+                      "name-1987",
+                      "name-1988",
+                      "name-1989",
+                      "name-1990",
+                      "name-1991",
+                      "name-1992",
+                      "name-1993",
+                      "name-1994",
+                      "name-1995",
+                      "name-1996"
+                    ],
+                    "disabled": false,
+                    "name": "name-7",
+                    "type": "CLI"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SrcCustomCommandGroup"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Stored groups."
+          }
+        },
+        "summary": "List custom command groups",
+        "tags": [
+          "Custom Command Groups"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Creates a group and returns 201 with no body. Gated by EDIT_CUSTOM_COLLECTION_GROUPS. Commands are checked per device type against Forward's allowed and banned patterns; a refused command is 400. A ':::' sequence needs a collector that supports it (400 otherwise). A group whose commands match the organization's disabledCommands is silently skipped at collection (Go SDK, source-only).",
+        "operationId": "createCustomCommandGroup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "commands": [
+                  "show clock"
+                ],
+                "deviceConnTypes": [
+                  "cisco_ios_xe_ssh"
+                ],
+                "name": "example-group"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SrcNewCustomCommandGroup"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created. No body."
+          }
+        },
+        "summary": "Create a custom command group",
+        "tags": [
+          "Custom Command Groups"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "validateCustomCommands",
+            "summary": "Check commands against device types",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "validate"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/custom-command-groups/{groupName}": {
+      "delete": {
+        "description": "Deletes the named group (exact name). Gated by EDIT_CUSTOM_COLLECTION_GROUPS. Returns 204. Go SDK note, commands stop being collected from the next collection.",
+        "operationId": "deleteCustomCommandGroup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "groupName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a custom command group",
+        "tags": [
+          "Custom Command Groups"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Partial update: absent or null fields are unchanged. Commands or oids must match the group's kind. Gated by EDIT_CUSTOM_COLLECTION_GROUPS. Returns 204. Live: not exercised.",
+        "operationId": "updateCustomCommandGroup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "groupName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "disabled": true
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SrcCustomCommandGroupUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated. No body."
+          }
+        },
+        "summary": "Change a custom command group",
+        "tags": [
+          "Custom Command Groups"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/dashboards": {
       "get": {
         "operationId": "listDashboards",
@@ -27529,6 +32540,43 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/device-statuses": {
+      "get": {
+        "description": "Returns collection status for devices the collector has recently reported. Gated by VIEW_NETWORK_AND_SNAPSHOTS. Returns an empty array when the network has no collector (Java). Live-verified empty only.",
+        "operationId": "listDeviceStatuses",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SrcDeviceStatus"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Device statuses."
+          }
+        },
+        "summary": "List per-device collection status",
+        "tags": [
+          "Network Collection"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/device-tags": {
       "get": {
         "operationId": "getDeviceTags",
@@ -27896,6 +32944,91 @@
             ]
           }
         ]
+      }
+    },
+    "/networks/{networkId}/deviceDiscovery": {
+      "post": {
+        "description": "Starts a discovery on the collector (optional collectorId query; the network default otherwise) and returns the collector task id. It returns once the job is queued; read the outcome with listDiscoveredDevices. Gated by MANAGE_COLLECTION_SOURCES. Answers 409 when a discovery is already running (Go SDK note). Live: not exercised, because it would scan the customer network.",
+        "operationId": "startDeviceDiscovery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Collector to run the scan on. Empty uses the network default.",
+            "in": "query",
+            "name": "collectorId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "type": "DIRECT"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SrcDiscoveryParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "taskId": "P8781"
+                },
+                "schema": {
+                  "properties": {
+                    "taskId": {
+                      "description": "Collector task id with a prefix (for example P8781). Not the job id (8781).",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "taskId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The collector task id."
+          }
+        },
+        "summary": "Start a device discovery",
+        "tags": [
+          "Device Discovery"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "op",
+            "start"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "stopDeviceDiscovery",
+            "summary": "Stop the running device discovery",
+            "x-forward-fixed-query": [
+              [
+                "op",
+                "stop"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/devices": {
@@ -28343,6 +33476,93 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/discovered-devices": {
+      "get": {
+        "description": "Returns the discovery jobs (always including the most recent) and the devices they found. Optional since limits devices to those changed at or after that instant. Gated by VIEW_NETWORK_AND_SNAPSHOTS. Live-verified.",
+        "operationId": "listDiscoveredDevices",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only devices changed at or after this instant.",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "devices": [
+                    {
+                      "discoveredAt": 1791014512494,
+                      "host": "192.0.2.5",
+                      "jobId": "207468468",
+                      "name": "name-1998",
+                      "neighbors": [
+                        "name-1020"
+                      ],
+                      "type": "arista_eos_ssh",
+                      "vendor": "ARISTA"
+                    },
+                    {
+                      "discoveredAt": 1789804912376,
+                      "host": "name-2000",
+                      "jobId": "203945843",
+                      "name": "name-1999",
+                      "neighbors": [
+                        "name-2001"
+                      ],
+                      "type": "cisco_nxos_ssh",
+                      "vendor": "CISCO"
+                    }
+                  ],
+                  "jobs": [
+                    {
+                      "collectorId": "C8126",
+                      "counts": {
+                        "discovered": 2271,
+                        "inaccessible": 35,
+                        "queued": 0
+                      },
+                      "endedAt": 1792224159785,
+                      "error": "NONE",
+                      "id": "210742776",
+                      "initialQueueSize": 3864,
+                      "scheduledDiscoveryId": "0",
+                      "startedAt": 1792224013668,
+                      "startedBy": "Discovery_ADP",
+                      "type": "DIRECT"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcDiscoveredDevices"
+                }
+              }
+            },
+            "description": "Jobs and devices."
+          }
+        },
+        "summary": "List discovery jobs and the devices they found",
+        "tags": [
+          "Device Discovery"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/encryptors": {
       "get": {
         "operationId": "getEncryptors",
@@ -28633,6 +33853,43 @@
         "tags": [
           "Encryptors"
         ]
+      }
+    },
+    "/networks/{networkId}/end-host-scanners": {
+      "get": {
+        "description": "Lists the network's end-host scanner collection sources (Rapid7 today). Gated by VIEW_END_HOST_SCANNERS. Live-verified: an empty array on this account.",
+        "operationId": "listEndHostScanners",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SrcEndHostScanner"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Scanner sources."
+          }
+        },
+        "summary": "List end-host scanner sources",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/endpoints": {
@@ -33022,6 +38279,173 @@
         ]
       }
     },
+    "/networks/{networkId}/rapid7-sources": {
+      "post": {
+        "description": "Adds a Rapid7 source. Gated by MANAGE_END_HOST_SCANNERS. credentialId must name an HTTP LOGIN credential (Java validateCredentialId). reportNames must be non-empty. Returns 200 with the stored source.",
+        "operationId": "createRapid7Source",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "baseUrl": "https://rapid7.example.invalid",
+                "credentialId": "H-2",
+                "name": "example-rapid7",
+                "reportNames": [
+                  "assets"
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SrcRapid7SourceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "baseUrl": "https://rapid7.example.invalid",
+                  "collectionDisabled": false,
+                  "createdAt": "2026-01-01T00:00:00Z",
+                  "createdById": "1",
+                  "credentialId": "H-2",
+                  "disableSslValidation": false,
+                  "name": "example-rapid7",
+                  "reportNames": [
+                    "assets"
+                  ],
+                  "type": "RAPID7",
+                  "updatedAt": "2026-01-01T00:00:00Z",
+                  "updatedById": "1"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcEndHostScanner"
+                }
+              }
+            },
+            "description": "The stored source."
+          }
+        },
+        "summary": "Add a Rapid7 source",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/rapid7-sources/{sourceName}": {
+      "delete": {
+        "description": "Deletes the named source. Gated by DELETE_COLLECTION_SOURCES. Returns 204.",
+        "operationId": "deleteRapid7Source",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sourceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a Rapid7 source",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Partial update (Rapid7SourcePatch). Gated by MANAGE_END_HOST_SCANNERS. collectorId: explicit null clears it. Returns 200 with the stored source. Live: not exercised.",
+        "operationId": "updateRapid7Source",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sourceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "collectionDisabled": true
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SrcRapid7SourcePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "baseUrl": "https://rapid7.example.invalid",
+                  "collectionDisabled": true,
+                  "createdAt": "2026-01-01T00:00:00Z",
+                  "createdById": "1",
+                  "credentialId": "H-2",
+                  "disableSslValidation": false,
+                  "name": "example-rapid7",
+                  "reportNames": [
+                    "assets"
+                  ],
+                  "type": "RAPID7",
+                  "updatedAt": "2026-01-01T00:00:00Z",
+                  "updatedById": "1"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcEndHostScanner"
+                }
+              }
+            },
+            "description": "The stored source."
+          }
+        },
+        "summary": "Change a Rapid7 source",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/resource-pool-connectivity-details": {
       "post": {
         "operationId": "getResourcePoolConnectivityDetails",
@@ -33155,6 +38579,222 @@
             "action",
             "analyze"
           ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/scheduled-discoveries": {
+      "get": {
+        "description": "Lists the network's scheduled discoveries. Gated by VIEW_COLLECTION_SETTINGS (Java ScheduledDiscoveryController). Live-verified.",
+        "operationId": "listScheduledDiscoveries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "enabled": true,
+                    "id": "0",
+                    "name": "name-1997",
+                    "params": {
+                      "type": "DIRECT"
+                    },
+                    "schedule": {
+                      "daysOfTheWeek": [
+                        6
+                      ],
+                      "timeZone": null,
+                      "times": [
+                        "04:00"
+                      ]
+                    }
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SrcScheduledDiscovery"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Scheduled discoveries."
+          }
+        },
+        "summary": "List scheduled discoveries",
+        "tags": [
+          "Device Discovery"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Creates a scheduled discovery and returns it with its id. Gated by EDIT_COLLECTION_SETTINGS. CLOUD is refused. Forward refuses (400) a duplicate name or an identical schedule. An enabled schedule scans the customer network on its own, so create it disabled unless intended. The scheduled run uses the network's default collector.",
+        "operationId": "createScheduledDiscovery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "enabled": false,
+                "name": "example-weekly",
+                "params": {
+                  "type": "DIRECT"
+                },
+                "schedule": {
+                  "daysOfTheWeek": [
+                    1
+                  ],
+                  "times": [
+                    "02:00"
+                  ]
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SrcScheduledDiscoveryDefinition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "enabled": false,
+                  "id": "1",
+                  "name": "example-weekly",
+                  "params": {
+                    "type": "DIRECT"
+                  },
+                  "schedule": {
+                    "daysOfTheWeek": [
+                      1
+                    ],
+                    "times": [
+                      "02:00"
+                    ]
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcScheduledDiscovery"
+                }
+              }
+            },
+            "description": "The stored scheduled discovery."
+          }
+        },
+        "summary": "Create a scheduled discovery",
+        "tags": [
+          "Device Discovery"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/scheduled-discoveries/{scheduledDiscoveryId}": {
+      "delete": {
+        "description": "Deletes a scheduled discovery. Gated by EDIT_COLLECTION_SETTINGS. Returns 204. Go SDK addendum: 204 also for an unknown id (not verified in the service source).",
+        "operationId": "deleteScheduledDiscovery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "scheduledDiscoveryId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted (or already absent)."
+          }
+        },
+        "summary": "Delete a scheduled discovery",
+        "tags": [
+          "Device Discovery"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "Returns one scheduled discovery by id. Gated by VIEW_COLLECTION_SETTINGS. Forward answers 404 when there is none (Java NotFoundException). Live: not exercised with an id.",
+        "operationId": "getScheduledDiscovery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "scheduledDiscoveryId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "enabled": false,
+                  "id": "1",
+                  "name": "example-weekly",
+                  "params": {
+                    "type": "DIRECT"
+                  },
+                  "schedule": {
+                    "daysOfTheWeek": [
+                      1
+                    ],
+                    "times": [
+                      "02:00"
+                    ]
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcScheduledDiscovery"
+                }
+              }
+            },
+            "description": "The scheduled discovery."
+          }
+        },
+        "summary": "Get one scheduled discovery",
+        "tags": [
+          "Device Discovery"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -38901,6 +44541,18 @@
       "description": "Org-wide CA certificates that Forward imports into each collector's truststore.",
       "name": "Trusted Certificates",
       "x-parent": "Platform Management"
+    },
+    {
+      "description": "Finding devices by scanning subnets, following neighbours or reading cloud setups, and scheduling those scans.",
+      "name": "Device Discovery"
+    },
+    {
+      "description": "Extra CLI commands and SNMP OIDs that collection runs on chosen device types.",
+      "name": "Custom Command Groups"
+    },
+    {
+      "description": "Connections to Infoblox, ServiceNow (incidents and CMDB) and end-host scanners such as Rapid7.",
+      "name": "Integrations"
     }
   ]
 }

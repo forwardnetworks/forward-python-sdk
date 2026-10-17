@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from forward_sdk._generated._base import OpenEnum
 from typing import Annotated, Any, Literal
-from pydantic import AwareDatetime, ConfigDict, Field, RootModel
+from pydantic import AnyUrl, AwareDatetime, ConfigDict, Field, RootModel
 from forward_sdk._generated._base import ForwardModel
 
 
@@ -6112,6 +6112,907 @@ class SourceConnectivityResult(ForwardModel):
     """
 
 
+class SrcAttribution(ForwardModel):
+    """
+    Who created and last changed the record. Flattened into the parent object on the wire (Java @JsonUnwrapped Attribution). Email values are user identities.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[AwareDatetime | None, Field(alias="createdAt")] = None
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    created_by_id: Annotated[str | None, Field(alias="createdById")] = None
+    updated_at: Annotated[AwareDatetime | None, Field(alias="updatedAt")] = None
+    updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
+    updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
+
+
+class SrcAwsCapCredential(ForwardModel):
+    """
+    An AWS CAP credential (Java AwsCapCredential<SecretId>, serialized with clientCertificateBase64). Source-only; not observed live because no credential id is reachable on the read-only account.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    base_cap_server_url: Annotated[str | None, Field(alias="baseCapServerUrl")] = None
+    certificate_authority_base64: Annotated[
+        str | None, Field(alias="certificateAuthorityBase64")
+    ] = None
+    """
+    Certificate authority bundle, base64 (source-only; present when set).
+    """
+    client_certificate_base64: Annotated[str | None, Field(alias="clientCertificateBase64")] = None
+    """
+    The client's PKCS12 certificate, base64. This is secret material that Java serializes into the response (source-only; the Go SDK reads it off the wire and drops it).
+    """
+    client_certificate_password_id: Annotated[
+        str | None, Field(alias="clientCertificatePasswordId")
+    ] = None
+    """
+    Id of the secret holding the certificate password (an id, not the secret).
+    """
+    id: str | None = None
+
+
+class Type56(OpenEnum):
+    cloud = "CLOUD"
+
+
+class SrcCloudDiscoveryParams(ForwardModel):
+    """
+    Discovery from existing cloud setups. Start only; Forward does not schedule it.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    setup_ids: Annotated[list[str], Field(alias="setupIds", min_length=1)]
+    type: Literal["CLOUD"]
+
+
+class Type57(OpenEnum):
+    meraki = "MERAKI"
+    velo_cloud = "VELO_CLOUD"
+    mist = "MIST"
+
+
+class SrcCloudManagedSetup(ForwardModel):
+    """
+    One cloud-managed setup of any type. GET returns a bare array of every cloud setup in the network; the type query parameter is not read by Forward (see notes).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    api_key_id: Annotated[str | None, Field(alias="apiKeyId")] = None
+    """
+    HTTP credential id (MIST) or the credential the setup uses.
+    """
+    collect: bool | None = None
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    concurrency: int | None = None
+    hosts: list[Any] | None = None
+    """
+    MIST: Java MistSetup.hosts is a set of device names (strings). A Go SDK comment reports object elements after discovery; not verified.
+    """
+    name: str
+    region: str | None = None
+    test_result: Annotated[dict[str, Any] | None, Field(alias="testResult")] = None
+    """
+    Last discovery outcome; shape per type (MIST: savedAt, error, discoveredHosts).
+    """
+    type: Type57
+
+
+class SrcCmdbConfigurationItemField(ForwardModel):
+    """
+    One field of a ServiceNow CMDB class (Java ConfigurationItemField).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    class_name: Annotated[str | None, Field(alias="className")] = None
+    data_type: Annotated[str, Field(alias="dataType")]
+    element: str
+    label: str
+    mandatory: bool
+    max_length: Annotated[int, Field(alias="maxLength")]
+
+
+class SrcCmdbConfigurationItemSchema(ForwardModel):
+    """
+    One CMDB class and its fields (Java CmdbConfigurationItemSchema).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    fields: list[SrcCmdbConfigurationItemField]
+    name: str
+
+
+class SrcControllerAndManagedDeviceSelection(ForwardModel):
+    """
+    Selects devices for a test or bulk delete. Exactly one of names or setupNames must be non-empty (Java Requests.validate, 400 otherwise).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    names: list[str] | None = None
+    setup_names: Annotated[list[str] | None, Field(alias="setupNames")] = None
+
+
+class SrcControllerInfo(ForwardModel):
+    """
+    A device name and address a controller or guest reported during a test.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    ip_address: Annotated[str | None, Field(alias="ipAddress")] = None
+    name: str | None = None
+
+
+class Type58(OpenEnum):
+    cisco_aci = "CISCO_ACI"
+    sd_wan = "SD_WAN"
+
+
+class Type59(OpenEnum):
+    cli = "CLI"
+    snmp = "SNMP"
+
+
+class Command(RootModel[str]):
+    root: Annotated[str, Field(min_length=1)]
+
+
+class SrcCustomCommandsValidationRequest(ForwardModel):
+    """
+    Body of ?action=validate (Java CustomCommandsValidationRequest).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    commands: Annotated[list[Command], Field(min_length=1)]
+    device_conn_types: Annotated[list[str], Field(alias="deviceConnTypes", min_length=1)]
+
+
+class SrcCustomOid(ForwardModel):
+    """
+    One SNMP custom OID (Java CustomOid).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    name: str
+    oid: str
+    """
+    SNMP OID, dotted form.
+    """
+
+
+class CollectionSourceType(OpenEnum):
+    classic = "CLASSIC"
+    controller_managed = "CONTROLLER_MANAGED"
+
+
+class Status6(OpenEnum):
+    production = "PRODUCTION"
+    tech_preview = "TECH_PREVIEW"
+    internal = "INTERNAL"
+    under_development = "UNDER_DEVELOPMENT"
+
+
+class SrcDeviceConnTypeInfo(ForwardModel):
+    """
+    Connection-type metadata (live keys: name, protocol, status, vendor, collectionSourceType, plus secondaryCliCredentialTypes, httpCredentialType, relatedTypes where present). Java DeviceConnTypeInfo declares different field names; the live serialization was used.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collection_source_type: Annotated[CollectionSourceType, Field(alias="collectionSourceType")]
+    http_credential_type: Annotated[str | None, Field(alias="httpCredentialType")] = None
+    name: str
+    protocol: str | None = None
+    related_types: Annotated[list[str] | None, Field(alias="relatedTypes")] = None
+    secondary_cli_credential_types: Annotated[
+        list[str] | None, Field(alias="secondaryCliCredentialTypes")
+    ] = None
+    status: Status6
+    vendor: str
+
+
+class SrcDeviceStatus(ForwardModel):
+    """
+    Per-device collection progress (Java DeviceStatus). Source-only except that the live account returned an empty list; time fields may be epoch or ISO (not verified).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collection_end_time: Annotated[AwareDatetime | None, Field(alias="collectionEndTime")] = None
+    collection_start_time: Annotated[AwareDatetime | None, Field(alias="collectionStartTime")] = (
+        None
+    )
+    collection_status: Annotated[str | None, Field(alias="collectionStatus")] = None
+    """
+    Collection state (Java State enum; values not read).
+    """
+    current_command_status: Annotated[
+        dict[str, Any] | None, Field(alias="currentCommandStatus")
+    ] = None
+    device_name: Annotated[str | None, Field(alias="deviceName")] = None
+    last_activity_time: Annotated[AwareDatetime | None, Field(alias="lastActivityTime")] = None
+    longest_command: Annotated[dict[str, Any] | None, Field(alias="longestCommand")] = None
+    may_retry: Annotated[bool | None, Field(alias="mayRetry")] = None
+    num_authentication_failures: Annotated[int | None, Field(alias="numAuthenticationFailures")] = (
+        None
+    )
+    num_connection_failures: Annotated[int | None, Field(alias="numConnectionFailures")] = None
+    num_connection_timeouts: Annotated[int | None, Field(alias="numConnectionTimeouts")] = None
+    num_log_chars: Annotated[int | None, Field(alias="numLogChars")] = None
+    num_log_messages: Annotated[int | None, Field(alias="numLogMessages")] = None
+    num_unexpected_prompts: Annotated[int | None, Field(alias="numUnexpectedPrompts")] = None
+    total_chars_received: Annotated[int | None, Field(alias="totalCharsReceived")] = None
+
+
+class Type60(OpenEnum):
+    direct = "DIRECT"
+
+
+class SrcDirectDiscoveryParams(ForwardModel):
+    """
+    CDP and LLDP neighbours of the network's own classic devices. Carries no other fields; Forward builds the list.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    type: Literal["DIRECT"]
+
+
+class SrcDiscoveredDevice(ForwardModel):
+    """
+    A device a job found. Live keys: name, type, host, vendor, neighbors, jobId, discoveredAt. The other keys are from the Go SDK draft and not observed live. type is unknown when it could not be inferred.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cli_credential_id: Annotated[str | None, Field(alias="cliCredentialId")] = None
+    cloud_discovery_source: Annotated[str | None, Field(alias="cloudDiscoverySource")] = None
+    cloud_location_id: Annotated[str | None, Field(alias="cloudLocationId")] = None
+    cloud_setup_id: Annotated[str | None, Field(alias="cloudSetupId")] = None
+    discovered_at: Annotated[int | None, Field(alias="discoveredAt")] = None
+    """
+    Epoch milliseconds (live).
+    """
+    discovered_ips: Annotated[list[str] | None, Field(alias="discoveredIps")] = None
+    host: str | None = None
+    http_credential_id: Annotated[str | None, Field(alias="httpCredentialId")] = None
+    is_reachable: Annotated[bool | None, Field(alias="isReachable")] = None
+    job_id: Annotated[str | None, Field(alias="jobId")] = None
+    jump_server_id: Annotated[str | None, Field(alias="jumpServerId")] = None
+    name: str
+    neighbors: list[str] | None = None
+    port: int | None = None
+    snmp_credential_id: Annotated[str | None, Field(alias="snmpCredentialId")] = None
+    type: str | None = None
+    vendor: str | None = None
+
+
+class Counts(ForwardModel):
+    """
+    Live keys: queued, discovered, inaccessible.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    discovered: int | None = None
+    inaccessible: int | None = None
+    queued: int | None = None
+
+
+class Type61(OpenEnum):
+    subnet_scan = "SUBNET_SCAN"
+    seeded = "SEEDED"
+    direct = "DIRECT"
+    cloud = "CLOUD"
+
+
+class SrcDiscoveryJob(ForwardModel):
+    """
+    One discovery run (live keys: collectorId, counts, endedAt, error, id, initialQueueSize, scheduledDiscoveryId, startedAt, startedBy, type). error is NONE unless the whole job failed (Go draft).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    counts: Counts
+    """
+    Live keys: queued, discovered, inaccessible.
+    """
+    ended_at: Annotated[int | None, Field(alias="endedAt")] = None
+    """
+    Epoch milliseconds; absent while the job runs.
+    """
+    error: str | None = None
+    id: str
+    initial_queue_size: Annotated[int | None, Field(alias="initialQueueSize")] = None
+    scheduled_discovery_id: Annotated[str | None, Field(alias="scheduledDiscoveryId")] = None
+    started_at: Annotated[int | None, Field(alias="startedAt")] = None
+    """
+    Epoch milliseconds (live).
+    """
+    started_by: Annotated[str | None, Field(alias="startedBy")] = None
+    type: Type61
+
+
+class SrcEndHostScanner(ForwardModel):
+    """
+    An end-host scanner collection source (Java EndHostScannerInfo, StoredEndHostScanner). The list endpoint returned an empty array on the live account, so only the empty case is observed.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    attribution: SrcAttribution | None = None
+    base_url: Annotated[str | None, Field(alias="baseUrl")] = None
+    collection_disabled: Annotated[bool | None, Field(alias="collectionDisabled")] = None
+    collection_error: Annotated[dict[str, Any] | None, Field(alias="collectionError")] = None
+    """
+    Present when the last collection failed (Java DeviceCollectionError).
+    """
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    credential_id: Annotated[str | None, Field(alias="credentialId")] = None
+    disable_ssl_validation: Annotated[bool | None, Field(alias="disableSslValidation")] = None
+    name: str
+    report_names: Annotated[list[str] | None, Field(alias="reportNames")] = None
+    type: str
+    """
+    Scanner type (RAPID7 for this endpoint; Java EndHostScannerType).
+    """
+
+
+class SrcInfobloxInstance(ForwardModel):
+    """
+    A configured Infoblox instance (Java InfobloxInstance). Profiles are removed by the legacy GET (withoutProfiles).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    error: dict[str, Any] | None = None
+    id: int
+    ip_address: Annotated[str, Field(alias="ipAddress")]
+    name: str
+    password: str | None = None
+    """
+    Java InfobloxInstance has a password field with no JSON ignore annotation. Serialization was source-only (the account has no instances), so treat this as a secret echo to confirm before use.
+    """
+    profile_count: Annotated[int | None, Field(alias="profileCount")] = None
+    username: str
+
+
+class SrcInfobloxInstanceStatus(ForwardModel):
+    """
+    One Infoblox instance's status (view=status).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    error: dict[str, Any] | None = None
+    """
+    Present when the instance has an error (Java InfobloxInstanceError; fields not read).
+    """
+    id: str
+
+
+class SrcInfobloxInstanceUpdate(ForwardModel):
+    """
+    Partial update (Java InfobloxInstanceUpdate). Absent or null means unchanged (Optional.ofNullable): this endpoint cannot clear a field.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    ip_address: Annotated[str | None, Field(alias="ipAddress")] = None
+    name: str | None = None
+    password: str | None = None
+    username: str | None = None
+
+
+class SrcInfobloxInstancesStatus(ForwardModel):
+    """
+    Statuses of all Infoblox instances of the organization.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    instances: list[SrcInfobloxInstanceStatus]
+
+
+class SrcInfobloxIntegration(ForwardModel):
+    """
+    The organization's Infoblox integration (Java InfobloxIntegration).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    enabled: bool
+    instances: list[SrcInfobloxInstance]
+
+
+class SrcMistDiscoveredHost(ForwardModel):
+    """
+    One access point the collector enumerated (Java DiscoveredMistHost, confirmed from source; not observed live: the account has no Mist setups).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    display_name: Annotated[str | None, Field(alias="displayName")] = None
+    """
+    Defaults to name when empty.
+    """
+    model: str
+    name: str
+    """
+    The AP MAC, lowercased.
+    """
+
+
+class SrcMistDiscovery(ForwardModel):
+    """
+    Result of discovering a Mist setup's access points. Response shape from the Go SDK draft; not observed live.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    hosts: list[SrcMistDiscoveredHost]
+
+
+class SrcMonthlySchedule(ForwardModel):
+    """
+    Monthly form. Java MonthlySchedule.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    day_of_the_week: Annotated[int, Field(alias="dayOfTheWeek", ge=0, le=6)]
+    time: Annotated[str, Field(pattern="^([01]\\d|2[0-3]):[0-5]\\d$")]
+    time_zone: Annotated[str | None, Field(alias="timeZone")] = None
+    week_of_the_month: Annotated[int, Field(alias="weekOfTheMonth", ge=1, le=4)]
+
+
+class SrcNewCustomCommandGroup(ForwardModel):
+    """
+    Body of POST custom-command-groups. Exactly one of commands and oids must be set (Go draft, consistent with Java CustomCommandGroup). Commands with ':::' need a collector with CUSTOM_COMMAND_SEQUENCES (Java, 400 otherwise).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    commands: list[str] | None = None
+    device_conn_types: Annotated[list[str], Field(alias="deviceConnTypes", min_length=1)]
+    devices: list[str] | None = None
+    disabled: bool | None = None
+    """
+    Absent creates the group enabled.
+    """
+    name: Annotated[str, Field(min_length=1)]
+    oids: list[SrcCustomOid] | None = None
+
+
+class SrcNewInfobloxInstance(ForwardModel):
+    """
+    Body of POST integrations/infoblox/instances (Java NewInfobloxInstance). ipAddress is an IP address.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    ip_address: Annotated[str, Field(alias="ipAddress")]
+    name: Annotated[str, Field(min_length=1)]
+    password: Annotated[str, Field(min_length=1)]
+    username: Annotated[str, Field(min_length=1)]
+
+
+class Region(OpenEnum):
+    global_01 = "GLOBAL_01"
+    global_02 = "GLOBAL_02"
+    global_03 = "GLOBAL_03"
+    global_04 = "GLOBAL_04"
+    global_05 = "GLOBAL_05"
+    emea_01 = "EMEA_01"
+    emea_02 = "EMEA_02"
+    emea_03 = "EMEA_03"
+    emea_04 = "EMEA_04"
+    apac_01 = "APAC_01"
+    apac_02 = "APAC_02"
+    apac_03 = "APAC_03"
+
+
+class SrcNewMistSetup(ForwardModel):
+    """
+    Body of POST cloud-managed-setups?type=MIST (Java CreateMistSetup). Required per Java Preconditions: name, region, apiKeyId.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    api_key_id: Annotated[str, Field(alias="apiKeyId")]
+    """
+    Id of the HTTP credential holding the Mist API token. Required.
+    """
+    collect: bool | None = None
+    """
+    Absent means true (Java: collect = !FALSE.equals(collect)).
+    """
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    """
+    Collector id (numeric, as Java parses it as a Long). Empty means the network default.
+    """
+    concurrency: Annotated[int | None, Field(ge=1)] = None
+    """
+    Optional; Java bounds it by CollectorCollectionSettings.MAX_CONCURRENCY (value not read).
+    """
+    hosts: list[str] | None = None
+    """
+    Optional AP MAC collect filter. Discovery resets it; leave empty to collect every AP.
+    """
+    name: str
+    region: Region
+
+
+class SrcRapid7SourceCreate(ForwardModel):
+    """
+    Body of POST rapid7-sources (Java NewRapid7Source). Java requires non-empty reportNames.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    base_url: Annotated[AnyUrl, Field(alias="baseUrl")]
+    collection_disabled: Annotated[bool | None, Field(alias="collectionDisabled")] = None
+    """
+    Java primitive; omitted reads as false.
+    """
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    credential_id: Annotated[str, Field(alias="credentialId")]
+    """
+    Id of an HTTP credential of type LOGIN (Java validateCredentialId, 400 otherwise).
+    """
+    disable_ssl_validation: Annotated[bool | None, Field(alias="disableSslValidation")] = None
+    name: str
+    report_names: Annotated[list[str], Field(alias="reportNames", min_length=1)]
+
+
+class SrcRapid7SourcePatch(ForwardModel):
+    """
+    Partial update of a Rapid7 source (Java Rapid7SourcePatch).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    base_url: Annotated[AnyUrl | None, Field(alias="baseUrl")] = None
+    collection_disabled: Annotated[bool | None, Field(alias="collectionDisabled")] = None
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    """
+    Absent leaves the collector unchanged; explicit null clears it (Java JsonProp).
+    """
+    credential_id: Annotated[str | None, Field(alias="credentialId")] = None
+    disable_ssl_validation: Annotated[bool | None, Field(alias="disableSslValidation")] = None
+    name: str | None = None
+    report_names: Annotated[list[str] | None, Field(alias="reportNames")] = None
+
+
+class Type62(OpenEnum):
+    seeded = "SEEDED"
+
+
+class SrcSeededDiscoveryParams(ForwardModel):
+    """
+    Seeded discovery: follow seed devices' neighbours. Field names from Java SeededDeviceDiscoveryParams.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    allowed_subnets: Annotated[list[str] | None, Field(alias="allowedSubnets")] = None
+    hosts_to_skip: Annotated[list[str] | None, Field(alias="hostsToSkip")] = None
+    jump_server_id: Annotated[str | None, Field(alias="jumpServerId")] = None
+    recursive: bool | None = None
+    seed_devices: Annotated[list[str], Field(alias="seedDevices", min_length=1)]
+    """
+    IP addresses of seed devices (Java seedDevices, InetAddress).
+    """
+    snmp_credential_id: Annotated[str | None, Field(alias="snmpCredentialId")] = None
+    subnets_to_skip: Annotated[list[str] | None, Field(alias="subnetsToSkip")] = None
+    type: Literal["SEEDED"]
+
+
+class SyncConfig(ForwardModel):
+    """
+    Java CmdbSyncConfig.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
+
+
+class SrcServiceNowCmdbConfiguration(ForwardModel):
+    """
+    Body of POST integrations/servicenow-cmdb/configuration (Java ServiceNowCmdbConfiguration). Nested mapping objects are not modeled.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    enabled: bool | None = None
+    mappings: list[dict[str, Any]] | None = None
+    """
+    Configuration item mappings (Java CmdbConfigurationItemMapping; not modeled).
+    """
+    settings: dict[str, Any] | None = None
+    """
+    Connection name, connection details, source name (Java ServiceNowCmdbSettings; nested shape not modeled).
+    """
+    sync_config: Annotated[SyncConfig | None, Field(alias="syncConfig")] = None
+    """
+    Java CmdbSyncConfig.
+    """
+
+
+class SrcServiceNowCmdbConnectionDetails(ForwardModel):
+    """
+    ServiceNow connection details (Java ServiceNowCmdbConnectionDetails). Credentials are sent in the body.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    certificate: str | None = None
+    client_id: Annotated[str | None, Field(alias="clientId")] = None
+    client_secret: Annotated[str | None, Field(alias="clientSecret")] = None
+    instance_url: Annotated[AnyUrl, Field(alias="instanceUrl")]
+    password: str
+    proxy_config: Annotated[dict[str, Any] | None, Field(alias="proxyConfig")] = None
+    username: str
+
+
+class SrcServiceNowCmdbSchemaRequest(ForwardModel):
+    """
+    Body of POST integrations/servicenow-cmdb?view=schema (Java CmdbConnectionDetailsAndClassNames).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    class_names: Annotated[list[str], Field(alias="classNames")]
+    connection_details: Annotated[
+        SrcServiceNowCmdbConnectionDetails, Field(alias="connectionDetails")
+    ]
+
+
+class AutoCreateImpact(OpenEnum):
+    high = "HIGH"
+    medium = "MEDIUM"
+    low = "LOW"
+
+
+class SrcServiceNowSettings(ForwardModel):
+    """
+    The organization's ServiceNow connection (Java ServiceNowSettings). Source-only shape apart from the 404 when none is configured (live-verified).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    auto_create: Annotated[bool, Field(alias="autoCreate")]
+    auto_create_impact: Annotated[AutoCreateImpact | None, Field(alias="autoCreateImpact")] = None
+    auto_create_urgency: Annotated[AutoCreateImpact | None, Field(alias="autoCreateUrgency")] = None
+    auto_update: Annotated[bool, Field(alias="autoUpdate")]
+    certificate: str | None = None
+    """
+    X.509 certificate (on-premises only).
+    """
+    enabled: bool
+    instance_url: Annotated[AnyUrl, Field(alias="instanceUrl")]
+    password: str | None = None
+    """
+    Java serializes the stored password on GET (source-only; the live account has no ServiceNow settings, so GET returned 404).
+    """
+    token: str | None = None
+    """
+    Alternative to username and password. Java serializes the stored token on GET (source-only).
+    """
+    username: str | None = None
+
+
+class SrcSetupTestResult(ForwardModel):
+    """
+    Last connectivity test result for a controller or guest (returned only with with=testResult). Live-verified keys: savedAt, startTime, endTime, controllerInfos, managedDevices, nameAliases, hostIps. error, errorPhase, discoveredType and the unauthorizedCommands and discovered*CredentialId keys are source-only (the live sample had no failing test). An empty result is not a pass unless endTime is set.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    controller_infos: Annotated[list[SrcControllerInfo] | None, Field(alias="controllerInfos")] = (
+        None
+    )
+    dependent_name_and_aliases: Annotated[
+        list[str] | None, Field(alias="dependentNameAndAliases")
+    ] = None
+    discovered_cli_credential_id: Annotated[
+        str | None, Field(alias="discoveredCliCredentialId")
+    ] = None
+    discovered_http_credential_id: Annotated[
+        str | None, Field(alias="discoveredHttpCredentialId")
+    ] = None
+    discovered_snmp_credential_id: Annotated[
+        str | None, Field(alias="discoveredSnmpCredentialId")
+    ] = None
+    discovered_type: Annotated[str | None, Field(alias="discoveredType")] = None
+    end_time: Annotated[AwareDatetime | None, Field(alias="endTime")] = None
+    error: str | None = None
+    error_phase: Annotated[str | None, Field(alias="errorPhase")] = None
+    host_ips: Annotated[list[str] | None, Field(alias="hostIps")] = None
+    managed_devices: Annotated[list[SrcControllerInfo] | None, Field(alias="managedDevices")] = None
+    name_aliases: Annotated[list[str] | None, Field(alias="nameAliases")] = None
+    saved_at: Annotated[AwareDatetime | None, Field(alias="savedAt")] = None
+    start_time: Annotated[AwareDatetime | None, Field(alias="startTime")] = None
+    unauthorized_commands: Annotated[list[str] | None, Field(alias="unauthorizedCommands")] = None
+
+
+class ConnectionScanPort(RootModel[int]):
+    root: Annotated[int, Field(ge=1, le=65535)]
+
+
+class Type63(OpenEnum):
+    subnet_scan = "SUBNET_SCAN"
+
+
+class SrcSubnetScanParams(ForwardModel):
+    """
+    Subnet scan parameters. Java requires subnets or hosts per the Go SDK's validate(); not confirmed in the Java source read.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    connection_scan_ports: Annotated[
+        list[ConnectionScanPort] | None, Field(alias="connectionScanPorts")
+    ] = None
+    hostnames_to_skip: Annotated[list[str] | None, Field(alias="hostnamesToSkip")] = None
+    hosts: list[str] | None = None
+    jump_server_ids: Annotated[list[str] | None, Field(alias="jumpServerIds")] = None
+    protocols: list[str] | None = None
+    """
+    Any of HTTP, HTTPS, SSH, TELNET, SNMP (Go draft); empty means Forward's default set.
+    """
+    subnets: list[str] | None = None
+    subnets_to_skip: Annotated[list[str] | None, Field(alias="subnetsToSkip")] = None
+    try_direct_connection: Annotated[bool | None, Field(alias="tryDirectConnection")] = None
+    type: Literal["SUBNET_SCAN"]
+
+
+class SrcUnsupportedCustomCommand(ForwardModel):
+    """
+    A command the asked device types do not allow.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    command: str
+    unsupported_conn_types: Annotated[list[str], Field(alias="unsupportedConnTypes")]
+
+
+class SrcUpdateServiceNowSettings(ForwardModel):
+    """
+    Partial update of ServiceNow settings (Java UpdateServiceNowSettings). Give either token or username and password, never both (Java Preconditions). certificate is accepted on-premises only.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    auto_create: Annotated[bool | None, Field(alias="autoCreate")] = None
+    auto_create_impact: Annotated[AutoCreateImpact | None, Field(alias="autoCreateImpact")] = None
+    auto_create_urgency: Annotated[AutoCreateImpact | None, Field(alias="autoCreateUrgency")] = None
+    auto_update: Annotated[bool | None, Field(alias="autoUpdate")] = None
+    certificate: str | None = None
+    enabled: bool | None = None
+    instance_url: Annotated[AnyUrl | None, Field(alias="instanceUrl")] = None
+    password: str | None = None
+    token: str | None = None
+    username: str | None = None
+
+
+class DaysOfTheWeekItem(RootModel[int]):
+    root: Annotated[int, Field(ge=0, le=6)]
+
+
+class Time(RootModel[str]):
+    root: Annotated[str, Field(pattern="^([01]\\d|2[0-3]):[0-5]\\d$")]
+
+
+class SrcWeeklySchedule(ForwardModel):
+    """
+    Weekly form. Java WeeklySchedule takes daysOfTheWeek and times; timeZone optional.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    days_of_the_week: Annotated[list[DaysOfTheWeekItem], Field(alias="daysOfTheWeek")]
+    """
+    Sun (0) to Sat (6).
+    """
+    time_zone: Annotated[str | None, Field(alias="timeZone")] = None
+    times: list[Time]
+
+
 class StartCollectionResponse(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -6319,7 +7220,7 @@ class TextRegion(ForwardModel):
     """
 
 
-class Status6(OpenEnum):
+class Status7(OpenEnum):
     neutral = "NEUTRAL"
     ok = "OK"
     warning = "WARNING"
@@ -6331,7 +7232,7 @@ class ThresholdRule(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status6 | None = None
+    status: Status7 | None = None
     value: float | None = None
     """
     Null marks the default rule.
@@ -6406,7 +7307,7 @@ class TopologyLink(ForwardModel):
     target_port: Annotated[str | None, Field(alias="targetPort")] = None
 
 
-class Type56(OpenEnum):
+class Type64(OpenEnum):
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -6431,7 +7332,7 @@ class TotalHits(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    type: Type56 | None = None
+    type: Type64 | None = None
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -6648,7 +7549,7 @@ class UserAccountApiTokenAndSecret(ForwardModel):
     token: UserAccountApiToken
 
 
-class Status7(OpenEnum):
+class Status8(OpenEnum):
     active = "ACTIVE"
     expired = "EXPIRED"
 
@@ -6662,7 +7563,7 @@ class UserAccountApiTokenView(UserAccountApiToken):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status7 | None = None
+    status: Status8 | None = None
 
 
 class UserAccountBulkEdit(ForwardModel):
@@ -7029,7 +7930,7 @@ class VulnerabilityDevice(ForwardModel):
     """
 
 
-class Status8(OpenEnum):
+class Status9(OpenEnum):
     """
     The device’s vulnerability status for the CVE.
     """
@@ -7061,7 +7962,7 @@ class VulnerabilityDeviceWithResult(VulnerabilityDevice):
     The device’s [detection result](https://docs.fwd.app/latest/application/security/vulnerability/#detection-results)
     for the CVE.
     """
-    status: Annotated[Status8 | None, Field(examples=["VULNERABLE"])] = None
+    status: Annotated[Status9 | None, Field(examples=["VULNERABLE"])] = None
     """
     The device’s vulnerability status for the CVE.
     """
@@ -7225,7 +8126,7 @@ class WanCircuitPatch(ForwardModel):
     name: Annotated[str | None, Field(examples=["wan-circuit-01"])] = None
 
 
-class Type57(OpenEnum):
+class Type65(OpenEnum):
     basic_auth = "BASIC_AUTH"
 
 
@@ -7239,11 +8140,11 @@ class WebhookCredential(ForwardModel):
         populate_by_name=True,
     )
     password: str | None = None
-    type: Type57 | None = None
+    type: Type65 | None = None
     username: str | None = None
 
 
-class Type58(OpenEnum):
+class Type66(OpenEnum):
     snapshot_ready = "SNAPSHOT_READY"
     nqe_verification_failure = "NQE_VERIFICATION_FAILURE"
     intent_verification_failure = "INTENT_VERIFICATION_FAILURE"
@@ -7259,7 +8160,7 @@ class WebhookEventParams(ForwardModel):
         populate_by_name=True,
     )
     network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
-    type: Type58
+    type: Type66
 
 
 class PayloadFormat(OpenEnum):
@@ -11187,6 +12088,130 @@ class SnmpEndpointProfile(SnmpEndpointProfileDef):
     """
 
 
+class SrcCustomCommandGroup(ForwardModel):
+    """
+    A stored custom command group. A group holds commands (CLI) or oids (SNMP), never both. Live sample keys: name, deviceConnTypes, commands, type, disabled. Java omits empty fields (NON_EMPTY).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    commands: list[str] | None = None
+    device_conn_types: Annotated[list[str], Field(alias="deviceConnTypes")]
+    devices: list[str] | None = None
+    """
+    Device names or globs; omitted means every device of the types.
+    """
+    disabled: bool | None = None
+    name: str
+    oids: list[SrcCustomOid] | None = None
+    type: Type59
+
+
+class SrcCustomCommandGroupUpdate(ForwardModel):
+    """
+    Partial update of a custom command group (Java CustomCommandGroupUpdate). Absent or null means unchanged for every field. Changing deviceConnTypes re-checks stored commands.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    commands: list[str] | None = None
+    device_conn_types: Annotated[list[str] | None, Field(alias="deviceConnTypes")] = None
+    devices: list[str] | None = None
+    """
+    Null or absent leaves the devices unchanged; an empty array means every device of the types (Java requireNonNullElse).
+    """
+    disabled: bool | None = None
+    name: str | None = None
+    oids: list[SrcCustomOid] | None = None
+
+
+class SrcCustomCommandsValidationResponse(ForwardModel):
+    """
+    Java marks unsupported NON_EMPTY, so the key is absent when every command is accepted.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    unsupported: list[SrcUnsupportedCustomCommand] | None = None
+
+
+class SrcDiscoveredDevices(ForwardModel):
+    """
+    Discovery jobs (always including the most recent) and the devices they found (Java getJobsAndDevices).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    devices: list[SrcDiscoveredDevice]
+    jobs: list[SrcDiscoveryJob]
+
+
+class SrcDiscoveryParams(
+    RootModel[
+        SrcSubnetScanParams
+        | SrcSeededDiscoveryParams
+        | SrcDirectDiscoveryParams
+        | SrcCloudDiscoveryParams
+    ]
+):
+    root: Annotated[
+        SrcSubnetScanParams
+        | SrcSeededDiscoveryParams
+        | SrcDirectDiscoveryParams
+        | SrcCloudDiscoveryParams,
+        Field(discriminator="type"),
+    ]
+    """
+    Discovery parameters, dispatched on type (Java DeviceDiscoveryParams, JsonTypeInfo NAME on property type).
+    """
+
+
+class SrcSetupDevice(ForwardModel):
+    """
+    A controller or guest device in a controller-managed setup. Live sample keys: name, type, host, httpCredentialId, cliCredentialId, collect, attribution fields, testResult. Java DeviceSetup has more optional fields (port, credential2/3, terminalWidth, bgpAdvertisementCollectionOptions, snmpCollectionConfig...) that are not modeled here.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    attribution: SrcAttribution | None = None
+    cli_credential_id: Annotated[str | None, Field(alias="cliCredentialId")] = None
+    collect: bool | None = None
+    """
+    Absent or null means collect (Java isCollectionEnabled treats null as enabled).
+    """
+    host: str | None = None
+    http_credential_id: Annotated[str | None, Field(alias="httpCredentialId")] = None
+    jump_server_id: Annotated[str | None, Field(alias="jumpServerId")] = None
+    location_id: Annotated[str | None, Field(alias="locationId")] = None
+    """
+    Atlas location; present only with with=locationId.
+    """
+    name: str
+    """
+    Device name. Controller and guest names share one namespace with classic devices.
+    """
+    snmp_credential_id: Annotated[str | None, Field(alias="snmpCredentialId")] = None
+    tags: list[dict[str, Any]] | None = None
+    """
+    Active device tags; present only with with=tags. Element shape not modeled.
+    """
+    test_result: Annotated[SrcSetupTestResult | None, Field(alias="testResult")] = None
+    type: str | None = None
+    """
+    Connection type of the device itself (for a guest, its own type, not the controller's).
+    """
+
+
 class StoredCliCredential(CliCredential, Attribution):
     model_config = ConfigDict(
         extra="allow",
@@ -12277,6 +13302,129 @@ class SecurityMatrixResult(ForwardModel):
         | None,
         Field(alias="srcResourcePools"),
     ] = None
+
+
+class SrcControllerManagedSetup(ForwardModel):
+    """
+    A controller-managed setup. type is derived from the controllers' device types (Java ControllerManagedSetupType). Names are stored lowercase.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    attribution: SrcAttribution | None = None
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    """
+    Collector pin for the whole setup (for example C4). Absent means the network default collector.
+    """
+    controllers: list[SrcSetupDevice]
+    managed_devices: Annotated[list[SrcSetupDevice] | None, Field(alias="managedDevices")] = None
+    """
+    Guests collected through the controllers. Absent (not an empty list) when the setup has never had guests declared.
+    """
+    name: str
+    type: Type58
+
+
+class SrcControllerManagedSetupPatch(ForwardModel):
+    """
+    Partial update of a controller-managed setup (Java ControllerManagedSetupPatch, JsonProp fields). Absent and explicit null are different; see each field. A no-op patch is not written (Java compares before updating).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    """
+    PATCH presence semantics: absent leaves the collector unchanged; an explicit null unpins the setup so the network default applies.
+    """
+    controllers: Annotated[list[SrcSetupDevice] | None, Field(min_length=1)] = None
+    """
+    Replaces the whole controller list when present. Present but null or empty is rejected.
+    """
+    managed_devices: Annotated[list[SrcSetupDevice] | None, Field(alias="managedDevices")] = None
+    """
+    PATCH presence semantics: absent leaves the guests unchanged; an explicit null clears the guest list; an array replaces it.
+    """
+    name: str | None = None
+    """
+    Rename. Present but null is rejected by Java ('name' cannot be null).
+    """
+
+
+class SrcNewControllerManagedSetup(ForwardModel):
+    """
+    Body for creating a controller-managed setup (Java NewControllerManagedSetup).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    """
+    Pins the setup to one collector. Omitted means the network default.
+    """
+    controllers: Annotated[list[SrcSetupDevice], Field(min_length=1)]
+    managed_devices: Annotated[list[SrcSetupDevice] | None, Field(alias="managedDevices")] = None
+    name: str
+    """
+    Lowercased by Forward on the way in.
+    """
+
+
+class SrcScheduledDiscovery(ForwardModel):
+    """
+    A stored scheduled discovery. Forward does not return hostsToSkip or subnetsToSkip.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    enabled: bool
+    id: str
+    name: str
+    params: Annotated[
+        SrcSubnetScanParams | SrcSeededDiscoveryParams | SrcDirectDiscoveryParams | None,
+        Field(discriminator="type"),
+    ] = None
+    """
+    Scheduled discovery accepts only SUBNET_SCAN, SEEDED and DIRECT (Java ScheduledDiscoveryDefinition SUPPORTED_DISCOVERY_TYPES).
+    """
+    schedule: SrcWeeklySchedule | SrcMonthlySchedule | None = None
+
+
+class SrcScheduledDiscoveryDefinition(ForwardModel):
+    """
+    Body of POST scheduled-discoveries (Java ScheduledDiscoveryDefinition).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    enabled: bool | None = None
+    """
+    Java primitive boolean; omitted is read as false. An enabled schedule scans the customer network on its own.
+    """
+    name: Annotated[str, Field(min_length=1)]
+    """
+    Unique ignoring case (Forward returns 400 on a duplicate).
+    """
+    params: Annotated[
+        SrcSubnetScanParams | SrcSeededDiscoveryParams | SrcDirectDiscoveryParams,
+        Field(discriminator="type"),
+    ]
+    """
+    Scheduled discovery accepts only SUBNET_SCAN, SEEDED and DIRECT (Java ScheduledDiscoveryDefinition SUPPORTED_DISCOVERY_TYPES).
+    """
+    schedule: SrcWeeklySchedule | SrcMonthlySchedule | None = None
+    """
+    Omitted or null means the discovery runs after every collection.
+    """
 
 
 class AclDiffEntry(ForwardModel):

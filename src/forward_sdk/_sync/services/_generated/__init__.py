@@ -25,18 +25,24 @@ from forward_sdk._sync.services._generated.cloud_accounts import CloudAccountsSe
 from forward_sdk._sync.services._generated.collection_schedules import (
     CollectionSchedulesService,
 )
+from forward_sdk._sync.services._generated.collection_sources import CollectionSourcesService
 from forward_sdk._sync.services._generated.collector_binding import CollectorBindingService
 from forward_sdk._sync.services._generated.collector_tasks import CollectorTasksService
 from forward_sdk._sync.services._generated.collectors import CollectorsService
 from forward_sdk._sync.services._generated.configuration import ConfigurationService
 from forward_sdk._sync.services._generated.connectivity_tests import ConnectivityTestsService
 from forward_sdk._sync.services._generated.credentials import CredentialsService
+from forward_sdk._sync.services._generated.custom_command_groups import (
+    CustomCommandGroupsService,
+)
 from forward_sdk._sync.services._generated.dashboards import DashboardsService
 from forward_sdk._sync.services._generated.data_connectors import DataConnectorsService
 from forward_sdk._sync.services._generated.data_files import DataFilesService
+from forward_sdk._sync.services._generated.device_discovery import DeviceDiscoveryService
 from forward_sdk._sync.services._generated.encryptors import EncryptorsService
 from forward_sdk._sync.services._generated.endpoint_profiles import EndpointProfilesService
 from forward_sdk._sync.services._generated.firewall_predict import FirewallPredictService
+from forward_sdk._sync.services._generated.integrations import IntegrationsService
 from forward_sdk._sync.services._generated.internet_exposure import InternetExposureService
 from forward_sdk._sync.services._generated.internet_node import InternetNodeService
 from forward_sdk._sync.services._generated.intranet_nodes import IntranetNodesService
@@ -44,6 +50,7 @@ from forward_sdk._sync.services._generated.jump_servers import JumpServersServic
 from forward_sdk._sync.services._generated.l2vpns import L2vpnsService
 from forward_sdk._sync.services._generated.l3vpns import L3vpnsService
 from forward_sdk._sync.services._generated.legacy_collection import LegacyCollectionService
+from forward_sdk._sync.services._generated.network_collection import NetworkCollectionService
 from forward_sdk._sync.services._generated.network_endpoints import NetworkEndpointsService
 from forward_sdk._sync.services._generated.network_locations import NetworkLocationsService
 from forward_sdk._sync.services._generated.network_topology import NetworkTopologyService
@@ -90,19 +97,23 @@ __all__ = [
     "ClassicDevicesService",
     "CloudAccountsService",
     "CollectionSchedulesService",
+    "CollectionSourcesService",
     "CollectorBindingService",
     "CollectorTasksService",
     "CollectorsService",
     "ConfigurationService",
     "ConnectivityTestsService",
     "CredentialsService",
+    "CustomCommandGroupsService",
     "DashboardsService",
     "DataConnectorsService",
     "DataFilesService",
+    "DeviceDiscoveryService",
     "EncryptorsService",
     "EndpointProfilesService",
     "FirewallPredictService",
     "GeneratedServices",
+    "IntegrationsService",
     "InternetExposureService",
     "InternetNodeService",
     "IntranetNodesService",
@@ -111,6 +122,7 @@ __all__ = [
     "L3vpnsService",
     "LegacyCollectionService",
     "NQEPanelsService",
+    "NetworkCollectionService",
     "NetworkEndpointsService",
     "NetworkLocationsService",
     "NetworkTopologyService",
@@ -151,18 +163,22 @@ class GeneratedServices:
     classic_devices: ClassicDevicesService
     cloud_accounts: CloudAccountsService
     collection_schedules: CollectionSchedulesService
+    collection_sources: CollectionSourcesService
     collector_binding: CollectorBindingService
     collector_tasks: CollectorTasksService
     collectors: CollectorsService
     configuration: ConfigurationService
     connectivity_tests: ConnectivityTestsService
     credentials: CredentialsService
+    custom_command_groups: CustomCommandGroupsService
     dashboards: DashboardsService
     data_connectors: DataConnectorsService
     data_files: DataFilesService
+    device_discovery: DeviceDiscoveryService
     encryptors: EncryptorsService
     endpoint_profiles: EndpointProfilesService
     firewall_predict: FirewallPredictService
+    integrations: IntegrationsService
     internet_exposure: InternetExposureService
     internet_node: InternetNodeService
     intranet_nodes: IntranetNodesService
@@ -171,6 +187,7 @@ class GeneratedServices:
     l3vpns: L3vpnsService
     legacy_collection: LegacyCollectionService
     nqe_panels: NQEPanelsService
+    network_collection: NetworkCollectionService
     network_endpoints: NetworkEndpointsService
     network_locations: NetworkLocationsService
     network_topology: NetworkTopologyService
@@ -203,18 +220,22 @@ class GeneratedServices:
         self.classic_devices = ClassicDevicesService(transport)
         self.cloud_accounts = CloudAccountsService(transport)
         self.collection_schedules = CollectionSchedulesService(transport)
+        self.collection_sources = CollectionSourcesService(transport)
         self.collector_binding = CollectorBindingService(transport)
         self.collector_tasks = CollectorTasksService(transport)
         self.collectors = CollectorsService(transport)
         self.configuration = ConfigurationService(transport)
         self.connectivity_tests = ConnectivityTestsService(transport)
         self.credentials = CredentialsService(transport)
+        self.custom_command_groups = CustomCommandGroupsService(transport)
         self.dashboards = DashboardsService(transport)
         self.data_connectors = DataConnectorsService(transport)
         self.data_files = DataFilesService(transport)
+        self.device_discovery = DeviceDiscoveryService(transport)
         self.encryptors = EncryptorsService(transport)
         self.endpoint_profiles = EndpointProfilesService(transport)
         self.firewall_predict = FirewallPredictService(transport)
+        self.integrations = IntegrationsService(transport)
         self.internet_exposure = InternetExposureService(transport)
         self.internet_node = InternetNodeService(transport)
         self.intranet_nodes = IntranetNodesService(transport)
@@ -223,6 +244,7 @@ class GeneratedServices:
         self.l3vpns = L3vpnsService(transport)
         self.legacy_collection = LegacyCollectionService(transport)
         self.nqe_panels = NQEPanelsService(transport)
+        self.network_collection = NetworkCollectionService(transport)
         self.network_endpoints = NetworkEndpointsService(transport)
         self.network_locations = NetworkLocationsService(transport)
         self.network_topology = NetworkTopologyService(transport)
@@ -257,18 +279,22 @@ SERVICE_TAGS: dict[str, str] = {
     "Classic Devices": "classic_devices",
     "Cloud Accounts": "cloud_accounts",
     "Collection Schedules": "collection_schedules",
+    "Collection Sources": "collection_sources",
     "Collector Binding": "collector_binding",
     "Collector Tasks": "collector_tasks",
     "Collectors": "collectors",
     "Configuration": "configuration",
     "Connectivity Tests": "connectivity_tests",
     "Credentials": "credentials",
+    "Custom Command Groups": "custom_command_groups",
     "Dashboards": "dashboards",
     "Data Connectors": "data_connectors",
     "Data Files": "data_files",
+    "Device Discovery": "device_discovery",
     "Encryptors": "encryptors",
     "Endpoint Profiles": "endpoint_profiles",
     "Firewall Predict": "firewall_predict",
+    "Integrations": "integrations",
     "Internet Exposure": "internet_exposure",
     "Internet Node": "internet_node",
     "Intranet Nodes": "intranet_nodes",
@@ -277,6 +303,7 @@ SERVICE_TAGS: dict[str, str] = {
     "L3VPNs": "l3vpns",
     "Legacy Collection": "legacy_collection",
     "NQE Panels": "nqe_panels",
+    "Network Collection": "network_collection",
     "Network Endpoints": "network_endpoints",
     "Network Locations": "network_locations",
     "Network Topology": "network_topology",

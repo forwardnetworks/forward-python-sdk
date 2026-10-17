@@ -106,6 +106,24 @@ class CloudAccountsService(Service):
         )
         return models.AwsExternalId.model_validate(payload or {})
 
+    def get_aws_cap_credential(
+        self,
+        *,
+        credential_id: str,
+        network_id: str | None = None,
+    ) -> models.SrcAwsCapCredential:
+        """Read an AWS CAP credential.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getAwsCapCredential"](
+                network_id=self._network(network_id), credential_id=credential_id
+            )
+        )
+        return models.SrcAwsCapCredential.model_validate(payload or {})
+
     def get_cloud_account_credential(
         self,
         *,

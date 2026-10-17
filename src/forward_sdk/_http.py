@@ -67,6 +67,11 @@ def build_path(template: str, values: Mapping[str, Any]) -> str:
         if placeholder in path:
             if value is None or value == "":
                 raise ValueError(f"path parameter {name!r} must not be empty")
+            if str(value) in (".", ".."):
+                # Dots are unreserved, so quoting leaves them alone, and the HTTP
+                # client then collapses the segment: a device named ".." would
+                # address its parent resource instead.
+                raise ValueError(f"path parameter {name!r} must not be {str(value)!r}")
             path = path.replace(placeholder, quote_segment(value))
     if "{" in path:
         missing = path[path.index("{") + 1 : path.index("}")]

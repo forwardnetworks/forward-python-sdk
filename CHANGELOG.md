@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Fixed
+
+- A path parameter of `.` or `..` is refused. Dots are not percent-encoded, and the HTTP
+  client collapses such a segment, so a device named `..` addressed its parent route (a
+  per-device call went to the network). Names that merely contain dots are unaffected.
+  Found by comparing with the Go SDK, which fixed the same thing.
+
 ## [0.1.21] - 2026-10-10
 
 ### Added

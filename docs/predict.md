@@ -233,11 +233,11 @@ A change-set handle also reads and manages what has been committed:
 
 ```python
 handle = client.change_sets.handle("CHG-1")
-handle.commit_detail(commit_id)                 # a commit with its device changes
+handle.commit_detail(commit_id)  # a commit with its device changes
 handle.edit_commit_note(commit_id, "reviewed")
-handle.restore_commit(commit_id)                # a new head commit with that commit's changes
+handle.restore_commit(commit_id)  # a new head commit with that commit's changes
 handle.restore_commit_as_new(commit_id, name="redo")
-handle.delete_commit(commit_id)                 # also deletes the predicted snapshots
+handle.delete_commit(commit_id)  # also deletes the predicted snapshots
 # restore_commit first saves a pending draft as its own commit, so it can add two.
 handle.duplicate(name="copy")
 handle.duplicate(target_network_id="202", base_snapshot_id="55")
@@ -248,7 +248,7 @@ replaced, and a command list previewed without staging it:
 
 ```python
 handle.draft_device_config("edge-1")
-handle.save_draft_device_config("edge-1", config_text)   # at most 2 MB
+handle.save_draft_device_config("edge-1", config_text)  # at most 2 MB
 handle.committed_device_config(commit_id, "edge-1")
 handle.preview_device_config("edge-1", "interface Ethernet1\n shutdown")
 ```

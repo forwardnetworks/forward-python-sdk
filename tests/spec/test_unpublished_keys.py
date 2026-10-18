@@ -40,7 +40,8 @@ def test_no_mapping_key_is_repeated() -> None:
     try:
         yaml.load(SPEC_PATH.read_text(encoding="utf-8"), _StrictLoader)
     except yaml.constructor.ConstructorError as error:
-        pytest.fail(f"{SPEC_PATH}: {error.problem} at line {error.problem_mark.line + 1}")
+        mark = error.problem_mark
+        pytest.fail(f"{SPEC_PATH}: {error.problem} at line {mark.line + 1 if mark else '?'}")
 
 
 def test_the_strict_loader_does_catch_a_repeat() -> None:

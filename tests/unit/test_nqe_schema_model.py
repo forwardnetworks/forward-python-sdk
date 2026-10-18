@@ -19,4 +19,5 @@ def test_a_type_is_flagged_deprecated_with_a_boolean_and_a_field_with_advice() -
         }
     )
     assert node.deprecated is True
+    assert node.fields is not None
     assert node.fields[0].deprecated == "Use uptime instead."

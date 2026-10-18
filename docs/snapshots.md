@@ -231,9 +231,9 @@ short page. That costs a larger response.
 ## Progress, logs and retention
 
 ```python
-client.snapshots.progress(snapshot_id)          # a snapshot that is still processing
+client.snapshots.progress(snapshot_id)  # a snapshot that is still processing
 client.snapshots.process_estimate(snapshot_id)  # Forward's estimate of how long
-client.snapshots.processing_queue()             # what is waiting for capacity
+client.snapshots.processing_queue()  # what is waiting for capacity
 client.snapshots.collection_exceptions(snapshot_id)
 
 for chunk in client.snapshots.logs(snapshot_id, device_name="edge-01", level="ERROR"):
@@ -252,7 +252,7 @@ itself is the retention policy:
 ```python
 policy = client.snapshots.retention_policy()
 client.snapshots.set_retention_policy({**policy.model_dump(by_alias=True), "lastWeek": 10})
-client.snapshots.preview_retention()   # what the policy would delete; deletes nothing
+client.snapshots.preview_retention()  # what the policy would delete; deletes nothing
 ```
 
 Every field of the policy is required when you set it. The preview is the only

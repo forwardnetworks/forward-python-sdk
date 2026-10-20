@@ -102,3 +102,22 @@ async def test_bad_credentials_still_raise(recorder: Recorder) -> None:
     async with make_client(recorder, network_id="7") as client:
         with pytest.raises(ForwardAuthError):
             await client.access()
+
+
+async def test_an_impersonated_session_is_unknown(
+    recorder: Recorder, role_table: RoleTable
+) -> None:
+    recorder.add(
+        "GET",
+        "/api/users/current",
+        json_response(
+            {
+                "user": {"id": "1"},
+                "roles": {"org": [], "network": {"7": "OPERATOR"}},
+                "impersonator": "support-1",
+            }
+        ),
+    )
+    async with make_client(recorder, network_id="7") as client:
+        access = await client.access(table=role_table)
+    assert access.may("NetworkOperation.TRIGGER_SNAPSHOT_COLLECTION").allowed is None

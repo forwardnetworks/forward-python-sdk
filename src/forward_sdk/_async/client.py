@@ -114,6 +114,7 @@ class AsyncForwardClient(AsyncGeneratedServices):
             self.config, transport=transport, throttle=throttle, hooks=hooks
         )
         self._current_roles: Any = _UNREAD
+        self._current_impersonator: str | None = None
         self.networks = AsyncNetworksService(self._transport)
         self.snapshots = AsyncSnapshotsService(self._transport)
         self.devices = AsyncDevicesService(self._transport)
@@ -177,7 +178,11 @@ class AsyncForwardClient(AsyncGeneratedServices):
                     f"HTTP {error.status} from /users/current", resolved, table
                 )
             self._current_roles = current.roles
-        return Access.from_roles(self._current_roles, resolved, table)
+            extra = current.model_extra or {}
+            self._current_impersonator = extra.get("impersonator")
+        return Access.from_roles(
+            self._current_roles, resolved, table, impersonator=self._current_impersonator
+        )
 
     @property
     def counters(self) -> CounterSnapshot:

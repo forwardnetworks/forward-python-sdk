@@ -117,6 +117,7 @@ class ForwardClient(GeneratedServices):
             self.config, transport=transport, throttle=throttle, hooks=hooks
         )
         self._current_roles: Any = _UNREAD
+        self._current_impersonator: str | None = None
         self.networks = NetworksService(self._transport)
         self.snapshots = SnapshotsService(self._transport)
         self.devices = DevicesService(self._transport)
@@ -180,7 +181,11 @@ class ForwardClient(GeneratedServices):
                     f"HTTP {error.status} from /users/current", resolved, table
                 )
             self._current_roles = current.roles
-        return Access.from_roles(self._current_roles, resolved, table)
+            extra = current.model_extra or {}
+            self._current_impersonator = extra.get("impersonator")
+        return Access.from_roles(
+            self._current_roles, resolved, table, impersonator=self._current_impersonator
+        )
 
     @property
     def counters(self) -> CounterSnapshot:

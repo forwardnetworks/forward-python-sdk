@@ -112,6 +112,36 @@ class TestWhatCannotBeSaid:
             holding("5", "ADMIN").can("TRIGGER_SNAPSHOT_COLLECTON")
 
 
+class TestSessionsTheRolesDoNotDescribe:
+    """Forward gives some sessions more than the roles show, so a no is not safe to give."""
+
+    def test_an_impersonated_session_gains_operations_the_roles_omit(self) -> None:
+        access = Access.from_roles(
+            {"org": [], "network": {"5": "OPERATOR"}}, "5", impersonator="support-1"
+        )
+        decision = access.may(COLLECT)
+        assert decision.allowed is None
+        assert "support-1" in decision.reason
+
+    def test_an_impersonated_yes_is_still_a_yes(self) -> None:
+        """Impersonation adds to the account's own permissions; it never takes any away."""
+        access = Access.from_roles(
+            {"org": [], "network": {"5": "ADMIN"}}, "5", impersonator="support-1"
+        )
+        assert access.can(COLLECT) is True
+
+    def test_a_support_account_reaches_more_than_its_roles_show(self) -> None:
+        access = Access.from_roles(
+            {"org": [], "network": {"5": "OPERATOR"}, "supportedOrgIds": ["9"]}, "5"
+        )
+        decision = access.may(COLLECT)
+        assert decision.allowed is None
+        assert "support" in decision.reason
+
+    def test_a_blank_network_role_is_unknown(self) -> None:
+        assert Access.from_roles({"org": [], "network": {"5": ""}}, "5").can(COLLECT) is None
+
+
 class TestRolesAsForwardSendsThem:
     def test_org_as_a_bare_string(self) -> None:
         access = Access.from_roles({"org": "ADMIN", "network": {}})

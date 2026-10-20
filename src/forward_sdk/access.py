@@ -165,6 +165,10 @@ class Access:
     #: Why the roles could not be read, when they could not. Every answer is then ``None``.
     unreadable: str = ""
     table: RoleTable | None = None
+    #: The Forward support account impersonating this one, when the session is an impersonation.
+    impersonator: str | None = None
+    #: Other orgs a Forward support account may reach. Present only for support accounts.
+    supported_orgs: frozenset[str] = frozenset()
 
     @classmethod
     def unreadable_because(
@@ -175,15 +179,23 @@ class Access:
 
     @classmethod
     def from_roles(
-        cls, roles: Any, network_id: str | None = None, table: RoleTable | None = None
+        cls,
+        roles: Any,
+        network_id: str | None = None,
+        table: RoleTable | None = None,
+        *,
+        impersonator: str | None = None,
     ) -> Access:
         """From the ``roles`` of ``GET /users/current`` (a model or a plain dict).
 
         Missing or empty roles give an ``Access`` whose answers are all ``None``:
-        an empty answer is not a refusal, it is not knowing.
+        an empty answer is not a refusal, it is not knowing. So are the answers for
+        an impersonated session (``impersonator``: the support account's name, from
+        the same response) and for a Forward support account, whose reach the roles
+        alone do not describe.
         """
         if roles is None:
-            return cls(network_id=network_id, known=False, table=table)
+            return cls(network_id=network_id, known=False, table=table, impersonator=impersonator)
         if isinstance(roles, Mapping):
             raw: Mapping[str, Any] = roles
         else:
@@ -195,6 +207,7 @@ class Access:
         network = {str(k): str(v) for k, v in (raw.get("network") or {}).items()}
         org = _as_roles(raw.get("org"))
         system = _as_roles(raw.get("system"))
+        supported = _as_roles(raw.get("supportedOrgIds"))
         return cls(
             org_roles=org,
             network_roles=network,
@@ -202,6 +215,8 @@ class Access:
             network_id=network_id,
             known=bool(org or network or system),
             table=table,
+            impersonator=impersonator,
+            supported_orgs=supported,
         )
 
     @property
@@ -296,6 +311,15 @@ class Access:
         if self.system_roles:
             reason = "the account holds a Forward-internal role, which is not modelled"
             return Decision(None, reason, None, info)
+        if self.supported_orgs:
+            reason = "a Forward support account may reach orgs and operations its roles do not show"
+            return Decision(None, reason, None, info)
+        if self.impersonator:
+            reason = (
+                f"the session is {self.impersonator} impersonating this account, "
+                "which gains operations the roles do not show"
+            )
+            return Decision(None, reason, None, info)
         if lowest is None:
             return Decision(False, "no network role holds it; only an org ADMIN does", None, info)
         if not roles:
@@ -306,4 +330,10 @@ class Access:
 
     def _cannot_tell(self) -> bool:
         """Roles that say nothing, that could not be read, or that belong to Forward itself."""
-        return not self.known or bool(self.system_roles) or bool(self.unreadable)
+        return (
+            not self.known
+            or bool(self.system_roles)
+            or bool(self.supported_orgs)
+            or bool(self.impersonator)
+            or bool(self.unreadable)
+        )

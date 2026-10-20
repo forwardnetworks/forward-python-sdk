@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Fixed
+
+- Role checks answer `None`, not `False`, for an impersonated session and for a Forward
+  support account, which gain operations their roles do not show. A `True` is unchanged.
+- The role-table reader refuses forms it does not follow in `NetworkRole.java` (streams,
+  filters, set arithmetic, `VALUES`) instead of reading past them.
+
 ## [0.1.23] - 2026-10-20
 
 ### Added

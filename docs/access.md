@@ -51,6 +51,21 @@ property, or the state of the thing being changed can still refuse it, and Forwa
 own refusal is the last word (see [availability](gating.md)). The facet is in
 `describe_operation` so you can tell when a licence could be the reason.
 
+## Sessions the roles do not describe
+
+Two kinds of session get more than their roles show, so a "no" would be wrong and the
+answer is `None` instead (a "yes" stays a yes, since they only add):
+
+- An **impersonated** session. A Forward support account impersonating a user gains a
+  few operations beyond that user's own. `/users/current` names the impersonator, and
+  `client.access()` passes it on.
+- A **Forward support** account (`supportedOrgIds` in its roles). Forward lets these
+  through support-only routes in the orgs they support without checking an operation.
+
+One limit the SDK cannot see: an org ADMIN is admin of **its own org** only, and `Access`
+knows nothing of which org a network belongs to. Asking about another org's network gives
+a wrong `True`.
+
 ## The rules, from Forward's source
 
 - An **org admin** holds every operation; an org **read-only** role holds every read.

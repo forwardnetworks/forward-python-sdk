@@ -68,6 +68,28 @@ def test_a_role_naming_an_operation_that_does_not_exist_stops_the_reader(tmp_pat
         RoleTable.from_checkout(root)
 
 
+@pytest.mark.parametrize(
+    "form",
+    [
+        "OPERATOR.allowedOperations.stream().filter(x -> true)",
+        "Sets.difference(OPERATOR.allowedOperations, EnumSet.of())",
+        "NetworkOperation.VALUES",
+        "EnumSet.allOf(NetworkOperation.class)",
+    ],
+)
+def test_a_form_the_reader_does_not_follow_stops_it(tmp_path: Path, form: str) -> None:
+    """Reading past one would give a role the wrong operations and so wrong answers."""
+    root = write_checkout(tmp_path / "fwd")
+    role_file = root / ACCESS_DIR / "NetworkRole.java"
+    role_file.write_text(
+        NETWORK_ROLE.replace(
+            "EnumSet.of(NetworkOperation.USE_NQE)", f"EnumSet.of(NetworkOperation.USE_NQE), {form}"
+        )
+    )
+    with pytest.raises(ForwardConfigurationError, match="does not follow"):
+        RoleTable.from_checkout(root)
+
+
 def test_a_directory_that_is_not_a_checkout_is_said_so(tmp_path: Path) -> None:
     with pytest.raises(ForwardConfigurationError, match="does not look like"):
         RoleTable.from_checkout(tmp_path)

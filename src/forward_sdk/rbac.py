@@ -72,6 +72,13 @@ def _parse_operations(text: str) -> dict[str, tuple[str, str, str]]:
     return found
 
 
+#: Ways a role's operations could be built that the reader does not follow. Reading past
+#: one would quietly give a role the wrong operations, so the reader refuses instead.
+_UNFOLLOWED = re.compile(
+    r"\.stream\(|\bfilter\(|difference\(|union\(|intersection\(|removeAll|retainAll|\.VALUES\b|allOf\("
+)
+
+
 def _parse_network_roles(text: str) -> dict[str, dict[str, set[str]]]:
     """What each network role holds, the roles it builds on folded in."""
     starts = [(role, re.search(rf"^    {role}\(", text, re.MULTILINE)) for role in NETWORK_ROLES]
@@ -83,6 +90,12 @@ def _parse_network_roles(text: str) -> dict[str, dict[str, set[str]]]:
     held: dict[str, dict[str, set[str]]] = {}
     for position, role in enumerate(NETWORK_ROLES):
         block = text[bounds[position] : bounds[position + 1]]
+        unfollowed = _UNFOLLOWED.search(block)
+        if unfollowed:
+            raise ForwardConfigurationError(
+                f"NetworkRole.java builds {role} with {unfollowed.group(0)!r}, which this reader "
+                "does not follow; reading it anyway could give wrong answers"
+            )
         network = set(re.findall(r"NetworkOperation\.([A-Z][A-Z0-9_]*)", block))
         org = set(re.findall(r"OrgOperation\.([A-Z][A-Z0-9_]*)", block))
         for inherited in re.findall(r"([A-Z][A-Z_]+)\.allowedOperations", block):

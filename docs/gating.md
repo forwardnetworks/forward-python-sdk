@@ -137,3 +137,6 @@ seen live on one hosted organization, where it was `False` and the global value
 not expose that as an endpoint. So `ai_allowed` on does not promise an answer,
 and the SDK cannot tell you in advance. That second half is from the source and
 has not been seen live, since no checked organization had `ai_allowed` on.
+
+To decide ahead of a call whether an account's roles allow it, see
+[what an account may do](access.md).

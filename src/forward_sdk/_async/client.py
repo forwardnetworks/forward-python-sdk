@@ -20,10 +20,16 @@ from forward_sdk._async.services.snapshots import AsyncSnapshotsService
 from forward_sdk._async.services.tapi import AsyncTapiNetworkContainersService
 from forward_sdk._async.throttle import Throttle
 from forward_sdk._async.transport import AsyncTransport
+from forward_sdk.access import Access
 from forward_sdk.config import ClientConfig, RetryPolicy, build_config, config_from_env
+from forward_sdk.errors import ForwardNotFoundError, ForwardPermissionError
+from forward_sdk.rbac import RoleTable
 from forward_sdk.telemetry import Counters, CounterSnapshot, Hooks
 
 __all__ = ["AsyncForwardClient"]
+
+
+_UNREAD: Any = object()
 
 
 class AsyncForwardClient(AsyncGeneratedServices):
@@ -107,6 +113,7 @@ class AsyncForwardClient(AsyncGeneratedServices):
         self._transport = AsyncTransport(
             self.config, transport=transport, throttle=throttle, hooks=hooks
         )
+        self._current_roles: Any = _UNREAD
         self.networks = AsyncNetworksService(self._transport)
         self.snapshots = AsyncSnapshotsService(self._transport)
         self.devices = AsyncDevicesService(self._transport)
@@ -138,6 +145,39 @@ class AsyncForwardClient(AsyncGeneratedServices):
     async def version(self) -> Any:
         """The Forward release this instance is running."""
         return await self.networks.version()
+
+    async def access(
+        self,
+        network_id: str | None = None,
+        *,
+        refresh: bool = False,
+        table: RoleTable | None = None,
+    ) -> Access:
+        """What the calling account may do, from the roles Forward reports for it.
+
+        One call to ``GET /users/current``, then answers from Forward's own role
+        table: ``(await client.access("101")).may("NetworkOperation.
+        TRIGGER_SNAPSHOT_COLLECTION")``. The roles are read once and kept on this
+        client; ``refresh=True`` reads them again after a role change.
+
+        That endpoint is unpublished, and some accounts are refused it (403) or find
+        it absent (404). Neither raises: the result answers ``None`` to everything
+        and says why, so a refusal to read the roles is never mistaken for a refusal
+        of the operation. Bad credentials and server errors still raise. See
+        :mod:`forward_sdk.access` for what ``True``, ``False`` and ``None`` mean, and
+        :mod:`forward_sdk.rbac` for supplying the role table (``table=`` here, or the
+        environment).
+        """
+        resolved = network_id or self._transport.config.network_id
+        if refresh or self._current_roles is _UNREAD:
+            try:
+                current = await self.user_accounts.get_current_user()
+            except (ForwardPermissionError, ForwardNotFoundError) as error:
+                return Access.unreadable_because(
+                    f"HTTP {error.status} from /users/current", resolved, table
+                )
+            self._current_roles = current.roles
+        return Access.from_roles(self._current_roles, resolved, table)
 
     @property
     def counters(self) -> CounterSnapshot:

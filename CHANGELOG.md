@@ -5,6 +5,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `client.access()` and `forward_sdk.Access`: whether an account's roles allow an
+  operation, answered the way Forward's enforcer answers it and without making the call.
+  `access.may("NetworkOperation.TRIGGER_SNAPSHOT_COLLECTION")` gives a `Decision`:
+  `allowed` is `True`, `False`, or `None` when the roles cannot settle it, with a reason and
+  the role it rested on; `can()` returns just `allowed`. The roles are read once per client,
+  and a refusal to read them gives `None` rather than raising. `describe_operation()` and `operations()` list
+  each operation's access type, licence facet and lowest network role. The table of
+  operations and the roles that hold them is read from Forward's own source (a checkout
+  named by `FORWARD_SOURCE`, or a JSON copy by `FORWARD_RBAC_TABLE`), because Forward
+  serves no endpoint for it. It is not shipped with the SDK; without one every answer is
+  `None` and says so. See [what an account may do](docs/access.md).
+
 ### Fixed
 
 - `error.denial` also reads "No permission for network operation X", which Forward's service code throws instead of the enforcer's "Missing permission".

@@ -10,6 +10,7 @@ from forward_sdk._async.client import AsyncForwardClient
 from forward_sdk._sync.client import ForwardClient
 from forward_sdk._sync.services.ai import answer_of
 from forward_sdk._version import __version__
+from forward_sdk.access import Access, Decision, OperationInfo, describe_operation, operations
 from forward_sdk.configuration import PropertySource, config_value, describe_properties
 from forward_sdk.errors import (
     Denial,
@@ -31,10 +32,13 @@ from forward_sdk.errors import (
     ForwardTransportError,
 )
 from forward_sdk.nqe import LATEST_PROCESSED, PageGuards, QueryRef
+from forward_sdk.rbac import RoleTable
 
 __all__ = [
     "LATEST_PROCESSED",
+    "Access",
     "AsyncForwardClient",
+    "Decision",
     "Denial",
     "ForwardAPIError",
     "ForwardAuthError",
@@ -53,11 +57,15 @@ __all__ = [
     "ForwardServerError",
     "ForwardTimeoutError",
     "ForwardTransportError",
+    "OperationInfo",
     "PageGuards",
     "PropertySource",
     "QueryRef",
+    "RoleTable",
     "__version__",
     "answer_of",
     "config_value",
+    "describe_operation",
     "describe_properties",
+    "operations",
 ]

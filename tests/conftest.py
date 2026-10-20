@@ -12,12 +12,15 @@ import json
 import time
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import httpx
 import pytest
 
 from forward_sdk.config import ClientConfig, build_config
+from forward_sdk.rbac import RoleTable
+from tests.unit.fake_forward import write_checkout
 
 Handler = Callable[[httpx.Request], httpx.Response]
 
@@ -179,3 +182,9 @@ def flavor(request: pytest.FixtureRequest) -> str:
 
 def iter_lines(response: httpx.Response) -> Iterator[str]:
     yield from response.text.splitlines()
+
+
+@pytest.fixture
+def role_table(tmp_path: Path) -> RoleTable:
+    """A role table read from a small invented checkout (see tests/unit/fake_forward.py)."""
+    return RoleTable.from_checkout(write_checkout(tmp_path / "fwd"))

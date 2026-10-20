@@ -55,6 +55,7 @@ nav:
       - Configuration: configuration.md
       - Errors: errors.md
       - Availability: gating.md
+      - What an account may do: access.md
   - NQE:
       - Overview: nqe/index.md
       - Query library: nqe/library.md

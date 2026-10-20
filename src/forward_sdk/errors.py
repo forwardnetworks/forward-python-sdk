@@ -163,6 +163,8 @@ class ForwardExecutionError(ForwardError):
 _DENIAL_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("license", re.compile(r"^Unlicensed operation:\s*(?P<detail>\S+)")),
     ("rbac", re.compile(r"^Missing permission:\s*(?P<detail>\S+)")),
+    # UserPrincipal.verifyCan, reached from service code rather than the enforcer.
+    ("rbac", re.compile(r"^No permission for network operation\s+(?P<detail>\S+)")),
     ("license_expired", re.compile(r"license has expired")),
     ("org_setting", re.compile(r"^(?P<detail>[A-Z0-9_]+) is (?:on|off) for your organization")),
     (

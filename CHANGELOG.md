@@ -3,6 +3,12 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Fixed
+
+- `error.denial` also reads "No permission for network operation X", which Forward's service code throws instead of the enforcer's "Missing permission".
+
 ## [0.1.22] - 2026-10-17
 
 ### Added

@@ -101,7 +101,7 @@ except ForwardPermissionError as error:
 
 | `kind` | What Forward said | What to tell an operator |
 | --- | --- | --- |
-| `rbac` | `Missing permission: X.Y` | The account lacks permission `X.Y` |
+| `rbac` | `Missing permission: X.Y`, or `No permission for network operation X` | The account lacks permission `X.Y` |
 | `license` | `Unlicensed operation: X.Y` | The licence does not cover `X.Y` |
 | `license_expired` | the licence has expired | Renew, or grant licence management |
 | `org_setting` | `NAME is off for your organization` | An org admin controls `NAME` |

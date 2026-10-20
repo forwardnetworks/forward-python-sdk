@@ -37,6 +37,12 @@ class TestClassifyDenial:
                 "AUTO_UPLOAD_TELEMETRY",
             ),
             ("Forward admin authority required", "authority", "Forward admin"),
+            ("Org admin authority required", "authority", "Org admin"),
+            (
+                "No permission for network operation TRIGGER_SNAPSHOT_COLLECTION",
+                "rbac",
+                "TRIGGER_SNAPSHOT_COLLECTION",
+            ),
         ],
     )
     def test_each_wording_is_recognised(self, message: str, kind: str, detail: str) -> None:

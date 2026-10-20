@@ -14,6 +14,7 @@ import httpx
 import pytest
 
 from forward_sdk._async.client import AsyncForwardClient
+from forward_sdk.errors import ForwardNotFoundError
 from tests.conftest import Recorder, json_response
 
 pytestmark = pytest.mark.anyio
@@ -269,3 +270,73 @@ class TestAssistsAndSchema:
             rows = await client.client_software.deployment_artifacts(type="OVA")
         assert recorder.query_for() == {"type": ["OVA"]}
         assert rows[0].id == "a1"
+
+
+JOB = "/api/jobs/active"
+
+
+def job_row(snapshot_id: int | None, link: str, total: int = 1) -> dict[str, Any]:
+    row: dict[str, Any] = {
+        "jobType": "NQE",
+        "orgName": "org",
+        "networkId": 101,
+        "creationTime": "2026-10-20T00:00:00Z",
+        "totalCount": total,
+        "cancelLink": link,
+    }
+    if snapshot_id is not None:
+        row["snapshotId"] = snapshot_id
+    return row
+
+
+class TestCancellingASnapshotsJobs:
+    async def test_only_that_snapshots_rows_are_cancelled(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            JOB,
+            json_response(
+                [job_row(7, "AAA"), job_row(8, "BBB"), job_row(None, "CCC"), job_row(7, "DDD")]
+            ),
+        )
+        recorder.add("DELETE", "/api/jobs/AAA", httpx.Response(200))
+        recorder.add("DELETE", "/api/jobs/DDD", httpx.Response(200))
+        async with make_client(recorder) as client:
+            result = await client.snapshots.cancel_jobs("7")
+        deleted = [r.url.path for r in recorder.requests if r.method == "DELETE"]
+        assert deleted == ["/api/jobs/AAA", "/api/jobs/DDD"]
+        assert (result.matched, result.canceled, result.already_done) == (2, 2, 0)
+
+    async def test_the_cancel_link_goes_in_the_path_as_forward_gave_it(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add("GET", JOB, json_response([job_row(7, "ab%2Bcd%3D%3D")]))
+        recorder.add("DELETE", "/api/jobs/ab+cd==", httpx.Response(200))
+        async with make_client(recorder) as client:
+            await client.snapshots.cancel_jobs("7")
+        assert recorder.requests[-1].url.raw_path == b"/api/jobs/ab%2Bcd%3D%3D"
+
+    async def test_a_single_job_that_already_finished_is_counted_not_raised(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add("GET", JOB, json_response([job_row(7, "AAA"), job_row(7, "BBB")]))
+        recorder.add("DELETE", "/api/jobs/AAA", httpx.Response(404, json={"message": "gone"}))
+        recorder.add("DELETE", "/api/jobs/BBB", httpx.Response(200))
+        async with make_client(recorder) as client:
+            result = await client.snapshots.cancel_jobs("7")
+        assert (result.matched, result.canceled, result.already_done) == (2, 1, 1)
+
+    async def test_a_group_forward_answers_404_for_is_not_assumed_done(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add("GET", JOB, json_response([job_row(7, "AAA", total=3)]))
+        recorder.add("DELETE", "/api/jobs/AAA", httpx.Response(404, json={"message": "gone"}))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError):
+                await client.snapshots.cancel_jobs("7")
+
+    async def test_nothing_matching_cancels_nothing(self, recorder: Recorder) -> None:
+        recorder.add("GET", JOB, json_response([job_row(8, "BBB")]))
+        async with make_client(recorder) as client:
+            result = await client.snapshots.cancel_jobs("7")
+        assert (result.matched, result.canceled) == (0, 0)
+        assert recorder.count("DELETE", "/api/jobs/BBB") == 0

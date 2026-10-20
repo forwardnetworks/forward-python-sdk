@@ -3,6 +3,14 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Added
+
+- `snapshots.cancel_jobs(snapshot_id)`: cancel the backend jobs working on one snapshot
+  (administrators; cancels everyone's), returning how many rows matched, were cancelled and
+  had already finished.
+
 ## [0.1.24] - 2026-10-20
 
 ### Fixed

@@ -261,3 +261,22 @@ Without that, the same route deletes the snapshots. These were checked against
 Forward's source and, for the reads, a live account. The preview itself needs the
 DELETE_SNAPSHOT permission and was not run, nor were setting the policy and
 favouriting.
+
+## Cancelling a snapshot's jobs
+
+```python
+result = client.snapshots.cancel_jobs(snapshot_id)
+result.matched, result.canceled, result.already_done
+```
+
+Reads Forward's active jobs and cancels each row that belongs to the snapshot:
+snapshot-level work such as Protocol Modeling, merging, NQE, diffs and path searches.
+Per-device processing rows are network-level and carry no snapshot id, so they are never
+matched. It needs Forward's `ADMINISTER_SYSTEM` permission, and it cancels **everyone's**
+jobs on the snapshot, not only yours; cancelling work a prediction is waiting on can fail
+that prediction. Cancelling is cooperative, so read the active jobs again to confirm.
+
+A single job that had already finished is counted in `already_done`. A group of jobs that
+Forward answers 404 for raises, since that is not known to mean they finished. Each job's
+`cancelLink` is already percent-encoded by Forward and is used as given. From Forward's
+source and the Go SDK; not run against a live instance, which needs that permission.

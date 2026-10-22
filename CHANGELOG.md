@@ -3,6 +3,16 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+### Removed
+
+- `snapshots.cancel_jobs()` and `JobCancellation`, added in 0.1.25. Forward has no
+  snapshot-level job cancel: its only route is the administrator's `DELETE /jobs/{cancelJobId}`
+  for one job or group of jobs. The helper was a client-side composite over the active-jobs
+  list, cancelling other people's work on a guess about which rows belonged to a snapshot.
+  Cancel a job with the raw `cancel_job` call, using a row's `cancelLink` from the active jobs.
+
 ## [0.1.25] - 2026-10-20
 
 ### Added

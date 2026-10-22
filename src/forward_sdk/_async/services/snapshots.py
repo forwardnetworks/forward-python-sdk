@@ -29,7 +29,6 @@ from forward_sdk._generated.models import (
     SnapshotRetentionPreview,
     SnapshotState,
     StartCollectionResponse,
-    SysActiveJobInfo,
 )
 from forward_sdk._ops import core as ops
 from forward_sdk._ops import nqe_repo as repo_ops
@@ -41,7 +40,6 @@ from forward_sdk.errors import (
     ForwardNotFoundError,
     ForwardTimeoutError,
 )
-from forward_sdk.jobs import JobCancellation
 from forward_sdk.nqe.where import tag_scope
 from forward_sdk.progress import ByteProgress, ProgressCallback
 from forward_sdk.snapshot_state import SnapshotStateChange
@@ -537,43 +535,6 @@ class AsyncSnapshotsService(AsyncService):
         """The snapshots waiting for, and being given, processing capacity."""
         payload = await self._send_json(rest.BUILDERS["listSnapshotProcessingQueue"]())
         return AnalysisSnapshotProcessingQueue.model_validate(payload or {})
-
-    async def cancel_jobs(self, snapshot_id: str) -> JobCancellation:
-        """Cancel the backend jobs working on one snapshot.
-
-        Reads the active jobs and cancels each row that belongs to ``snapshot_id``:
-        snapshot-level work such as Protocol Modeling, merging, NQE, diffs and path
-        searches. Per-device processing rows are network-level and carry no snapshot
-        id, so they are never matched.
-
-        This is for administrators (Forward's ADMINISTER_SYSTEM) and it cancels
-        **everyone's** jobs on the snapshot, not only yours. Cancelling work a
-        prediction is waiting on (a shared base snapshot's) can fail that prediction.
-        Cancelling is cooperative, so read the active jobs again to confirm. From
-        Forward's source and the Go SDK; not run against a live instance.
-
-        A single job that had already finished is counted, not an error. A group of
-        jobs that Forward answers 404 for raises, since that is not known to mean done.
-        """
-        payload = await self._send_json(rest.BUILDERS["listActiveJobs"]())
-        rows = [SysActiveJobInfo.model_validate(row) for row in payload or []]
-        mine = [
-            row
-            for row in rows
-            if row.snapshot_id is not None and str(row.snapshot_id) == str(snapshot_id)
-        ]
-        canceled = already_done = 0
-        for row in mine:
-            try:
-                await self._transport.send(
-                    rest.BUILDERS["cancelJob"](cancel_job_id=row.cancel_link)
-                )
-                canceled += 1
-            except ForwardNotFoundError:
-                if row.total_count != 1:
-                    raise
-                already_done += 1
-        return JobCancellation(matched=len(mine), canceled=canceled, already_done=already_done)
 
     async def collection_log(self, snapshot_id: str) -> AsyncIterator[bytes]:
         """The collection log of a snapshot, streamed as plain text."""

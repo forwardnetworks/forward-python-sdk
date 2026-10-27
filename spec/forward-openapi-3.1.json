@@ -7895,6 +7895,755 @@
         ],
         "type": "object"
       },
+      "Disp2LinkAppearanceRule": {
+        "description": "A rule that styles matching links (source: LinkAppearanceRule). At least one of strokeColor, strokeStyle and strokeWidth is set.",
+        "properties": {
+          "disabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "selector": {
+            "$ref": "#/components/schemas/Disp2LinkAppearanceSelector"
+          },
+          "strokeColor": {
+            "description": "An RGB hex colour such as #ff0000.",
+            "type": "string"
+          },
+          "strokeStyle": {
+            "description": "The line style, such as SOLID or DASHED.",
+            "type": "string"
+          },
+          "strokeWidth": {
+            "maximum": 7,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "selector"
+        ],
+        "type": "object"
+      },
+      "Disp2LinkAppearanceRules": {
+        "properties": {
+          "linkAppearanceRules": {
+            "items": {
+              "$ref": "#/components/schemas/Disp2LinkAppearanceRule"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "linkAppearanceRules"
+        ],
+        "type": "object"
+      },
+      "Disp2LinkAppearanceSelector": {
+        "description": "Which links a rule applies to (source: LinkAppearanceSelector). PHYSICAL rules set linkType or linkSpeedMbps; BGP rules set peeringType.",
+        "properties": {
+          "linkSpeedMbps": {
+            "description": "For PHYSICAL: the link speed in Mbps.",
+            "type": "integer"
+          },
+          "linkType": {
+            "description": "For PHYSICAL: the kind of link.",
+            "type": "string"
+          },
+          "peeringType": {
+            "description": "For BGP: the peering type, such as EBGP or IBGP.",
+            "type": "string"
+          },
+          "type": {
+            "description": "PHYSICAL or BGP.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "Disp2MapAttribution": {
+        "description": "Who created and last changed a map or folder, flattened into it (source: Attribution, JsonUnwrapped). Each field is omitted when Forward does not know it.",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "The username. Absent if the account was deleted.",
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "updatedById": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Disp2MapBgpLink": {
+        "additionalProperties": true,
+        "description": "A BGP session between two map devices (source: BgpTopologyLink).",
+        "properties": {
+          "node1": {
+            "$ref": "#/components/schemas/Disp2MapBgpNode"
+          },
+          "node2": {
+            "$ref": "#/components/schemas/Disp2MapBgpNode"
+          },
+          "peeringType": {
+            "description": "Such as EBGP or IBGP.",
+            "type": "string"
+          },
+          "state": {
+            "description": "The session state, such as ESTABLISHED.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Disp2MapBgpNode": {
+        "additionalProperties": true,
+        "description": "One end of a BGP link (source: BgpTopologyLink).",
+        "properties": {
+          "asNumber": {
+            "type": "integer"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "remoteAddr": {
+            "type": "string"
+          },
+          "routeReflectorRole": {
+            "type": "string"
+          },
+          "routerId": {
+            "type": "string"
+          },
+          "vrf": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Disp2MapBgpSettings": {
+        "description": "How BGP links show on a map (source: NetworkMapBgpSettings).",
+        "properties": {
+          "enabled": {
+            "description": "Whether BGP links are drawn. Needs the NETWORK_MAPS_BGP_LAYER org property.",
+            "type": "boolean"
+          },
+          "showAsNumber": {
+            "type": "boolean"
+          },
+          "showRouterId": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "Disp2MapDeviceCard": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Disp2MapDeviceSettings"
+          },
+          {
+            "$ref": "#/components/schemas/Disp2MapPosition"
+          },
+          {
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Per-device display settings, with the card's offset from the device (source: NetworkMapNamedDeviceSettings)."
+      },
+      "Disp2MapDeviceInterfaces": {
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "interfaces": {
+            "items": {
+              "$ref": "#/components/schemas/Disp2MapInterface"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "device",
+          "interfaces"
+        ],
+        "type": "object"
+      },
+      "Disp2MapDevicePlacement": {
+        "description": "A device on a map and where it sits (source: DeviceNodeJson). Names are lower-case.",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "Disp2MapDeviceSettings": {
+        "description": "Which facts a device card shows. Omitted flags inherit the map's defaults (source: NetworkMapDeviceSettings).",
+        "properties": {
+          "hidden": {
+            "description": "Hides the card even if some show flags are true.",
+            "type": "boolean"
+          },
+          "showCollectionIp": {
+            "type": "boolean"
+          },
+          "showLocation": {
+            "type": "boolean"
+          },
+          "showManagementIps": {
+            "type": "boolean"
+          },
+          "showModel": {
+            "type": "boolean"
+          },
+          "showName": {
+            "type": "boolean"
+          },
+          "showOs": {
+            "type": "boolean"
+          },
+          "showOsVersion": {
+            "type": "boolean"
+          },
+          "showPlatform": {
+            "type": "boolean"
+          },
+          "showStatus": {
+            "type": "boolean"
+          },
+          "showTags": {
+            "type": "boolean"
+          },
+          "showType": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "Disp2MapInterface": {
+        "additionalProperties": true,
+        "description": "A parsed interface on one of the map's links (source: NetworkDeviceInterfaceJson). Only the fields live responses carried are named; others pass through.",
+        "properties": {
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "fileLines": {
+            "additionalProperties": {
+              "items": {
+                "properties": {
+                  "end": {
+                    "type": "integer"
+                  },
+                  "start": {
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "description": "Where in the collected files the interface appears, keyed by file name.",
+            "type": "object"
+          },
+          "fullDuplex": {
+            "type": "boolean"
+          },
+          "ipAddresses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "isDown": {
+            "type": "boolean"
+          },
+          "macAddress": {
+            "type": "string"
+          },
+          "mtu": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "speedMbps": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "Disp2MapInterfaceCard": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Disp2MapInterfaceSettings"
+          },
+          {
+            "$ref": "#/components/schemas/Disp2MapPosition"
+          },
+          {
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Per-interface display settings, with the card's offset (source: NetworkMapNamedInterfaceSettings). Interface names are case-insensitive."
+      },
+      "Disp2MapInterfaceSettings": {
+        "description": "Which facts an interface card and link label show. Omitted flags inherit the map's defaults (source: NetworkMapInterfaceSettings).",
+        "properties": {
+          "hidden": {
+            "description": "Hides the card and link labels even if some show flags are true.",
+            "type": "boolean"
+          },
+          "showAccessVlan": {
+            "type": "boolean"
+          },
+          "showDescription": {
+            "type": "boolean"
+          },
+          "showDuplexMode": {
+            "type": "boolean"
+          },
+          "showInboundAcl": {
+            "type": "boolean"
+          },
+          "showIp": {
+            "type": "boolean"
+          },
+          "showMacAddress": {
+            "type": "boolean"
+          },
+          "showMembers": {
+            "type": "boolean"
+          },
+          "showMtu": {
+            "type": "boolean"
+          },
+          "showName": {
+            "type": "boolean"
+          },
+          "showNativeVlan": {
+            "type": "boolean"
+          },
+          "showOutboundAcl": {
+            "type": "boolean"
+          },
+          "showSpeed": {
+            "type": "boolean"
+          },
+          "showStatus": {
+            "type": "boolean"
+          },
+          "showType": {
+            "type": "boolean"
+          },
+          "showVrf": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "Disp2MapLink": {
+        "additionalProperties": true,
+        "description": "A physical link between two map devices (source: NetworkTopologyLinkJson). Each port is a device name and interface joined by a space.",
+        "properties": {
+          "linkType": {
+            "type": "string"
+          },
+          "sourcePort": {
+            "type": "string"
+          },
+          "targetPort": {
+            "type": "string"
+          },
+          "types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "Disp2MapPosition": {
+        "description": "A device or card position on the map canvas. Settings objects carry x and y together or not at all (source: AllOrNothing).",
+        "properties": {
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "Disp2MapSnapshotDevice": {
+        "description": "A map device with its inventory in the snapshot and its map position (source: PositionedDevice).",
+        "properties": {
+          "collectionIp": {
+            "description": "The IP, or DNS-resolved hostname, Forward collected the device through.",
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "managementIps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "model": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "osVersion": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "The device type, such as ROUTER or SWITCH.",
+            "type": "string"
+          },
+          "vendor": {
+            "type": "string"
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "Disp2MapStructureNode": {
+        "description": "A node in the inferred structure hierarchy (source: StructureNode).",
+        "properties": {
+          "devices": {
+            "description": "The devices in this structure.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "structures": {
+            "description": "Child structures. Omitted on a leaf.",
+            "items": {
+              "$ref": "#/components/schemas/Disp2MapStructureNode"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "The kind of structure, such as SITE or RACK.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "devices"
+        ],
+        "type": "object"
+      },
+      "Disp2NetworkMap": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Disp2NetworkMapInfo"
+          },
+          {
+            "properties": {
+              "annotations": {
+                "description": "Shapes and text drawn on the canvas (source: TopologyAnnotation). Their fields are not modelled; read them as given.",
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "bgpSettings": {
+                "$ref": "#/components/schemas/Disp2MapBgpSettings"
+              },
+              "deviceDefaults": {
+                "$ref": "#/components/schemas/Disp2MapDeviceSettings"
+              },
+              "deviceSettings": {
+                "description": "Per-device overrides. Live, present on a saved map although the GUI model does not list it.",
+                "items": {
+                  "$ref": "#/components/schemas/Disp2MapDeviceCard"
+                },
+                "type": "array"
+              },
+              "devices": {
+                "items": {
+                  "$ref": "#/components/schemas/Disp2MapDevicePlacement"
+                },
+                "type": "array"
+              },
+              "directory": {
+                "description": "The folder path. Present only for with=directory.",
+                "type": "string"
+              },
+              "hiddenLinks": {
+                "description": "Links the map hides. Live this was always empty, so the element shape is not recorded.",
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "interfaceDefaults": {
+                "$ref": "#/components/schemas/Disp2MapInterfaceSettings"
+              },
+              "interfaceSettings": {
+                "items": {
+                  "$ref": "#/components/schemas/Disp2MapInterfaceCard"
+                },
+                "type": "array"
+              },
+              "linkAppearanceRules": {
+                "items": {
+                  "$ref": "#/components/schemas/Disp2LinkAppearanceRule"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "A saved map (source: NetworkMap, NetworkMapWithDirectory)."
+      },
+      "Disp2NetworkMapDirectories": {
+        "properties": {
+          "directories": {
+            "description": "Every folder, root first.",
+            "items": {
+              "$ref": "#/components/schemas/Disp2NetworkMapDirectory"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "directories"
+        ],
+        "type": "object"
+      },
+      "Disp2NetworkMapDirectory": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Disp2MapAttribution"
+          },
+          {
+            "properties": {
+              "mapIds": {
+                "description": "Maps directly in this folder.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "path": {
+                "description": "Full path without a trailing slash; the root is /.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "mapIds"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "One folder of maps (source: NetworkMapDirectory)."
+      },
+      "Disp2NetworkMapInfo": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Disp2MapAttribution"
+          },
+          {
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "pinned": {
+                "description": "Whether the map is pinned. Omitted when never set (live).",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A map summary (source: NetworkMapInfo)."
+      },
+      "Disp2NetworkMapList": {
+        "properties": {
+          "maps": {
+            "items": {
+              "$ref": "#/components/schemas/Disp2NetworkMapInfo"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "maps"
+        ],
+        "type": "object"
+      },
+      "Disp2NetworkMapSnapshot": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Disp2NetworkMapInfo"
+          },
+          {
+            "properties": {
+              "annotations": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "bgpLinks": {
+                "description": "BGP sessions between the map's devices. Empty when BGP is off for the org or the map.",
+                "items": {
+                  "$ref": "#/components/schemas/Disp2MapBgpLink"
+                },
+                "type": "array"
+              },
+              "bgpSettings": {
+                "$ref": "#/components/schemas/Disp2MapBgpSettings"
+              },
+              "deviceDefaults": {
+                "$ref": "#/components/schemas/Disp2MapDeviceSettings"
+              },
+              "deviceSettings": {
+                "items": {
+                  "$ref": "#/components/schemas/Disp2MapDeviceCard"
+                },
+                "type": "array"
+              },
+              "devices": {
+                "items": {
+                  "$ref": "#/components/schemas/Disp2MapSnapshotDevice"
+                },
+                "type": "array"
+              },
+              "hiddenLinks": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "interfaceDefaults": {
+                "$ref": "#/components/schemas/Disp2MapInterfaceSettings"
+              },
+              "interfaceSettings": {
+                "items": {
+                  "$ref": "#/components/schemas/Disp2MapInterfaceCard"
+                },
+                "type": "array"
+              },
+              "interfaces": {
+                "description": "Parsed interfaces for the links.",
+                "items": {
+                  "$ref": "#/components/schemas/Disp2MapDeviceInterfaces"
+                },
+                "type": "array"
+              },
+              "linkAppearanceRules": {
+                "description": "Physical and BGP rules together, in no guaranteed order. Filter on selector.type.",
+                "items": {
+                  "$ref": "#/components/schemas/Disp2LinkAppearanceRule"
+                },
+                "type": "array"
+              },
+              "links": {
+                "description": "All physical links between the map's devices, except loopbacks.",
+                "items": {
+                  "$ref": "#/components/schemas/Disp2MapLink"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "A map joined with one snapshot (source: NetworkMapSnapshot). Carries the map's own fields except devices, which are the richer snapshot form."
+      },
       "Disp2TaskCollector": {
         "description": "A collector that ran at least one subtask of the task (source: CollectorTask.CollectorInfo).",
         "properties": {
@@ -45391,6 +46140,429 @@
         ]
       }
     },
+    "/networks/{networkId}/map-directories": {
+      "get": {
+        "description": "Returns the network's map folders as a flat list, the root (path /) first, each with the ids of the maps directly in it. Paths have no trailing slash, such as /Prod/US-West. The root holds maps not in a folder and carries no attribution; other folders do. Build the tree from the paths. Requires VIEW_NETWORK_MAPS on the network, and the NETWORK_MAP_DIRECTORIES org property must be on, otherwise 403 (source: NetworkMapController.getDirectories, AccessEnforcer). Not part of Forward's documented API; the GUI uses it.",
+        "operationId": "getNetworkMapDirectories",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "directories": [
+                    {
+                      "mapIds": [
+                        "1"
+                      ],
+                      "path": "/"
+                    },
+                    {
+                      "createdAt": "2026-01-02T03:04:05.123456789Z",
+                      "createdBy": "me@example.com",
+                      "createdById": "11",
+                      "mapIds": [
+                        "0"
+                      ],
+                      "path": "/Branch",
+                      "updatedAt": "2026-01-03T03:04:05.123456789Z",
+                      "updatedBy": "me@example.com",
+                      "updatedById": "11"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Disp2NetworkMapDirectories"
+                }
+              }
+            },
+            "description": "The folders."
+          }
+        },
+        "summary": "List the folders that organise a network's maps",
+        "tags": [
+          "Network Maps"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/maps": {
+      "get": {
+        "description": "Lists the network's saved Network Maps (custom diagrams of chosen devices, refreshed against every snapshot) as summaries: id, name, pinned and who created and last changed each. Use getNetworkMap for one map's layout and getNetworkMapDirectories for the folder each sits in. Requires VIEW_NETWORK_MAPS on the network (source: NetworkMapController.getNetworkMaps). Not part of Forward's documented API; the GUI uses it. Live: 200, a maps array, pinned present only on some rows.",
+        "operationId": "getNetworkMaps",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "maps": [
+                    {
+                      "createdAt": "2026-01-02T03:04:05.123456789Z",
+                      "createdBy": "me@example.com",
+                      "createdById": "11",
+                      "id": "0",
+                      "name": "Branch A",
+                      "pinned": true,
+                      "updatedAt": "2026-01-03T03:04:05.123456789Z",
+                      "updatedBy": "me@example.com",
+                      "updatedById": "11"
+                    },
+                    {
+                      "id": "1",
+                      "name": "Branch B"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Disp2NetworkMapList"
+                }
+              }
+            },
+            "description": "The network's maps."
+          }
+        },
+        "summary": "List a network's maps",
+        "tags": [
+          "Network Maps"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/maps/{mapId}": {
+      "get": {
+        "description": "Returns one Network Map as saved: its devices with x/y positions, annotations, display defaults for devices and interfaces, per-device and per-interface overrides, link appearance rules, hidden links and BGP settings. Device names are lower-case. It holds no snapshot data, so it does not say which links exist; for that use getNetworkMapSnapshot. Pass with=directory to also get the folder the map is in. Requires VIEW_NETWORK_MAPS on the network (source: NetworkMapController.getNetworkMap). Any other value of with returns 400 and an unknown mapId returns 404 (source). Not part of Forward's documented API; the GUI uses it.",
+        "operationId": "getNetworkMap",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "mapId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Set to directory to include the map's folder path in the response. It is the only value Forward accepts.",
+            "in": "query",
+            "name": "with",
+            "required": false,
+            "schema": {
+              "enum": [
+                "directory"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "annotations": [],
+                  "bgpSettings": {
+                    "enabled": false
+                  },
+                  "createdAt": "2026-01-02T03:04:05.123456789Z",
+                  "createdBy": "me@example.com",
+                  "createdById": "11",
+                  "deviceDefaults": {
+                    "hidden": false,
+                    "showName": true,
+                    "showType": true
+                  },
+                  "deviceSettings": [
+                    {
+                      "name": "branch-a-sw1",
+                      "x": 0.0,
+                      "y": 40.0
+                    }
+                  ],
+                  "devices": [
+                    {
+                      "name": "branch-a-sw1",
+                      "x": 10.5,
+                      "y": 20.0
+                    },
+                    {
+                      "name": "branch-a-rtr1",
+                      "x": 110.5,
+                      "y": 20.0
+                    }
+                  ],
+                  "directory": "/Branch",
+                  "hiddenLinks": [],
+                  "id": "0",
+                  "interfaceDefaults": {
+                    "hidden": false,
+                    "showName": true,
+                    "showSpeed": true
+                  },
+                  "interfaceSettings": [],
+                  "linkAppearanceRules": [
+                    {
+                      "id": "0",
+                      "selector": {
+                        "linkSpeedMbps": 10000,
+                        "type": "PHYSICAL"
+                      },
+                      "strokeColor": "#ff0000",
+                      "strokeStyle": "SOLID",
+                      "strokeWidth": 3
+                    }
+                  ],
+                  "name": "Branch A",
+                  "pinned": true,
+                  "updatedAt": "2026-01-03T03:04:05.123456789Z",
+                  "updatedBy": "me@example.com",
+                  "updatedById": "11"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Disp2NetworkMap"
+                }
+              }
+            },
+            "description": "The map."
+          }
+        },
+        "summary": "Get one map's saved layout",
+        "tags": [
+          "Network Maps"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getNetworkMapSnapshot",
+            "summary": "Get a map rendered against a snapshot",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "snapshot"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/maps/{mapId}/link-appearance-rules": {
+      "get": {
+        "description": "Returns the rules that colour, dash and size a map's links, each selecting physical links by type or speed or BGP links by peering type. Requires VIEW_NETWORK_MAPS on the network (source: NetworkMapController.getLinkAppearanceRules). Not part of Forward's documented API; the GUI uses it.",
+        "operationId": "getNetworkMapLinkAppearanceRules",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "mapId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "linkAppearanceRules": [
+                    {
+                      "id": "0",
+                      "selector": {
+                        "linkSpeedMbps": 10000,
+                        "type": "PHYSICAL"
+                      },
+                      "strokeColor": "#ff0000",
+                      "strokeStyle": "SOLID",
+                      "strokeWidth": 3
+                    },
+                    {
+                      "id": "1",
+                      "selector": {
+                        "peeringType": "EBGP",
+                        "type": "BGP"
+                      },
+                      "strokeStyle": "DASHED"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Disp2LinkAppearanceRules"
+                }
+              }
+            },
+            "description": "The map's link appearance rules."
+          }
+        },
+        "summary": "List a map's link appearance rules",
+        "tags": [
+          "Network Maps"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/maps/{mapId}/link-appearance-rules/{ruleId}": {
+      "get": {
+        "description": "Returns one of a map's link appearance rules. An unknown rule id returns 404 (source: getLinkAppearanceRuleOrThrow). Requires VIEW_NETWORK_MAPS on the network (source: NetworkMapController.getLinkAppearanceRule). Not part of Forward's documented API; the GUI uses it.",
+        "operationId": "getNetworkMapLinkAppearanceRule",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "mapId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "0",
+                  "selector": {
+                    "linkSpeedMbps": 10000,
+                    "type": "PHYSICAL"
+                  },
+                  "strokeColor": "#ff0000",
+                  "strokeStyle": "SOLID",
+                  "strokeWidth": 3
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Disp2LinkAppearanceRule"
+                }
+              }
+            },
+            "description": "The rule."
+          }
+        },
+        "summary": "Get one link appearance rule of a map",
+        "tags": [
+          "Network Maps"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/maps/{mapId}/structures": {
+      "get": {
+        "description": "Returns the inferred structure hierarchy (for example sites and their parts) of the devices in a map, as a forest of nodes that each list their devices and child structures. Only the map's devices that exist in the snapshot are considered. snapshotId is optional and defaults to the network's latest processed snapshot (live); the snapshot must be processed. Requires VIEW_NETWORK_MAPS on the network (source: NetworkMapController.getNetworkMapStructures). Not part of Forward's documented API; the GUI uses it.",
+        "operationId": "getNetworkMapStructures",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "mapId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to infer structures from. Uses the network's latest processed snapshot when omitted.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "devices": [
+                      "branch-a-rtr1"
+                    ],
+                    "structures": [
+                      {
+                        "devices": [
+                          "branch-a-sw1",
+                          "branch-a-rtr1"
+                        ],
+                        "type": "RACK"
+                      }
+                    ],
+                    "type": "SITE"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Disp2MapStructureNode"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The root structure nodes."
+          }
+        },
+        "summary": "Get the structure hierarchy of a map's devices",
+        "tags": [
+          "Network Maps"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/missing-devices": {
       "get": {
         "description": "Returns devices that are listed as CDP, LLDP, iBGP or OSPF neighbors of modeled devices but that aren\u2019t yet\nincluded in the network model.",
@@ -54019,6 +55191,10 @@
       "name": "System Administration",
       "x-parent": "Platform Management",
       "x-summary": "System Administration"
+    },
+    {
+      "description": "Saved diagrams of chosen devices, organised in folders and drawn against any snapshot.",
+      "name": "Network Maps"
     },
     {
       "description": "Reading and writing the NQE query library.",

@@ -3101,6 +3101,315 @@ class Disp2DeviceAtlas(ForwardModel):
     locations: list[Disp2AtlasLocation]
 
 
+class Disp2LinkAppearanceSelector(ForwardModel):
+    """
+    Which links a rule applies to (source: LinkAppearanceSelector). PHYSICAL rules set linkType or linkSpeedMbps; BGP rules set peeringType.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    link_speed_mbps: Annotated[int | None, Field(alias="linkSpeedMbps")] = None
+    """
+    For PHYSICAL: the link speed in Mbps.
+    """
+    link_type: Annotated[str | None, Field(alias="linkType")] = None
+    """
+    For PHYSICAL: the kind of link.
+    """
+    peering_type: Annotated[str | None, Field(alias="peeringType")] = None
+    """
+    For BGP: the peering type, such as EBGP or IBGP.
+    """
+    type: str
+    """
+    PHYSICAL or BGP.
+    """
+
+
+class Disp2MapAttribution(ForwardModel):
+    """
+    Who created and last changed a map or folder, flattened into it (source: Attribution, JsonUnwrapped). Each field is omitted when Forward does not know it.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[AwareDatetime | None, Field(alias="createdAt")] = None
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    """
+    The username. Absent if the account was deleted.
+    """
+    created_by_id: Annotated[str | None, Field(alias="createdById")] = None
+    updated_at: Annotated[AwareDatetime | None, Field(alias="updatedAt")] = None
+    updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
+    updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
+
+
+class Disp2MapBgpNode(ForwardModel):
+    """
+    One end of a BGP link (source: BgpTopologyLink).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    as_number: Annotated[int | None, Field(alias="asNumber")] = None
+    device_name: Annotated[str | None, Field(alias="deviceName")] = None
+    remote_addr: Annotated[str | None, Field(alias="remoteAddr")] = None
+    route_reflector_role: Annotated[str | None, Field(alias="routeReflectorRole")] = None
+    router_id: Annotated[str | None, Field(alias="routerId")] = None
+    vrf: str | None = None
+
+
+class Disp2MapBgpSettings(ForwardModel):
+    """
+    How BGP links show on a map (source: NetworkMapBgpSettings).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    enabled: bool | None = None
+    """
+    Whether BGP links are drawn. Needs the NETWORK_MAPS_BGP_LAYER org property.
+    """
+    show_as_number: Annotated[bool | None, Field(alias="showAsNumber")] = None
+    show_router_id: Annotated[bool | None, Field(alias="showRouterId")] = None
+
+
+class Disp2MapDevicePlacement(ForwardModel):
+    """
+    A device on a map and where it sits (source: DeviceNodeJson). Names are lower-case.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    name: str
+    x: float | None = None
+    y: float | None = None
+
+
+class Disp2MapDeviceSettings(ForwardModel):
+    """
+    Which facts a device card shows. Omitted flags inherit the map's defaults (source: NetworkMapDeviceSettings).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    hidden: bool | None = None
+    """
+    Hides the card even if some show flags are true.
+    """
+    show_collection_ip: Annotated[bool | None, Field(alias="showCollectionIp")] = None
+    show_location: Annotated[bool | None, Field(alias="showLocation")] = None
+    show_management_ips: Annotated[bool | None, Field(alias="showManagementIps")] = None
+    show_model: Annotated[bool | None, Field(alias="showModel")] = None
+    show_name: Annotated[bool | None, Field(alias="showName")] = None
+    show_os: Annotated[bool | None, Field(alias="showOs")] = None
+    show_os_version: Annotated[bool | None, Field(alias="showOsVersion")] = None
+    show_platform: Annotated[bool | None, Field(alias="showPlatform")] = None
+    show_status: Annotated[bool | None, Field(alias="showStatus")] = None
+    show_tags: Annotated[bool | None, Field(alias="showTags")] = None
+    show_type: Annotated[bool | None, Field(alias="showType")] = None
+
+
+class FileLine(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    end: int | None = None
+    start: int | None = None
+
+
+class Disp2MapInterface(ForwardModel):
+    """
+    A parsed interface on one of the map's links (source: NetworkDeviceInterfaceJson). Only the fields live responses carried are named; others pass through.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    aliases: list[str] | None = None
+    description: str | None = None
+    file_lines: Annotated[dict[str, list[FileLine]] | None, Field(alias="fileLines")] = None
+    """
+    Where in the collected files the interface appears, keyed by file name.
+    """
+    full_duplex: Annotated[bool | None, Field(alias="fullDuplex")] = None
+    ip_addresses: Annotated[list[str] | None, Field(alias="ipAddresses")] = None
+    is_down: Annotated[bool | None, Field(alias="isDown")] = None
+    mac_address: Annotated[str | None, Field(alias="macAddress")] = None
+    mtu: int | None = None
+    name: str
+    speed_mbps: Annotated[int | None, Field(alias="speedMbps")] = None
+    type: str | None = None
+
+
+class Disp2MapInterfaceSettings(ForwardModel):
+    """
+    Which facts an interface card and link label show. Omitted flags inherit the map's defaults (source: NetworkMapInterfaceSettings).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    hidden: bool | None = None
+    """
+    Hides the card and link labels even if some show flags are true.
+    """
+    show_access_vlan: Annotated[bool | None, Field(alias="showAccessVlan")] = None
+    show_description: Annotated[bool | None, Field(alias="showDescription")] = None
+    show_duplex_mode: Annotated[bool | None, Field(alias="showDuplexMode")] = None
+    show_inbound_acl: Annotated[bool | None, Field(alias="showInboundAcl")] = None
+    show_ip: Annotated[bool | None, Field(alias="showIp")] = None
+    show_mac_address: Annotated[bool | None, Field(alias="showMacAddress")] = None
+    show_members: Annotated[bool | None, Field(alias="showMembers")] = None
+    show_mtu: Annotated[bool | None, Field(alias="showMtu")] = None
+    show_name: Annotated[bool | None, Field(alias="showName")] = None
+    show_native_vlan: Annotated[bool | None, Field(alias="showNativeVlan")] = None
+    show_outbound_acl: Annotated[bool | None, Field(alias="showOutboundAcl")] = None
+    show_speed: Annotated[bool | None, Field(alias="showSpeed")] = None
+    show_status: Annotated[bool | None, Field(alias="showStatus")] = None
+    show_type: Annotated[bool | None, Field(alias="showType")] = None
+    show_vrf: Annotated[bool | None, Field(alias="showVrf")] = None
+
+
+class Disp2MapLink(ForwardModel):
+    """
+    A physical link between two map devices (source: NetworkTopologyLinkJson). Each port is a device name and interface joined by a space.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    link_type: Annotated[str | None, Field(alias="linkType")] = None
+    source_port: Annotated[str | None, Field(alias="sourcePort")] = None
+    target_port: Annotated[str | None, Field(alias="targetPort")] = None
+    types: list[str] | None = None
+
+
+class Disp2MapPosition(ForwardModel):
+    """
+    A device or card position on the map canvas. Settings objects carry x and y together or not at all (source: AllOrNothing).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    x: float | None = None
+    y: float | None = None
+
+
+class Disp2MapSnapshotDevice(ForwardModel):
+    """
+    A map device with its inventory in the snapshot and its map position (source: PositionedDevice).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collection_ip: Annotated[str | None, Field(alias="collectionIp")] = None
+    """
+    The IP, or DNS-resolved hostname, Forward collected the device through.
+    """
+    location_id: Annotated[str | None, Field(alias="locationId")] = None
+    management_ips: Annotated[list[str] | None, Field(alias="managementIps")] = None
+    model: str | None = None
+    name: str
+    os_version: Annotated[str | None, Field(alias="osVersion")] = None
+    platform: str | None = None
+    tags: list[str] | None = None
+    type: str | None = None
+    """
+    The device type, such as ROUTER or SWITCH.
+    """
+    vendor: str | None = None
+    x: float | None = None
+    y: float | None = None
+
+
+class Disp2MapStructureNode(ForwardModel):
+    """
+    A node in the inferred structure hierarchy (source: StructureNode).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    devices: list[str]
+    """
+    The devices in this structure.
+    """
+    structures: list[Disp2MapStructureNode] | None = None
+    """
+    Child structures. Omitted on a leaf.
+    """
+    type: str | None = None
+    """
+    The kind of structure, such as SITE or RACK.
+    """
+
+
+class Disp2NetworkMapDirectory(Disp2MapAttribution):
+    """
+    One folder of maps (source: NetworkMapDirectory).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    map_ids: Annotated[list[str], Field(alias="mapIds")]
+    """
+    Maps directly in this folder.
+    """
+    path: str
+    """
+    Full path without a trailing slash; the root is /.
+    """
+
+
+class Disp2NetworkMapInfo(Disp2MapAttribution):
+    """
+    A map summary (source: NetworkMapInfo).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    id: str
+    name: str
+    pinned: bool | None = None
+    """
+    Whether the map is pinned. Omitted when never set (live).
+    """
+
+
+class Disp2NetworkMapList(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    maps: list[Disp2NetworkMapInfo]
+
+
 class Disp2TaskCollector(ForwardModel):
     """
     A collector that ran at least one subtask of the task (source: CollectorTask.CollectorInfo).
@@ -5694,13 +6003,8 @@ class PerfUnhealthyThreshold(OpenEnum):
     medium = "MEDIUM"
 
 
-class PortRange(ForwardModel):
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    end: int | None = None
-    start: int | None = None
+class PortRange(FileLine):
+    pass
 
 
 class PredefinedCheckType(OpenEnum):
@@ -12803,6 +13107,188 @@ class Disp2CollectorTaskWithSubTasks(ForwardModel):
     """
 
 
+class Disp2LinkAppearanceRule(ForwardModel):
+    """
+    A rule that styles matching links (source: LinkAppearanceRule). At least one of strokeColor, strokeStyle and strokeWidth is set.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    disabled: bool | None = None
+    id: str
+    selector: Disp2LinkAppearanceSelector
+    stroke_color: Annotated[str | None, Field(alias="strokeColor")] = None
+    """
+    An RGB hex colour such as #ff0000.
+    """
+    stroke_style: Annotated[str | None, Field(alias="strokeStyle")] = None
+    """
+    The line style, such as SOLID or DASHED.
+    """
+    stroke_width: Annotated[int | None, Field(alias="strokeWidth", ge=1, le=7)] = None
+
+
+class Disp2LinkAppearanceRules(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    link_appearance_rules: Annotated[
+        list[Disp2LinkAppearanceRule], Field(alias="linkAppearanceRules")
+    ]
+
+
+class Disp2MapBgpLink(ForwardModel):
+    """
+    A BGP session between two map devices (source: BgpTopologyLink).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    node1: Disp2MapBgpNode | None = None
+    node2: Disp2MapBgpNode | None = None
+    peering_type: Annotated[str | None, Field(alias="peeringType")] = None
+    """
+    Such as EBGP or IBGP.
+    """
+    state: str | None = None
+    """
+    The session state, such as ESTABLISHED.
+    """
+
+
+class Disp2MapDeviceCard(Disp2MapDeviceSettings, Disp2MapPosition):
+    """
+    Per-device display settings, with the card's offset from the device (source: NetworkMapNamedDeviceSettings).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    name: str
+
+
+class Disp2MapDeviceInterfaces(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device: str
+    interfaces: list[Disp2MapInterface]
+
+
+class Disp2MapInterfaceCard(Disp2MapInterfaceSettings, Disp2MapPosition):
+    """
+    Per-interface display settings, with the card's offset (source: NetworkMapNamedInterfaceSettings). Interface names are case-insensitive.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    name: str
+
+
+class Disp2NetworkMap(Disp2NetworkMapInfo):
+    """
+    A saved map (source: NetworkMap, NetworkMapWithDirectory).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    annotations: list[dict[str, Any]] | None = None
+    """
+    Shapes and text drawn on the canvas (source: TopologyAnnotation). Their fields are not modelled; read them as given.
+    """
+    bgp_settings: Annotated[Disp2MapBgpSettings | None, Field(alias="bgpSettings")] = None
+    device_defaults: Annotated[Disp2MapDeviceSettings | None, Field(alias="deviceDefaults")] = None
+    device_settings: Annotated[list[Disp2MapDeviceCard] | None, Field(alias="deviceSettings")] = (
+        None
+    )
+    """
+    Per-device overrides. Live, present on a saved map although the GUI model does not list it.
+    """
+    devices: list[Disp2MapDevicePlacement] | None = None
+    directory: str | None = None
+    """
+    The folder path. Present only for with=directory.
+    """
+    hidden_links: Annotated[list[dict[str, Any]] | None, Field(alias="hiddenLinks")] = None
+    """
+    Links the map hides. Live this was always empty, so the element shape is not recorded.
+    """
+    interface_defaults: Annotated[
+        Disp2MapInterfaceSettings | None, Field(alias="interfaceDefaults")
+    ] = None
+    interface_settings: Annotated[
+        list[Disp2MapInterfaceCard] | None, Field(alias="interfaceSettings")
+    ] = None
+    link_appearance_rules: Annotated[
+        list[Disp2LinkAppearanceRule] | None, Field(alias="linkAppearanceRules")
+    ] = None
+
+
+class Disp2NetworkMapDirectories(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    directories: list[Disp2NetworkMapDirectory]
+    """
+    Every folder, root first.
+    """
+
+
+class Disp2NetworkMapSnapshot(Disp2NetworkMapInfo):
+    """
+    A map joined with one snapshot (source: NetworkMapSnapshot). Carries the map's own fields except devices, which are the richer snapshot form.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    annotations: list[dict[str, Any]] | None = None
+    bgp_links: Annotated[list[Disp2MapBgpLink] | None, Field(alias="bgpLinks")] = None
+    """
+    BGP sessions between the map's devices. Empty when BGP is off for the org or the map.
+    """
+    bgp_settings: Annotated[Disp2MapBgpSettings | None, Field(alias="bgpSettings")] = None
+    device_defaults: Annotated[Disp2MapDeviceSettings | None, Field(alias="deviceDefaults")] = None
+    device_settings: Annotated[list[Disp2MapDeviceCard] | None, Field(alias="deviceSettings")] = (
+        None
+    )
+    devices: list[Disp2MapSnapshotDevice] | None = None
+    hidden_links: Annotated[list[dict[str, Any]] | None, Field(alias="hiddenLinks")] = None
+    interface_defaults: Annotated[
+        Disp2MapInterfaceSettings | None, Field(alias="interfaceDefaults")
+    ] = None
+    interface_settings: Annotated[
+        list[Disp2MapInterfaceCard] | None, Field(alias="interfaceSettings")
+    ] = None
+    interfaces: list[Disp2MapDeviceInterfaces] | None = None
+    """
+    Parsed interfaces for the links.
+    """
+    link_appearance_rules: Annotated[
+        list[Disp2LinkAppearanceRule] | None, Field(alias="linkAppearanceRules")
+    ] = None
+    """
+    Physical and BGP rules together, in no guaranteed order. Filter on selector.type.
+    """
+    links: list[Disp2MapLink] | None = None
+    """
+    All physical links between the map's devices, except loopbacks.
+    """
+
+
 class Disp2UserAccountWithRoles(User):
     """
     A user account with its roles. The user fields are unwrapped into this object, as User is (source: UserAccountWithRoles, @JsonUnwrapped).
@@ -17104,5 +17590,6 @@ class AnalysisNqeInlinedType(ForwardModel):
     type: str | None = None
 
 
+Disp2MapStructureNode.model_rebuild()
 AnalysisNqeInlinedAlternative.model_rebuild()
 AnalysisNqeInlinedField.model_rebuild()

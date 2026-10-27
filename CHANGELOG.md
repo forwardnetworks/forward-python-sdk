@@ -3,6 +3,30 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [0.1.27] - 2026-10-27
+
+### Added
+
+- `client.network_maps`: read-only Network Maps (saved diagrams of chosen devices, kept in
+  folders and drawn against any snapshot). `get_network_maps`, `get_network_map` (with
+  `with_="directory"` for the folder), `get_network_map_snapshot`, `get_network_map_structures`,
+  `get_network_map_directories`, `get_network_map_link_appearance_rules` and
+  `get_network_map_link_appearance_rule`. Unpublished: Forward's GUI uses these routes but its
+  documented API does not list them. Reads need `VIEW_NETWORK_MAPS`. Writes are not covered yet.
+
+### Fixed
+
+- `snapshots.latest_processed()` and `latest_processed_id()` ordered by `processedAt`, so an
+  older snapshot that was reprocessed after a newer one was created came back as the latest.
+  Forward's own rule (the UI, `fwdctl`) is the newest by creation among processed snapshots,
+  skipping drafts and forks (any snapshot with a `parentSnapshotId`); the helpers now follow it.
+  Predictions are forks, so `include_predicted=True` still returns them.
+
+### Changed
+
+- `snapshots.metrics()` documents that it raises `ForwardNotFoundError` for an unprocessed,
+  processing or predicted snapshot.
+
 ## [0.1.26] - 2026-10-22
 
 ### Removed

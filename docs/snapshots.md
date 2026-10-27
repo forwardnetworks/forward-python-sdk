@@ -18,6 +18,13 @@ client.snapshots.latest_processed_id("101")
 `latest_processed` reads the snapshot listing rather than Forward's dedicated
 endpoint for it, which is deprecated.
 
+"Latest" is the newest by creation date among processed snapshots, the rule
+Forward uses for its own latest snapshot, so it agrees with the UI and `fwdctl`.
+It is not the snapshot that finished processing last: reprocessing an older
+snapshot updates its `processed_at` in place and must not make it the latest.
+Drafts and forks (snapshots with a parent) are never chosen, and predictions are skipped unless you pass
+`include_predicted=True`.
+
 ### Latest *collected*
 
 A snapshot can be fully processed and still contain nothing you can use, for
@@ -41,6 +48,10 @@ that has devices in scope, raising `ForwardNotFoundError` if none does.
 metrics = client.snapshots.metrics(snapshot_id)
 client.snapshots.is_complete(snapshot_id)  # no collection or processing failures
 ```
+
+`metrics` raises `ForwardNotFoundError` ("Snapshot has no metrics", HTTP 404) for
+a snapshot that is unprocessed, still processing or predicted. When looping over
+`list()`, filter to `state == "PROCESSED"` first or catch the error.
 
 ### Processing exceptions
 

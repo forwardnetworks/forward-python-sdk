@@ -167,9 +167,9 @@ class TestSnapshots:
             json_response(
                 {
                     "snapshots": [
-                        snapshot("7", processedAt="2026-01-01T00:00:00.000Z"),
-                        snapshot("9", processedAt="2026-03-01T00:00:00.000Z"),
-                        snapshot("8", processedAt="2026-02-01T00:00:00.000Z"),
+                        snapshot("7", createdAt="2026-01-01T00:00:00.000Z"),
+                        snapshot("9", createdAt="2026-03-01T00:00:00.000Z"),
+                        snapshot("8", createdAt="2026-02-01T00:00:00.000Z"),
                     ]
                 }
             ),
@@ -178,6 +178,68 @@ class TestSnapshots:
             latest = await client.snapshots.latest_processed()
 
         assert latest is not None and latest.id == "9"
+
+    async def test_latest_processed_is_newest_created_not_last_reprocessed(
+        self, recorder: Recorder
+    ) -> None:
+        """Reprocessing moves ``processedAt`` of an old snapshot forward.
+
+        Forward's own latest snapshot is the newest by creation, so a snapshot
+        reprocessed after a newer one was created must not win.
+        """
+        recorder.add(
+            "GET",
+            SNAPSHOTS,
+            json_response(
+                {
+                    "snapshots": [
+                        snapshot(
+                            "1437282",
+                            createdAt="2026-10-16T12:29:00.000Z",
+                            processedAt="2026-10-16T12:40:00.000Z",
+                        ),
+                        snapshot(
+                            "1436552",
+                            createdAt="2026-10-15T19:08:00.000Z",
+                            processedAt="2026-10-17T09:00:00.000Z",
+                        ),
+                    ]
+                }
+            ),
+        )
+        async with make_client(recorder) as client:
+            assert await client.snapshots.latest_processed_id() == "1437282"
+
+    async def test_latest_processed_skips_drafts_and_forks(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            SNAPSHOTS,
+            json_response(
+                {
+                    "snapshots": [
+                        snapshot("4", createdAt="2026-04-01T00:00:00.000Z", isDraft=True),
+                        snapshot(
+                            "3", createdAt="2026-03-01T00:00:00.000Z", processingTrigger="FORK"
+                        ),
+                        snapshot(
+                            "5",
+                            createdAt="2026-05-01T00:00:00.000Z",
+                            processingTrigger="REPROCESS",
+                            parentSnapshotId="2",
+                        ),
+                        snapshot(
+                            "6",
+                            createdAt="2026-06-01T00:00:00.000Z",
+                            processingTrigger="COLLECTION",
+                            parentSnapshotId="2",
+                        ),
+                        snapshot("2", createdAt="2026-02-01T00:00:00.000Z"),
+                    ]
+                }
+            ),
+        )
+        async with make_client(recorder) as client:
+            assert await client.snapshots.latest_processed_id() == "2"
 
     async def test_archived_flag_is_always_sent(self, recorder: Recorder) -> None:
         """The argument must reach the wire, not rely on a server default."""
@@ -328,6 +390,7 @@ class TestPredictedSnapshots:
         return snapshot(
             sid,
             processingTrigger=trigger,
+            createdAt=f"2026-01-01T00:{minute:02d}:00.000Z",
             processedAt=f"2026-01-01T00:{minute:02d}:00.000Z",
         )
 
@@ -381,7 +444,7 @@ class TestPredictedSnapshots:
             json_response(
                 {
                     "snapshots": [
-                        self._snap("predicted", "PREDICT", 20),
+                        {**self._snap("predicted", "PREDICT", 20), "parentSnapshotId": "real"},
                         self._snap("real", "COLLECTION", 10),
                     ]
                 }

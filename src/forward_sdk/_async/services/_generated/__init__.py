@@ -58,6 +58,7 @@ from forward_sdk._async.services._generated.licensing import AsyncLicensingServi
 from forward_sdk._async.services._generated.network_collection import AsyncNetworkCollectionService
 from forward_sdk._async.services._generated.network_endpoints import AsyncNetworkEndpointsService
 from forward_sdk._async.services._generated.network_locations import AsyncNetworkLocationsService
+from forward_sdk._async.services._generated.network_maps import AsyncNetworkMapsService
 from forward_sdk._async.services._generated.network_topology import AsyncNetworkTopologyService
 from forward_sdk._async.services._generated.nqe_panels import AsyncNQEPanelsService
 from forward_sdk._async.services._generated.organizations import AsyncOrganizationsService
@@ -141,6 +142,7 @@ __all__ = [
     "AsyncNetworkCollectionService",
     "AsyncNetworkEndpointsService",
     "AsyncNetworkLocationsService",
+    "AsyncNetworkMapsService",
     "AsyncNetworkTopologyService",
     "AsyncOrganizationsService",
     "AsyncPathSearchService",
@@ -215,6 +217,7 @@ class AsyncGeneratedServices:
     network_collection: AsyncNetworkCollectionService
     network_endpoints: AsyncNetworkEndpointsService
     network_locations: AsyncNetworkLocationsService
+    network_maps: AsyncNetworkMapsService
     network_topology: AsyncNetworkTopologyService
     organizations: AsyncOrganizationsService
     path_search: AsyncPathSearchService
@@ -281,6 +284,7 @@ class AsyncGeneratedServices:
         self.network_collection = AsyncNetworkCollectionService(transport)
         self.network_endpoints = AsyncNetworkEndpointsService(transport)
         self.network_locations = AsyncNetworkLocationsService(transport)
+        self.network_maps = AsyncNetworkMapsService(transport)
         self.network_topology = AsyncNetworkTopologyService(transport)
         self.organizations = AsyncOrganizationsService(transport)
         self.path_search = AsyncPathSearchService(transport)
@@ -349,6 +353,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Collection": "network_collection",
     "Network Endpoints": "network_endpoints",
     "Network Locations": "network_locations",
+    "Network Maps": "network_maps",
     "Network Topology": "network_topology",
     "Organizations": "organizations",
     "Path Search": "path_search",

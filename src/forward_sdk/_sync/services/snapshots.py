@@ -96,6 +96,9 @@ _MISS = _Miss()
 #: arrives as an unknown enum value and is compared as a string.
 PREDICT_TRIGGER = "PREDICT"
 
+#: A fork copies another snapshot's data; Forward never treats one as the latest.
+FORK_TRIGGER = "FORK"
+
 
 def _trigger_of(snapshot: SnapshotInfo) -> str | None:
     """The snapshot's processing trigger as an upper-case string, or None."""
@@ -244,10 +247,15 @@ class SnapshotsService(Service):
         Uses the snapshot listing rather than Forward's dedicated endpoint,
         which it deprecated.
 
-        The listing's order is not documented, so this does not take the first
-        row of a one-row request. It sorts what comes back by when each snapshot
-        finished processing. Picking an arbitrary processed snapshot would pin a
-        sync to the wrong baseline without anything appearing to go wrong.
+        "Latest" means newest by creation, the rule Forward applies for its own
+        latest snapshot (the UI, ``fwdctl``). It is not the one that finished
+        processing last: reprocessing an older snapshot rebuilds it in place
+        and moves its ``processedAt`` forward, so ordering by that would hand
+        back an old snapshot over a newer processed one. The listing's order is
+        not documented, so this sorts what comes back rather than taking the
+        first row. Drafts and forks (a snapshot with a ``parentSnapshotId``)
+        are never considered, as in Forward. Predictions are forks too, so
+        ``include_predicted`` is the one place this goes beyond Forward's rule.
 
         Predicted snapshots are excluded by default. Forward creates one for
         every Predict run, and they are processed like any other, so on a
@@ -272,9 +280,20 @@ class SnapshotsService(Service):
         if cached is not _MISS:
             return cached  # type: ignore[no-any-return]
         snapshots = self.list(network_id, state=PROCESSED)
+        # Forward's own test for a fork is a parent snapshot, whatever the
+        # trigger says: a reprocessed fork reports REPROCESS, and a caller may
+        # name any trigger when forking. Predictions have a parent too, so an
+        # explicit include_predicted keeps them.
+        snapshots = [
+            s
+            for s in snapshots
+            if not s.is_draft
+            and (s.parent_snapshot_id is None or (include_predicted and is_predicted(s)))
+            and _trigger_of(s) != FORK_TRIGGER
+        ]
         if not include_predicted:
             snapshots = [s for s in snapshots if not is_predicted(s)]
-        latest = max(snapshots, key=_processed_order, default=None)
+        latest = max(snapshots, key=_creation_order, default=None)
         return self._remember(key, latest)  # type: ignore[no-any-return]
 
     def latest_processed_id(
@@ -356,7 +375,14 @@ class SnapshotsService(Service):
         )
 
     def metrics(self, snapshot_id: str) -> Mapping[str, Any]:
-        """Collection and processing counts for a snapshot."""
+        """Collection and processing counts for a snapshot.
+
+        Raises:
+            ForwardNotFoundError: If the snapshot has no metrics, which is how
+                Forward answers for one that is unprocessed, still processing
+                or predicted. A loop over :meth:`list` should skip those
+                (``state == "PROCESSED"``) or catch the error.
+        """
         return dict(self._send_json(ops.snapshot_metrics(snapshot_id=snapshot_id)) or {})
 
     def is_complete(self, snapshot_id: str) -> bool:
@@ -926,14 +952,14 @@ class ReachabilityJob:
             time.sleep(poll_interval)
 
 
-def _processed_order(snapshot: SnapshotInfo) -> tuple[str, str]:
-    """Sort key placing the most recently processed snapshot last.
+def _creation_order(snapshot: SnapshotInfo) -> tuple[str, str]:
+    """Sort key placing the most recently created snapshot last.
 
     Forward's timestamps are ISO-8601 in UTC, which sorts correctly as text.
-    ``createdAt`` breaks ties, and an absent value sorts first so a snapshot
+    ``processedAt`` breaks ties, and an absent value sorts first so a snapshot
     missing a timestamp never wins by accident.
     """
-    return (str(snapshot.processed_at or ""), str(snapshot.created_at or ""))
+    return (str(snapshot.created_at or ""), str(snapshot.processed_at or ""))
 
 
 def _state_param(

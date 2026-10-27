@@ -60,6 +60,7 @@ nav:
       - Overview: nqe/index.md
       - Query library: nqe/library.md
   - Snapshots: snapshots.md
+  - Network maps: network-maps.md
   - Rehearsing a change: predict.md
   - Live events: events.md
   - Forward AI: ai.md

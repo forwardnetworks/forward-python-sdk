@@ -31,6 +31,8 @@ info:
 servers:
   - url: /api
 tags:
+  - name: Network Maps
+    description: Saved diagrams of chosen devices, organised in folders and drawn against any snapshot.
   - name: NQE Repository
     description: Reading and writing the NQE query library.
   - name: Snapshot Reachability
@@ -13816,9 +13818,447 @@ paths:
               schema: { $ref: "#/components/schemas/Disp2CveIndexMetadata" }
               # from source: CveIndexCloudController.getCveIndexMetadata and SystemAdminController.getCveIndexMetadata (same four keys); no live or test fixture. Values are placeholders, not observed.
               example: {"digest": "0000000000000000000000000000000000000000000000000000000000000000", "indexCreatedAt": "1970-01-01T00:00:00Z", "indexUploadedAt": "1970-01-01T00:00:00Z", "indexUploadedBy": "example-user"}
+  /networks/{networkId}/maps:
+    get:
+      operationId: getNetworkMaps
+      summary: List a network's maps
+      description: "Lists the network's saved Network Maps (custom diagrams of chosen devices, refreshed against every snapshot) as summaries: id, name, pinned and who created and last changed each. Use getNetworkMap for one map's layout and getNetworkMapDirectories for the folder each sits in. Requires VIEW_NETWORK_MAPS on the network (source: NetworkMapController.getNetworkMaps). Not part of Forward's documented API; the GUI uses it. Live: 200, a maps array, pinned present only on some rows."
+      x-forward-stability: unpublished
+      tags: [Network Maps]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The network's maps.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Disp2NetworkMapList" }
+              # synthetic fixture shaped like a live response (2026-10-27); names and users are invented
+              example: {"maps": [{"id": "0", "name": "Branch A", "pinned": true, "createdById": "11", "createdAt": "2026-01-02T03:04:05.123456789Z", "createdBy": "me@example.com", "updatedById": "11", "updatedAt": "2026-01-03T03:04:05.123456789Z", "updatedBy": "me@example.com"}, {"id": "1", "name": "Branch B"}]}
+  /networks/{networkId}/maps/{mapId}:
+    get:
+      operationId: getNetworkMap
+      summary: Get one map's saved layout
+      description: "Returns one Network Map as saved: its devices with x/y positions, annotations, display defaults for devices and interfaces, per-device and per-interface overrides, link appearance rules, hidden links and BGP settings. Device names are lower-case. It holds no snapshot data, so it does not say which links exist; for that use getNetworkMapSnapshot. Pass with=directory to also get the folder the map is in. Requires VIEW_NETWORK_MAPS on the network (source: NetworkMapController.getNetworkMap). Any other value of with returns 400 and an unknown mapId returns 404 (source). Not part of Forward's documented API; the GUI uses it."
+      x-forward-stability: unpublished
+      tags: [Network Maps]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: mapId, in: path, required: true, schema: { type: string } }
+        - { name: with, in: query, required: false, description: "Set to directory to include the map's folder path in the response. It is the only value Forward accepts.", schema: { type: string, enum: ["directory"] } }
+      responses:
+        "200":
+          description: The map.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Disp2NetworkMap" }
+              # synthetic fixture shaped like a live response (2026-10-27); names are invented
+              example: {"id": "0", "name": "Branch A", "pinned": true, "directory": "/Branch", "devices": [{"name": "branch-a-sw1", "x": 10.5, "y": 20.0}, {"name": "branch-a-rtr1", "x": 110.5, "y": 20.0}], "annotations": [], "deviceDefaults": {"hidden": false, "showName": true, "showType": true}, "interfaceDefaults": {"hidden": false, "showName": true, "showSpeed": true}, "deviceSettings": [{"name": "branch-a-sw1", "x": 0.0, "y": 40.0}], "interfaceSettings": [], "bgpSettings": {"enabled": false}, "linkAppearanceRules": [{"id": "0", "selector": {"type": "PHYSICAL", "linkSpeedMbps": 10000}, "strokeColor": "#ff0000", "strokeStyle": "SOLID", "strokeWidth": 3}], "hiddenLinks": [], "createdById": "11", "createdAt": "2026-01-02T03:04:05.123456789Z", "createdBy": "me@example.com", "updatedById": "11", "updatedAt": "2026-01-03T03:04:05.123456789Z", "updatedBy": "me@example.com"}
+  /networks/{networkId}/maps/{mapId}?view=snapshot:
+    get:
+      operationId: getNetworkMapSnapshot
+      summary: Get a map rendered against a snapshot
+      description: "Returns a map joined with one snapshot: each map device with its inventory (type, vendor, model, platform, OS version, tags, location, management and collection IPs) and position, the physical links between the map's devices (loopbacks excluded), the parsed interfaces on those links, per-device and per-interface display settings, link appearance rules and BGP links between the map's devices. BGP links are empty when BGP is off for the org or the map. A map device absent from the snapshot is left out. snapshotId is optional and defaults to the network's latest processed snapshot (live); an unprocessed snapshot returns an error (source: RequiresSnapshot CREATION). Requires VIEW_NETWORK_MAPS on the network (source: NetworkMapController.getNetworkMapSnapshot). Not part of Forward's documented API; the GUI uses it."
+      x-forward-stability: unpublished
+      tags: [Network Maps]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: mapId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: false, description: "The snapshot to render the map against. Uses the network's latest processed snapshot when omitted.", schema: { type: string } }
+      responses:
+        "200":
+          description: The map as rendered against the snapshot.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Disp2NetworkMapSnapshot" }
+              # synthetic fixture shaped like a live response (2026-10-27); names, addresses and users are invented
+              example: {"id": "0", "name": "Branch A", "createdById": "11", "createdAt": "2026-01-02T03:04:05.123456789Z", "createdBy": "me@example.com", "updatedById": "11", "updatedAt": "2026-01-03T03:04:05.123456789Z", "updatedBy": "me@example.com", "devices": [{"name": "branch-a-sw1", "type": "SWITCH", "vendor": "EXAMPLE", "model": "X1", "platform": "example_os", "osVersion": "1.0", "managementIps": ["192.0.2.10"], "tags": ["branch"], "locationId": "1", "x": 10.5, "y": 20.0, "collectionIp": "192.0.2.10"}, {"name": "branch-a-rtr1", "type": "ROUTER", "vendor": "EXAMPLE", "platform": "example_os", "x": 110.5, "y": 20.0}], "interfaces": [{"device": "branch-a-sw1", "interfaces": [{"name": "eth1", "type": "IF_ETHERNET", "description": "to rtr1", "fullDuplex": true, "speedMbps": 10000, "aliases": ["Ethernet1"], "mtu": 1500, "macAddress": "00:00:5e:00:53:01", "ipAddresses": [], "isDown": false}]}], "links": [{"sourcePort": "branch-a-sw1 eth1", "targetPort": "branch-a-rtr1 eth1", "types": ["PHYSICAL"], "linkType": "PHYSICAL"}], "annotations": [], "deviceDefaults": {"hidden": false, "showName": true}, "interfaceDefaults": {"hidden": false, "showName": true}, "deviceSettings": [], "interfaceSettings": [], "bgpSettings": {"enabled": true}, "linkAppearanceRules": [], "hiddenLinks": [], "bgpLinks": [{"node1": {"deviceName": "branch-a-rtr1", "routerId": "192.0.2.1", "routeReflectorRole": "NONE", "vrf": "default", "remoteAddr": "192.0.2.2", "asNumber": 64512}, "node2": {"deviceName": "isp-rtr", "routerId": "192.0.2.2", "routeReflectorRole": "NONE", "vrf": "default", "remoteAddr": "192.0.2.1", "asNumber": 64513}, "peeringType": "EBGP", "state": "ESTABLISHED"}]}
+  /networks/{networkId}/maps/{mapId}/structures:
+    get:
+      operationId: getNetworkMapStructures
+      summary: Get the structure hierarchy of a map's devices
+      description: "Returns the inferred structure hierarchy (for example sites and their parts) of the devices in a map, as a forest of nodes that each list their devices and child structures. Only the map's devices that exist in the snapshot are considered. snapshotId is optional and defaults to the network's latest processed snapshot (live); the snapshot must be processed. Requires VIEW_NETWORK_MAPS on the network (source: NetworkMapController.getNetworkMapStructures). Not part of Forward's documented API; the GUI uses it."
+      x-forward-stability: unpublished
+      tags: [Network Maps]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: mapId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: false, description: "The snapshot to infer structures from. Uses the network's latest processed snapshot when omitted.", schema: { type: string } }
+      responses:
+        "200":
+          description: The root structure nodes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Disp2MapStructureNode" }
+              # synthetic fixture shaped like a live response (2026-10-27); names are invented
+              example: [{"type": "SITE", "devices": ["branch-a-rtr1"], "structures": [{"type": "RACK", "devices": ["branch-a-sw1", "branch-a-rtr1"]}]}]
+  /networks/{networkId}/maps/{mapId}/link-appearance-rules:
+    get:
+      operationId: getNetworkMapLinkAppearanceRules
+      summary: List a map's link appearance rules
+      description: "Returns the rules that colour, dash and size a map's links, each selecting physical links by type or speed or BGP links by peering type. Requires VIEW_NETWORK_MAPS on the network (source: NetworkMapController.getLinkAppearanceRules). Not part of Forward's documented API; the GUI uses it."
+      x-forward-stability: unpublished
+      tags: [Network Maps]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: mapId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The map's link appearance rules.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Disp2LinkAppearanceRules" }
+              # synthetic fixture shaped like a live response (2026-10-27)
+              example: {"linkAppearanceRules": [{"id": "0", "selector": {"type": "PHYSICAL", "linkSpeedMbps": 10000}, "strokeColor": "#ff0000", "strokeStyle": "SOLID", "strokeWidth": 3}, {"id": "1", "selector": {"type": "BGP", "peeringType": "EBGP"}, "strokeStyle": "DASHED"}]}
+  /networks/{networkId}/maps/{mapId}/link-appearance-rules/{ruleId}:
+    get:
+      operationId: getNetworkMapLinkAppearanceRule
+      summary: Get one link appearance rule of a map
+      description: "Returns one of a map's link appearance rules. An unknown rule id returns 404 (source: getLinkAppearanceRuleOrThrow). Requires VIEW_NETWORK_MAPS on the network (source: NetworkMapController.getLinkAppearanceRule). Not part of Forward's documented API; the GUI uses it."
+      x-forward-stability: unpublished
+      tags: [Network Maps]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: mapId, in: path, required: true, schema: { type: string } }
+        - { name: ruleId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The rule.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Disp2LinkAppearanceRule" }
+              # synthetic fixture shaped like a live response (2026-10-27)
+              example: {"id": "0", "selector": {"type": "PHYSICAL", "linkSpeedMbps": 10000}, "strokeColor": "#ff0000", "strokeStyle": "SOLID", "strokeWidth": 3}
+  /networks/{networkId}/map-directories:
+    get:
+      operationId: getNetworkMapDirectories
+      summary: List the folders that organise a network's maps
+      description: "Returns the network's map folders as a flat list, the root (path /) first, each with the ids of the maps directly in it. Paths have no trailing slash, such as /Prod/US-West. The root holds maps not in a folder and carries no attribution; other folders do. Build the tree from the paths. Requires VIEW_NETWORK_MAPS on the network, and the NETWORK_MAP_DIRECTORIES org property must be on, otherwise 403 (source: NetworkMapController.getDirectories, AccessEnforcer). Not part of Forward's documented API; the GUI uses it."
+      x-forward-stability: unpublished
+      tags: [Network Maps]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The folders.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Disp2NetworkMapDirectories" }
+              # synthetic fixture shaped like a live response (2026-10-27)
+              example: {"directories": [{"path": "/", "mapIds": ["1"]}, {"path": "/Branch", "mapIds": ["0"], "createdById": "11", "createdAt": "2026-01-02T03:04:05.123456789Z", "createdBy": "me@example.com", "updatedById": "11", "updatedAt": "2026-01-03T03:04:05.123456789Z", "updatedBy": "me@example.com"}]}
 
 components:
   schemas:
+    Disp2MapAttribution:
+      type: object
+      description: "Who created and last changed a map or folder, flattened into it (source: Attribution, JsonUnwrapped). Each field is omitted when Forward does not know it."
+      properties:
+        createdById: { type: string }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string, description: "The username. Absent if the account was deleted." }
+        updatedById: { type: string }
+        updatedAt: { type: string, format: date-time }
+        updatedBy: { type: string }
+    Disp2NetworkMapInfo:
+      description: "A map summary (source: NetworkMapInfo)."
+      allOf:
+        - { $ref: "#/components/schemas/Disp2MapAttribution" }
+        - type: object
+          required: [id, name]
+          properties:
+            id: { type: string }
+            name: { type: string }
+            pinned: { type: boolean, description: "Whether the map is pinned. Omitted when never set (live)." }
+    Disp2NetworkMapList:
+      type: object
+      required: [maps]
+      properties:
+        maps:
+          type: array
+          items: { $ref: "#/components/schemas/Disp2NetworkMapInfo" }
+    Disp2MapPosition:
+      type: object
+      description: "A device or card position on the map canvas. Settings objects carry x and y together or not at all (source: AllOrNothing)."
+      properties:
+        x: { type: number }
+        y: { type: number }
+    Disp2MapDevicePlacement:
+      type: object
+      required: [name]
+      description: "A device on a map and where it sits (source: DeviceNodeJson). Names are lower-case."
+      properties:
+        name: { type: string }
+        x: { type: number }
+        y: { type: number }
+    Disp2MapDeviceSettings:
+      type: object
+      description: "Which facts a device card shows. Omitted flags inherit the map's defaults (source: NetworkMapDeviceSettings)."
+      properties:
+        hidden: { type: boolean, description: "Hides the card even if some show flags are true." }
+        showName: { type: boolean }
+        showLocation: { type: boolean }
+        showPlatform: { type: boolean }
+        showModel: { type: boolean }
+        showOs: { type: boolean }
+        showOsVersion: { type: boolean }
+        showTags: { type: boolean }
+        showCollectionIp: { type: boolean }
+        showManagementIps: { type: boolean }
+        showStatus: { type: boolean }
+        showType: { type: boolean }
+    Disp2MapInterfaceSettings:
+      type: object
+      description: "Which facts an interface card and link label show. Omitted flags inherit the map's defaults (source: NetworkMapInterfaceSettings)."
+      properties:
+        hidden: { type: boolean, description: "Hides the card and link labels even if some show flags are true." }
+        showName: { type: boolean }
+        showSpeed: { type: boolean }
+        showIp: { type: boolean }
+        showType: { type: boolean }
+        showDescription: { type: boolean }
+        showStatus: { type: boolean }
+        showMtu: { type: boolean }
+        showMacAddress: { type: boolean }
+        showDuplexMode: { type: boolean }
+        showMembers: { type: boolean }
+        showNativeVlan: { type: boolean }
+        showAccessVlan: { type: boolean }
+        showInboundAcl: { type: boolean }
+        showOutboundAcl: { type: boolean }
+        showVrf: { type: boolean }
+    Disp2MapBgpSettings:
+      type: object
+      description: "How BGP links show on a map (source: NetworkMapBgpSettings)."
+      properties:
+        enabled: { type: boolean, description: "Whether BGP links are drawn. Needs the NETWORK_MAPS_BGP_LAYER org property." }
+        showAsNumber: { type: boolean }
+        showRouterId: { type: boolean }
+    Disp2MapDeviceCard:
+      description: "Per-device display settings, with the card's offset from the device (source: NetworkMapNamedDeviceSettings)."
+      allOf:
+        - { $ref: "#/components/schemas/Disp2MapDeviceSettings" }
+        - { $ref: "#/components/schemas/Disp2MapPosition" }
+        - type: object
+          required: [name]
+          properties:
+            name: { type: string }
+    Disp2MapInterfaceCard:
+      description: "Per-interface display settings, with the card's offset (source: NetworkMapNamedInterfaceSettings). Interface names are case-insensitive."
+      allOf:
+        - { $ref: "#/components/schemas/Disp2MapInterfaceSettings" }
+        - { $ref: "#/components/schemas/Disp2MapPosition" }
+        - type: object
+          required: [name]
+          properties:
+            name: { type: string }
+    Disp2LinkAppearanceSelector:
+      type: object
+      required: [type]
+      description: "Which links a rule applies to (source: LinkAppearanceSelector). PHYSICAL rules set linkType or linkSpeedMbps; BGP rules set peeringType."
+      properties:
+        type: { type: string, description: "PHYSICAL or BGP." }
+        linkType: { type: string, description: "For PHYSICAL: the kind of link." }
+        linkSpeedMbps: { type: integer, description: "For PHYSICAL: the link speed in Mbps." }
+        peeringType: { type: string, description: "For BGP: the peering type, such as EBGP or IBGP." }
+    Disp2LinkAppearanceRule:
+      type: object
+      required: [id, selector]
+      description: "A rule that styles matching links (source: LinkAppearanceRule). At least one of strokeColor, strokeStyle and strokeWidth is set."
+      properties:
+        id: { type: string }
+        disabled: { type: boolean }
+        selector: { $ref: "#/components/schemas/Disp2LinkAppearanceSelector" }
+        strokeColor: { type: string, description: "An RGB hex colour such as #ff0000." }
+        strokeStyle: { type: string, description: "The line style, such as SOLID or DASHED." }
+        strokeWidth: { type: integer, minimum: 1, maximum: 7 }
+    Disp2LinkAppearanceRules:
+      type: object
+      required: [linkAppearanceRules]
+      properties:
+        linkAppearanceRules:
+          type: array
+          items: { $ref: "#/components/schemas/Disp2LinkAppearanceRule" }
+    Disp2NetworkMap:
+      description: "A saved map (source: NetworkMap, NetworkMapWithDirectory)."
+      allOf:
+        - { $ref: "#/components/schemas/Disp2NetworkMapInfo" }
+        - type: object
+          properties:
+            directory: { type: string, description: "The folder path. Present only for with=directory." }
+            devices:
+              type: array
+              items: { $ref: "#/components/schemas/Disp2MapDevicePlacement" }
+            annotations:
+              type: array
+              description: "Shapes and text drawn on the canvas (source: TopologyAnnotation). Their fields are not modelled; read them as given."
+              items: { type: object, additionalProperties: true }
+            deviceDefaults: { $ref: "#/components/schemas/Disp2MapDeviceSettings" }
+            interfaceDefaults: { $ref: "#/components/schemas/Disp2MapInterfaceSettings" }
+            deviceSettings:
+              type: array
+              description: "Per-device overrides. Live, present on a saved map although the GUI model does not list it."
+              items: { $ref: "#/components/schemas/Disp2MapDeviceCard" }
+            interfaceSettings:
+              type: array
+              items: { $ref: "#/components/schemas/Disp2MapInterfaceCard" }
+            bgpSettings: { $ref: "#/components/schemas/Disp2MapBgpSettings" }
+            linkAppearanceRules:
+              type: array
+              items: { $ref: "#/components/schemas/Disp2LinkAppearanceRule" }
+            hiddenLinks:
+              type: array
+              description: "Links the map hides. Live this was always empty, so the element shape is not recorded."
+              items: { type: object, additionalProperties: true }
+    Disp2MapSnapshotDevice:
+      type: object
+      required: [name]
+      description: "A map device with its inventory in the snapshot and its map position (source: PositionedDevice)."
+      properties:
+        name: { type: string }
+        type: { type: string, description: "The device type, such as ROUTER or SWITCH." }
+        vendor: { type: string }
+        model: { type: string }
+        platform: { type: string }
+        osVersion: { type: string }
+        managementIps: { type: array, items: { type: string } }
+        tags: { type: array, items: { type: string } }
+        locationId: { type: string }
+        collectionIp: { type: string, description: "The IP, or DNS-resolved hostname, Forward collected the device through." }
+        x: { type: number }
+        y: { type: number }
+    Disp2MapInterface:
+      type: object
+      required: [name]
+      description: "A parsed interface on one of the map's links (source: NetworkDeviceInterfaceJson). Only the fields live responses carried are named; others pass through."
+      additionalProperties: true
+      properties:
+        name: { type: string }
+        type: { type: string }
+        description: { type: string }
+        fullDuplex: { type: boolean }
+        speedMbps: { type: integer }
+        aliases: { type: array, items: { type: string } }
+        mtu: { type: integer }
+        macAddress: { type: string }
+        ipAddresses: { type: array, items: { type: string } }
+        isDown: { type: boolean }
+        fileLines:
+          type: object
+          description: "Where in the collected files the interface appears, keyed by file name."
+          additionalProperties:
+            type: array
+            items:
+              type: object
+              properties:
+                start: { type: integer }
+                end: { type: integer }
+    Disp2MapDeviceInterfaces:
+      type: object
+      required: [device, interfaces]
+      properties:
+        device: { type: string }
+        interfaces:
+          type: array
+          items: { $ref: "#/components/schemas/Disp2MapInterface" }
+    Disp2MapLink:
+      type: object
+      description: "A physical link between two map devices (source: NetworkTopologyLinkJson). Each port is a device name and interface joined by a space."
+      additionalProperties: true
+      properties:
+        sourcePort: { type: string }
+        targetPort: { type: string }
+        types: { type: array, items: { type: string } }
+        linkType: { type: string }
+    Disp2MapBgpNode:
+      type: object
+      description: "One end of a BGP link (source: BgpTopologyLink)."
+      additionalProperties: true
+      properties:
+        deviceName: { type: string }
+        routerId: { type: string }
+        routeReflectorRole: { type: string }
+        vrf: { type: string }
+        remoteAddr: { type: string }
+        asNumber: { type: integer }
+    Disp2MapBgpLink:
+      type: object
+      description: "A BGP session between two map devices (source: BgpTopologyLink)."
+      additionalProperties: true
+      properties:
+        node1: { $ref: "#/components/schemas/Disp2MapBgpNode" }
+        node2: { $ref: "#/components/schemas/Disp2MapBgpNode" }
+        peeringType: { type: string, description: "Such as EBGP or IBGP." }
+        state: { type: string, description: "The session state, such as ESTABLISHED." }
+    Disp2NetworkMapSnapshot:
+      description: "A map joined with one snapshot (source: NetworkMapSnapshot). Carries the map's own fields except devices, which are the richer snapshot form."
+      allOf:
+        - { $ref: "#/components/schemas/Disp2NetworkMapInfo" }
+        - type: object
+          properties:
+            devices:
+              type: array
+              items: { $ref: "#/components/schemas/Disp2MapSnapshotDevice" }
+            links:
+              type: array
+              description: "All physical links between the map's devices, except loopbacks."
+              items: { $ref: "#/components/schemas/Disp2MapLink" }
+            interfaces:
+              type: array
+              description: "Parsed interfaces for the links."
+              items: { $ref: "#/components/schemas/Disp2MapDeviceInterfaces" }
+            annotations:
+              type: array
+              items: { type: object, additionalProperties: true }
+            deviceDefaults: { $ref: "#/components/schemas/Disp2MapDeviceSettings" }
+            interfaceDefaults: { $ref: "#/components/schemas/Disp2MapInterfaceSettings" }
+            deviceSettings:
+              type: array
+              items: { $ref: "#/components/schemas/Disp2MapDeviceCard" }
+            interfaceSettings:
+              type: array
+              items: { $ref: "#/components/schemas/Disp2MapInterfaceCard" }
+            bgpSettings: { $ref: "#/components/schemas/Disp2MapBgpSettings" }
+            linkAppearanceRules:
+              type: array
+              description: "Physical and BGP rules together, in no guaranteed order. Filter on selector.type."
+              items: { $ref: "#/components/schemas/Disp2LinkAppearanceRule" }
+            hiddenLinks:
+              type: array
+              items: { type: object, additionalProperties: true }
+            bgpLinks:
+              type: array
+              description: "BGP sessions between the map's devices. Empty when BGP is off for the org or the map."
+              items: { $ref: "#/components/schemas/Disp2MapBgpLink" }
+    Disp2MapStructureNode:
+      type: object
+      required: [devices]
+      description: "A node in the inferred structure hierarchy (source: StructureNode)."
+      properties:
+        type: { type: string, description: "The kind of structure, such as SITE or RACK." }
+        devices: { type: array, items: { type: string }, description: "The devices in this structure." }
+        structures:
+          type: array
+          description: "Child structures. Omitted on a leaf."
+          items: { $ref: "#/components/schemas/Disp2MapStructureNode" }
+    Disp2NetworkMapDirectory:
+      description: "One folder of maps (source: NetworkMapDirectory)."
+      allOf:
+        - { $ref: "#/components/schemas/Disp2MapAttribution" }
+        - type: object
+          required: [path, mapIds]
+          properties:
+            path: { type: string, description: "Full path without a trailing slash; the root is /." }
+            mapIds: { type: array, items: { type: string }, description: "Maps directly in this folder." }
+    Disp2NetworkMapDirectories:
+      type: object
+      required: [directories]
+      properties:
+        directories:
+          type: array
+          description: "Every folder, root first."
+          items: { $ref: "#/components/schemas/Disp2NetworkMapDirectory" }
     SnapshotStateChange:
       type: object
       description: A snapshot's processing state before and after a request.

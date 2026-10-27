@@ -61,6 +61,7 @@ from forward_sdk._sync.services._generated.licensing import LicensingService
 from forward_sdk._sync.services._generated.network_collection import NetworkCollectionService
 from forward_sdk._sync.services._generated.network_endpoints import NetworkEndpointsService
 from forward_sdk._sync.services._generated.network_locations import NetworkLocationsService
+from forward_sdk._sync.services._generated.network_maps import NetworkMapsService
 from forward_sdk._sync.services._generated.network_topology import NetworkTopologyService
 from forward_sdk._sync.services._generated.nqe_panels import NQEPanelsService
 from forward_sdk._sync.services._generated.organizations import OrganizationsService
@@ -144,6 +145,7 @@ __all__ = [
     "NetworkCollectionService",
     "NetworkEndpointsService",
     "NetworkLocationsService",
+    "NetworkMapsService",
     "NetworkTopologyService",
     "OrganizationsService",
     "PathSearchService",
@@ -218,6 +220,7 @@ class GeneratedServices:
     network_collection: NetworkCollectionService
     network_endpoints: NetworkEndpointsService
     network_locations: NetworkLocationsService
+    network_maps: NetworkMapsService
     network_topology: NetworkTopologyService
     organizations: OrganizationsService
     path_search: PathSearchService
@@ -284,6 +287,7 @@ class GeneratedServices:
         self.network_collection = NetworkCollectionService(transport)
         self.network_endpoints = NetworkEndpointsService(transport)
         self.network_locations = NetworkLocationsService(transport)
+        self.network_maps = NetworkMapsService(transport)
         self.network_topology = NetworkTopologyService(transport)
         self.organizations = OrganizationsService(transport)
         self.path_search = PathSearchService(transport)
@@ -352,6 +356,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Collection": "network_collection",
     "Network Endpoints": "network_endpoints",
     "Network Locations": "network_locations",
+    "Network Maps": "network_maps",
     "Network Topology": "network_topology",
     "Organizations": "organizations",
     "Path Search": "path_search",

@@ -14,7 +14,9 @@ from forward_sdk._async.services._generated.audit_logs import AsyncAuditLogsServ
 from forward_sdk._async.services._generated.backups import AsyncBackupsService
 from forward_sdk._async.services._generated.banners import AsyncBannersService
 from forward_sdk._async.services._generated.bgp_advertisements import AsyncBGPAdvertisementsService
+from forward_sdk._async.services._generated.bgp_prefixes import AsyncBGPPrefixesService
 from forward_sdk._async.services._generated.blast_radius import AsyncBlastRadiusService
+from forward_sdk._async.services._generated.change_set_checks import AsyncChangeSetChecksService
 from forward_sdk._async.services._generated.change_set_directories import (
     AsyncChangeSetDirectoriesService,
 )
@@ -41,7 +43,10 @@ from forward_sdk._async.services._generated.custom_command_groups import (
 from forward_sdk._async.services._generated.dashboards import AsyncDashboardsService
 from forward_sdk._async.services._generated.data_connectors import AsyncDataConnectorsService
 from forward_sdk._async.services._generated.data_files import AsyncDataFilesService
+from forward_sdk._async.services._generated.device_diffs import AsyncDeviceDiffsService
 from forward_sdk._async.services._generated.device_discovery import AsyncDeviceDiscoveryService
+from forward_sdk._async.services._generated.device_interfaces import AsyncDeviceInterfacesService
+from forward_sdk._async.services._generated.edge_assets import AsyncEdgeAssetsService
 from forward_sdk._async.services._generated.encryptors import AsyncEncryptorsService
 from forward_sdk._async.services._generated.endpoint_profiles import AsyncEndpointProfilesService
 from forward_sdk._async.services._generated.firewall_predict import AsyncFirewallPredictService
@@ -60,13 +65,19 @@ from forward_sdk._async.services._generated.network_endpoints import AsyncNetwor
 from forward_sdk._async.services._generated.network_locations import AsyncNetworkLocationsService
 from forward_sdk._async.services._generated.network_maps import AsyncNetworkMapsService
 from forward_sdk._async.services._generated.network_topology import AsyncNetworkTopologyService
+from forward_sdk._async.services._generated.nqe_explain import AsyncNQEExplainService
 from forward_sdk._async.services._generated.nqe_panels import AsyncNQEPanelsService
 from forward_sdk._async.services._generated.organizations import AsyncOrganizationsService
 from forward_sdk._async.services._generated.path_search import AsyncPathSearchService
+from forward_sdk._async.services._generated.performance_collection import (
+    AsyncPerformanceCollectionService,
+)
 from forward_sdk._async.services._generated.performance_metrics import (
     AsyncPerformanceMetricsService,
 )
 from forward_sdk._async.services._generated.predict_assist import AsyncPredictAssistService
+from forward_sdk._async.services._generated.predict_reference import AsyncPredictReferenceService
+from forward_sdk._async.services._generated.protocol_modeling import AsyncProtocolModelingService
 from forward_sdk._async.services._generated.resource_pools import AsyncResourcePoolsService
 from forward_sdk._async.services._generated.saml import AsyncSAMLService
 from forward_sdk._async.services._generated.scorecards import AsyncScorecardsService
@@ -83,6 +94,7 @@ from forward_sdk._async.services._generated.synthetic_devices import AsyncSynthe
 from forward_sdk._async.services._generated.system_administration import (
     AsyncSystemAdministrationService,
 )
+from forward_sdk._async.services._generated.threat_exposure import AsyncThreatExposureService
 from forward_sdk._async.services._generated.trusted_certificates import (
     AsyncTrustedCertificatesService,
 )
@@ -102,9 +114,11 @@ __all__ = [
     "AsyncAliasesService",
     "AsyncAuditLogsService",
     "AsyncBGPAdvertisementsService",
+    "AsyncBGPPrefixesService",
     "AsyncBackupsService",
     "AsyncBannersService",
     "AsyncBlastRadiusService",
+    "AsyncChangeSetChecksService",
     "AsyncChangeSetDirectoriesService",
     "AsyncChecksService",
     "AsyncClassicDevicesService",
@@ -123,7 +137,10 @@ __all__ = [
     "AsyncDashboardsService",
     "AsyncDataConnectorsService",
     "AsyncDataFilesService",
+    "AsyncDeviceDiffsService",
     "AsyncDeviceDiscoveryService",
+    "AsyncDeviceInterfacesService",
+    "AsyncEdgeAssetsService",
     "AsyncEncryptorsService",
     "AsyncEndpointProfilesService",
     "AsyncFirewallPredictService",
@@ -138,6 +155,7 @@ __all__ = [
     "AsyncL3vpnsService",
     "AsyncLegacyCollectionService",
     "AsyncLicensingService",
+    "AsyncNQEExplainService",
     "AsyncNQEPanelsService",
     "AsyncNetworkCollectionService",
     "AsyncNetworkEndpointsService",
@@ -146,8 +164,11 @@ __all__ = [
     "AsyncNetworkTopologyService",
     "AsyncOrganizationsService",
     "AsyncPathSearchService",
+    "AsyncPerformanceCollectionService",
     "AsyncPerformanceMetricsService",
     "AsyncPredictAssistService",
+    "AsyncPredictReferenceService",
+    "AsyncProtocolModelingService",
     "AsyncResourcePoolsService",
     "AsyncSAMLService",
     "AsyncSNMPCredentialsService",
@@ -158,6 +179,7 @@ __all__ = [
     "AsyncSnapshotDiffDetailsService",
     "AsyncSyntheticDevicesService",
     "AsyncSystemAdministrationService",
+    "AsyncThreatExposureService",
     "AsyncTrustedCertificatesService",
     "AsyncUserAccountsService",
     "AsyncVulnerabilityAnalysisService",
@@ -178,9 +200,11 @@ class AsyncGeneratedServices:
     aliases: AsyncAliasesService
     audit_logs: AsyncAuditLogsService
     bgp_advertisements: AsyncBGPAdvertisementsService
+    bgp_prefixes: AsyncBGPPrefixesService
     backups: AsyncBackupsService
     banners: AsyncBannersService
     blast_radius: AsyncBlastRadiusService
+    change_set_checks: AsyncChangeSetChecksService
     change_set_directories: AsyncChangeSetDirectoriesService
     checks: AsyncChecksService
     classic_devices: AsyncClassicDevicesService
@@ -199,7 +223,10 @@ class AsyncGeneratedServices:
     dashboards: AsyncDashboardsService
     data_connectors: AsyncDataConnectorsService
     data_files: AsyncDataFilesService
+    device_diffs: AsyncDeviceDiffsService
     device_discovery: AsyncDeviceDiscoveryService
+    device_interfaces: AsyncDeviceInterfacesService
+    edge_assets: AsyncEdgeAssetsService
     encryptors: AsyncEncryptorsService
     endpoint_profiles: AsyncEndpointProfilesService
     firewall_predict: AsyncFirewallPredictService
@@ -213,6 +240,7 @@ class AsyncGeneratedServices:
     l3vpns: AsyncL3vpnsService
     legacy_collection: AsyncLegacyCollectionService
     licensing: AsyncLicensingService
+    nqe_explain: AsyncNQEExplainService
     nqe_panels: AsyncNQEPanelsService
     network_collection: AsyncNetworkCollectionService
     network_endpoints: AsyncNetworkEndpointsService
@@ -221,8 +249,11 @@ class AsyncGeneratedServices:
     network_topology: AsyncNetworkTopologyService
     organizations: AsyncOrganizationsService
     path_search: AsyncPathSearchService
+    performance_collection: AsyncPerformanceCollectionService
     performance_metrics: AsyncPerformanceMetricsService
     predict_assist: AsyncPredictAssistService
+    predict_reference: AsyncPredictReferenceService
+    protocol_modeling: AsyncProtocolModelingService
     resource_pools: AsyncResourcePoolsService
     saml: AsyncSAMLService
     snmp_credentials: AsyncSNMPCredentialsService
@@ -233,6 +264,7 @@ class AsyncGeneratedServices:
     snapshot_diff_details: AsyncSnapshotDiffDetailsService
     synthetic_devices: AsyncSyntheticDevicesService
     system_administration: AsyncSystemAdministrationService
+    threat_exposure: AsyncThreatExposureService
     trusted_certificates: AsyncTrustedCertificatesService
     user_accounts: AsyncUserAccountsService
     vulnerability_analysis: AsyncVulnerabilityAnalysisService
@@ -245,9 +277,11 @@ class AsyncGeneratedServices:
         self.aliases = AsyncAliasesService(transport)
         self.audit_logs = AsyncAuditLogsService(transport)
         self.bgp_advertisements = AsyncBGPAdvertisementsService(transport)
+        self.bgp_prefixes = AsyncBGPPrefixesService(transport)
         self.backups = AsyncBackupsService(transport)
         self.banners = AsyncBannersService(transport)
         self.blast_radius = AsyncBlastRadiusService(transport)
+        self.change_set_checks = AsyncChangeSetChecksService(transport)
         self.change_set_directories = AsyncChangeSetDirectoriesService(transport)
         self.checks = AsyncChecksService(transport)
         self.classic_devices = AsyncClassicDevicesService(transport)
@@ -266,7 +300,10 @@ class AsyncGeneratedServices:
         self.dashboards = AsyncDashboardsService(transport)
         self.data_connectors = AsyncDataConnectorsService(transport)
         self.data_files = AsyncDataFilesService(transport)
+        self.device_diffs = AsyncDeviceDiffsService(transport)
         self.device_discovery = AsyncDeviceDiscoveryService(transport)
+        self.device_interfaces = AsyncDeviceInterfacesService(transport)
+        self.edge_assets = AsyncEdgeAssetsService(transport)
         self.encryptors = AsyncEncryptorsService(transport)
         self.endpoint_profiles = AsyncEndpointProfilesService(transport)
         self.firewall_predict = AsyncFirewallPredictService(transport)
@@ -280,6 +317,7 @@ class AsyncGeneratedServices:
         self.l3vpns = AsyncL3vpnsService(transport)
         self.legacy_collection = AsyncLegacyCollectionService(transport)
         self.licensing = AsyncLicensingService(transport)
+        self.nqe_explain = AsyncNQEExplainService(transport)
         self.nqe_panels = AsyncNQEPanelsService(transport)
         self.network_collection = AsyncNetworkCollectionService(transport)
         self.network_endpoints = AsyncNetworkEndpointsService(transport)
@@ -288,8 +326,11 @@ class AsyncGeneratedServices:
         self.network_topology = AsyncNetworkTopologyService(transport)
         self.organizations = AsyncOrganizationsService(transport)
         self.path_search = AsyncPathSearchService(transport)
+        self.performance_collection = AsyncPerformanceCollectionService(transport)
         self.performance_metrics = AsyncPerformanceMetricsService(transport)
         self.predict_assist = AsyncPredictAssistService(transport)
+        self.predict_reference = AsyncPredictReferenceService(transport)
+        self.protocol_modeling = AsyncProtocolModelingService(transport)
         self.resource_pools = AsyncResourcePoolsService(transport)
         self.saml = AsyncSAMLService(transport)
         self.snmp_credentials = AsyncSNMPCredentialsService(transport)
@@ -300,6 +341,7 @@ class AsyncGeneratedServices:
         self.snapshot_diff_details = AsyncSnapshotDiffDetailsService(transport)
         self.synthetic_devices = AsyncSyntheticDevicesService(transport)
         self.system_administration = AsyncSystemAdministrationService(transport)
+        self.threat_exposure = AsyncThreatExposureService(transport)
         self.trusted_certificates = AsyncTrustedCertificatesService(transport)
         self.user_accounts = AsyncUserAccountsService(transport)
         self.vulnerability_analysis = AsyncVulnerabilityAnalysisService(transport)
@@ -314,9 +356,11 @@ SERVICE_TAGS: dict[str, str] = {
     "Aliases": "aliases",
     "Audit Logs": "audit_logs",
     "BGP Advertisements": "bgp_advertisements",
+    "BGP Prefixes": "bgp_prefixes",
     "Backups": "backups",
     "Banners": "banners",
     "Blast Radius": "blast_radius",
+    "Change Set Checks": "change_set_checks",
     "Change Set Directories": "change_set_directories",
     "Checks": "checks",
     "Classic Devices": "classic_devices",
@@ -335,7 +379,10 @@ SERVICE_TAGS: dict[str, str] = {
     "Dashboards": "dashboards",
     "Data Connectors": "data_connectors",
     "Data Files": "data_files",
+    "Device Diffs": "device_diffs",
     "Device Discovery": "device_discovery",
+    "Device Interfaces": "device_interfaces",
+    "Edge Assets": "edge_assets",
     "Encryptors": "encryptors",
     "Endpoint Profiles": "endpoint_profiles",
     "Firewall Predict": "firewall_predict",
@@ -349,6 +396,7 @@ SERVICE_TAGS: dict[str, str] = {
     "L3VPNs": "l3vpns",
     "Legacy Collection": "legacy_collection",
     "Licensing": "licensing",
+    "NQE Explain": "nqe_explain",
     "NQE Panels": "nqe_panels",
     "Network Collection": "network_collection",
     "Network Endpoints": "network_endpoints",
@@ -357,8 +405,11 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Topology": "network_topology",
     "Organizations": "organizations",
     "Path Search": "path_search",
+    "Performance Collection": "performance_collection",
     "Performance Metrics": "performance_metrics",
     "Predict Assist": "predict_assist",
+    "Predict Reference": "predict_reference",
+    "Protocol Modeling": "protocol_modeling",
     "Resource Pools": "resource_pools",
     "SAML": "saml",
     "SNMP Credentials": "snmp_credentials",
@@ -369,6 +420,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Snapshot Diff Details": "snapshot_diff_details",
     "Synthetic Devices": "synthetic_devices",
     "System Administration": "system_administration",
+    "Threat Exposure": "threat_exposure",
     "Trusted Certificates": "trusted_certificates",
     "User Accounts": "user_accounts",
     "Vulnerability Analysis": "vulnerability_analysis",

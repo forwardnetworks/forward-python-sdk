@@ -6,6 +6,7 @@ from forward_sdk._generated._base import OpenEnum
 from typing import Annotated, Any, Literal
 from pydantic import AnyUrl, AwareDatetime, ConfigDict, Field, RootModel
 from forward_sdk._generated._base import ForwardModel
+from uuid import UUID
 
 
 class NetworkRoles(OpenEnum):
@@ -2366,6 +2367,316 @@ class DetectionResultDeviceCount(ForwardModel):
     result: Annotated[DetectionResult | None, Field(examples=["VULNERABLE"])] = None
 
 
+class DevRoutingDevice(ForwardModel):
+    """
+    A Device as it appears in a device diff, before or after. Keys follow the Device class (source: com.forwardnetworks.cv.device.Device); tags and locationId appear only with with=. Open for the fields not traced.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    display_name: Annotated[str | None, Field(alias="displayName")] = None
+    location_id: Annotated[str | None, Field(alias="locationId")] = None
+    management_ips: Annotated[list[str] | None, Field(alias="managementIps")] = None
+    model: str | None = None
+    name: str | None = None
+    os_version: Annotated[str | None, Field(alias="osVersion")] = None
+    platform: str | None = None
+    source_name: Annotated[str | None, Field(alias="sourceName")] = None
+    tags: list[str] | None = None
+    type: str | None = None
+    vendor: str | None = None
+
+
+class DevRoutingDeviceDiff(ForwardModel):
+    """
+    One device added, removed or modified (source: DeviceDiffEntry). before is absent for ADDED and after for REMOVED. changedProperties is set only for MODIFIED.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    after: DevRoutingDevice | None = None
+    before: DevRoutingDevice | None = None
+    change_type: Annotated[str, Field(alias="changeType")]
+    """
+    ADDED, REMOVED or MODIFIED.
+    """
+    changed_properties: Annotated[list[str] | None, Field(alias="changedProperties")] = None
+    device_name: Annotated[str, Field(alias="deviceName")]
+
+
+class DevRoutingDeviceDiffs(ForwardModel):
+    """
+    Device differences between two snapshots (source: DeviceDiffs). totalDiffs counts every match of the filters, ignoring limit.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    after_snapshot_created_at: Annotated[
+        AwareDatetime | None, Field(alias="afterSnapshotCreatedAt")
+    ] = None
+    before_snapshot_created_at: Annotated[
+        AwareDatetime | None, Field(alias="beforeSnapshotCreatedAt")
+    ] = None
+    diffs: list[DevRoutingDeviceDiff]
+    total_diffs: Annotated[int, Field(alias="totalDiffs")]
+
+
+class RecvAdvertisement(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    nexthop: str | None = None
+    originated_from: Annotated[dict[str, Any] | None, Field(alias="originatedFrom")] = None
+    """
+    Device and VRF the advertisement originated from.
+    """
+    outcome: str | None = None
+
+
+class Vrf(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    more_specific_installed_routes: Annotated[
+        list[str] | None, Field(alias="moreSpecificInstalledRoutes")
+    ] = None
+    recv_advertisements: Annotated[
+        list[RecvAdvertisement] | None, Field(alias="recvAdvertisements")
+    ] = None
+    vrf: str | None = None
+
+
+class DevRoutingDevicePrefixInfo(ForwardModel):
+    """
+    What a device has for a prefix, per VRF (source: the Go SDK's RoutingDevicePrefixInfo).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device: str | None = None
+    model: str | None = None
+    vendor: str | None = None
+    vrfs: list[Vrf] | None = None
+
+
+class DevRoutingDeviceVrf(ForwardModel):
+    """
+    A device and VRF. An omitted vrf means the default VRF (source: DeviceVRF in the Go SDK; the source's DeviceVrfProtocol carries vrf too).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device: str
+    vrf: str | None = None
+
+
+class DevRoutingDeviceVrfProtocol(ForwardModel):
+    """
+    A device, VRF and routing protocol, which tells apart nodes that device and VRF alone do not (source: DeviceVrfProtocol). protocol is one of BGP, OSPF, IS_IS, EIGRP, RIP, CONFIG, OMP or STP (Go SDK list).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device: str
+    protocol: str
+    vrf: str | None = None
+
+
+class Line(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    end: int | None = None
+    start: int | None = None
+
+
+class FileLine(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    file: str | None = None
+    lines: list[Line] | None = None
+
+
+class DevRoutingInterfaceNeighbor(ForwardModel):
+    """
+    The device and port at the far end of an interface's outgoing link (source: InterfaceProps.neighbors, DevicePort).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device: str | None = None
+    port: str | None = None
+
+
+class DevRoutingNode(ForwardModel):
+    """
+    One hop of a prefix trace (Go SDK RoutingNode). Pass it back unchanged to getBgpPrefixDetails: Forward needs fields this schema does not list (the node key and the route set), so the object is open.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    as_number: Annotated[int | None, Field(alias="asNumber")] = None
+    boundary_id: Annotated[str | None, Field(alias="boundaryId")] = None
+    device: str
+    export_policy_names: Annotated[list[str] | None, Field(alias="exportPolicyNames")] = None
+    import_policy_names: Annotated[list[str] | None, Field(alias="importPolicyNames")] = None
+    location_id: Annotated[str | None, Field(alias="locationId")] = None
+    protocol: str | None = None
+    route_set_id: Annotated[int | None, Field(alias="routeSetId")] = None
+    router_id: Annotated[str | None, Field(alias="routerId")] = None
+    vrf: str | None = None
+
+
+class DevRoutingNodePrefixes(ForwardModel):
+    """
+    The prefixes one modelled node (device and VRF) installed (source: BgpInstalledPrefixesResponse.NodeInstalledPrefixes).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device: str | None = None
+    prefixes: list[str] | None = None
+    vendor_os: Annotated[str | None, Field(alias="vendorOs")] = None
+    """
+    Lowercase vendor-OS name, for example cisco_ios.
+    """
+    vrf: str | None = None
+
+
+class DevRoutingNodeRef(ForwardModel):
+    """
+    A node in a prefix search result: a device, VRF and protocol, with an optional location (Go SDK RoutingDevice).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device: str | None = None
+    location_id: Annotated[str | None, Field(alias="locationId")] = None
+    protocol: str | None = None
+    vrf: str | None = None
+
+
+class DevRoutingPrefixDetails(ForwardModel):
+    """
+    The route a node holds for a prefix (Go SDK RoutingPrefixDetails). attributes is protocol-specific and carries a protocol member; policies maps a rule type (IMPORT, EXPORT, REDISTRIBUTE, ...) to matched rules. Both are open because the shape varies by protocol and vendor.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    attributes: dict[str, Any] | None = None
+    device: str | None = None
+    policies: dict[str, Any] | None = None
+    prefix: str | None = None
+    vrf: str | None = None
+
+
+class DevRoutingPrefixDetailsRequest(ForwardModel):
+    """
+    The question of getBgpPrefixDetails (source: FrontendRpPrefixDetailsRequest; the Go SDK RoutingPrefixDetailsRequest). Take previousNode, nextNode and previousPreviousNode from one trace path, unchanged.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    next_node: Annotated[DevRoutingNode | None, Field(alias="nextNode")] = None
+    node: DevRoutingNode
+    prefix: str
+    previous_node: Annotated[DevRoutingNode | None, Field(alias="previousNode")] = None
+    previous_previous_node: Annotated[
+        DevRoutingNode | None, Field(alias="previousPreviousNode")
+    ] = None
+
+
+class DevRoutingPrefixSearchRequest(ForwardModel):
+    """
+    The question of searchBgpPrefix (source: FrontendRpPrefixSearchRequest; the Go SDK RoutingPrefixSearch). Leave router and originatedFrom out to search every router and origin. The pinned Go SDK sends routerKey and originatedFromKey with the protocol and says current builds answer 500 without them; the newer source reads router and originatedFrom with protocol. Not verified live.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    originated_from: Annotated[DevRoutingDeviceVrf | None, Field(alias="originatedFrom")] = None
+    originated_from_key: Annotated[
+        DevRoutingDeviceVrfProtocol | None, Field(alias="originatedFromKey")
+    ] = None
+    outcome: str | None = None
+    """
+    INSTALLED, FILTERED_OUT or NOT_PREFERRED. Set to look only at routers where the prefix has that outcome.
+    """
+    prefix: str
+    """
+    The prefix in CIDR form, for example 192.0.2.0/24.
+    """
+    router: DevRoutingDeviceVrf | None = None
+    router_key: Annotated[DevRoutingDeviceVrfProtocol | None, Field(alias="routerKey")] = None
+
+
+class DevRoutingPrefixSearchResult(ForwardModel):
+    """
+    Where a prefix originates (origin) and which nodes have it per outcome (devicesByOutcome). Empty when Forward has no routing data for the prefix (Go SDK RoutingPrefixSearchResult; the newer source's response body was not traced).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    devices_by_outcome: Annotated[
+        dict[str, list[DevRoutingNodeRef]] | None, Field(alias="devicesByOutcome")
+    ] = None
+    origin: list[DevRoutingNodeRef] | None = None
+
+
+class DevRoutingPrefixTraceRequest(ForwardModel):
+    """
+    The question of traceBgpPrefix (source: FrontendRpPrefixTraceRequest; the Go SDK RoutingTraceRequest). prefix, router, originatedFrom and outcome are all required. Wire shape of router and originatedFrom is the same open question as the search request.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    originated_from: Annotated[DevRoutingDeviceVrf, Field(alias="originatedFrom")]
+    originated_from_key: Annotated[
+        DevRoutingDeviceVrfProtocol | None, Field(alias="originatedFromKey")
+    ] = None
+    outcome: str
+    """
+    INSTALLED, FILTERED_OUT or NOT_PREFERRED.
+    """
+    prefix: str
+    router: DevRoutingDeviceVrf
+    router_key: Annotated[DevRoutingDeviceVrfProtocol | None, Field(alias="routerKey")] = None
+
+
 class DeviceAccessLabel(Attribution):
     """
     A set of devices, by exact name or glob, that an access control group can be narrowed to.
@@ -2985,7 +3296,7 @@ class Disp2AtlasLocation(ForwardModel):
     """
     dynamic_match_devices: Annotated[list[str] | None, Field(alias="dynamicMatchDevices")] = None
     """
-    Devices in this location because their names match one of the location's device globs. Omitted when empty (source: NON_EMPTY). Not present on the ADP network (live).
+    Devices in this location because their names match one of the location's device globs. Omitted when empty (source: NON_EMPTY). Not present on the test network (live).
     """
     location_id: Annotated[str, Field(alias="locationId")]
     """
@@ -3222,13 +3533,8 @@ class Disp2MapDeviceSettings(ForwardModel):
     show_type: Annotated[bool | None, Field(alias="showType")] = None
 
 
-class FileLine(ForwardModel):
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    end: int | None = None
-    start: int | None = None
+class FileLine1(Line):
+    pass
 
 
 class Disp2MapInterface(ForwardModel):
@@ -3242,7 +3548,7 @@ class Disp2MapInterface(ForwardModel):
     )
     aliases: list[str] | None = None
     description: str | None = None
-    file_lines: Annotated[dict[str, list[FileLine]] | None, Field(alias="fileLines")] = None
+    file_lines: Annotated[dict[str, list[FileLine1]] | None, Field(alias="fileLines")] = None
     """
     Where in the collected files the interface appears, keyed by file name.
     """
@@ -3506,6 +3812,68 @@ class DynamicConnectionsComputeError(ForwardModel):
     )
     error_msg: Annotated[str, Field(alias="errorMsg")]
     status: Status6
+
+
+class EnrichmentSource(OpenEnum):
+    rapid7 = "RAPID7"
+    cloud = "CLOUD"
+    tenable_sc = "TENABLE_SC"
+    tenable_vm = "TENABLE_VM"
+
+
+class EdgeAssetAttribution(ForwardModel):
+    """
+    Who created and last changed an edge asset, flattened into it (source: Attribution, JsonUnwrapped). Each field is omitted when Forward does not know it.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[AwareDatetime | None, Field(alias="createdAt")] = None
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    """
+    The username. Absent if the account was deleted.
+    """
+    created_by_id: Annotated[str | None, Field(alias="createdById")] = None
+    updated_at: Annotated[AwareDatetime | None, Field(alias="updatedAt")] = None
+    updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
+    updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
+
+
+class EdgeAssetCriticalityAssignment(ForwardModel):
+    """
+    Assigns one criticality to the named endpoints and edge assets, or removes it when criticality is null (source: CriticalityAssignmentRequest). The Go SDK always sends the criticality key. Names must not be empty.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    criticality: str | None = None
+    """
+    BUSINESS_CRITICAL, CRITICAL_INFRA or CROWN_JEWEL to assign; null to remove the criticality.
+    """
+    names: Annotated[list[str], Field(min_length=1)]
+
+
+class EdgeAssetPatch(ForwardModel):
+    """
+    A change to an edge asset. At least one of include and name is required (source: EdgeAssetPatch).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    include: bool | None = None
+    """
+    Turns matching to later snapshots on or off.
+    """
+    name: str | None = None
+    """
+    Renames the asset.
+    """
 
 
 class EncryptorConnection(ForwardModel):
@@ -4509,6 +4877,99 @@ class LoginType(OpenEnum):
     oauth = "OAUTH"
     jwt = "JWT"
     saml = "SAML"
+
+
+class MiscControllerManagedDevicePatch(ForwardModel):
+    """
+    Partial update of one controller or guest device in a controller-managed setup (source: ControllerDevicePatch / ManagedDevicePatch, JsonProp fields). Absent leaves a field unchanged; an explicit null clears a clearable field. name cannot be cleared (Forward answers 400). concurrency and ndoName are controllers only, and each field notes its own scope. Not traced: the server's accepted values for type, paginationMode, bgpAndBmpFailureHandling, bgpTableType and bgpPeerType (the Go SDK has no enum for them).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    bgp_and_bmp_failure_handling: Annotated[str | None, Field(alias="bgpAndBmpFailureHandling")] = (
+        None
+    )
+    bgp_peer_type: Annotated[str | None, Field(alias="bgpPeerType")] = None
+    bgp_subnets_to_collect: Annotated[list[str] | None, Field(alias="bgpSubnetsToCollect")] = None
+    """
+    IP subnets to collect BGP from.
+    """
+    bgp_table_type: Annotated[str | None, Field(alias="bgpTableType")] = None
+    bmp_station_host: Annotated[str | None, Field(alias="bmpStationHost")] = None
+    cli_credential2_id: Annotated[str | None, Field(alias="cliCredential2Id")] = None
+    """
+    The PRIVILEGED_MODE or ESCALATION_LOGIN credential.
+    """
+    cli_credential3_id: Annotated[str | None, Field(alias="cliCredential3Id")] = None
+    """
+    The EXPERT_MODE credential.
+    """
+    cli_credential_id: Annotated[str | None, Field(alias="cliCredentialId")] = None
+    collect: bool | None = None
+    collect_bgp_advertisements: Annotated[bool | None, Field(alias="collectBgpAdvertisements")] = (
+        None
+    )
+    concurrency: int | None = None
+    """
+    Controllers only. Not on the managed-device patch.
+    """
+    disable_ipv6_collection: Annotated[bool | None, Field(alias="disableIpv6Collection")] = None
+    enable_snmp_collection: Annotated[bool | None, Field(alias="enableSnmpCollection")] = None
+    full_collection_log: Annotated[bool | None, Field(alias="fullCollectionLog")] = None
+    high_cpu_usage: Annotated[float | None, Field(alias="highCpuUsage")] = None
+    high_input_utilization: Annotated[float | None, Field(alias="highInputUtilization")] = None
+    high_memory_usage: Annotated[float | None, Field(alias="highMemoryUsage")] = None
+    high_output_utilization: Annotated[float | None, Field(alias="highOutputUtilization")] = None
+    host: str | None = None
+    http_credential_id: Annotated[str | None, Field(alias="httpCredentialId")] = None
+    """
+    An H- id of a LOGIN credential for an API-collected controller.
+    """
+    jump_server_id: Annotated[str | None, Field(alias="jumpServerId")] = None
+    large_rtt: Annotated[bool | None, Field(alias="largeRtt")] = None
+    max_connections_per_min: Annotated[int | None, Field(alias="maxConnectionsPerMin")] = None
+    medium_cpu_usage: Annotated[float | None, Field(alias="mediumCpuUsage")] = None
+    medium_input_utilization: Annotated[float | None, Field(alias="mediumInputUtilization")] = None
+    medium_memory_usage: Annotated[float | None, Field(alias="mediumMemoryUsage")] = None
+    medium_output_utilization: Annotated[float | None, Field(alias="mediumOutputUtilization")] = (
+        None
+    )
+    min_bytes_read_per_sec: Annotated[int | None, Field(alias="minBytesReadPerSec")] = None
+    name: str | None = None
+    """
+    Rename. Done in place; not idempotent (the old name answers 404 afterwards).
+    """
+    ndo_name: Annotated[str | None, Field(alias="ndoName")] = None
+    """
+    Controllers only. The Nexus Dashboard Orchestrator linked to this controller.
+    """
+    note: str | None = None
+    pagination_mode: Annotated[str | None, Field(alias="paginationMode")] = None
+    port: int | None = None
+    prompt: str | None = None
+    prompt_response: Annotated[str | None, Field(alias="promptResponse")] = None
+    snmp_credential_id: Annotated[str | None, Field(alias="snmpCredentialId")] = None
+    terminal_width: Annotated[int | None, Field(alias="terminalWidth")] = None
+    type: str | None = None
+    """
+    Connection type of the device, a DeviceConnType name. Values not traced.
+    """
+    use_file_transfer_for_large_output: Annotated[
+        bool | None, Field(alias="useFileTransferForLargeOutput")
+    ] = None
+
+
+class MiscNqeExplainParams(ForwardModel):
+    """
+    The bare parameter map of a parameterized NQE query, sent as the whole JSON body (not wrapped in a params key). Keys are the query's parameter names; values are JSON. A nil value inside it is a 400 (source: NqeController.explainCommittedQuery, @RequestBody @JsonProperty("params")). An empty object means no parameters.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
 
 
 class DiscoveryMethod(OpenEnum):
@@ -5950,6 +6411,110 @@ class PerfDataPoint(ForwardModel):
     value: float
 
 
+class PerfDefaultUtilizationThresholds(ForwardModel):
+    """
+    Forward's default health thresholds as fractions of 1 (DefaultUtilizationThresholds.java). The record has no NON_NULL, so every key is present; the live account returned null for the four medium* fields.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    high_cpu_usage: Annotated[float, Field(alias="highCpuUsage", ge=0.0, le=1.0)]
+    """
+    CPU fraction that counts as high.
+    """
+    high_input_utilization: Annotated[float, Field(alias="highInputUtilization", ge=0.0, le=1.0)]
+    """
+    Input utilization that counts as high.
+    """
+    high_memory_usage: Annotated[float, Field(alias="highMemoryUsage", ge=0.0, le=1.0)]
+    """
+    Memory fraction that counts as high.
+    """
+    high_output_utilization: Annotated[float, Field(alias="highOutputUtilization", ge=0.0, le=1.0)]
+    """
+    Output utilization that counts as high.
+    """
+    medium_cpu_usage: Annotated[float, Field(alias="mediumCpuUsage", ge=0.0, le=1.0)]
+    """
+    CPU fraction that counts as medium. Null when Forward states none.
+    """
+    medium_input_utilization: Annotated[
+        float, Field(alias="mediumInputUtilization", ge=0.0, le=1.0)
+    ]
+    """
+    Input utilization that counts as medium. Null when Forward states none.
+    """
+    medium_memory_usage: Annotated[float, Field(alias="mediumMemoryUsage", ge=0.0, le=1.0)]
+    """
+    Memory fraction that counts as medium. Null when Forward states none.
+    """
+    medium_output_utilization: Annotated[
+        float, Field(alias="mediumOutputUtilization", ge=0.0, le=1.0)
+    ]
+    """
+    Output utilization that counts as medium. Null when Forward states none.
+    """
+    minimum_high_threshold: Annotated[float, Field(alias="minimumHighThreshold", ge=0.0, le=1.0)]
+    """
+    The floor under the high thresholds.
+    """
+    minimum_medium_threshold: Annotated[
+        float, Field(alias="minimumMediumThreshold", ge=0.0, le=1.0)
+    ]
+    """
+    The floor under the medium thresholds.
+    """
+
+
+class PerfDeviceHealth(ForwardModel):
+    """
+    Device health (DeviceHealth.java, @JsonInclude NON_NULL). The latest sample's keys are flattened into this object. An empty object means no data in the window (DeviceHealth.UNKNOWN).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cpu_usage: Annotated[float | None, Field(alias="cpuUsage", ge=0.0, le=1.0)] = None
+    """
+    Flattened from the latest sample.
+    """
+    instant: int | None = None
+    """
+    The latest sample's time, epoch milliseconds. Present only with a sample.
+    """
+    last_high_cpu_usage: Annotated[PerfDataPoint | None, Field(alias="lastHighCpuUsage")] = None
+    """
+    The last CPU reading above the high threshold, if any.
+    """
+    last_high_memory_usage: Annotated[PerfDataPoint | None, Field(alias="lastHighMemoryUsage")] = (
+        None
+    )
+    """
+    The last memory reading above the high threshold, if any.
+    """
+    last_medium_cpu_usage: Annotated[PerfDataPoint | None, Field(alias="lastMediumCpuUsage")] = None
+    """
+    The last CPU reading above the medium threshold, if any.
+    """
+    last_medium_memory_usage: Annotated[
+        PerfDataPoint | None, Field(alias="lastMediumMemoryUsage")
+    ] = None
+    """
+    The last memory reading above the medium threshold, if any.
+    """
+    memory_usage: Annotated[float | None, Field(alias="memoryUsage", ge=0.0, le=1.0)] = None
+    """
+    Flattened from the latest sample.
+    """
+    uptime_seconds: Annotated[int | None, Field(alias="uptimeSeconds")] = None
+    """
+    Flattened from the latest sample.
+    """
+
+
 class PerfDeviceMetricHistory(ForwardModel):
     """
     One device's series (DeviceMetricHistory.java).
@@ -5975,9 +6540,226 @@ class PerfDeviceMetricHistoryResponse(ForwardModel):
     metrics: list[PerfDeviceMetricHistory]
 
 
+class PerfDevicePerfSample(ForwardModel):
+    """
+    One device's CPU and memory sample (DevicePerfSample.java). PerfDeviceHealth flattens these keys into its own object.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cpu_usage: Annotated[float | None, Field(alias="cpuUsage", ge=0.0, le=1.0)] = None
+    """
+    CPU fraction.
+    """
+    instant: int | None = None
+    """
+    Sample time, epoch milliseconds (Jackson NUMBER shape).
+    """
+    memory_usage: Annotated[float | None, Field(alias="memoryUsage", ge=0.0, le=1.0)] = None
+    """
+    Memory fraction.
+    """
+    uptime_seconds: Annotated[int | None, Field(alias="uptimeSeconds")] = None
+    """
+    The device's uptime at the sample.
+    """
+
+
+class PerfDevicesHealth(RootModel[dict[str, PerfDeviceHealth]]):
+    """
+    Health keyed by device name (Map<DeviceName, DeviceHealth>). A device with no data maps to {}.
+    """
+
+    root: dict[str, PerfDeviceHealth]
+
+
+class PerfInterfaceHealth(ForwardModel):
+    """
+    Interface health (InterfaceHealth.java, @JsonInclude NON_NULL). The latest sample's keys are flattened into this object. An empty object means no data in the window (InterfaceHealth.UNKNOWN).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    in_discards: Annotated[int | None, Field(alias="inDiscards", ge=0)] = None
+    """
+    Flattened from the latest sample.
+    """
+    in_errors: Annotated[int | None, Field(alias="inErrors", ge=0)] = None
+    """
+    Flattened from the latest sample.
+    """
+    in_octets: Annotated[int | None, Field(alias="inOctets", ge=0)] = None
+    """
+    Flattened from the latest sample.
+    """
+    input_discards_per_min: Annotated[float | None, Field(alias="inputDiscardsPerMin")] = None
+    """
+    Flattened from the latest sample.
+    """
+    input_errors_per_min: Annotated[float | None, Field(alias="inputErrorsPerMin")] = None
+    """
+    Flattened from the latest sample.
+    """
+    input_utilization: Annotated[float | None, Field(alias="inputUtilization", ge=0.0, le=1.0)] = (
+        None
+    )
+    """
+    Flattened from the latest sample.
+    """
+    instant: int | None = None
+    """
+    The latest sample's time, epoch milliseconds. Present only with a sample.
+    """
+    last_high_input_utilization: Annotated[
+        PerfDataPoint | None, Field(alias="lastHighInputUtilization")
+    ] = None
+    """
+    The last input utilization above the high threshold, if any.
+    """
+    last_high_output_utilization: Annotated[
+        PerfDataPoint | None, Field(alias="lastHighOutputUtilization")
+    ] = None
+    """
+    The last output utilization above the high threshold, if any.
+    """
+    last_input_discards: Annotated[PerfDataPoint | None, Field(alias="lastInputDiscards")] = None
+    """
+    The last input discards reading, if any.
+    """
+    last_input_errors: Annotated[PerfDataPoint | None, Field(alias="lastInputErrors")] = None
+    """
+    The last input errors reading, if any.
+    """
+    last_medium_input_utilization: Annotated[
+        PerfDataPoint | None, Field(alias="lastMediumInputUtilization")
+    ] = None
+    """
+    The last input utilization above the medium threshold, if any.
+    """
+    last_medium_output_utilization: Annotated[
+        PerfDataPoint | None, Field(alias="lastMediumOutputUtilization")
+    ] = None
+    """
+    The last output utilization above the medium threshold, if any.
+    """
+    last_output_discards: Annotated[PerfDataPoint | None, Field(alias="lastOutputDiscards")] = None
+    """
+    The last output discards reading, if any.
+    """
+    last_output_errors: Annotated[PerfDataPoint | None, Field(alias="lastOutputErrors")] = None
+    """
+    The last output errors reading, if any.
+    """
+    out_discards: Annotated[int | None, Field(alias="outDiscards", ge=0)] = None
+    """
+    Flattened from the latest sample.
+    """
+    out_errors: Annotated[int | None, Field(alias="outErrors", ge=0)] = None
+    """
+    Flattened from the latest sample.
+    """
+    out_octets: Annotated[int | None, Field(alias="outOctets", ge=0)] = None
+    """
+    Flattened from the latest sample.
+    """
+    output_discards_per_min: Annotated[float | None, Field(alias="outputDiscardsPerMin")] = None
+    """
+    Flattened from the latest sample.
+    """
+    output_errors_per_min: Annotated[float | None, Field(alias="outputErrorsPerMin")] = None
+    """
+    Flattened from the latest sample.
+    """
+    output_utilization: Annotated[
+        float | None, Field(alias="outputUtilization", ge=0.0, le=1.0)
+    ] = None
+    """
+    Flattened from the latest sample.
+    """
+    speed_mbps: Annotated[int | None, Field(alias="speedMbps")] = None
+    """
+    Flattened from the latest sample.
+    """
+
+
 class Direction1(OpenEnum):
     ingress = "INGRESS"
     egress = "EGRESS"
+
+
+class PerfInterfacePerfSample(ForwardModel):
+    """
+    One interface's counters and rates (InterfacePerfSample.java). PerfInterfaceHealth flattens these keys into its own object.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    in_discards: Annotated[int | None, Field(alias="inDiscards", ge=0)] = None
+    """
+    Cumulative input discards.
+    """
+    in_errors: Annotated[int | None, Field(alias="inErrors", ge=0)] = None
+    """
+    Cumulative input errors.
+    """
+    in_octets: Annotated[int | None, Field(alias="inOctets", ge=0)] = None
+    """
+    Cumulative input octets (unsigned 64-bit).
+    """
+    input_discards_per_min: Annotated[float | None, Field(alias="inputDiscardsPerMin")] = None
+    """
+    Input discards per minute, derived from the counter difference (not traced beyond the Go SDK's note).
+    """
+    input_errors_per_min: Annotated[float | None, Field(alias="inputErrorsPerMin")] = None
+    """
+    Input errors per minute, derived from the counter difference.
+    """
+    input_utilization: Annotated[float | None, Field(alias="inputUtilization", ge=0.0, le=1.0)] = (
+        None
+    )
+    """
+    Input utilization fraction.
+    """
+    instant: int | None = None
+    """
+    Sample time, epoch milliseconds (Jackson NUMBER shape).
+    """
+    out_discards: Annotated[int | None, Field(alias="outDiscards", ge=0)] = None
+    """
+    Cumulative output discards.
+    """
+    out_errors: Annotated[int | None, Field(alias="outErrors", ge=0)] = None
+    """
+    Cumulative output errors.
+    """
+    out_octets: Annotated[int | None, Field(alias="outOctets", ge=0)] = None
+    """
+    Cumulative output octets (unsigned 64-bit).
+    """
+    output_discards_per_min: Annotated[float | None, Field(alias="outputDiscardsPerMin")] = None
+    """
+    Output discards per minute, derived from the counter difference.
+    """
+    output_errors_per_min: Annotated[float | None, Field(alias="outputErrorsPerMin")] = None
+    """
+    Output errors per minute, derived from the counter difference.
+    """
+    output_utilization: Annotated[
+        float | None, Field(alias="outputUtilization", ge=0.0, le=1.0)
+    ] = None
+    """
+    Output utilization fraction.
+    """
+    speed_mbps: Annotated[int | None, Field(alias="speedMbps")] = None
+    """
+    Interface speed, Mbps.
+    """
 
 
 class PerfInterfaceWithDirection(ForwardModel):
@@ -5994,6 +6776,80 @@ class PerfInterfaceWithDirection(ForwardModel):
     interface_name: Annotated[str, Field(alias="interfaceName")]
 
 
+class PerfRawInterfaceCounters(ForwardModel):
+    """
+    One interface's counters in a raw SNMP reading (SnmpRawDataResponse.InterfaceCounters).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    in_discards: Annotated[int | None, Field(alias="inDiscards")] = None
+    """
+    Input discards.
+    """
+    in_errors: Annotated[int | None, Field(alias="inErrors")] = None
+    """
+    Input errors.
+    """
+    in_octets: Annotated[int | None, Field(alias="inOctets")] = None
+    """
+    Input octets as the collector read them.
+    """
+    interface_type: Annotated[int | None, Field(alias="interfaceType")] = None
+    """
+    The SNMP ifType number.
+    """
+    out_discards: Annotated[int | None, Field(alias="outDiscards")] = None
+    """
+    Output discards.
+    """
+    out_errors: Annotated[int | None, Field(alias="outErrors")] = None
+    """
+    Output errors.
+    """
+    out_octets: Annotated[int | None, Field(alias="outOctets")] = None
+    """
+    Output octets.
+    """
+    speed_mbps: Annotated[int | None, Field(alias="speedMbps")] = None
+    """
+    Interface speed, Mbps.
+    """
+
+
+class PerfSettings(ForwardModel):
+    """
+    A network's performance collection setting (source: PerformanceSettings).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    enabled: bool | None = None
+    interval_minutes: Annotated[int | None, Field(alias="intervalMinutes")] = None
+    """
+    Minutes between samples. Omitted when never set.
+    """
+
+
+class PerfSyntheticGenerateResult(ForwardModel):
+    """
+    The result of the synthetic-performance generate call (Map.of("numDevices", n) in PerformanceController.generateDevicePerformanceData).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    num_devices: Annotated[int, Field(alias="numDevices", ge=0)]
+    """
+    Devices given synthetic data.
+    """
+
+
 class PerfUnhealthyThreshold(OpenEnum):
     """
     The severity a usage breached (UnhealthyThreshold.java).
@@ -6003,7 +6859,7 @@ class PerfUnhealthyThreshold(OpenEnum):
     medium = "MEDIUM"
 
 
-class PortRange(FileLine):
+class PortRange(Line):
     pass
 
 
@@ -6037,6 +6893,125 @@ class PredefinedCheckType(OpenEnum):
     ssh_rsa_key_length = "SSH_RSA_KEY_LENGTH"
     vpc_stp_priority = "VPC_STP_PRIORITY"
     vpc_mst_region_consistency = "VPC_MST_REGION_CONSISTENCY"
+
+
+class PredictChangeSetCheckPatch(ForwardModel):
+    """
+    Changes one change-set check (source ChangeSetCheckPatch). An absent field is left alone; name null clears the name. A definition replaces the whole definition and must keep its category.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    definition: dict[str, Any] | None = None
+    """
+    The new definition; checkType selects the kind and must keep the category of the existing check. Same shape as NewChangeSetCheck.definition.
+    """
+    name: str | None = None
+    """
+    The check name. Send null to clear it. Forward rejects a name on an NQE check.
+    """
+
+
+class PredictNqeCheckCommit(ForwardModel):
+    """
+    The commit of an NQE check's query (source NqeCheckCommitInfo and CommitAuthor). The author is authorId or authorEmail, never both.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    author_email: Annotated[str | None, Field(alias="authorEmail")] = None
+    """
+    The author's email
+    """
+    author_id: Annotated[str | None, Field(alias="authorId")] = None
+    """
+    The author's user id
+    """
+    committed_at: Annotated[str | None, Field(alias="committedAt")] = None
+    """
+    ISO-8601 instant.
+    """
+    has_params: Annotated[bool | None, Field(alias="hasParams")] = None
+    """
+    Whether the query takes parameters. Omitted when false.
+    """
+    id: str | None = None
+    intent: str | None = None
+    path: str | None = None
+    """
+    The query's path in that commit.
+    """
+
+
+class PredictNqeCheckInfo(ForwardModel):
+    """
+    An NQE query enabled as a change-set check (source NqeCheckInfo; Go NQECheckInfo). Forward leaves out false booleans.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    commits: list[PredictNqeCheckCommit] | None = None
+    """
+    The query's latest commit. Forward wraps it in a list.
+    """
+    last_commit_source_code_sha: Annotated[str | None, Field(alias="lastCommitSourceCodeSha")] = (
+        None
+    )
+    """
+    The source hash of the query's latest version.
+    """
+    present_in_head: Annotated[bool | None, Field(alias="presentInHead")] = None
+    """
+    Whether the query exists in HEAD. Omitted when false.
+    """
+    query_id: Annotated[str | None, Field(alias="queryId")] = None
+    """
+    The query's id in the NQE library.
+    """
+    repository: str | None = None
+    """
+    ORG or FWD, the repository the query lives in. Other values are not ruled out.
+    """
+    restricted: bool | None = None
+    """
+    Whether the query is restricted for this caller. Omitted when false.
+    """
+
+
+class PredictProtocolModelingError(ForwardModel):
+    """
+    The body Forward sends instead of a device list when the snapshot has no affected devices, which is a base snapshot (source ErrNoAffectedDevices; live).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    error: str
+    """
+    For a base snapshot: No affected devices since this is a base snapshot.
+    """
+
+
+class PredictProtocolModelingStatus(ForwardModel):
+    """
+    Whether protocol modeling has finished for a snapshot (source BenchmarkController.getProtocolModelingStatus).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    done: bool
+    """
+    True once a successful result is stored. A failed job also reads false.
+    """
 
 
 class PredictedSnapshotMeta(ForwardModel):
@@ -9562,6 +10537,159 @@ class TextRegion(ForwardModel):
     """
 
 
+class ThreatAnalysisStatus(OpenEnum):
+    """
+    The state of an analysis or of one of its stages (source: GUI threat-exposure model; Java Status.java not traced here).
+    """
+
+    not_started = "NOT_STARTED"
+    running = "RUNNING"
+    succeeded = "SUCCEEDED"
+    failed = "FAILED"
+    timed_out = "TIMED_OUT"
+    cancelled = "CANCELLED"
+
+
+class ThreatAttribution(ForwardModel):
+    """
+    Who created and last changed a definition, flattened into it (source: Attribution, JsonUnwrapped). Each field is omitted when Forward does not know it.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[AwareDatetime | None, Field(alias="createdAt")] = None
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    """
+    The username. Absent if the account was deleted.
+    """
+    created_by_id: Annotated[str | None, Field(alias="createdById")] = None
+    updated_at: Annotated[AwareDatetime | None, Field(alias="updatedAt")] = None
+    updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
+    updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
+
+
+class Exposures(OpenEnum):
+    direct = "DIRECT"
+    transitive = "TRANSITIVE"
+
+
+class ThreatCriticalityLevel(OpenEnum):
+    """
+    The criticality of an asset (source: CriticalityLevel).
+    """
+
+    business_critical = "BUSINESS_CRITICAL"
+    critical_infra = "CRITICAL_INFRA"
+    crown_jewel = "CROWN_JEWEL"
+
+
+class ThreatExposureAnalysisSummary(ForwardModel):
+    """
+    The status of the latest analysis of a definition on one snapshot (source: ThreatExposureAnalysisSummary).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    snapshot_id: Annotated[str, Field(alias="snapshotId")]
+    status: ThreatAnalysisStatus
+
+
+class ThreatExposureLevel(OpenEnum):
+    """
+    How severely an exposure point exposes an asset (source: ExposureLevel).
+    """
+
+    moderate = "MODERATE"
+    high = "HIGH"
+    severe = "SEVERE"
+    critical = "CRITICAL"
+
+
+class ThreatExposurePoint(ForwardModel):
+    """
+    An interface alias acting as an exposure point, with the severity of exposure through it (source: ExposurePointAndLevel).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    exposure_point: Annotated[str, Field(alias="exposurePoint")]
+    """
+    The name of the interface group that is the exposure point.
+    """
+    level: ThreatExposureLevel
+
+
+class ThreatExposureStatus(ForwardModel):
+    """
+    The progress of one analysis (GUI model ThreatExposureStatus; the Java record is not traced here). haveParametersChanged is present only once the analysis is done. previousAnalysisAvailable is present only while it runs.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    have_parameters_changed: Annotated[bool | None, Field(alias="haveParametersChanged")] = None
+    overall_status: Annotated[ThreatAnalysisStatus, Field(alias="overallStatus")]
+    previous_analysis_available: Annotated[
+        bool | None, Field(alias="previousAnalysisAvailable")
+    ] = None
+    stage_statuses: Annotated[dict[str, ThreatAnalysisStatus], Field(alias="stageStatuses")]
+    """
+    Keyed by computation stage (DIRECT_AND_INDIRECT_L2, DIRECT_THROUGH_FIREWALL, INDIRECT_SECURITY_DOMAIN). Only the stages this analysis runs are present.
+    """
+
+
+class ThreatOpenDetail(ForwardModel):
+    """
+    A response of an analysis view whose JSON shape is not traced in this repo or the GUI. The fields are whatever Forward sent.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+
+
+class Protocol6(OpenEnum):
+    tcp = "TCP"
+    udp = "UDP"
+
+
+class ThreatProtocolPorts(ForwardModel):
+    """
+    Open ports of one protocol on an asset (GUI model ProtocolPorts).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    ports: list[str]
+    """
+    Port numbers or ranges, e.g. 22, 80, 90-101.
+    """
+    protocol: Protocol6
+
+
+class ThreatTablePagingOptions(ForwardModel):
+    """
+    Paging for the analysis tables (source: TablePagingOptions). sortBy is refused: results come in a fixed order. Omitted offset and limit take the server defaults, 0 and 1000.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    limit: Annotated[int | None, Field(ge=1, le=10000)] = None
+    offset: Annotated[int | None, Field(ge=0)] = None
+
+
 class Status13(OpenEnum):
     neutral = "NEUTRAL"
     ok = "OK"
@@ -12774,6 +13902,83 @@ class DataFileInfo(Attribution):
     uploaded_by_id: Annotated[str | None, Field(alias="uploadedById")] = None
 
 
+class DevRoutingInstalledPrefixes(ForwardModel):
+    """
+    BGP-installed prefixes for a device or the snapshot (source: BgpInstalledPrefixesResponse). The source record is the body; the Go SDK decodes the same keys.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    nodes: list[DevRoutingNodePrefixes]
+    total_prefix_count: Annotated[int, Field(alias="totalPrefixCount")]
+    """
+    The number of (node, prefix) pairs returned across all nodes.
+    """
+
+
+class DevRoutingInterface(ForwardModel):
+    """
+    One interface of a modelled device (source: com.forwardnetworks.cv.device.iface.Interface, a sealed type discriminated by type). Common properties are on every type; L3 adds ipAddresses, fhrpIpAddresses and vrfName (omitted for the default VRF); TUNNEL adds srcAddresses, dstAddresses, tunnelType and carriesAnyVrf; ACCESS, TRUNK and SWITCHED_VLAN add VLAN fields. Null values are omitted. Port types add speedMbps (omitted when unknown) and fullDuplex. Not every type's fields were traced; additionalProperties is open for them.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    aliases: list[str] | None = None
+    allowed_vlans: Annotated[list[dict[str, Any]] | None, Field(alias="allowedVlans")] = None
+    """
+    VLAN ranges. Shape not traced beyond being a list.
+    """
+    allows_untagged: Annotated[bool | None, Field(alias="allowsUntagged")] = None
+    carries_any_vrf: Annotated[bool | None, Field(alias="carriesAnyVrf")] = None
+    description: str | None = None
+    dst_addresses: Annotated[list[str] | None, Field(alias="dstAddresses")] = None
+    fhrp_ip_addresses: Annotated[list[str] | None, Field(alias="fhrpIpAddresses")] = None
+    file_lines: Annotated[list[FileLine] | None, Field(alias="fileLines")] = None
+    """
+    The config files and line ranges the interface was modelled from (live: one entry per file, lines is a list of start and end line numbers).
+    """
+    full_duplex: Annotated[bool | None, Field(alias="fullDuplex")] = None
+    in_acl_names: Annotated[list[str] | None, Field(alias="inAclNames")] = None
+    ip_addresses: Annotated[list[str] | None, Field(alias="ipAddresses")] = None
+    """
+    Subnets with host bits, for example 192.0.2.1/30 (L3 and some other types).
+    """
+    is_down: Annotated[bool | None, Field(alias="isDown")] = None
+    is_loopback: Annotated[bool | None, Field(alias="isLoopback")] = None
+    mac_address: Annotated[str | None, Field(alias="macAddress")] = None
+    """
+    Serialization not traced beyond its presence on GENERIC interfaces (live).
+    """
+    mtu: int | None = None
+    name: str
+    neighbors: list[DevRoutingInterfaceNeighbor] | None = None
+    """
+    Present only with with=neighbors.
+    """
+    out_acl_names: Annotated[list[str] | None, Field(alias="outAclNames")] = None
+    security_zone: Annotated[str | None, Field(alias="securityZone")] = None
+    speed_mbps: Annotated[int | None, Field(alias="speedMbps")] = None
+    src_addresses: Annotated[list[str] | None, Field(alias="srcAddresses")] = None
+    tunnel_type: Annotated[str | None, Field(alias="tunnelType")] = None
+    type: str
+    """
+    The InterfaceType value: GENERIC, ACCESS, TRUNK, FABRICPATH, SWITCH_SUBINTERFACE, L3, SWITCHED_VLAN, SUBINTERFACE, BRIDGE, DEMUX, TUNNEL, TE_TUNNEL or INTER_VRF. GENERIC, L3 and TUNNEL were seen live.
+    """
+    vrf_name: Annotated[str | None, Field(alias="vrfName")] = None
+
+
+class DevRoutingInterfaceList(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    interfaces: list[DevRoutingInterface]
+
+
 class Device(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -13310,11 +14515,11 @@ class Disp2UserAccountWithRoles(User):
     """
     fn_admin: Annotated[bool | None, Field(alias="fnAdmin")] = None
     """
-    Whether the user is a Forward admin. Omitted when false (source: NON_DEFAULT). Not set for any user on the ADP account (live).
+    Whether the user is a Forward admin. Omitted when false (source: NON_DEFAULT). Not set for any user on the test account (live).
     """
     group_ids: Annotated[list[str] | None, Field(alias="groupIds")] = None
     """
-    The access control groups the user is in, by ID. Omitted when empty (source: NON_EMPTY). Never sent on the ADP account (live).
+    The access control groups the user is in, by ID. Omitted when empty (source: NON_EMPTY). Never sent on the test account (live).
     """
     oldest_api_token_created_at: Annotated[
         AwareDatetime | None, Field(alias="oldestApiTokenCreatedAt")
@@ -13328,12 +14533,54 @@ class Disp2UserAccountWithRoles(User):
     """
     support_admin: Annotated[bool | None, Field(alias="supportAdmin")] = None
     """
-    Whether the user is a support admin. Omitted when false (source: NON_DEFAULT). Not set for any user on the ADP account (live).
+    Whether the user is a support admin. Omitted when false (source: NON_DEFAULT). Not set for any user on the test account (live).
     """
     supported_org_ids: Annotated[list[str] | None, Field(alias="supportedOrgIds")] = None
     """
-    The orgs a support user can enter. Omitted when empty (source: NON_EMPTY). Never sent on the ADP account (live).
+    The orgs a support user can enter. Omitted when empty (source: NON_EMPTY). Never sent on the test account (live).
     """
+
+
+class EdgeAsset(EdgeAssetAttribution):
+    """
+    A host a user added as an edge asset, with its network-level criticality and whether it is in the latest snapshot (source: EdgeAsset, StoredEdgeAsset).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cloud_host_id: Annotated[str | None, Field(alias="cloudHostId")] = None
+    criticality: ThreatCriticalityLevel | None = None
+    enrichment_sources: Annotated[
+        list[EnrichmentSource] | None, Field(alias="enrichmentSources")
+    ] = None
+    """
+    Where extra information about the asset comes from (source: EnrichmentSource).
+    """
+    include: bool
+    """
+    Whether the asset is matched to hosts in later snapshots.
+    """
+    included_in_latest_snapshot: Annotated[bool, Field(alias="includedInLatestSnapshot")]
+    ips: list[str] | None = None
+    mac_address: Annotated[str | None, Field(alias="macAddress")] = None
+    name: str
+    """
+    The device name the asset is listed under.
+    """
+
+
+class EdgeAssets(ForwardModel):
+    """
+    The network's edge assets (source: EdgeAssets).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    edge_assets: Annotated[list[EdgeAsset], Field(alias="edgeAssets")]
 
 
 class Encryptor(ForwardModel):
@@ -14240,7 +15487,7 @@ class NewCloudAccount(ForwardModel):
         list[VariantsAwsC2SAccountInfo] | None, Field(alias="awsC2SAccountInfos")
     ] = None
     """
-    AWS CAP accounts only: the portal-account filter (AwsAccount.awsC2SAccountInfos). Source-only: no CAP account is on the ADP network, so it is not observed live.
+    AWS CAP accounts only: the portal-account filter (AwsAccount.awsC2SAccountInfos). Source-only: no CAP account is on the test network, so it is not observed live.
     """
     collect: bool | None = None
     collector_id: Annotated[str | None, Field(alias="collectorId")] = None
@@ -14892,6 +16139,60 @@ class PerfInterfaceMetricHistoryResponse(ForwardModel):
         populate_by_name=True,
     )
     metrics: list[PerfInterfaceMetricHistory]
+
+
+class PerfRawDevicePerf(ForwardModel):
+    """
+    The device's own reading in a raw SNMP response (SnmpRawDataResponse.DevicePerf). Present only when includeDevicePerfData was set.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cpu_usage: Annotated[float | None, Field(alias="cpuUsage")] = None
+    """
+    CPU fraction as the collector read it.
+    """
+    device_name: Annotated[str | None, Field(alias="deviceName")] = None
+    interface_counters: Annotated[
+        dict[str, PerfRawInterfaceCounters] | None, Field(alias="interfaceCounters")
+    ] = None
+    """
+    Counters keyed by interface name.
+    """
+    memory_usage: Annotated[float | None, Field(alias="memoryUsage")] = None
+    """
+    Memory fraction as the collector read it.
+    """
+    timestamp: AwareDatetime | None = None
+    """
+    ISO-8601 string (the Forward object mapper writes Instant as a string unless a field says NUMBER; this one does not).
+    """
+    uptime_seconds: Annotated[int | None, Field(alias="uptimeSeconds")] = None
+    vendor_os: Annotated[VendorOs | None, Field(alias="vendorOs")] = None
+
+
+class PerfRawSnmpData(ForwardModel):
+    """
+    What a collector read over SNMP (SnmpRawDataResponse.java, @JsonInclude NON_NULL, so errorMessage and devicePerfData are omitted when absent).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_perf_data: Annotated[PerfRawDevicePerf | None, Field(alias="devicePerfData")] = None
+    error_message: Annotated[str | None, Field(alias="errorMessage")] = None
+    """
+    The collector's error, when the walk failed. Omitted when absent.
+    """
+    oid_to_leaf_oid_vals: Annotated[
+        dict[str, dict[str, str]] | None, Field(alias="oidToLeafOidVals")
+    ] = None
+    """
+    Keyed by the parent OID walked; each value maps leaf OIDs to the value read, as a string. Only the two-level Map<String, Map<String, String>> shape is traced.
+    """
 
 
 class PerfThresholdExceedance(ForwardModel):
@@ -15759,6 +17060,194 @@ class SysOrgCollectionSettings(ForwardModel):
     snapshot_collection_timeout_minutes: Annotated[
         int | None, Field(alias="snapshotCollectionTimeoutMinutes", ge=1)
     ] = None
+
+
+class ThreatCriticalAsset(ForwardModel):
+    """
+    A critical asset a definition selects (GUI model CriticalAsset; the Java record is not traced here).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    criticality: ThreatCriticalityLevel
+    id: str
+    """
+    A global host id.
+    """
+    location_id: Annotated[str, Field(alias="locationId")]
+    name: str | None = None
+    """
+    Absent for unnamed hosts.
+    """
+    subnet: str
+    tags: list[str]
+
+
+class ThreatCriticalAssetSummary(ForwardModel):
+    """
+    One critical asset with some exposure, from an analysis (GUI model CriticalAssetExposureSummary; the Java record is not traced here).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    criticality: ThreatCriticalityLevel
+    exposures: dict[str, Exposures] | None = None
+    """
+    Keyed by exposure point name. An exposure point without exposure, or not yet computed, has no entry.
+    """
+    forward_risk_score: Annotated[float, Field(alias="forwardRiskScore")]
+    id: str
+    """
+    A global host id.
+    """
+    location_id: Annotated[str, Field(alias="locationId")]
+    name: str | None = None
+    """
+    Absent for unnamed hosts.
+    """
+    open_ports: Annotated[list[ThreatProtocolPorts], Field(alias="openPorts")]
+    vulnerability_score: Annotated[float | None, Field(alias="vulnerabilityScore")] = None
+
+
+class ThreatExposureAnalysisSummaries(ForwardModel):
+    """
+    A definition's analyses, newest snapshot first (source: ThreatExposureAnalysisSummaries).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    analyses: list[ThreatExposureAnalysisSummary]
+
+
+class ThreatExposureDefinition(ThreatAttribution):
+    """
+    A saved threat exposure definition (source: ThreatExposureDefinition). An absent or empty filter selects all critical assets.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    criticalities: list[ThreatCriticalityLevel] | None = None
+    exposure_points: Annotated[
+        list[ThreatExposurePoint], Field(alias="exposurePoints", max_length=4, min_length=1)
+    ]
+    id: UUID
+    locations: list[str] | None = None
+    max_duration_seconds: Annotated[int, Field(alias="maxDurationSeconds", ge=1)]
+    """
+    The time limit of one analysis, in seconds.
+    """
+    name: str
+    subnets: list[str] | None = None
+
+
+class ThreatExposureDefinitionInfo(ForwardModel):
+    """
+    A definition with the latest snapshot analyzed against it (source: ThreatExposureDefinitionInfo). The Go SDK says Forward leaves latestAnalyzedSnapshotId empty (FWD-60477); the server source fills it, so expect either.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    definition: ThreatExposureDefinition
+    latest_analyzed_snapshot_id: Annotated[str | None, Field(alias="latestAnalyzedSnapshotId")] = (
+        None
+    )
+    """
+    Absent when the definition has not been analyzed.
+    """
+
+
+class ThreatExposureDefinitionInfos(ForwardModel):
+    """
+    The network's definitions, newest created first (source: ThreatExposureDefinitionInfos).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    definitions: list[ThreatExposureDefinitionInfo]
+
+
+class ThreatExposureDefinitionInput(ForwardModel):
+    """
+    The body that creates or resolves a definition (source: NewThreatExposureDefinition). The server refuses an invalid body with 400.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    criticalities: list[ThreatCriticalityLevel] | None = None
+    exposure_points: Annotated[
+        list[ThreatExposurePoint], Field(alias="exposurePoints", max_length=4, min_length=1)
+    ]
+    """
+    1 to 4 exposure points, each named once.
+    """
+    locations: list[str] | None = None
+    max_duration_seconds: Annotated[int, Field(alias="maxDurationSeconds", ge=1)]
+    """
+    Required and positive.
+    """
+    name: str
+    """
+    Not blank.
+    """
+    subnets: list[str] | None = None
+
+
+class ThreatExposureDefinitionPatch(ForwardModel):
+    """
+    A change to a definition. Absent fields keep their value; an empty locations, criticalities or subnets list clears that filter. At least one field is required (source: ThreatExposureDefinitionPatch).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    criticalities: list[ThreatCriticalityLevel] | None = None
+    exposure_points: Annotated[
+        list[ThreatExposurePoint] | None, Field(alias="exposurePoints", max_length=4, min_length=1)
+    ] = None
+    locations: list[str] | None = None
+    max_duration_seconds: Annotated[int | None, Field(alias="maxDurationSeconds", ge=1)] = None
+    name: str | None = None
+    subnets: list[str] | None = None
+
+
+class ThreatExposureResolution(ForwardModel):
+    """
+    The critical assets a definition resolves to on a snapshot (GUI model ThreatExposureDefinitionResolutionSummary; the Java record is not traced here).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    critical_assets: Annotated[list[ThreatCriticalAsset], Field(alias="criticalAssets")]
+
+
+class ThreatExposureScope(ForwardModel):
+    """
+    What an analysis covers: its critical assets, and a copy of the definition it started with (source: ThreatExposureAnalysisScope).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    critical_assets: Annotated[list[ThreatCriticalAsset], Field(alias="criticalAssets")]
+    definition: ThreatExposureDefinition
 
 
 class TopologyDiff(ForwardModel):

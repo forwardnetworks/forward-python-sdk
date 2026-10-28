@@ -46,6 +46,21 @@ class CollectionSettingsService(Service):
         payload = self._send_json(ops.BUILDERS["getOrganizationCollectionSettings"]())
         return models.SysOrgCollectionSettings.model_validate(payload or {})
 
+    def get_performance_settings(
+        self,
+        *,
+        network_id: str | None = None,
+    ) -> models.PerfSettings:
+        """Read whether performance collection is on for a network.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getPerformanceSettings"](network_id=self._network(network_id))
+        )
+        return models.PerfSettings.model_validate(payload or {})
+
     def patch_collector_collection_settings(
         self,
         *,

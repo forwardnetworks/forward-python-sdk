@@ -61,6 +61,16 @@ Forward's API documentation: `getLocations` becomes `get_locations`.
 | `client.change_set_directories` | Change Set Directories | Unpublished; `PREDICT_MODELING` org property |
 | `client.network_maps` | Network Maps | Unpublished; read-only, `VIEW_NETWORK_MAPS`; see [Network maps](network-maps.md) |
 | `client.predict_assist` | Predict Assist | Unpublished; `AI_ALLOWED` and `PREDICT_AI_ASSIST` |
+| `client.predict_reference` | Predict Reference | Unpublished; Predict OS list and allowed commands per OS and protocol |
+| `client.change_set_checks` | Change Set Checks | Unpublished; `PREDICT_MODELING` org property; edit a check, list NQE checks |
+| `client.protocol_modeling` | Protocol Modeling | Unpublished; status needs `MANAGE_PROTOCOL_MODELING` (network admin); affected devices need `PREDICT_MODELING` |
+| `client.performance_collection` | Performance Collection | Unpublished; collector upload and collector device list need a collector credential |
+| `client.device_interfaces` | Device Interfaces | Unpublished; one device's interfaces |
+| `client.device_diffs` | Device Diffs | Unpublished; per-device differences between two snapshots |
+| `client.bgp_prefixes` | BGP Prefixes | Unpublished; `RP_PREFIX_SEARCH` and `PREDICT_MODELING`, licensed |
+| `client.threat_exposure` | Threat Exposure | Unpublished; SECURITY licence facet, source-only |
+| `client.edge_assets` | Edge Assets | Unpublished; source-only |
+| `client.nqe_explain` | NQE Explain | Unpublished; internal routes, `VIEW_NQE_LIBRARY` |
 | `client.snmp_credentials` | SNMP Credentials | Unpublished; device-credential permissions |
 | `client.collector_binding` | Collector Binding | Unpublished; `VIEW_COLLECTORS` to read, collection settings to write |
 | `client.cloud_accounts` | Cloud Accounts | Unpublished; collection-source permissions |

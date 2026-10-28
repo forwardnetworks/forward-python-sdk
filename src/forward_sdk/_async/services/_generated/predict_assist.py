@@ -77,6 +77,23 @@ class AsyncPredictAssistService(AsyncService):
         )
         return models.SummaryAssistResponse.model_validate(payload or {})
 
+    async def assist_failure_diff_summary(
+        self,
+        *,
+        before_snapshot_id: str,
+        after_snapshot_id: str,
+    ) -> models.SummaryAssistResponse:
+        """Ask Forward AI to summarize what failed between two snapshots.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["assistFailureDiffSummary"](
+                before_snapshot_id=before_snapshot_id, after_snapshot_id=after_snapshot_id
+            )
+        )
+        return models.SummaryAssistResponse.model_validate(payload or {})
+
     async def assist_impact_diff_summary(
         self,
         *,

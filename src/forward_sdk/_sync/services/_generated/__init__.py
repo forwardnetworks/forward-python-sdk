@@ -17,7 +17,9 @@ from forward_sdk._sync.services._generated.audit_logs import AuditLogsService
 from forward_sdk._sync.services._generated.backups import BackupsService
 from forward_sdk._sync.services._generated.banners import BannersService
 from forward_sdk._sync.services._generated.bgp_advertisements import BGPAdvertisementsService
+from forward_sdk._sync.services._generated.bgp_prefixes import BGPPrefixesService
 from forward_sdk._sync.services._generated.blast_radius import BlastRadiusService
+from forward_sdk._sync.services._generated.change_set_checks import ChangeSetChecksService
 from forward_sdk._sync.services._generated.change_set_directories import (
     ChangeSetDirectoriesService,
 )
@@ -44,7 +46,10 @@ from forward_sdk._sync.services._generated.custom_command_groups import (
 from forward_sdk._sync.services._generated.dashboards import DashboardsService
 from forward_sdk._sync.services._generated.data_connectors import DataConnectorsService
 from forward_sdk._sync.services._generated.data_files import DataFilesService
+from forward_sdk._sync.services._generated.device_diffs import DeviceDiffsService
 from forward_sdk._sync.services._generated.device_discovery import DeviceDiscoveryService
+from forward_sdk._sync.services._generated.device_interfaces import DeviceInterfacesService
+from forward_sdk._sync.services._generated.edge_assets import EdgeAssetsService
 from forward_sdk._sync.services._generated.encryptors import EncryptorsService
 from forward_sdk._sync.services._generated.endpoint_profiles import EndpointProfilesService
 from forward_sdk._sync.services._generated.firewall_predict import FirewallPredictService
@@ -63,13 +68,19 @@ from forward_sdk._sync.services._generated.network_endpoints import NetworkEndpo
 from forward_sdk._sync.services._generated.network_locations import NetworkLocationsService
 from forward_sdk._sync.services._generated.network_maps import NetworkMapsService
 from forward_sdk._sync.services._generated.network_topology import NetworkTopologyService
+from forward_sdk._sync.services._generated.nqe_explain import NQEExplainService
 from forward_sdk._sync.services._generated.nqe_panels import NQEPanelsService
 from forward_sdk._sync.services._generated.organizations import OrganizationsService
 from forward_sdk._sync.services._generated.path_search import PathSearchService
+from forward_sdk._sync.services._generated.performance_collection import (
+    PerformanceCollectionService,
+)
 from forward_sdk._sync.services._generated.performance_metrics import (
     PerformanceMetricsService,
 )
 from forward_sdk._sync.services._generated.predict_assist import PredictAssistService
+from forward_sdk._sync.services._generated.predict_reference import PredictReferenceService
+from forward_sdk._sync.services._generated.protocol_modeling import ProtocolModelingService
 from forward_sdk._sync.services._generated.resource_pools import ResourcePoolsService
 from forward_sdk._sync.services._generated.saml import SAMLService
 from forward_sdk._sync.services._generated.scorecards import ScorecardsService
@@ -86,6 +97,7 @@ from forward_sdk._sync.services._generated.synthetic_devices import SyntheticDev
 from forward_sdk._sync.services._generated.system_administration import (
     SystemAdministrationService,
 )
+from forward_sdk._sync.services._generated.threat_exposure import ThreatExposureService
 from forward_sdk._sync.services._generated.trusted_certificates import (
     TrustedCertificatesService,
 )
@@ -105,9 +117,11 @@ __all__ = [
     "AliasesService",
     "AuditLogsService",
     "BGPAdvertisementsService",
+    "BGPPrefixesService",
     "BackupsService",
     "BannersService",
     "BlastRadiusService",
+    "ChangeSetChecksService",
     "ChangeSetDirectoriesService",
     "ChecksService",
     "ClassicDevicesService",
@@ -126,7 +140,10 @@ __all__ = [
     "DashboardsService",
     "DataConnectorsService",
     "DataFilesService",
+    "DeviceDiffsService",
     "DeviceDiscoveryService",
+    "DeviceInterfacesService",
+    "EdgeAssetsService",
     "EncryptorsService",
     "EndpointProfilesService",
     "FirewallPredictService",
@@ -141,6 +158,7 @@ __all__ = [
     "L3vpnsService",
     "LegacyCollectionService",
     "LicensingService",
+    "NQEExplainService",
     "NQEPanelsService",
     "NetworkCollectionService",
     "NetworkEndpointsService",
@@ -149,8 +167,11 @@ __all__ = [
     "NetworkTopologyService",
     "OrganizationsService",
     "PathSearchService",
+    "PerformanceCollectionService",
     "PerformanceMetricsService",
     "PredictAssistService",
+    "PredictReferenceService",
+    "ProtocolModelingService",
     "ResourcePoolsService",
     "SAMLService",
     "SNMPCredentialsService",
@@ -161,6 +182,7 @@ __all__ = [
     "SnapshotDiffDetailsService",
     "SyntheticDevicesService",
     "SystemAdministrationService",
+    "ThreatExposureService",
     "TrustedCertificatesService",
     "UserAccountsService",
     "VulnerabilityAnalysisService",
@@ -181,9 +203,11 @@ class GeneratedServices:
     aliases: AliasesService
     audit_logs: AuditLogsService
     bgp_advertisements: BGPAdvertisementsService
+    bgp_prefixes: BGPPrefixesService
     backups: BackupsService
     banners: BannersService
     blast_radius: BlastRadiusService
+    change_set_checks: ChangeSetChecksService
     change_set_directories: ChangeSetDirectoriesService
     checks: ChecksService
     classic_devices: ClassicDevicesService
@@ -202,7 +226,10 @@ class GeneratedServices:
     dashboards: DashboardsService
     data_connectors: DataConnectorsService
     data_files: DataFilesService
+    device_diffs: DeviceDiffsService
     device_discovery: DeviceDiscoveryService
+    device_interfaces: DeviceInterfacesService
+    edge_assets: EdgeAssetsService
     encryptors: EncryptorsService
     endpoint_profiles: EndpointProfilesService
     firewall_predict: FirewallPredictService
@@ -216,6 +243,7 @@ class GeneratedServices:
     l3vpns: L3vpnsService
     legacy_collection: LegacyCollectionService
     licensing: LicensingService
+    nqe_explain: NQEExplainService
     nqe_panels: NQEPanelsService
     network_collection: NetworkCollectionService
     network_endpoints: NetworkEndpointsService
@@ -224,8 +252,11 @@ class GeneratedServices:
     network_topology: NetworkTopologyService
     organizations: OrganizationsService
     path_search: PathSearchService
+    performance_collection: PerformanceCollectionService
     performance_metrics: PerformanceMetricsService
     predict_assist: PredictAssistService
+    predict_reference: PredictReferenceService
+    protocol_modeling: ProtocolModelingService
     resource_pools: ResourcePoolsService
     saml: SAMLService
     snmp_credentials: SNMPCredentialsService
@@ -236,6 +267,7 @@ class GeneratedServices:
     snapshot_diff_details: SnapshotDiffDetailsService
     synthetic_devices: SyntheticDevicesService
     system_administration: SystemAdministrationService
+    threat_exposure: ThreatExposureService
     trusted_certificates: TrustedCertificatesService
     user_accounts: UserAccountsService
     vulnerability_analysis: VulnerabilityAnalysisService
@@ -248,9 +280,11 @@ class GeneratedServices:
         self.aliases = AliasesService(transport)
         self.audit_logs = AuditLogsService(transport)
         self.bgp_advertisements = BGPAdvertisementsService(transport)
+        self.bgp_prefixes = BGPPrefixesService(transport)
         self.backups = BackupsService(transport)
         self.banners = BannersService(transport)
         self.blast_radius = BlastRadiusService(transport)
+        self.change_set_checks = ChangeSetChecksService(transport)
         self.change_set_directories = ChangeSetDirectoriesService(transport)
         self.checks = ChecksService(transport)
         self.classic_devices = ClassicDevicesService(transport)
@@ -269,7 +303,10 @@ class GeneratedServices:
         self.dashboards = DashboardsService(transport)
         self.data_connectors = DataConnectorsService(transport)
         self.data_files = DataFilesService(transport)
+        self.device_diffs = DeviceDiffsService(transport)
         self.device_discovery = DeviceDiscoveryService(transport)
+        self.device_interfaces = DeviceInterfacesService(transport)
+        self.edge_assets = EdgeAssetsService(transport)
         self.encryptors = EncryptorsService(transport)
         self.endpoint_profiles = EndpointProfilesService(transport)
         self.firewall_predict = FirewallPredictService(transport)
@@ -283,6 +320,7 @@ class GeneratedServices:
         self.l3vpns = L3vpnsService(transport)
         self.legacy_collection = LegacyCollectionService(transport)
         self.licensing = LicensingService(transport)
+        self.nqe_explain = NQEExplainService(transport)
         self.nqe_panels = NQEPanelsService(transport)
         self.network_collection = NetworkCollectionService(transport)
         self.network_endpoints = NetworkEndpointsService(transport)
@@ -291,8 +329,11 @@ class GeneratedServices:
         self.network_topology = NetworkTopologyService(transport)
         self.organizations = OrganizationsService(transport)
         self.path_search = PathSearchService(transport)
+        self.performance_collection = PerformanceCollectionService(transport)
         self.performance_metrics = PerformanceMetricsService(transport)
         self.predict_assist = PredictAssistService(transport)
+        self.predict_reference = PredictReferenceService(transport)
+        self.protocol_modeling = ProtocolModelingService(transport)
         self.resource_pools = ResourcePoolsService(transport)
         self.saml = SAMLService(transport)
         self.snmp_credentials = SNMPCredentialsService(transport)
@@ -303,6 +344,7 @@ class GeneratedServices:
         self.snapshot_diff_details = SnapshotDiffDetailsService(transport)
         self.synthetic_devices = SyntheticDevicesService(transport)
         self.system_administration = SystemAdministrationService(transport)
+        self.threat_exposure = ThreatExposureService(transport)
         self.trusted_certificates = TrustedCertificatesService(transport)
         self.user_accounts = UserAccountsService(transport)
         self.vulnerability_analysis = VulnerabilityAnalysisService(transport)
@@ -317,9 +359,11 @@ SERVICE_TAGS: dict[str, str] = {
     "Aliases": "aliases",
     "Audit Logs": "audit_logs",
     "BGP Advertisements": "bgp_advertisements",
+    "BGP Prefixes": "bgp_prefixes",
     "Backups": "backups",
     "Banners": "banners",
     "Blast Radius": "blast_radius",
+    "Change Set Checks": "change_set_checks",
     "Change Set Directories": "change_set_directories",
     "Checks": "checks",
     "Classic Devices": "classic_devices",
@@ -338,7 +382,10 @@ SERVICE_TAGS: dict[str, str] = {
     "Dashboards": "dashboards",
     "Data Connectors": "data_connectors",
     "Data Files": "data_files",
+    "Device Diffs": "device_diffs",
     "Device Discovery": "device_discovery",
+    "Device Interfaces": "device_interfaces",
+    "Edge Assets": "edge_assets",
     "Encryptors": "encryptors",
     "Endpoint Profiles": "endpoint_profiles",
     "Firewall Predict": "firewall_predict",
@@ -352,6 +399,7 @@ SERVICE_TAGS: dict[str, str] = {
     "L3VPNs": "l3vpns",
     "Legacy Collection": "legacy_collection",
     "Licensing": "licensing",
+    "NQE Explain": "nqe_explain",
     "NQE Panels": "nqe_panels",
     "Network Collection": "network_collection",
     "Network Endpoints": "network_endpoints",
@@ -360,8 +408,11 @@ SERVICE_TAGS: dict[str, str] = {
     "Network Topology": "network_topology",
     "Organizations": "organizations",
     "Path Search": "path_search",
+    "Performance Collection": "performance_collection",
     "Performance Metrics": "performance_metrics",
     "Predict Assist": "predict_assist",
+    "Predict Reference": "predict_reference",
+    "Protocol Modeling": "protocol_modeling",
     "Resource Pools": "resource_pools",
     "SAML": "saml",
     "SNMP Credentials": "snmp_credentials",
@@ -372,6 +423,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Snapshot Diff Details": "snapshot_diff_details",
     "Synthetic Devices": "synthetic_devices",
     "System Administration": "system_administration",
+    "Threat Exposure": "threat_exposure",
     "Trusted Certificates": "trusted_certificates",
     "User Accounts": "user_accounts",
     "Vulnerability Analysis": "vulnerability_analysis",

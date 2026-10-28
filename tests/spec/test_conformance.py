@@ -120,6 +120,8 @@ def build(operation_id: str) -> RequestSpec | None:
         if parameter.default is not inspect.Parameter.empty:
             continue
         arguments[name] = allowed.get(name) or sample_for(name, parameter.annotation)
+    if OPERATIONS[operation_id].request_media == ("application/octet-stream",):
+        arguments["body"] = b"\x00"
     return builder(**arguments)
 
 

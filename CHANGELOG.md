@@ -3,6 +3,41 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [0.1.28] - 2026-10-28
+
+### Added
+
+Routes brought over from the Go SDK (v0.8.0 to v0.8.2), all unpublished. Network Maps were already in 0.1.27.
+
+- `client.predict_reference` (`list_predict_oses`, `get_predict_os_allowed_commands`), `client.change_set_checks`
+  (`update_change_set_check`, `list_change_set_nqe_checks`) and `client.protocol_modeling`
+  (`get_protocol_modeling_status`, `list_predict_affected_devices`: which devices Forward modelled for a
+  predicted snapshot). Protocol-modeling status needs the network administrator role.
+- `client.performance_collection`: the collector's upload (`upload_performance_data`, raw protobuf bytes), device
+  list and raw SNMP read, plus synthetic data generation. Performance reads join `client.performance_metrics`:
+  default thresholds, device and interface health, devices with data. `get_performance_settings` joins
+  `client.collection_settings`. The upload needs a collector credential and has not been tried against a live
+  Forward.
+- `client.device_interfaces`, `client.device_diffs` and `client.bgp_prefixes` (installed prefixes, search, trace,
+  details, and a device's view of a prefix).
+- `client.threat_exposure` and `client.edge_assets`. Source-only: the live account used for checks does not serve them.
+- `client.nqe_explain`: the plan Forward builds for a saved query or a query at a path. Internal routes.
+- `client.collection_sources` gains `patch_controller_device` and `patch_managed_device`; `client.predict_assist`
+  gains `assist_failure_diff_summary`.
+- A request body declared `application/octet-stream` is now sent as the bytes themselves. Anything that is not
+  bytes raises `TypeError` before a request is made.
+
+Already covered and not duplicated: the head and committed-query listings are `client.nqe.repo.queries`; the
+generic endpoint-profile PATCH is the CLI, SNMP and HTTP profile updates; clearing an org property is
+`clear_org_scoped_config_value`.
+
+Not brought over, on purpose: sign-in, SAML, CSRF and impersonation routes.
+
+### Changed
+
+- Examples and descriptions in the unpublished spec, and so in the generated models and docstrings, no longer name
+  the account, hostnames, users or ids they were first recorded from. Shapes are unchanged.
+
 ## [0.1.27] - 2026-10-27
 
 ### Added
@@ -182,7 +217,7 @@ All notable changes to this project are documented here. The format follows
   that and to `application/zip`, and serve `*/*` or no Accept header. The API description
   names no media type for the export, so the SDK now asks for anything. Found by the ATOS
   field script, which had been patching the constant at runtime. Reproduced only on their
-  build: the ADP network accepted either header. The three raw-file reads
+  build: the test network accepted either header. The three raw-file reads
   (`snapshots.file()`, `snapshots.exceptions_text()` and `devices.file()`) asked for
   `text/plain` with only JSON as the alternative; they now prefer text and accept
   anything, as a precaution for the same reason. That was not seen to fail.
@@ -199,7 +234,7 @@ All notable changes to this project are documented here. The format follows
   entries with their `exception_type`, `occurrences` and `devices`; the second is the
   same as one plain-text dump. `PARSING` and `MODELING` exceptions belong to devices,
   the other types are snapshot-wide. Parser-equivalence failures surface here, which
-  the Wells NQE work had been reading with raw requests. Needs
+  an earlier NQE integration had been reading with raw requests. Needs
   the network's `DEBUG_SNAPSHOTS` permission. Verified live on fwd.app (reachable
   and empty on two snapshots; non-empty parsing is covered by unit tests).
 

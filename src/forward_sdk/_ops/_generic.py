@@ -134,6 +134,7 @@ def generic(
     if accept is None:
         accept = operation.response_media[0] if stream and operation.response_media else JSON_ACCEPT
     has_body = bool(operation.request_media)
+    raw_body = operation.request_media == ("application/octet-stream",)
     path_names = {snake(param.name): param.name for param in operation.path_params}
     query_names = {snake(param.name): param.name for param in operation.query_params}
     # A required parameter with exactly one legal value. `__signature__` is
@@ -166,6 +167,17 @@ def generic(
         extra: dict[str, Any] = {}
         if idempotent is not None:
             extra["idempotent"] = idempotent
+        if raw_body:
+            # An octet-stream body is the bytes themselves. Sending them through
+            # the JSON path would encode them as a string and Forward would
+            # reject it as unparseable protobuf.
+            if body is None:
+                raise TypeError(f"{operation_id} needs a body of bytes")
+            if not isinstance(body, (bytes, bytearray, memoryview)):
+                raise TypeError(f"{operation_id} takes bytes, not {type(body).__name__}")
+            extra["content"] = bytes(body)
+            extra["headers"] = {"Content-Type": operation.request_media[0]}
+            body = None
         return spec_for(
             operation_id,
             path_params=path_params,

@@ -165,6 +165,26 @@ class AsyncCollectionSourcesService(AsyncService):
         )
         return payload
 
+    async def patch_controller_device(
+        self,
+        *,
+        setup_name: str,
+        name: str,
+        body: Any,
+        network_id: str | None = None,
+    ) -> models.SrcSetupDevice:
+        """Change one controller of a controller-managed setup in place.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["patchControllerDevice"](
+                network_id=self._network(network_id), setup_name=setup_name, name=name, body=body
+            )
+        )
+        return models.SrcSetupDevice.model_validate(payload or {})
+
     async def patch_controller_managed_setup(
         self,
         *,
@@ -183,6 +203,26 @@ class AsyncCollectionSourcesService(AsyncService):
             )
         )
         return models.SrcControllerManagedSetup.model_validate(payload or {})
+
+    async def patch_managed_device(
+        self,
+        *,
+        setup_name: str,
+        name: str,
+        body: Any,
+        network_id: str | None = None,
+    ) -> models.SrcSetupDevice:
+        """Change one guest device of a controller-managed setup in place.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["patchManagedDevice"](
+                network_id=self._network(network_id), setup_name=setup_name, name=name, body=body
+            )
+        )
+        return models.SrcSetupDevice.model_validate(payload or {})
 
     async def test_controller_managed_setups(
         self,

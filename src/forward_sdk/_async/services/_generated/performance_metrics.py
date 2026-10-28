@@ -20,6 +20,40 @@ __all__ = ["AsyncPerformanceMetricsService"]
 class AsyncPerformanceMetricsService(AsyncService):
     """Performance Metrics."""
 
+    async def get_default_performance_thresholds(
+        self,
+    ) -> models.PerfDefaultUtilizationThresholds:
+        """Forward's default performance health thresholds.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(ops.BUILDERS["getDefaultPerformanceThresholds"]())
+        return models.PerfDefaultUtilizationThresholds.model_validate(payload or {})
+
+    async def get_device_health(
+        self,
+        *,
+        device_name: str,
+        network_id: str | None = None,
+        end_time: str | None = None,
+        snapshot_id: str | None = None,
+    ) -> models.PerfDeviceHealth:
+        """One device's CPU, memory and utilization health.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["getDeviceHealth"](
+                network_id=self._network(network_id),
+                device_name=device_name,
+                end_time=end_time,
+                snapshot_id=self._snapshot(snapshot_id),
+            )
+        )
+        return models.PerfDeviceHealth.model_validate(payload or {})
+
     async def get_device_metric_history(
         self,
         *,
@@ -84,6 +118,80 @@ class AsyncPerformanceMetricsService(AsyncService):
             )
         )
         return models.PerfDeviceMetrics.model_validate(payload or {})
+
+    async def get_devices_health(
+        self,
+        *,
+        body: Any,
+        network_id: str | None = None,
+        end_time: str | None = None,
+        snapshot_id: str | None = None,
+    ) -> models.PerfDevicesHealth:
+        """Health for several devices in one call.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["getDevicesHealth"](
+                network_id=self._network(network_id),
+                body=body,
+                end_time=end_time,
+                snapshot_id=self._snapshot(snapshot_id),
+            )
+        )
+        return models.PerfDevicesHealth.model_validate(payload or {})
+
+    async def get_devices_with_perf_data(
+        self,
+        *,
+        network_id: str | None = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
+        snapshot_id: str | None = None,
+    ) -> Any:
+        """Devices that have performance data in a window.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["getDevicesWithPerfData"](
+                network_id=self._network(network_id),
+                start_time=start_time,
+                end_time=end_time,
+                snapshot_id=self._snapshot(snapshot_id),
+            )
+        )
+        return payload
+
+    async def get_interface_health(
+        self,
+        *,
+        device_name: str,
+        interface_name: str,
+        network_id: str | None = None,
+        end_time: str | None = None,
+        snapshot_id: str | None = None,
+    ) -> models.PerfInterfaceHealth:
+        """One interface's utilization, discards and errors.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["getInterfaceHealth"](
+                network_id=self._network(network_id),
+                device_name=device_name,
+                interface_name=interface_name,
+                end_time=end_time,
+                snapshot_id=self._snapshot(snapshot_id),
+            )
+        )
+        return models.PerfInterfaceHealth.model_validate(payload or {})
 
     async def get_interface_metric_history(
         self,

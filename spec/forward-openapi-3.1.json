@@ -6406,6 +6406,597 @@
         },
         "type": "object"
       },
+      "DevRoutingDevice": {
+        "additionalProperties": true,
+        "description": "A Device as it appears in a device diff, before or after. Keys follow the Device class (source: com.forwardnetworks.cv.device.Device); tags and locationId appear only with with=. Open for the fields not traced.",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "managementIps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "model": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "osVersion": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "sourceName": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DevRoutingDeviceDiff": {
+        "additionalProperties": true,
+        "description": "One device added, removed or modified (source: DeviceDiffEntry). before is absent for ADDED and after for REMOVED. changedProperties is set only for MODIFIED.",
+        "properties": {
+          "after": {
+            "$ref": "#/components/schemas/DevRoutingDevice"
+          },
+          "before": {
+            "$ref": "#/components/schemas/DevRoutingDevice"
+          },
+          "changeType": {
+            "description": "ADDED, REMOVED or MODIFIED.",
+            "type": "string"
+          },
+          "changedProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "deviceName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "deviceName",
+          "changeType"
+        ],
+        "type": "object"
+      },
+      "DevRoutingDeviceDiffs": {
+        "description": "Device differences between two snapshots (source: DeviceDiffs). totalDiffs counts every match of the filters, ignoring limit.",
+        "properties": {
+          "afterSnapshotCreatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "beforeSnapshotCreatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "diffs": {
+            "items": {
+              "$ref": "#/components/schemas/DevRoutingDeviceDiff"
+            },
+            "type": "array"
+          },
+          "totalDiffs": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "diffs",
+          "totalDiffs"
+        ],
+        "type": "object"
+      },
+      "DevRoutingDevicePrefixInfo": {
+        "description": "What a device has for a prefix, per VRF (source: the Go SDK's RoutingDevicePrefixInfo).",
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "string"
+          },
+          "vrfs": {
+            "items": {
+              "properties": {
+                "moreSpecificInstalledRoutes": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "recvAdvertisements": {
+                  "items": {
+                    "additionalProperties": true,
+                    "properties": {
+                      "nexthop": {
+                        "type": "string"
+                      },
+                      "originatedFrom": {
+                        "additionalProperties": true,
+                        "description": "Device and VRF the advertisement originated from.",
+                        "type": "object"
+                      },
+                      "outcome": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "vrf": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DevRoutingDeviceVrf": {
+        "description": "A device and VRF. An omitted vrf means the default VRF (source: DeviceVRF in the Go SDK; the source's DeviceVrfProtocol carries vrf too).",
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "vrf": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "device"
+        ],
+        "type": "object"
+      },
+      "DevRoutingDeviceVrfProtocol": {
+        "description": "A device, VRF and routing protocol, which tells apart nodes that device and VRF alone do not (source: DeviceVrfProtocol). protocol is one of BGP, OSPF, IS_IS, EIGRP, RIP, CONFIG, OMP or STP (Go SDK list).",
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "vrf": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "device",
+          "protocol"
+        ],
+        "type": "object"
+      },
+      "DevRoutingInstalledPrefixes": {
+        "description": "BGP-installed prefixes for a device or the snapshot (source: BgpInstalledPrefixesResponse). The source record is the body; the Go SDK decodes the same keys.",
+        "properties": {
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/DevRoutingNodePrefixes"
+            },
+            "type": "array"
+          },
+          "totalPrefixCount": {
+            "description": "The number of (node, prefix) pairs returned across all nodes.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "totalPrefixCount",
+          "nodes"
+        ],
+        "type": "object"
+      },
+      "DevRoutingInterface": {
+        "additionalProperties": true,
+        "description": "One interface of a modelled device (source: com.forwardnetworks.cv.device.iface.Interface, a sealed type discriminated by type). Common properties are on every type; L3 adds ipAddresses, fhrpIpAddresses and vrfName (omitted for the default VRF); TUNNEL adds srcAddresses, dstAddresses, tunnelType and carriesAnyVrf; ACCESS, TRUNK and SWITCHED_VLAN add VLAN fields. Null values are omitted. Port types add speedMbps (omitted when unknown) and fullDuplex. Not every type's fields were traced; additionalProperties is open for them.",
+        "properties": {
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "allowedVlans": {
+            "description": "VLAN ranges. Shape not traced beyond being a list.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "allowsUntagged": {
+            "type": "boolean"
+          },
+          "carriesAnyVrf": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "dstAddresses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "fhrpIpAddresses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "fileLines": {
+            "description": "The config files and line ranges the interface was modelled from (live: one entry per file, lines is a list of start and end line numbers).",
+            "items": {
+              "additionalProperties": true,
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "lines": {
+                  "items": {
+                    "additionalProperties": true,
+                    "properties": {
+                      "end": {
+                        "type": "integer"
+                      },
+                      "start": {
+                        "type": "integer"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "fullDuplex": {
+            "type": "boolean"
+          },
+          "inAclNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "ipAddresses": {
+            "description": "Subnets with host bits, for example 192.0.2.1/30 (L3 and some other types).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "isDown": {
+            "type": "boolean"
+          },
+          "isLoopback": {
+            "type": "boolean"
+          },
+          "macAddress": {
+            "description": "Serialization not traced beyond its presence on GENERIC interfaces (live).",
+            "type": "string"
+          },
+          "mtu": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "neighbors": {
+            "description": "Present only with with=neighbors.",
+            "items": {
+              "$ref": "#/components/schemas/DevRoutingInterfaceNeighbor"
+            },
+            "type": "array"
+          },
+          "outAclNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "securityZone": {
+            "type": "string"
+          },
+          "speedMbps": {
+            "type": "integer"
+          },
+          "srcAddresses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tunnelType": {
+            "type": "string"
+          },
+          "type": {
+            "description": "The InterfaceType value: GENERIC, ACCESS, TRUNK, FABRICPATH, SWITCH_SUBINTERFACE, L3, SWITCHED_VLAN, SUBINTERFACE, BRIDGE, DEMUX, TUNNEL, TE_TUNNEL or INTER_VRF. GENERIC, L3 and TUNNEL were seen live.",
+            "type": "string"
+          },
+          "vrfName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name"
+        ],
+        "type": "object"
+      },
+      "DevRoutingInterfaceList": {
+        "properties": {
+          "interfaces": {
+            "items": {
+              "$ref": "#/components/schemas/DevRoutingInterface"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "interfaces"
+        ],
+        "type": "object"
+      },
+      "DevRoutingInterfaceNeighbor": {
+        "description": "The device and port at the far end of an interface's outgoing link (source: InterfaceProps.neighbors, DevicePort).",
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "port": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DevRoutingNode": {
+        "additionalProperties": true,
+        "description": "One hop of a prefix trace (Go SDK RoutingNode). Pass it back unchanged to getBgpPrefixDetails: Forward needs fields this schema does not list (the node key and the route set), so the object is open.",
+        "properties": {
+          "asNumber": {
+            "type": "integer"
+          },
+          "boundaryId": {
+            "type": "string"
+          },
+          "device": {
+            "type": "string"
+          },
+          "exportPolicyNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "importPolicyNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "routeSetId": {
+            "type": "integer"
+          },
+          "routerId": {
+            "type": "string"
+          },
+          "vrf": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "device"
+        ],
+        "type": "object"
+      },
+      "DevRoutingNodePrefixes": {
+        "description": "The prefixes one modelled node (device and VRF) installed (source: BgpInstalledPrefixesResponse.NodeInstalledPrefixes).",
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "vendorOs": {
+            "description": "Lowercase vendor-OS name, for example cisco_ios.",
+            "type": "string"
+          },
+          "vrf": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DevRoutingNodeRef": {
+        "description": "A node in a prefix search result: a device, VRF and protocol, with an optional location (Go SDK RoutingDevice).",
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "vrf": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DevRoutingPrefixDetails": {
+        "description": "The route a node holds for a prefix (Go SDK RoutingPrefixDetails). attributes is protocol-specific and carries a protocol member; policies maps a rule type (IMPORT, EXPORT, REDISTRIBUTE, ...) to matched rules. Both are open because the shape varies by protocol and vendor.",
+        "properties": {
+          "attributes": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "device": {
+            "type": "string"
+          },
+          "policies": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "vrf": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DevRoutingPrefixDetailsRequest": {
+        "description": "The question of getBgpPrefixDetails (source: FrontendRpPrefixDetailsRequest; the Go SDK RoutingPrefixDetailsRequest). Take previousNode, nextNode and previousPreviousNode from one trace path, unchanged.",
+        "properties": {
+          "nextNode": {
+            "$ref": "#/components/schemas/DevRoutingNode"
+          },
+          "node": {
+            "$ref": "#/components/schemas/DevRoutingNode"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "previousNode": {
+            "$ref": "#/components/schemas/DevRoutingNode"
+          },
+          "previousPreviousNode": {
+            "$ref": "#/components/schemas/DevRoutingNode"
+          }
+        },
+        "required": [
+          "prefix",
+          "node"
+        ],
+        "type": "object"
+      },
+      "DevRoutingPrefixSearchRequest": {
+        "description": "The question of searchBgpPrefix (source: FrontendRpPrefixSearchRequest; the Go SDK RoutingPrefixSearch). Leave router and originatedFrom out to search every router and origin. The pinned Go SDK sends routerKey and originatedFromKey with the protocol and says current builds answer 500 without them; the newer source reads router and originatedFrom with protocol. Not verified live.",
+        "properties": {
+          "originatedFrom": {
+            "$ref": "#/components/schemas/DevRoutingDeviceVrf"
+          },
+          "originatedFromKey": {
+            "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
+          },
+          "outcome": {
+            "description": "INSTALLED, FILTERED_OUT or NOT_PREFERRED. Set to look only at routers where the prefix has that outcome.",
+            "type": "string"
+          },
+          "prefix": {
+            "description": "The prefix in CIDR form, for example 192.0.2.0/24.",
+            "type": "string"
+          },
+          "router": {
+            "$ref": "#/components/schemas/DevRoutingDeviceVrf"
+          },
+          "routerKey": {
+            "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
+          }
+        },
+        "required": [
+          "prefix"
+        ],
+        "type": "object"
+      },
+      "DevRoutingPrefixSearchResult": {
+        "description": "Where a prefix originates (origin) and which nodes have it per outcome (devicesByOutcome). Empty when Forward has no routing data for the prefix (Go SDK RoutingPrefixSearchResult; the newer source's response body was not traced).",
+        "properties": {
+          "devicesByOutcome": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/DevRoutingNodeRef"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          },
+          "origin": {
+            "items": {
+              "$ref": "#/components/schemas/DevRoutingNodeRef"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DevRoutingPrefixTraceRequest": {
+        "description": "The question of traceBgpPrefix (source: FrontendRpPrefixTraceRequest; the Go SDK RoutingTraceRequest). prefix, router, originatedFrom and outcome are all required. Wire shape of router and originatedFrom is the same open question as the search request.",
+        "properties": {
+          "originatedFrom": {
+            "$ref": "#/components/schemas/DevRoutingDeviceVrf"
+          },
+          "originatedFromKey": {
+            "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
+          },
+          "outcome": {
+            "description": "INSTALLED, FILTERED_OUT or NOT_PREFERRED.",
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "router": {
+            "$ref": "#/components/schemas/DevRoutingDeviceVrf"
+          },
+          "routerKey": {
+            "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
+          }
+        },
+        "required": [
+          "prefix",
+          "router",
+          "originatedFrom",
+          "outcome"
+        ],
+        "type": "object"
+      },
       "Device": {
         "properties": {
           "collectionError": {
@@ -7671,7 +8262,7 @@
             "type": "array"
           },
           "dynamicMatchDevices": {
-            "description": "Devices in this location because their names match one of the location's device globs. Omitted when empty (source: NON_EMPTY). Not present on the ADP network (live).",
+            "description": "Devices in this location because their names match one of the location's device globs. Omitted when empty (source: NON_EMPTY). Not present on the test network (live).",
             "items": {
               "type": "string"
             },
@@ -8727,11 +9318,11 @@
                 "type": "string"
               },
               "fnAdmin": {
-                "description": "Whether the user is a Forward admin. Omitted when false (source: NON_DEFAULT). Not set for any user on the ADP account (live).",
+                "description": "Whether the user is a Forward admin. Omitted when false (source: NON_DEFAULT). Not set for any user on the test account (live).",
                 "type": "boolean"
               },
               "groupIds": {
-                "description": "The access control groups the user is in, by ID. Omitted when empty (source: NON_EMPTY). Never sent on the ADP account (live).",
+                "description": "The access control groups the user is in, by ID. Omitted when empty (source: NON_EMPTY). Never sent on the test account (live).",
                 "items": {
                   "type": "string"
                 },
@@ -8748,11 +9339,11 @@
                 "type": "boolean"
               },
               "supportAdmin": {
-                "description": "Whether the user is a support admin. Omitted when false (source: NON_DEFAULT). Not set for any user on the ADP account (live).",
+                "description": "Whether the user is a support admin. Omitted when false (source: NON_DEFAULT). Not set for any user on the test account (live).",
                 "type": "boolean"
               },
               "supportedOrgIds": {
-                "description": "The orgs a support user can enter. Omitted when empty (source: NON_EMPTY). Never sent on the ADP account (live).",
+                "description": "The orgs a support user can enter. Omitted when empty (source: NON_EMPTY). Never sent on the test account (live).",
                 "items": {
                   "type": "string"
                 },
@@ -8816,6 +9407,144 @@
         "required": [
           "errorMsg",
           "status"
+        ],
+        "type": "object"
+      },
+      "EdgeAsset": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/EdgeAssetAttribution"
+          },
+          {
+            "properties": {
+              "cloudHostId": {
+                "type": "string"
+              },
+              "criticality": {
+                "$ref": "#/components/schemas/ThreatCriticalityLevel"
+              },
+              "enrichmentSources": {
+                "description": "Where extra information about the asset comes from (source: EnrichmentSource).",
+                "items": {
+                  "enum": [
+                    "RAPID7",
+                    "CLOUD",
+                    "TENABLE_SC",
+                    "TENABLE_VM"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "include": {
+                "description": "Whether the asset is matched to hosts in later snapshots.",
+                "type": "boolean"
+              },
+              "includedInLatestSnapshot": {
+                "type": "boolean"
+              },
+              "ips": {
+                "items": {
+                  "description": "An IP address.",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "macAddress": {
+                "type": "string"
+              },
+              "name": {
+                "description": "The device name the asset is listed under.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "include",
+              "includedInLatestSnapshot"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A host a user added as an edge asset, with its network-level criticality and whether it is in the latest snapshot (source: EdgeAsset, StoredEdgeAsset)."
+      },
+      "EdgeAssetAttribution": {
+        "description": "Who created and last changed an edge asset, flattened into it (source: Attribution, JsonUnwrapped). Each field is omitted when Forward does not know it.",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "The username. Absent if the account was deleted.",
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "updatedById": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EdgeAssetCriticalityAssignment": {
+        "description": "Assigns one criticality to the named endpoints and edge assets, or removes it when criticality is null (source: CriticalityAssignmentRequest). The Go SDK always sends the criticality key. Names must not be empty.",
+        "properties": {
+          "criticality": {
+            "description": "BUSINESS_CRITICAL, CRITICAL_INFRA or CROWN_JEWEL to assign; null to remove the criticality.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "names": {
+            "items": {
+              "description": "A device or edge asset name.",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "names"
+        ],
+        "type": "object"
+      },
+      "EdgeAssetPatch": {
+        "description": "A change to an edge asset. At least one of include and name is required (source: EdgeAssetPatch).",
+        "properties": {
+          "include": {
+            "description": "Turns matching to later snapshots on or off.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Renames the asset.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EdgeAssets": {
+        "description": "The network's edge assets (source: EdgeAssets).",
+        "properties": {
+          "edgeAssets": {
+            "items": {
+              "$ref": "#/components/schemas/EdgeAsset"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "edgeAssets"
         ],
         "type": "object"
       },
@@ -11571,6 +12300,155 @@
         },
         "type": "object"
       },
+      "MiscControllerManagedDevicePatch": {
+        "additionalProperties": true,
+        "description": "Partial update of one controller or guest device in a controller-managed setup (source: ControllerDevicePatch / ManagedDevicePatch, JsonProp fields). Absent leaves a field unchanged; an explicit null clears a clearable field. name cannot be cleared (Forward answers 400). concurrency and ndoName are controllers only, and each field notes its own scope. Not traced: the server's accepted values for type, paginationMode, bgpAndBmpFailureHandling, bgpTableType and bgpPeerType (the Go SDK has no enum for them).",
+        "properties": {
+          "bgpAndBmpFailureHandling": {
+            "type": "string"
+          },
+          "bgpPeerType": {
+            "type": "string"
+          },
+          "bgpSubnetsToCollect": {
+            "description": "IP subnets to collect BGP from.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "bgpTableType": {
+            "type": "string"
+          },
+          "bmpStationHost": {
+            "type": "string"
+          },
+          "cliCredential2Id": {
+            "description": "The PRIVILEGED_MODE or ESCALATION_LOGIN credential.",
+            "type": "string"
+          },
+          "cliCredential3Id": {
+            "description": "The EXPERT_MODE credential.",
+            "type": "string"
+          },
+          "cliCredentialId": {
+            "type": "string"
+          },
+          "collect": {
+            "type": "boolean"
+          },
+          "collectBgpAdvertisements": {
+            "type": "boolean"
+          },
+          "concurrency": {
+            "description": "Controllers only. Not on the managed-device patch.",
+            "type": "integer"
+          },
+          "disableIpv6Collection": {
+            "type": "boolean"
+          },
+          "enableSnmpCollection": {
+            "type": "boolean"
+          },
+          "fullCollectionLog": {
+            "type": "boolean"
+          },
+          "highCpuUsage": {
+            "format": "float",
+            "type": "number"
+          },
+          "highInputUtilization": {
+            "format": "float",
+            "type": "number"
+          },
+          "highMemoryUsage": {
+            "format": "float",
+            "type": "number"
+          },
+          "highOutputUtilization": {
+            "format": "float",
+            "type": "number"
+          },
+          "host": {
+            "type": "string"
+          },
+          "httpCredentialId": {
+            "description": "An H- id of a LOGIN credential for an API-collected controller.",
+            "type": "string"
+          },
+          "jumpServerId": {
+            "type": "string"
+          },
+          "largeRtt": {
+            "type": "boolean"
+          },
+          "maxConnectionsPerMin": {
+            "type": "integer"
+          },
+          "mediumCpuUsage": {
+            "format": "float",
+            "type": "number"
+          },
+          "mediumInputUtilization": {
+            "format": "float",
+            "type": "number"
+          },
+          "mediumMemoryUsage": {
+            "format": "float",
+            "type": "number"
+          },
+          "mediumOutputUtilization": {
+            "format": "float",
+            "type": "number"
+          },
+          "minBytesReadPerSec": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Rename. Done in place; not idempotent (the old name answers 404 afterwards).",
+            "type": "string"
+          },
+          "ndoName": {
+            "description": "Controllers only. The Nexus Dashboard Orchestrator linked to this controller.",
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "paginationMode": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "promptResponse": {
+            "type": "string"
+          },
+          "snmpCredentialId": {
+            "type": "string"
+          },
+          "terminalWidth": {
+            "type": "integer"
+          },
+          "type": {
+            "description": "Connection type of the device, a DeviceConnType name. Values not traced.",
+            "type": "string"
+          },
+          "useFileTransferForLargeOutput": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "MiscNqeExplainParams": {
+        "additionalProperties": true,
+        "description": "The bare parameter map of a parameterized NQE query, sent as the whole JSON body (not wrapped in a params key). Keys are the query's parameter names; values are JSON. A nil value inside it is a 400 (source: NqeController.explainCommittedQuery, @RequestBody @JsonProperty(\"params\")). An empty object means no parameters.",
+        "type": "object"
+      },
       "MissingDevice": {
         "properties": {
           "discoveryMethod": {
@@ -12728,7 +13606,7 @@
         "description": "Selected by type. Common: name, collect, collectorId, proxyServerId, concurrency and timeouts. AWS: regions as a map of region to test instant, plus username and password, or roleArn, or assumeRoleInfos. AZURE: clientId, password, tenant, environment, testInstants per subscription. GCP: clientId, clientEmail, privateKeyId, privateKey, regions, projectIds or discoveredProjectIds. IBM_CLOUD: apiKey, regions, optional accountIds. ALKIRA: cloudUrl, apiKeyId, testInstant.",
         "properties": {
           "awsC2SAccountInfos": {
-            "description": "AWS CAP accounts only: the portal-account filter (AwsAccount.awsC2SAccountInfos). Source-only: no CAP account is on the ADP network, so it is not observed live.",
+            "description": "AWS CAP accounts only: the portal-account filter (AwsAccount.awsC2SAccountInfos). Source-only: no CAP account is on the test network, so it is not observed live.",
             "items": {
               "$ref": "#/components/schemas/VariantsAwsC2SAccountInfo"
             },
@@ -15348,6 +16226,143 @@
         ],
         "type": "object"
       },
+      "PerfDefaultUtilizationThresholds": {
+        "description": "Forward's default health thresholds as fractions of 1 (DefaultUtilizationThresholds.java). The record has no NON_NULL, so every key is present; the live account returned null for the four medium* fields.",
+        "properties": {
+          "highCpuUsage": {
+            "description": "CPU fraction that counts as high.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "highInputUtilization": {
+            "description": "Input utilization that counts as high.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "highMemoryUsage": {
+            "description": "Memory fraction that counts as high.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "highOutputUtilization": {
+            "description": "Output utilization that counts as high.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "mediumCpuUsage": {
+            "description": "CPU fraction that counts as medium. Null when Forward states none.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "mediumInputUtilization": {
+            "description": "Input utilization that counts as medium. Null when Forward states none.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "mediumMemoryUsage": {
+            "description": "Memory fraction that counts as medium. Null when Forward states none.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "mediumOutputUtilization": {
+            "description": "Output utilization that counts as medium. Null when Forward states none.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "minimumHighThreshold": {
+            "description": "The floor under the high thresholds.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "minimumMediumThreshold": {
+            "description": "The floor under the medium thresholds.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "minimumHighThreshold",
+          "highCpuUsage",
+          "highMemoryUsage",
+          "highInputUtilization",
+          "highOutputUtilization",
+          "minimumMediumThreshold",
+          "mediumCpuUsage",
+          "mediumMemoryUsage",
+          "mediumInputUtilization",
+          "mediumOutputUtilization"
+        ],
+        "type": "object"
+      },
+      "PerfDeviceHealth": {
+        "description": "Device health (DeviceHealth.java, @JsonInclude NON_NULL). The latest sample's keys are flattened into this object. An empty object means no data in the window (DeviceHealth.UNKNOWN).",
+        "properties": {
+          "cpuUsage": {
+            "description": "Flattened from the latest sample.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "instant": {
+            "description": "The latest sample's time, epoch milliseconds. Present only with a sample.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastHighCpuUsage": {
+            "$ref": "#/components/schemas/PerfDataPoint",
+            "description": "The last CPU reading above the high threshold, if any."
+          },
+          "lastHighMemoryUsage": {
+            "$ref": "#/components/schemas/PerfDataPoint",
+            "description": "The last memory reading above the high threshold, if any."
+          },
+          "lastMediumCpuUsage": {
+            "$ref": "#/components/schemas/PerfDataPoint",
+            "description": "The last CPU reading above the medium threshold, if any."
+          },
+          "lastMediumMemoryUsage": {
+            "$ref": "#/components/schemas/PerfDataPoint",
+            "description": "The last memory reading above the medium threshold, if any."
+          },
+          "memoryUsage": {
+            "description": "Flattened from the latest sample.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "uptimeSeconds": {
+            "description": "Flattened from the latest sample.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "PerfDeviceMetric": {
         "description": "One device in the top list (DeviceMetric.java).",
         "properties": {
@@ -15431,6 +16446,153 @@
         "required": [
           "metrics"
         ],
+        "type": "object"
+      },
+      "PerfDevicePerfSample": {
+        "description": "One device's CPU and memory sample (DevicePerfSample.java). PerfDeviceHealth flattens these keys into its own object.",
+        "properties": {
+          "cpuUsage": {
+            "description": "CPU fraction.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "instant": {
+            "description": "Sample time, epoch milliseconds (Jackson NUMBER shape).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "memoryUsage": {
+            "description": "Memory fraction.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "uptimeSeconds": {
+            "description": "The device's uptime at the sample.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "PerfDevicesHealth": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/PerfDeviceHealth"
+        },
+        "description": "Health keyed by device name (Map<DeviceName, DeviceHealth>). A device with no data maps to {}.",
+        "type": "object"
+      },
+      "PerfInterfaceHealth": {
+        "description": "Interface health (InterfaceHealth.java, @JsonInclude NON_NULL). The latest sample's keys are flattened into this object. An empty object means no data in the window (InterfaceHealth.UNKNOWN).",
+        "properties": {
+          "inDiscards": {
+            "description": "Flattened from the latest sample.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "inErrors": {
+            "description": "Flattened from the latest sample.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "inOctets": {
+            "description": "Flattened from the latest sample.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "inputDiscardsPerMin": {
+            "description": "Flattened from the latest sample.",
+            "format": "float",
+            "type": "number"
+          },
+          "inputErrorsPerMin": {
+            "description": "Flattened from the latest sample.",
+            "format": "float",
+            "type": "number"
+          },
+          "inputUtilization": {
+            "description": "Flattened from the latest sample.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "instant": {
+            "description": "The latest sample's time, epoch milliseconds. Present only with a sample.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastHighInputUtilization": {
+            "$ref": "#/components/schemas/PerfDataPoint",
+            "description": "The last input utilization above the high threshold, if any."
+          },
+          "lastHighOutputUtilization": {
+            "$ref": "#/components/schemas/PerfDataPoint",
+            "description": "The last output utilization above the high threshold, if any."
+          },
+          "lastInputDiscards": {
+            "$ref": "#/components/schemas/PerfDataPoint",
+            "description": "The last input discards reading, if any."
+          },
+          "lastInputErrors": {
+            "$ref": "#/components/schemas/PerfDataPoint",
+            "description": "The last input errors reading, if any."
+          },
+          "lastMediumInputUtilization": {
+            "$ref": "#/components/schemas/PerfDataPoint",
+            "description": "The last input utilization above the medium threshold, if any."
+          },
+          "lastMediumOutputUtilization": {
+            "$ref": "#/components/schemas/PerfDataPoint",
+            "description": "The last output utilization above the medium threshold, if any."
+          },
+          "lastOutputDiscards": {
+            "$ref": "#/components/schemas/PerfDataPoint",
+            "description": "The last output discards reading, if any."
+          },
+          "lastOutputErrors": {
+            "$ref": "#/components/schemas/PerfDataPoint",
+            "description": "The last output errors reading, if any."
+          },
+          "outDiscards": {
+            "description": "Flattened from the latest sample.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "outErrors": {
+            "description": "Flattened from the latest sample.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "outOctets": {
+            "description": "Flattened from the latest sample.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "outputDiscardsPerMin": {
+            "description": "Flattened from the latest sample.",
+            "format": "float",
+            "type": "number"
+          },
+          "outputErrorsPerMin": {
+            "description": "Flattened from the latest sample.",
+            "format": "float",
+            "type": "number"
+          },
+          "outputUtilization": {
+            "description": "Flattened from the latest sample.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "speedMbps": {
+            "description": "Flattened from the latest sample.",
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "PerfInterfaceMetric": {
@@ -15525,6 +16687,85 @@
         ],
         "type": "object"
       },
+      "PerfInterfacePerfSample": {
+        "description": "One interface's counters and rates (InterfacePerfSample.java). PerfInterfaceHealth flattens these keys into its own object.",
+        "properties": {
+          "inDiscards": {
+            "description": "Cumulative input discards.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "inErrors": {
+            "description": "Cumulative input errors.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "inOctets": {
+            "description": "Cumulative input octets (unsigned 64-bit).",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "inputDiscardsPerMin": {
+            "description": "Input discards per minute, derived from the counter difference (not traced beyond the Go SDK's note).",
+            "format": "float",
+            "type": "number"
+          },
+          "inputErrorsPerMin": {
+            "description": "Input errors per minute, derived from the counter difference.",
+            "format": "float",
+            "type": "number"
+          },
+          "inputUtilization": {
+            "description": "Input utilization fraction.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "instant": {
+            "description": "Sample time, epoch milliseconds (Jackson NUMBER shape).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "outDiscards": {
+            "description": "Cumulative output discards.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "outErrors": {
+            "description": "Cumulative output errors.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "outOctets": {
+            "description": "Cumulative output octets (unsigned 64-bit).",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "outputDiscardsPerMin": {
+            "description": "Output discards per minute, derived from the counter difference.",
+            "format": "float",
+            "type": "number"
+          },
+          "outputErrorsPerMin": {
+            "description": "Output errors per minute, derived from the counter difference.",
+            "format": "float",
+            "type": "number"
+          },
+          "outputUtilization": {
+            "description": "Output utilization fraction.",
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "speedMbps": {
+            "description": "Interface speed, Mbps.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "PerfInterfaceWithDirection": {
         "description": "An interface and a direction (InterfaceWithDirection.java).",
         "properties": {
@@ -15546,6 +16787,137 @@
           "deviceName",
           "interfaceName",
           "direction"
+        ],
+        "type": "object"
+      },
+      "PerfRawDevicePerf": {
+        "description": "The device's own reading in a raw SNMP response (SnmpRawDataResponse.DevicePerf). Present only when includeDevicePerfData was set.",
+        "properties": {
+          "cpuUsage": {
+            "description": "CPU fraction as the collector read it.",
+            "format": "float",
+            "type": "number"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "interfaceCounters": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PerfRawInterfaceCounters"
+            },
+            "description": "Counters keyed by interface name.",
+            "type": "object"
+          },
+          "memoryUsage": {
+            "description": "Memory fraction as the collector read it.",
+            "format": "float",
+            "type": "number"
+          },
+          "timestamp": {
+            "description": "ISO-8601 string (the Forward object mapper writes Instant as a string unless a field says NUMBER; this one does not).",
+            "format": "date-time",
+            "type": "string"
+          },
+          "uptimeSeconds": {
+            "type": "integer"
+          },
+          "vendorOs": {
+            "$ref": "#/components/schemas/VendorOs"
+          }
+        },
+        "type": "object"
+      },
+      "PerfRawInterfaceCounters": {
+        "description": "One interface's counters in a raw SNMP reading (SnmpRawDataResponse.InterfaceCounters).",
+        "properties": {
+          "inDiscards": {
+            "description": "Input discards.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "inErrors": {
+            "description": "Input errors.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "inOctets": {
+            "description": "Input octets as the collector read them.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "interfaceType": {
+            "description": "The SNMP ifType number.",
+            "type": "integer"
+          },
+          "outDiscards": {
+            "description": "Output discards.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "outErrors": {
+            "description": "Output errors.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "outOctets": {
+            "description": "Output octets.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "speedMbps": {
+            "description": "Interface speed, Mbps.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "PerfRawSnmpData": {
+        "description": "What a collector read over SNMP (SnmpRawDataResponse.java, @JsonInclude NON_NULL, so errorMessage and devicePerfData are omitted when absent).",
+        "properties": {
+          "devicePerfData": {
+            "$ref": "#/components/schemas/PerfRawDevicePerf"
+          },
+          "errorMessage": {
+            "description": "The collector's error, when the walk failed. Omitted when absent.",
+            "type": "string"
+          },
+          "oidToLeafOidVals": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "description": "Keyed by the parent OID walked; each value maps leaf OIDs to the value read, as a string. Only the two-level Map<String, Map<String, String>> shape is traced.",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "PerfSettings": {
+        "description": "A network's performance collection setting (source: PerformanceSettings).",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "intervalMinutes": {
+            "description": "Minutes between samples. Omitted when never set.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "PerfSyntheticGenerateResult": {
+        "description": "The result of the synthetic-performance generate call (Map.of(\"numDevices\", n) in PerformanceController.generateDevicePerformanceData).",
+        "properties": {
+          "numDevices": {
+            "description": "Devices given synthetic data.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "numDevices"
         ],
         "type": "object"
       },
@@ -15732,6 +17104,117 @@
           "VPC_MST_REGION_CONSISTENCY"
         ],
         "type": "string"
+      },
+      "PredictChangeSetCheckPatch": {
+        "description": "Changes one change-set check (source ChangeSetCheckPatch). An absent field is left alone; name null clears the name. A definition replaces the whole definition and must keep its category.",
+        "properties": {
+          "definition": {
+            "additionalProperties": true,
+            "description": "The new definition; checkType selects the kind and must keep the category of the existing check. Same shape as NewChangeSetCheck.definition.",
+            "type": "object"
+          },
+          "name": {
+            "description": "The check name. Send null to clear it. Forward rejects a name on an NQE check.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "PredictNqeCheckCommit": {
+        "description": "The commit of an NQE check's query (source NqeCheckCommitInfo and CommitAuthor). The author is authorId or authorEmail, never both.",
+        "properties": {
+          "authorEmail": {
+            "description": "The author's email",
+            "type": "string",
+            "when the author is not a Forward user.": null
+          },
+          "authorId": {
+            "description": "The author's user id",
+            "type": "string",
+            "when the author is a Forward user.": null
+          },
+          "committedAt": {
+            "description": "ISO-8601 instant.",
+            "type": "string"
+          },
+          "hasParams": {
+            "description": "Whether the query takes parameters. Omitted when false.",
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "intent": {
+            "type": "string"
+          },
+          "path": {
+            "description": "The query's path in that commit.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PredictNqeCheckInfo": {
+        "description": "An NQE query enabled as a change-set check (source NqeCheckInfo; Go NQECheckInfo). Forward leaves out false booleans.",
+        "properties": {
+          "commits": {
+            "description": "The query's latest commit. Forward wraps it in a list.",
+            "items": {
+              "$ref": "#/components/schemas/PredictNqeCheckCommit"
+            },
+            "type": "array"
+          },
+          "lastCommitSourceCodeSha": {
+            "description": "The source hash of the query's latest version.",
+            "type": "string"
+          },
+          "presentInHead": {
+            "description": "Whether the query exists in HEAD. Omitted when false.",
+            "type": "boolean"
+          },
+          "queryId": {
+            "description": "The query's id in the NQE library.",
+            "type": "string"
+          },
+          "repository": {
+            "description": "ORG or FWD, the repository the query lives in. Other values are not ruled out.",
+            "type": "string"
+          },
+          "restricted": {
+            "description": "Whether the query is restricted for this caller. Omitted when false.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "PredictProtocolModelingError": {
+        "description": "The body Forward sends instead of a device list when the snapshot has no affected devices, which is a base snapshot (source ErrNoAffectedDevices; live).",
+        "properties": {
+          "error": {
+            "description": "For a base snapshot: No affected devices since this is a base snapshot.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "PredictProtocolModelingStatus": {
+        "description": "Whether protocol modeling has finished for a snapshot (source BenchmarkController.getProtocolModelingStatus).",
+        "properties": {
+          "done": {
+            "description": "True once a successful result is stored. A failed job also reads false.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "done"
+        ],
+        "type": "object"
       },
       "PredictedSnapshotMeta": {
         "description": "The snapshot Predict created. Created, not yet processed.",
@@ -21857,6 +23340,483 @@
         },
         "type": "object"
       },
+      "ThreatAnalysisStatus": {
+        "description": "The state of an analysis or of one of its stages (source: GUI threat-exposure model; Java Status.java not traced here).",
+        "enum": [
+          "NOT_STARTED",
+          "RUNNING",
+          "SUCCEEDED",
+          "FAILED",
+          "TIMED_OUT",
+          "CANCELLED"
+        ],
+        "type": "string"
+      },
+      "ThreatAttribution": {
+        "description": "Who created and last changed a definition, flattened into it (source: Attribution, JsonUnwrapped). Each field is omitted when Forward does not know it.",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "The username. Absent if the account was deleted.",
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "updatedById": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ThreatCriticalAsset": {
+        "description": "A critical asset a definition selects (GUI model CriticalAsset; the Java record is not traced here).",
+        "properties": {
+          "criticality": {
+            "$ref": "#/components/schemas/ThreatCriticalityLevel"
+          },
+          "id": {
+            "description": "A global host id.",
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "name": {
+            "description": "Absent for unnamed hosts.",
+            "type": "string"
+          },
+          "subnet": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "subnet",
+          "tags",
+          "criticality",
+          "locationId"
+        ],
+        "type": "object"
+      },
+      "ThreatCriticalAssetSummary": {
+        "description": "One critical asset with some exposure, from an analysis (GUI model CriticalAssetExposureSummary; the Java record is not traced here).",
+        "properties": {
+          "criticality": {
+            "$ref": "#/components/schemas/ThreatCriticalityLevel"
+          },
+          "exposures": {
+            "additionalProperties": {
+              "enum": [
+                "DIRECT",
+                "TRANSITIVE"
+              ],
+              "type": "string"
+            },
+            "description": "Keyed by exposure point name. An exposure point without exposure, or not yet computed, has no entry.",
+            "type": "object"
+          },
+          "forwardRiskScore": {
+            "type": "number"
+          },
+          "id": {
+            "description": "A global host id.",
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "name": {
+            "description": "Absent for unnamed hosts.",
+            "type": "string"
+          },
+          "openPorts": {
+            "items": {
+              "$ref": "#/components/schemas/ThreatProtocolPorts"
+            },
+            "type": "array"
+          },
+          "vulnerabilityScore": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "locationId",
+          "criticality",
+          "openPorts",
+          "forwardRiskScore"
+        ],
+        "type": "object"
+      },
+      "ThreatCriticalityLevel": {
+        "description": "The criticality of an asset (source: CriticalityLevel).",
+        "enum": [
+          "BUSINESS_CRITICAL",
+          "CRITICAL_INFRA",
+          "CROWN_JEWEL"
+        ],
+        "type": "string"
+      },
+      "ThreatExposureAnalysisSummaries": {
+        "description": "A definition's analyses, newest snapshot first (source: ThreatExposureAnalysisSummaries).",
+        "properties": {
+          "analyses": {
+            "items": {
+              "$ref": "#/components/schemas/ThreatExposureAnalysisSummary"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "analyses"
+        ],
+        "type": "object"
+      },
+      "ThreatExposureAnalysisSummary": {
+        "description": "The status of the latest analysis of a definition on one snapshot (source: ThreatExposureAnalysisSummary).",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ThreatAnalysisStatus"
+          }
+        },
+        "required": [
+          "snapshotId",
+          "status"
+        ],
+        "type": "object"
+      },
+      "ThreatExposureDefinition": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ThreatAttribution"
+          },
+          {
+            "properties": {
+              "criticalities": {
+                "items": {
+                  "$ref": "#/components/schemas/ThreatCriticalityLevel"
+                },
+                "type": "array"
+              },
+              "exposurePoints": {
+                "items": {
+                  "$ref": "#/components/schemas/ThreatExposurePoint"
+                },
+                "maxItems": 4,
+                "minItems": 1,
+                "type": "array"
+              },
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "locations": {
+                "items": {
+                  "description": "A location id.",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "maxDurationSeconds": {
+                "description": "The time limit of one analysis, in seconds.",
+                "format": "int64",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "subnets": {
+                "items": {
+                  "description": "A CIDR subnet, e.g. 192.0.2.0/24.",
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "exposurePoints",
+              "maxDurationSeconds"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A saved threat exposure definition (source: ThreatExposureDefinition). An absent or empty filter selects all critical assets."
+      },
+      "ThreatExposureDefinitionInfo": {
+        "description": "A definition with the latest snapshot analyzed against it (source: ThreatExposureDefinitionInfo). The Go SDK says Forward leaves latestAnalyzedSnapshotId empty (FWD-60477); the server source fills it, so expect either.",
+        "properties": {
+          "definition": {
+            "$ref": "#/components/schemas/ThreatExposureDefinition"
+          },
+          "latestAnalyzedSnapshotId": {
+            "description": "Absent when the definition has not been analyzed.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "definition"
+        ],
+        "type": "object"
+      },
+      "ThreatExposureDefinitionInfos": {
+        "description": "The network's definitions, newest created first (source: ThreatExposureDefinitionInfos).",
+        "properties": {
+          "definitions": {
+            "items": {
+              "$ref": "#/components/schemas/ThreatExposureDefinitionInfo"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "definitions"
+        ],
+        "type": "object"
+      },
+      "ThreatExposureDefinitionInput": {
+        "description": "The body that creates or resolves a definition (source: NewThreatExposureDefinition). The server refuses an invalid body with 400.",
+        "properties": {
+          "criticalities": {
+            "items": {
+              "$ref": "#/components/schemas/ThreatCriticalityLevel"
+            },
+            "type": "array"
+          },
+          "exposurePoints": {
+            "description": "1 to 4 exposure points, each named once.",
+            "items": {
+              "$ref": "#/components/schemas/ThreatExposurePoint"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "type": "array"
+          },
+          "locations": {
+            "items": {
+              "description": "A location id.",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "maxDurationSeconds": {
+            "description": "Required and positive.",
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "name": {
+            "description": "Not blank.",
+            "type": "string"
+          },
+          "subnets": {
+            "items": {
+              "description": "A CIDR subnet, e.g. 192.0.2.0/24.",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "exposurePoints",
+          "maxDurationSeconds"
+        ],
+        "type": "object"
+      },
+      "ThreatExposureDefinitionPatch": {
+        "description": "A change to a definition. Absent fields keep their value; an empty locations, criticalities or subnets list clears that filter. At least one field is required (source: ThreatExposureDefinitionPatch).",
+        "properties": {
+          "criticalities": {
+            "items": {
+              "$ref": "#/components/schemas/ThreatCriticalityLevel"
+            },
+            "type": "array"
+          },
+          "exposurePoints": {
+            "items": {
+              "$ref": "#/components/schemas/ThreatExposurePoint"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "type": "array"
+          },
+          "locations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "maxDurationSeconds": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "subnets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ThreatExposureLevel": {
+        "description": "How severely an exposure point exposes an asset (source: ExposureLevel).",
+        "enum": [
+          "MODERATE",
+          "HIGH",
+          "SEVERE",
+          "CRITICAL"
+        ],
+        "type": "string"
+      },
+      "ThreatExposurePoint": {
+        "description": "An interface alias acting as an exposure point, with the severity of exposure through it (source: ExposurePointAndLevel).",
+        "properties": {
+          "exposurePoint": {
+            "description": "The name of the interface group that is the exposure point.",
+            "type": "string"
+          },
+          "level": {
+            "$ref": "#/components/schemas/ThreatExposureLevel"
+          }
+        },
+        "required": [
+          "exposurePoint",
+          "level"
+        ],
+        "type": "object"
+      },
+      "ThreatExposureResolution": {
+        "description": "The critical assets a definition resolves to on a snapshot (GUI model ThreatExposureDefinitionResolutionSummary; the Java record is not traced here).",
+        "properties": {
+          "criticalAssets": {
+            "items": {
+              "$ref": "#/components/schemas/ThreatCriticalAsset"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "criticalAssets"
+        ],
+        "type": "object"
+      },
+      "ThreatExposureScope": {
+        "description": "What an analysis covers: its critical assets, and a copy of the definition it started with (source: ThreatExposureAnalysisScope).",
+        "properties": {
+          "criticalAssets": {
+            "items": {
+              "$ref": "#/components/schemas/ThreatCriticalAsset"
+            },
+            "type": "array"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/ThreatExposureDefinition"
+          }
+        },
+        "required": [
+          "criticalAssets",
+          "definition"
+        ],
+        "type": "object"
+      },
+      "ThreatExposureStatus": {
+        "description": "The progress of one analysis (GUI model ThreatExposureStatus; the Java record is not traced here). haveParametersChanged is present only once the analysis is done. previousAnalysisAvailable is present only while it runs.",
+        "properties": {
+          "haveParametersChanged": {
+            "type": "boolean"
+          },
+          "overallStatus": {
+            "$ref": "#/components/schemas/ThreatAnalysisStatus"
+          },
+          "previousAnalysisAvailable": {
+            "type": "boolean"
+          },
+          "stageStatuses": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ThreatAnalysisStatus"
+            },
+            "description": "Keyed by computation stage (DIRECT_AND_INDIRECT_L2, DIRECT_THROUGH_FIREWALL, INDIRECT_SECURITY_DOMAIN). Only the stages this analysis runs are present.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "overallStatus",
+          "stageStatuses"
+        ],
+        "type": "object"
+      },
+      "ThreatOpenDetail": {
+        "additionalProperties": true,
+        "description": "A response of an analysis view whose JSON shape is not traced in this repo or the GUI. The fields are whatever Forward sent.",
+        "type": "object"
+      },
+      "ThreatProtocolPorts": {
+        "description": "Open ports of one protocol on an asset (GUI model ProtocolPorts).",
+        "properties": {
+          "ports": {
+            "description": "Port numbers or ranges, e.g. 22, 80, 90-101.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "protocol": {
+            "enum": [
+              "TCP",
+              "UDP"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "protocol",
+          "ports"
+        ],
+        "type": "object"
+      },
+      "ThreatTablePagingOptions": {
+        "description": "Paging for the analysis tables (source: TablePagingOptions). sortBy is refused: results come in a fixed order. Omitted offset and limit take the server defaults, 0 and 1000.",
+        "properties": {
+          "limit": {
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "ThresholdRule": {
         "properties": {
           "status": {
@@ -23946,7 +25906,7 @@
                     "id": "228210",
                     "name": "example-network",
                     "orgId": "1628",
-                    "orgName": "ADP"
+                    "orgName": "Example Org"
                   }
                 ],
                 "schema": {
@@ -23979,7 +25939,7 @@
                   {
                     "id": "1628",
                     "lastActiveAt": "2026-10-17T18:35:33Z",
-                    "name": "ADP",
+                    "name": "Example Org",
                     "softwareCentral": false
                   }
                 ],
@@ -25803,7 +27763,7 @@
                 "example": {
                   "actualNumDedupedExceptions": 12,
                   "collectorIdToName": {
-                    "C8126": "<redacted>"
+                    "C1": "<redacted>"
                   },
                   "dedupedExceptions": [
                     {
@@ -25811,7 +27771,7 @@
                       "collectorVersion": "26.9.0-18",
                       "occurrences": [
                         {
-                          "collectorId": "C8126",
+                          "collectorId": "C1",
                           "collectorTaskId": "P210670759",
                           "deviceName": "<redacted>",
                           "timestamp": "2026-10-17T05:14:45.799Z"
@@ -25909,7 +27869,7 @@
           "content": {
             "application/json": {
               "example": {
-                "collectorName": "wells-demo-collector"
+                "collectorName": "demo-collector"
               },
               "schema": {
                 "properties": {
@@ -25936,7 +27896,7 @@
                   "createdAt": 1788949865425,
                   "createdBy": "100",
                   "id": "77",
-                  "name": "wells-demo-collector",
+                  "name": "demo-collector",
                   "orgId": "12",
                   "username": "collector-a1b2c3d4"
                 },
@@ -27251,9 +29211,44 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/default-performance-thresholds": {
+      "get": {
+        "description": "Returns the default CPU, memory and utilization thresholds that a device's own thresholds fall back to, as fractions of 1 (source: PerformanceController.getDefaultPerformanceThresholds). Gated by @RequiresUser, so any signed-in login may read it. The four medium* values are null when Forward states none. Not part of Forward's documented API. Live: 200 on the read-only account.",
+        "operationId": "getDefaultPerformanceThresholds",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "highCpuUsage": 0.8,
+                  "highInputUtilization": 0.9,
+                  "highMemoryUsage": 0.9,
+                  "highOutputUtilization": 0.9,
+                  "mediumCpuUsage": null,
+                  "mediumInputUtilization": null,
+                  "mediumMemoryUsage": null,
+                  "mediumOutputUtilization": null,
+                  "minimumHighThreshold": 0.75,
+                  "minimumMediumThreshold": 0.5
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PerfDefaultUtilizationThresholds"
+                }
+              }
+            },
+            "description": "The default thresholds."
+          }
+        },
+        "summary": "Forward's default performance health thresholds",
+        "tags": [
+          "Performance Metrics"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/deployment-artifacts": {
       "get": {
-        "description": "Requires Software Central to be on for the organization, or the Forward administrator role (@Requires(on = SOFTWARE_CENTRAL, orForwardAdmin = true)). Answers 403 \"SOFTWARE_CENTRAL is off for your organization\" otherwise. Source-only, because the hosted ADP account has Software Central off.",
+        "description": "Requires Software Central to be on for the organization, or the Forward administrator role (@Requires(on = SOFTWARE_CENTRAL, orForwardAdmin = true)). Answers 403 \"SOFTWARE_CENTRAL is off for your organization\" otherwise. Source-only, because the hosted test account has Software Central off.",
         "operationId": "listDeploymentArtifacts",
         "parameters": [
           {
@@ -28482,6 +30477,55 @@
             "summary": "Devices added or removed",
             "x-forward-fixed-query": []
           }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/failure-summary-assist": {
+      "get": {
+        "description": "Forward AI's summary of the regressions and new warnings a change introduced from the base snapshot to the predicted one, as a text the model wrote; report it as model output. Gated on the network operation VIEW_CHECK_DIFFS and on the org properties AI_ALLOWED and PREDICT_FAILURE_SUMMARY_ASSIST, both required (source: PredictAssistController.failureSummaryAssist). Note the second property is PREDICT_FAILURE_SUMMARY_ASSIST, not PREDICT_AI_ASSIST as the Predict Assist tag's other operations use. Predefined and intent checks and routing loops are always covered; NQE checks need USE_NQE, and new CVEs need VIEW_CVE_DIFFS. Checks still processing do not block it, and the answer is then partial with no field saying so. A complete summary is cached per user for an hour in each appserver. Every call that is not a cache hit is a model call. This is a GET, so the SDK retries it on 502, 504 or a transport failure unless told not to. Live: 403 on the test account with the message AI_ALLOWED is off for your organization, so the success shape is source-only. Not part of Forward's documented API.",
+        "operationId": "assistFailureDiffSummary",
+        "parameters": [
+          {
+            "description": "The base snapshot.",
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The predicted snapshot to compare with the base.",
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "summary": "Two checks regressed on the predicted snapshot. Synthetic fixture."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryAssistResponse"
+                }
+              }
+            },
+            "description": "The summary."
+          },
+          "403": {
+            "description": "Refused. Live message on the test account, AI_ALLOWED is off for your organization."
+          }
+        },
+        "summary": "Ask Forward AI to summarize what failed between two snapshots",
+        "tags": [
+          "Predict Assist"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -30281,6 +32325,313 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/internal/networks/{networkId}/performance": {
+      "post": {
+        "description": "Writes synthetic CPU, memory and interface samples for the snapshot's non-cloud, non-synthetic devices (source: PerformanceController.generateDevicePerformanceData; PerformanceDataGeneratorService). Gated by UPLOAD_SNAPSHOT on the network (@Requires(network = UPLOAD_SNAPSHOT)) and the snapshot must have reached START; the snapshot's devices must number 1000 or fewer. Not ADMINISTER_SYSTEM: that gate is on the internal binary upload at the same path. Answers the device count. Not part of Forward's documented API. Source-only: it writes data into the network, never call it live. The Go SDK sends healthyDeviceOdds 0.8 when unset; the server default is 0.7.",
+        "operationId": "generatePerformanceData",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Snapshot to generate for. Omit for the latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Minutes between generated samples.",
+            "in": "query",
+            "name": "generationIntervalMins",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Odds a device is generated as healthy.",
+            "in": "query",
+            "name": "healthyDeviceOdds",
+            "required": false,
+            "schema": {
+              "default": 0.7,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Odds an interface is generated as healthy.",
+            "in": "query",
+            "name": "healthyInterfaceOdds",
+            "required": false,
+            "schema": {
+              "default": 0.7,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Odds a device is generated at medium utilization.",
+            "in": "query",
+            "name": "mediumHealthyDeviceOdds",
+            "required": false,
+            "schema": {
+              "default": 0.2,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Odds an interface is generated at medium utilization.",
+            "in": "query",
+            "name": "mediumHealthyInterfaceOdds",
+            "required": false,
+            "schema": {
+              "default": 0.2,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Odds a device is generated with bursts.",
+            "in": "query",
+            "name": "burstyDeviceOdds",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Interfaces to generate per device; 0 means the generator's default (not traced).",
+            "in": "query",
+            "name": "numInterfacesPerDevice",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "numDevices": 12
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PerfSyntheticGenerateResult"
+                }
+              }
+            },
+            "description": "The number of devices given data."
+          }
+        },
+        "summary": "Generate synthetic performance data for a snapshot's devices",
+        "tags": [
+          "Performance Collection"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "op",
+            "generate"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/internal/nqe/queries/{queryId}/explain": {
+      "post": {
+        "description": "Returns the optimized plan Forward's Query Debug Panel shows for a saved library query, as text/plain: a rendering of the optimized query with parallelism, totality and cardinality marks. The rendering may not itself be valid NQE. The body is the bare parameter map (not wrapped in params) for a parameterized query; send an empty object for none. Query keys: commitId and snapshotId are optional, both omitted by default, meaning HEAD and no snapshot (the schema is then not extended with snapshot data). A query with diagnostics (it does not compile) answers 400 with the diagnostics as JSON, never a plan. Gated by VIEW_NQE_LIBRARY on the org (source: NqeController.explainCommittedQuery); no licence facet on these annotations. Accepts text/plain or application/json. The explain is a read: nothing is saved (@Audited(false) in source). Live: 200 text/plain for a saved query with no snapshot and an empty object body; the plan text itself is customer data and not recorded. Not part of Forward's documented API.",
+        "operationId": "explainCommittedNqeQuery",
+        "parameters": [
+          {
+            "description": "The global query ID of a saved library query, for example FQ_ followed by a hash. Obtain it from the head listing (client.nqe.repo.queries).",
+            "in": "path",
+            "name": "queryId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A commit to explain the query at. Omit for HEAD.",
+            "in": "query",
+            "name": "commitId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A snapshot whose schema extends the validation. Omit to explain without a snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {},
+              "schema": {
+                "$ref": "#/components/schemas/MiscNqeExplainParams"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "example": "# synthetic fixture: an optimized plan rendering, not NQE\nforeach device in network.devices  [parallel, total, cardinality=many]",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The optimized plan as text."
+          },
+          "400": {
+            "description": "The query does not compile. The body is the diagnostics as JSON, not a plan."
+          }
+        },
+        "summary": "Explain a saved library query's optimized plan",
+        "tags": [
+          "NQE Explain"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/internal/snapshots/{snapshotId}/protocol-modeling": {
+      "get": {
+        "description": "Returns done true once a successful protocol-modeling result is stored; a failed modeling job also reads false, so bound any wait. Requires MANAGE_PROTOCOL_MODELING on the network and the organization property PREDICT_MODELING (source: BenchmarkController.getProtocolModelingStatus). MANAGE_PROTOCOL_MODELING belongs only to the network ADMIN role, so read-only and operator users are refused. Live: 403 'Unlicensed operation: NetworkOperation.MANAGE_PROTOCOL_MODELING' on the test account, so the body is source-only. Internal route, not part of Forward's documented API.",
+        "operationId": "getProtocolModelingStatus",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "done": true
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PredictProtocolModelingStatus"
+                }
+              }
+            },
+            "description": "The modeling status."
+          },
+          "403": {
+            "description": "Refused without MANAGE_PROTOCOL_MODELING and PREDICT_MODELING (live: Unlicensed operation, MANAGE_PROTOCOL_MODELING)."
+          }
+        },
+        "summary": "Whether protocol modeling has finished for a snapshot",
+        "tags": [
+          "Protocol Modeling"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "status"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "listPredictAffectedDevices",
+            "summary": "The devices a change set affected in a predicted snapshot",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "affected-devices"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/internal/users/current/nqe/queries/explain": {
+      "post": {
+        "description": "Returns the optimized plan for the query at a library path, as text/plain, for the calling user's own NQE workspace: the draft when one exists, else the committed query. The path is the library path without the repository, as the UI sends it. The body is the bare parameter map for a parameterized query; send an empty object for none. Query keys: path is caller-supplied and required; snapshotId is optional and omitted by default. A path the workspace has deleted or moved away from, or that exists nowhere, answers 404; a query with diagnostics answers 400 with the diagnostics as JSON. A draft at a path with no committed query yet resolves. Gated by VIEW_NQE_LIBRARY on the org, with the user's workspace (source: NqeController.explainInUserWorkspace). The explain is a read and nothing is saved (@Audited(false)). Live: 200 text/plain for a committed query at the path with an empty object body and no snapshot; the plan text is customer data and not recorded. Not part of Forward's documented API.",
+        "operationId": "explainNqeQueryAtPath",
+        "parameters": [
+          {
+            "description": "The library path of the query, without the repository, for example /Example/Devices.",
+            "in": "query",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A snapshot whose schema extends the validation. Omit to explain without a snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {},
+              "schema": {
+                "$ref": "#/components/schemas/MiscNqeExplainParams"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "example": "# synthetic fixture: an optimized plan rendering, not NQE\nforeach device in network.devices  [parallel, total, cardinality=many]",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The optimized plan as text."
+          },
+          "400": {
+            "description": "The query does not compile. The body is the diagnostics as JSON, not a plan."
+          },
+          "404": {
+            "description": "The path is deleted in the workspace, moved away from, or exists nowhere."
+          }
+        },
+        "summary": "Explain the query at a library path in the caller's workspace",
+        "tags": [
+          "NQE Explain"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/jobs/active": {
       "get": {
         "description": "Requires the ADMINISTER_SYSTEM system permission (@Requires(system = ADMINISTER_SYSTEM)). Rows are grouped by type, network and snapshot.",
@@ -31314,6 +33665,54 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/assets": {
+      "patch": {
+        "description": "Assigns one criticality to the named assets, endpoints and edge assets alike. A null criticality removes it, which the Go SDK exposes as RemoveCriticality and which takes the assets out of the critical assets threat-exposure analyses select. Requires EDIT_ASSET_CRITICALITIES on the network and the EDGE_ASSETS_IN_SOURCES org property, licence facet SECURITY (source: EdgeAssetController.modifyCriticality, CriticalityAssignmentRequest). names must not be empty. Not part of Forward's documented API. Source-only: not called live.",
+        "operationId": "setAssetCriticality",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "criticality": "CROWN_JEWEL",
+                "names": [
+                  "edge-fw1"
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/EdgeAssetCriticalityAssignment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated."
+          }
+        },
+        "summary": "Set or remove the criticality of endpoints and edge assets",
+        "tags": [
+          "Edge Assets"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "modifyCriticality"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/atlas": {
       "get": {
         "description": "The response is a JSON object that maps device names to their location ids.\n\nSample response: `{\"atl-edge-fw01\": \"2\", \"ny-edge-fw2\": \"1\"}`",
@@ -31410,7 +33809,7 @@
     },
     "/networks/{networkId}/aws-cap-credentials/{credentialId}": {
       "get": {
-        "description": "Returns the credential without its client-certificate password, which Forward never returns (CloudAccountController.getAwsCapCredential, VIEW_DEVICE_CREDENTIALS; 404 when unknown). Source-only: no CAP credential is on the ADP network.",
+        "description": "Returns the credential without its client-certificate password, which Forward never returns (CloudAccountController.getAwsCapCredential, VIEW_DEVICE_CREDENTIALS; 404 when unknown). Source-only: no CAP credential is on the test network.",
         "operationId": "getAwsCapCredential",
         "parameters": [
           {
@@ -31504,6 +33903,333 @@
         "summary": "Update an AWS CAP credential",
         "tags": [
           "Cloud Accounts"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/bgp-installed-prefixes": {
+      "get": {
+        "description": "Lists the prefixes each modelled BGP node (device and VRF) installed in its Loc-RIB, for one device (deviceName) or across the snapshot (vendors, balanced across vendor-OS and capped at limit). deviceName and vendors cannot be combined (400). limit must be positive; it defaults to 200. vendors takes Forward's lowercase vendor-OS names (for example cisco_ios); other case is 400. Requires RP_PREFIX_SEARCH on the network (BGP_PREFIX_SEARCH on the build the Go SDK pins; only ADMIN holds it) and PREDICT_MODELING on the organization (source: PredictController.getBgpInstalledPrefixes). Source-side route is the pre-rp-* spelling, which Forward marks deprecated. Not part of Forward's documented API. Live: 403 'Unlicensed operation: NetworkOperation.BGP_PREFIX_SEARCH' on the hosted test account (2026-10-28), so the response shape is not verified live; shape is from the source record and the Go SDK.",
+        "operationId": "getBgpInstalledPrefixes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to read. The Go SDK always sends it; the source reads it through the snapshot service. Not traced for the omitted case.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Limit the result to one device. Cannot be combined with vendors.",
+            "in": "query",
+            "name": "deviceName",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Repeat for each lowercase vendor-OS name, for example cisco_ios. Cannot be combined with deviceName.",
+            "in": "query",
+            "name": "vendors",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "The most prefixes to return across all nodes. Positive; defaults to 200.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "nodes": [
+                    {
+                      "device": "branch-a-rtr1",
+                      "prefixes": [
+                        "192.0.2.0/24",
+                        "198.51.100.0/24"
+                      ],
+                      "vendorOs": "cisco_ios",
+                      "vrf": "default"
+                    }
+                  ],
+                  "totalPrefixCount": 2
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DevRoutingInstalledPrefixes"
+                }
+              }
+            },
+            "description": "The installed prefixes, per node."
+          },
+          "400": {
+            "description": "deviceName and vendors combined, a non-positive limit, a bad vendor name, or an unknown device."
+          },
+          "403": {
+            "description": "The account is not licensed for the operation, or lacks the role or organization property. Live on the hosted test account (2026-10-28), the body reads Unlicensed operation NetworkOperation.BGP_PREFIX_SEARCH."
+          }
+        },
+        "summary": "Prefixes BGP nodes installed after modelling",
+        "tags": [
+          "BGP Prefixes"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/bgp-prefix-details": {
+      "post": {
+        "description": "Read query, posted as JSON, that returns the route a node holds for a prefix: protocol attributes (BGP communities, AS path, local preference and so on, shape varies by protocol and vendor) and the policies applied on the way in and out. Forward needs the neighbouring hops (previousNode, nextNode, previousPreviousNode) taken from one trace path to find the policies. The node must be a hop from a trace of the same snapshot; a node that does not resolve gets 200 with an error object, which the Go SDK returns as RoutingLookupError. Source-only: not called live, for the same reason as searchBgpPrefix. Requires RP_PREFIX_SEARCH on the network and PREDICT_MODELING on the organization (source: PredictController.getBgpPrefixDetails). Source marks the route deprecated in favour of rp-prefix-details. Not part of Forward's documented API.",
+        "operationId": "getBgpPrefixDetails",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot the trace came from. The Go SDK requires it.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevRoutingPrefixDetailsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "attributes": {
+                    "asPath": [
+                      65002
+                    ],
+                    "localPref": 100,
+                    "protocol": "BGP"
+                  },
+                  "device": "branch-a-rtr1",
+                  "policies": {
+                    "IMPORT": [
+                      "example-import-policy"
+                    ]
+                  },
+                  "prefix": "192.0.2.0/24",
+                  "vrf": "default"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DevRoutingPrefixDetails"
+                }
+              }
+            },
+            "description": "The route at the node. A lookup that matched nothing comes back as 200 with an error field instead."
+          },
+          "403": {
+            "description": "The account is not licensed for the operation, or lacks the role or organization property. Inferred and not called live; the same gate returned 403 on getBgpInstalledPrefixes (2026-10-28)."
+          },
+          "409": {
+            "description": "The snapshot is still being processed."
+          }
+        },
+        "summary": "Route attributes and policies at one hop of a trace",
+        "tags": [
+          "BGP Prefixes"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/bgp-prefix-search": {
+      "post": {
+        "description": "Read query, posted as JSON, that says where a prefix originates (origin) and, for each trace outcome, which nodes have it (devicesByOutcome). A prefix with no routing data gives an empty result. The body is the router and origin (device and VRF, with the protocol key the current build needs), the outcome, and an optional filter on each. Source-only: not called live, because the controller hands the request to a backend search job that is queued and, by its name, may first start protocol modelling; that body was not traced. The pinned Go SDK sends router and originatedFrom as device and VRF with routerKey and originatedFromKey carrying the protocol, while the newer source reads router and originatedFrom as device, VRF and protocol; the wire shape is not verified. Source marks the route deprecated in favour of rp-prefix-search. Requires RP_PREFIX_SEARCH on the network and PREDICT_MODELING on the organization (source: PredictController.searchBgpPrefix); the same gate returned 403 on getBgpInstalledPrefixes (live, 2026-10-28); this POST was not called live, so its 403 is inferred. Not part of Forward's documented API.",
+        "operationId": "searchBgpPrefix",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to search. The Go SDK requires it.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevRoutingPrefixSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "devicesByOutcome": {
+                    "INSTALLED": [
+                      {
+                        "device": "branch-a-rtr1",
+                        "protocol": "BGP",
+                        "vrf": "default"
+                      }
+                    ]
+                  },
+                  "origin": [
+                    {
+                      "device": "branch-a-rtr2",
+                      "protocol": "BGP",
+                      "vrf": "default"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DevRoutingPrefixSearchResult"
+                }
+              }
+            },
+            "description": "The origin and the nodes per outcome. Forward answers with a result object."
+          },
+          "403": {
+            "description": "The account is not licensed for the operation, or lacks the role or organization property. Inferred and not called live; the same gate returned 403 on getBgpInstalledPrefixes (2026-10-28)."
+          },
+          "409": {
+            "description": "The snapshot is still being processed."
+          }
+        },
+        "summary": "Where a prefix originates and which nodes have it",
+        "tags": [
+          "BGP Prefixes"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/bgp-prefix-trace": {
+      "post": {
+        "description": "Read query, posted as JSON, that returns the paths a prefix took from its origin to one router, each path a list of hops from origin to router. Take the router, the origin and the outcome from searchBgpPrefix. A prefix with no routing data gives no paths. Pass the hops unchanged to getBgpPrefixDetails. Source-only: not called live, for the same reason as searchBgpPrefix (a queued backend job that may start protocol modelling, body not traced). The same wire-shape question as searchBgpPrefix applies to router and originatedFrom. Source marks the route deprecated in favour of rp-prefix-trace. Requires RP_PREFIX_SEARCH on the network and PREDICT_MODELING on the organization (source: PredictController.getBgpPrefixTrace). Not part of Forward's documented API.",
+        "operationId": "traceBgpPrefix",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to trace. The Go SDK requires it.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevRoutingPrefixTraceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  [
+                    {
+                      "asNumber": 65001,
+                      "device": "branch-a-rtr2",
+                      "protocol": "BGP",
+                      "routeSetId": 1,
+                      "vrf": "default"
+                    },
+                    {
+                      "asNumber": 65002,
+                      "device": "branch-a-rtr1",
+                      "protocol": "BGP",
+                      "routeSetId": 2,
+                      "vrf": "default"
+                    }
+                  ]
+                ],
+                "schema": {
+                  "items": {
+                    "items": {
+                      "$ref": "#/components/schemas/DevRoutingNode"
+                    },
+                    "type": "array"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The paths, each a list of hops from origin to router. Empty when the prefix has no routing data."
+          },
+          "403": {
+            "description": "The account is not licensed for the operation, or lacks the role or organization property. Inferred and not called live; the same gate returned 403 on getBgpInstalledPrefixes (2026-10-28)."
+          },
+          "409": {
+            "description": "The snapshot is still being processed."
+          }
+        },
+        "summary": "Propagation of a prefix from its origin to a router",
+        "tags": [
+          "BGP Prefixes"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -32427,6 +35153,63 @@
           "Change Sets"
         ],
         "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Changes the name, the definition, or both. An absent field is left alone; name null clears the name. A definition replaces the whole check and must keep its category, so an intent check stays intent and an NQE check stays NQE, otherwise 400. Changing a definition makes earlier results stale until the check runs again. Requires MANAGE_CHANGE_SETS and the organization property PREDICT_MODELING (source: ChangeSetCheckController.updateCheck). Live: not called (write). Not part of Forward's documented API.",
+        "operationId": "updateChangeSetCheck",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "CSC-<n>, or the bare number.",
+            "in": "path",
+            "name": "checkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "DC to branch, renamed"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/PredictChangeSetCheckPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated."
+          },
+          "400": {
+            "description": "Forward refused the patch, for example a definition that changes category or an invalid definition."
+          }
+        },
+        "summary": "Rename a change-set check or replace its definition",
+        "tags": [
+          "Change Set Checks"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/change-sets/{changeSetId}/commits": {
@@ -32635,7 +35418,7 @@
         "x-forward-stability": "unpublished"
       },
       "get": {
-        "description": "Requires MANAGE_CHANGE_SETS and the PREDICT_MODELING organization property (ChangeSetController.getCommit). Device changes for devices the caller cannot access are filtered out. Source-only: the ADP account gets 403.",
+        "description": "Requires MANAGE_CHANGE_SETS and the PREDICT_MODELING organization property (ChangeSetController.getCommit). Device changes for devices the caller cannot access are filtered out. Source-only: the test account gets 403.",
         "operationId": "getChangeSetCommit",
         "parameters": [
           {
@@ -37462,6 +40245,148 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/controller-managed-setups/{setupName}/controllers/{name}": {
+      "patch": {
+        "description": "Partial update of one controller: absent fields are left alone, and an explicit null clears a clearable field. Per the Go SDK, Name cannot be cleared (Forward answers 400); a rename is allowed, done in place, and is not idempotent (the old name answers 404 afterwards, so do not retry it blind). The patch has no collectorId: a setup's collector is set on the setup (patchControllerManagedSetup). Requires MANAGE_COLLECTION_SOURCES on the network (source: ControllerManagedSetupController.patchControllerDevice). Books a CONTROLLER_MANAGED_SETUP feature-usage event. The response is the controller as stored, with ndoName when a Nexus Dashboard Orchestrator is linked. Not traced: whether the SD_WAN SDWAN_SETUPS gate, which the setup patch applies, also applies here. Live: not exercised (a write); source-only. Not part of Forward's documented API.",
+        "operationId": "patchControllerDevice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The controller-managed setup's name.",
+            "in": "path",
+            "name": "setupName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The controller's current name.",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "host": "192.0.2.10",
+                "port": 443
+              },
+              "schema": {
+                "$ref": "#/components/schemas/MiscControllerManagedDevicePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "collect": true,
+                  "host": "192.0.2.10",
+                  "name": "branch-a-vmanage",
+                  "type": "versa_director_api"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcSetupDevice"
+                }
+              }
+            },
+            "description": "The controller as stored."
+          }
+        },
+        "summary": "Change one controller of a controller-managed setup in place",
+        "tags": [
+          "Collection Sources"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/controller-managed-setups/{setupName}/managed-devices/{name}": {
+      "patch": {
+        "description": "Partial update of one guest (managed) device: only the fields the patch states are written, so nothing the SDK does not model is dropped. The same fields as patchControllerDevice, except concurrency and ndoName, which apply to controllers only. Per the Go SDK, Name cannot be cleared (Forward answers 400); a rename is allowed, done in place, and is not idempotent. Requires MANAGE_COLLECTION_SOURCES on the network (source: ControllerManagedSetupController.patchManagedDevice). Books a CONTROLLER_MANAGED_SETUP feature-usage event. Not traced: the SD_WAN SDWAN_SETUPS gate. Live: not exercised (a write); source-only. Not part of Forward's documented API.",
+        "operationId": "patchManagedDevice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The controller-managed setup's name.",
+            "in": "path",
+            "name": "setupName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The guest device's current name.",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "collect": false,
+                "note": "Parked until the branch reopens"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/MiscControllerManagedDevicePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "collect": false,
+                  "host": "192.0.2.20",
+                  "name": "branch-a-guest-1",
+                  "type": "cisco_apic_api"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcSetupDevice"
+                }
+              }
+            },
+            "description": "The guest device as stored."
+          }
+        },
+        "summary": "Change one guest device of a controller-managed setup in place",
+        "tags": [
+          "Collection Sources"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/custom-command-groups": {
       "get": {
         "description": "Lists the network's custom command groups (extra CLI commands or SNMP OIDs run on chosen device types). Gated by VIEW_CUSTOM_COLLECTION_GROUPS. The Go SDK's Get is this list filtered by name (no per-name read exists). Live-verified.",
@@ -40427,6 +43352,211 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/device-diffs/{beforeSnapshotId}/{afterSnapshotId}": {
+      "get": {
+        "description": "Lists each device that was added, removed or modified between two snapshots of one network, with the Device properties before and after and, for MODIFIED, the property names that differ. Unchanged devices are omitted. Devices match by name ignoring case. Filters: name is a case-insensitive glob on the device name; changeType takes ADDED, REMOVED and MODIFIED; with adds tags and/or locationId to before and after (and so can add MODIFIED entries); limit caps the entries, while totalDiffs still counts every match. Negative limit is 400. 409 while either snapshot is processing. Requires VIEW_INVENTORY_DIFFS on the network and a snapshot at CREATION stage (source: DeviceController.getDeviceDiffs). Source marks it experimental. Not part of Forward's documented API in this repo's pinned spec; it is a different route from getDeviceDiffs, which lists added and removed devices under /diffs. Live: 200 for MODIFIED with with=tags, REMOVED and ADDED with limit, and 400 for limit=-1. name was not exercised live.",
+        "operationId": "getNetworkDeviceDiffs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The earlier snapshot.",
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The later snapshot.",
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A case-insensitive glob on the device name, for example branch-a-*.",
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A comma-separated list of ADDED, REMOVED and MODIFIED. Omit for all three.",
+            "in": "query",
+            "name": "changeType",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A comma-separated list of tags and locationId, added to before and after.",
+            "in": "query",
+            "name": "with",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The most entries to return. Must not be negative. totalDiffs still counts every match.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "afterSnapshotCreatedAt": "2026-10-02T00:00:00Z",
+                  "beforeSnapshotCreatedAt": "2026-10-01T00:00:00Z",
+                  "diffs": [
+                    {
+                      "after": {
+                        "model": "example-model",
+                        "name": "branch-a-sw9",
+                        "platform": "eos",
+                        "type": "SWITCH",
+                        "vendor": "Arista"
+                      },
+                      "changeType": "ADDED",
+                      "deviceName": "branch-a-sw9"
+                    },
+                    {
+                      "after": {
+                        "name": "branch-a-rtr1",
+                        "osVersion": "4.31.0"
+                      },
+                      "before": {
+                        "name": "branch-a-rtr1",
+                        "osVersion": "4.30.1"
+                      },
+                      "changeType": "MODIFIED",
+                      "changedProperties": [
+                        "osVersion"
+                      ],
+                      "deviceName": "branch-a-rtr1"
+                    }
+                  ],
+                  "totalDiffs": 2
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DevRoutingDeviceDiffs"
+                }
+              }
+            },
+            "description": "The device differences, sorted by device name."
+          },
+          "400": {
+            "description": "A negative limit, or another bad filter."
+          },
+          "409": {
+            "description": "Either snapshot is still being processed."
+          }
+        },
+        "summary": "Devices added, removed or modified between two snapshots",
+        "tags": [
+          "Device Diffs"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/device-health": {
+      "post": {
+        "description": "A read-style POST: the body is a JSON array of device names, and the answer is a map keyed by device name, with {} for a device with no data (source: PerformanceController.getDevicesHealth). Requires VIEW_PERFORMANCE_DATA on the network and the snapshot must have reached START. Changes nothing: the service only reads performance samples and classic device SNMP settings. Not part of Forward's documented API. Live: POST with one device name returned 200 with that device mapped to {} (no performance data on the read-only account).",
+        "operationId": "getDevicesHealth",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the window (exclusive). Defaults as on getDeviceHealth.",
+            "in": "query",
+            "name": "endTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Snapshot to read. Omit for the latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": [
+                "branch-a-sw1"
+              ],
+              "schema": {
+                "description": "Device names.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "branch-a-sw1": {
+                    "cpuUsage": 0.42,
+                    "instant": 1792268975506,
+                    "memoryUsage": 0.61,
+                    "uptimeSeconds": 864000
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PerfDevicesHealth"
+                }
+              }
+            },
+            "description": "Health keyed by device name."
+          }
+        },
+        "summary": "Health for several devices in one call",
+        "tags": [
+          "Performance Metrics"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/device-metrics": {
       "get": {
         "description": "Returns the top 50 devices by the aggregation of their datapoints, in descending order. Gated by VIEW_PERFORMANCE_DATA and the snapshot must have reached CREATION. The Go SDK also sends direction, interface, interfaceFilter, startTime and maxSamples on this route; the Java controller does not read them (Spring ignores unknown query parameters).",
@@ -41181,12 +44311,11 @@
                         "Mgmt-Net",
                         "Mgmt_Lo0",
                         "Network",
-                        "AMRS",
+                        "Branch",
                         "Switch",
-                        "N.Patel",
                         "Non-Edge",
                         "Maintain",
-                        "DC01",
+                        "Site1",
                         "Auth_Forward",
                         "EoS_New",
                         "EoS"
@@ -41533,6 +44662,18 @@
         "summary": "Get a network device",
         "tags": [
           "Network Devices"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getDeviceBgpPrefixInfo",
+            "summary": "What one device has for a prefix, per VRF",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "bgp-prefix-info"
+              ]
+            ]
+          }
         ]
       }
     },
@@ -41666,6 +44807,387 @@
         ]
       }
     },
+    "/networks/{networkId}/devices/{deviceName}/health": {
+      "get": {
+        "description": "Returns the device's latest performance sample in the 24 hours before endTime, plus its last high and medium threshold breaches (source: PerformanceController.getDeviceHealth; DeviceHealth.java). Requires the VIEW_PERFORMANCE_DATA network permission (@Requires(network = VIEW_PERFORMANCE_DATA)), and the snapshot must have reached START. Omit endTime for the default: the next non-fork snapshot's time, else now. Returns {} when the window holds no data. Not part of Forward's documented API. Live: 200 with {} on the read-only account, which has performance collection off, so no sample was observed.",
+        "operationId": "getDeviceHealth",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Device name, as Forward knows it. The SDK percent-encodes it.",
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the window (exclusive). Defaults as described above.",
+            "in": "query",
+            "name": "endTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Snapshot to read. Omit for the latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "cpuUsage": 0.42,
+                  "instant": 1792268975506,
+                  "lastHighCpuUsage": {
+                    "instant": 1792182575506,
+                    "value": 0.83
+                  },
+                  "memoryUsage": 0.61,
+                  "uptimeSeconds": 864000
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PerfDeviceHealth"
+                }
+              }
+            },
+            "description": "The device's health; {} when the window holds no data."
+          }
+        },
+        "summary": "One device's CPU, memory and utilization health",
+        "tags": [
+          "Performance Metrics"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/devices/{deviceName}/interfaces": {
+      "get": {
+        "description": "Lists one modelled device's interfaces sorted by name, with the type-specific properties (L3 addresses and VRF, VLANs, tunnel endpoints). The type field picks the shape; GENERIC, L3 and TUNNEL were seen live. Neighbors are added only with with=neighbors. Uses the latest processed snapshot when snapshotId is omitted; 409 while the snapshot is not processed; 404 for an unknown device. Requires VIEW_NETWORK_AND_SNAPSHOTS on the network (source: DeviceController.getDeviceInterfaces). Source marks it experimental (@ApiOperation) and the Go SDK says Forward 26.10 publishes it as experimental. Not part of Forward's documented API in this repo's pinned spec. Live: with=neighbors gave 200 for all 400 devices scanned on a processed snapshot; the plain form gave 200 for the device checked.",
+        "operationId": "listDeviceInterfaces",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The device name, percent-encoded as one path segment.",
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to read. Uses the network's latest processed snapshot when omitted.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Set to neighbors to add each interface's neighbors (the device and port at the far end of its outgoing link). It is the only value Forward accepts.",
+            "in": "query",
+            "name": "with",
+            "required": false,
+            "schema": {
+              "enum": [
+                "neighbors"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "interfaces": [
+                    {
+                      "aliases": [
+                        "Eth1/1"
+                      ],
+                      "allowedVlans": [],
+                      "allowsUntagged": true,
+                      "fhrpIpAddresses": [],
+                      "fileLines": [
+                        {
+                          "file": "example-config.txt",
+                          "lines": [
+                            {
+                              "end": 14,
+                              "start": 10
+                            }
+                          ]
+                        }
+                      ],
+                      "fullDuplex": true,
+                      "inAclNames": [],
+                      "ipAddresses": [
+                        "192.0.2.1/30"
+                      ],
+                      "isDown": false,
+                      "isLoopback": false,
+                      "name": "Ethernet1/1",
+                      "neighbors": [
+                        {
+                          "device": "branch-a-sw2",
+                          "port": "Ethernet1/1"
+                        }
+                      ],
+                      "outAclNames": [],
+                      "type": "L3"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DevRoutingInterfaceList"
+                }
+              }
+            },
+            "description": "The device's interfaces."
+          },
+          "404": {
+            "description": "The device is not in the snapshot."
+          },
+          "409": {
+            "description": "The snapshot is still being processed."
+          }
+        },
+        "summary": "List a device's interfaces",
+        "tags": [
+          "Device Interfaces"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/devices/{deviceName}/interfaces/{interfaceName}": {
+      "get": {
+        "description": "Returns one interface of a modelled device, found by name or by alias (case-sensitive; live: an alias returned the same interface as its name). A slash in the name is percent-encoded, so Ethernet1/1 is sent as Ethernet1%2F1; a raw slash is read as a path split and answers 400 (live). Same shape and with=neighbors option as listDeviceInterfaces. 404 when the device has no such interface in the snapshot. Requires VIEW_NETWORK_AND_SNAPSHOTS on the network (source: DeviceController.getDeviceInterface). Source marks it experimental (@ApiOperation). Not part of Forward's documented API in this repo's pinned spec. Live: 200 for an encoded slash name and for an alias, 400 for the raw slash, 404 for an unknown interface and for an unknown device. Omitting snapshotId was checked live on listDeviceInterfaces only.",
+        "operationId": "getDeviceInterface",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The device name, percent-encoded as one path segment.",
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The interface name or one of its aliases, percent-encoded as one path segment (a slash becomes %2F). Not pre-encoded by Forward, so the SDK quotes it.",
+            "in": "path",
+            "name": "interfaceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to read. Uses the network's latest processed snapshot when omitted.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Set to neighbors to add the interface's neighbors. It is the only value Forward accepts.",
+            "in": "query",
+            "name": "with",
+            "required": false,
+            "schema": {
+              "enum": [
+                "neighbors"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "aliases": [
+                    "Eth1/1"
+                  ],
+                  "allowedVlans": [],
+                  "allowsUntagged": true,
+                  "fhrpIpAddresses": [],
+                  "fileLines": [
+                    {
+                      "file": "example-config.txt",
+                      "lines": [
+                        {
+                          "end": 14,
+                          "start": 10
+                        }
+                      ]
+                    }
+                  ],
+                  "fullDuplex": true,
+                  "inAclNames": [],
+                  "ipAddresses": [
+                    "192.0.2.1/30"
+                  ],
+                  "isDown": false,
+                  "isLoopback": false,
+                  "name": "Ethernet1/1",
+                  "outAclNames": [],
+                  "type": "L3"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DevRoutingInterface"
+                }
+              }
+            },
+            "description": "The interface."
+          },
+          "400": {
+            "description": "The name was not one percent-encoded path segment (for example a raw slash)."
+          },
+          "404": {
+            "description": "The device or the interface is not in the snapshot."
+          },
+          "409": {
+            "description": "The snapshot is still being processed."
+          }
+        },
+        "summary": "Get one of a device's interfaces",
+        "tags": [
+          "Device Interfaces"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/devices/{deviceName}/interfaces/{interfaceName}/health": {
+      "get": {
+        "description": "Returns the interface's latest counters and rates, and its last high and medium utilization breaches, in the 24 hours before endTime (source: PerformanceController.getInterfaceHealth; InterfaceHealth.java). Requires VIEW_PERFORMANCE_DATA on the network and the snapshot must have reached START. The Go SDK percent-encodes a '/' in the interface name. Returns {} when the window holds no data. Not part of Forward's documented API. Live: 200 with {} on the read-only account (no performance data).",
+        "operationId": "getInterfaceHealth",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Device name, as Forward knows it.",
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Interface name, as Forward knows it. Percent-encode a '/' in it.",
+            "in": "path",
+            "name": "interfaceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the window (exclusive). Defaults as on getDeviceHealth.",
+            "in": "query",
+            "name": "endTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Snapshot to read. Omit for the latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "inDiscards": 0,
+                  "inErrors": 0,
+                  "inOctets": 9876543210,
+                  "inputDiscardsPerMin": 0,
+                  "inputErrorsPerMin": 0,
+                  "inputUtilization": 0.12,
+                  "instant": 1792268975506,
+                  "lastHighOutputUtilization": {
+                    "instant": 1792182575506,
+                    "value": 0.93
+                  },
+                  "outDiscards": 3,
+                  "outErrors": 0,
+                  "outOctets": 8765432100,
+                  "outputDiscardsPerMin": 0.5,
+                  "outputErrorsPerMin": 0,
+                  "outputUtilization": 0.93,
+                  "speedMbps": 1000
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PerfInterfaceHealth"
+                }
+              }
+            },
+            "description": "The interface's health; {} when the window holds no data."
+          }
+        },
+        "summary": "One interface's utilization, discards and errors",
+        "tags": [
+          "Performance Metrics"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/devices/{deviceName}/security-zones/{zoneName}": {
       "get": {
         "operationId": "getSecurityZone",
@@ -41797,7 +45319,7 @@
                   ],
                   "jobs": [
                     {
-                      "collectorId": "C8126",
+                      "collectorId": "C1",
                       "counts": {
                         "discovered": 2271,
                         "inaccessible": 35,
@@ -41809,7 +45331,7 @@
                       "initialQueueSize": 3864,
                       "scheduledDiscoveryId": "0",
                       "startedAt": 1792224013668,
-                      "startedBy": "Discovery_ADP",
+                      "startedBy": "Discovery_Example",
                       "type": "DIRECT"
                     }
                   ]
@@ -41825,6 +45347,142 @@
         "summary": "List discovery jobs and the devices they found",
         "tags": [
           "Device Discovery"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/edge-assets": {
+      "get": {
+        "description": "Returns the network's edge assets with their criticality and whether each is in the latest snapshot. Requires VIEW_COLLECTION_SOURCES on the network, licence facet BASE (source: EdgeAssetController.getEdgeAssets, NetworkOperation). Not gated on the EDGE_ASSETS_IN_SOURCES org property, so assets added while it was on stay visible after it is turned off. Not part of Forward's documented API. Live (GET, read-only): 404 'No endpoint' on the test account, so this build does not serve the route; source-only.",
+        "operationId": "listEdgeAssets",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "edgeAssets": [
+                    {
+                      "createdAt": "2026-01-02T03:04:05.123456789Z",
+                      "createdBy": "me@example.com",
+                      "createdById": "11",
+                      "criticality": "CROWN_JEWEL",
+                      "enrichmentSources": [
+                        "TENABLE_VM"
+                      ],
+                      "include": true,
+                      "includedInLatestSnapshot": true,
+                      "ips": [
+                        "192.0.2.50"
+                      ],
+                      "name": "edge-fw1",
+                      "updatedAt": "2026-01-03T03:04:05.123456789Z",
+                      "updatedBy": "me@example.com",
+                      "updatedById": "11"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/EdgeAssets"
+                }
+              }
+            },
+            "description": "The network's edge assets."
+          }
+        },
+        "summary": "List a network's edge assets",
+        "tags": [
+          "Edge Assets"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/edge-assets/{assetName}": {
+      "delete": {
+        "description": "Removes the named edge asset and its criticality, which also takes it out of the critical assets threat-exposure analyses select. Requires MANAGE_EDGE_ASSETS on the network, licence facet SECURITY, and is not gated on the EDGE_ASSETS_IN_SOURCES org property, so it works after the feature is turned off (source: EdgeAssetController.deleteEdgeAsset). Cannot be undone. Not part of Forward's documented API. Source-only: never called live.",
+        "operationId": "deleteEdgeAsset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The edge asset's name, as the list gives it. Percent-encoded by the SDK.",
+            "in": "path",
+            "name": "assetName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete an edge asset and its criticality",
+        "tags": [
+          "Edge Assets"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Turns matching to later snapshots on or off (include), or renames the asset (name). At least one of the two is required (source: EdgeAssetPatch). Requires MANAGE_EDGE_ASSETS on the network and the EDGE_ASSETS_IN_SOURCES org property, licence facet SECURITY (source: EdgeAssetController.updateEdgeAsset). Not part of Forward's documented API. Source-only: not called live.",
+        "operationId": "updateEdgeAsset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The edge asset's name, as the list gives it. Percent-encoded by the SDK.",
+            "in": "path",
+            "name": "assetName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "include": false
+              },
+              "schema": {
+                "$ref": "#/components/schemas/EdgeAssetPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated."
+          }
+        },
+        "summary": "Change an edge asset",
+        "tags": [
+          "Edge Assets"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -47371,7 +51029,284 @@
         ]
       }
     },
+    "/networks/{networkId}/performance": {
+      "post": {
+        "description": "Collector-only upload: the body is a serialized PerfDataPB protobuf (application/octet-stream, not JSON), with cumulative interface counters and CPU and memory readings (source: PerformanceController.saveDevicePerformanceData; PerformanceService.save). @RequiresCollector, so the request authenticates with the collector identity, not the API token. Forward checks that the collector belongs to the network's organization. A sample whose CPU or memory is above 1 is dropped for the whole device; one interface whose utilization is above 1 is dropped alone. Answers 204. Not part of Forward's documented API. Source-only: this writes performance data, and the read-only account must never call it.",
+        "operationId": "uploadPerformanceData",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Stored. No body."
+          }
+        },
+        "summary": "Upload a collector's performance samples (binary)",
+        "tags": [
+          "Performance Collection"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/performance/devices": {
+      "get": {
+        "description": "Returns the serialized PerfDevicesPB protobuf (application/octet-stream, not JSON) listing the devices this collector should poll over SNMP (source: PerformanceController.getDevicesForPerfMonitoring). @RequiresCollector: the request must authenticate as a collector (basic auth with the collector identity from Collectors.Register), not with the API token; build a separate client with the collector's credential for this call. A device is listed when it names this collector, or names none and this collector is the network's default, and it has a known vendor OS, collection on and SNMP performance collection on. The body is empty when there are none. Decoding the protobuf is the caller's job; the SDK has no protobuf dependency. Not part of Forward's documented API. Not called live: no collector identity on the read-only account.",
+        "operationId": "getCollectorPerformanceDevices",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {}
+            },
+            "description": "The serialized PerfDevicesPB protobuf bytes. Empty when there are no devices."
+          }
+        },
+        "summary": "Devices a collector should poll for performance data (binary)",
+        "tags": [
+          "Performance Collection"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/performance/devices-with-data": {
+      "get": {
+        "description": "Lists the unique device names with performance data in the window (source: PerformanceController.getDevicesWithPerfData). With no startTime the window is the 24 hours before endTime. Requires VIEW_PERFORMANCE_DATA on the network and the snapshot must have reached START. Quick check that polling or an upload reached Forward. Not part of Forward's documented API. Live: 200 with [] on the read-only account (no performance data).",
+        "operationId": "getDevicesWithPerfData",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the window (inclusive). Defaults to 24 hours before endTime.",
+            "in": "query",
+            "name": "startTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the window (exclusive). Defaults as on getDeviceHealth.",
+            "in": "query",
+            "name": "endTime",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Snapshot to read. Omit for the latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  "branch-a-sw1",
+                  "branch-a-sw2"
+                ],
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Device names with data in the window."
+          }
+        },
+        "summary": "Devices that have performance data in a window",
+        "tags": [
+          "Performance Metrics"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/performance/raw-data": {
+      "get": {
+        "description": "Has a collector walk one device over SNMP with a stored credential and returns what it read, as SnmpRawDataResponse (source: PerformanceController.getRawSnmpData; WebPerformanceService.collectSnmpRawData). Requires the MANAGE_COLLECTION_SOURCES network permission (@Requires(network = MANAGE_COLLECTION_SOURCES)); no snapshot gate. The walk runs from the network's default collector, not the device's pinned one, and it can take up to about ten minutes (the answer is deferred). Forward answers 400 unless parentOids is non-empty or includeDevicePerfData is true. Not part of Forward's documented API. Safe to read, but it sends live SNMP to the device: source-only, never called.",
+        "operationId": "getRawSnmpData",
+        "parameters": [
+          {
+            "description": "Network id.",
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Device name, as Forward knows it. Must be a classic device with a known vendor OS.",
+            "in": "query",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "SNMP credential id (Credentials.ListSNMP lists them).",
+            "in": "query",
+            "name": "credentialId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "OID subtrees to walk. Repeat the parameter for several. Required unless includeDevicePerfData is true.",
+            "explode": true,
+            "in": "query",
+            "name": "parentOids",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Also return the CPU, memory and uptime readings the performance poll would take.",
+            "in": "query",
+            "name": "includeDevicePerfData",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "How interface tables are read. Defaults to ASYNC_TREE_WALK.",
+            "in": "query",
+            "name": "interfaceDataProviderType",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ASYNC_TREE_WALK",
+                "BULK_READ_TABLE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "IP address to poll instead of the device's configured address.",
+            "in": "query",
+            "name": "deviceAddressOverride",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "oidToLeafOidVals": {
+                    "1.3.6.1.2.1.1": {
+                      "1.3.6.1.2.1.1.3.0": "8640000"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PerfRawSnmpData"
+                }
+              }
+            },
+            "description": "The raw SNMP readings."
+          }
+        },
+        "summary": "Walk one device over SNMP and return the raw readings",
+        "tags": [
+          "Performance Collection"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/performance/settings": {
+      "get": {
+        "description": "Returns the network's performance collection setting. intervalMinutes is omitted when never set. Requires VIEW_PERFORMANCE_SETTINGS on the network (not traced to a role; the account used for the live check could read it). Not part of Forward's documented API. Live: 200 {enabled: false} on a network with collection off.",
+        "operationId": "getPerformanceSettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "enabled": false
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PerfSettings"
+                }
+              }
+            },
+            "description": "The setting."
+          }
+        },
+        "summary": "Read whether performance collection is on for a network",
+        "tags": [
+          "Collection Settings"
+        ],
+        "x-forward-stability": "unpublished"
+      },
       "patch": {
         "description": "Requires the EDIT_PERFORMANCE_SETTINGS network permission (@Requires(network = EDIT_PERFORMANCE_SETTINGS)). A null enabled is stored as false. Source-only: the response is not in the Go SDK's test fixtures.",
         "operationId": "patchPerformanceSettings",
@@ -49526,6 +53461,527 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/threat-exposure-analyses/{definitionId}": {
+      "get": {
+        "description": "Returns the latest analysis status of the definition on each snapshot it was analyzed on, newest snapshot first. Used by the GUI; the Go SDK does not wrap this form (its Status call always passes snapshotId). Requires VIEW_THREAT_EXPOSURE on the network, not gated on the org property (source: ThreatExposureController.getThreatExposureAnalyses, ThreatExposureAnalysisService.getAnalysisSummaries). Unknown definition ids answer 404. Not part of Forward's documented API. Live (GET, read-only): 404 'No endpoint' on the test account; source-only.",
+        "operationId": "listThreatExposureAnalyses",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The definition's UUID.",
+            "in": "path",
+            "name": "definitionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "analyses": [
+                    {
+                      "snapshotId": "7",
+                      "status": "SUCCEEDED"
+                    },
+                    {
+                      "snapshotId": "6",
+                      "status": "FAILED"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ThreatExposureAnalysisSummaries"
+                }
+              }
+            },
+            "description": "The analysis statuses."
+          }
+        },
+        "summary": "List a definition's analyses by snapshot",
+        "tags": [
+          "Threat Exposure"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "status"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getThreatExposureStatus",
+            "summary": "Get the progress of a definition's analysis on a snapshot",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "status"
+              ],
+              [
+                "snapshotId",
+                ""
+              ]
+            ]
+          },
+          {
+            "operationId": "getCriticalAssetDirectExposureDetails",
+            "summary": "Explain how one critical asset is directly exposed",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "criticalAssetDirectExposureDetails"
+              ],
+              [
+                "assetId",
+                ""
+              ],
+              [
+                "snapshotId",
+                ""
+              ]
+            ]
+          },
+          {
+            "operationId": "getThreatExposureAnalysisScope",
+            "summary": "Get what an analysis covers",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "scope"
+              ],
+              [
+                "snapshotId",
+                ""
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Starts analysis jobs for the definition on one snapshot and returns at once with no body: poll getThreatExposureStatus until it reports completion, then read the views. Answers 409 when the definition is already being analyzed against that snapshot. snapshotId is required, since evaluation starts jobs and must not default to the latest snapshot (source: ThreatExposureController.evaluateThreatExposure). The snapshot must be processed to the reachability stage (source: RequiresSnapshot REACHABILITY). Requires EVALUATE_THREAT_EXPOSURE on the network and the THREAT_EXPOSURE org property (source: ThreatExposureController.evaluateThreatExposure). Not part of Forward's documented API. Source-only: this starts jobs, so it was never called live.",
+        "operationId": "evaluateThreatExposure",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The definition's UUID.",
+            "in": "path",
+            "name": "definitionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to analyze against.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted. The analysis jobs have started; there is no body."
+          },
+          "409": {
+            "description": "The definition is already being analyzed against this snapshot."
+          }
+        },
+        "summary": "Start the analysis of a definition on a snapshot",
+        "tags": [
+          "Threat Exposure"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "evaluate"
+          ],
+          [
+            "snapshotId",
+            ""
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getCriticalAssetsExposureSummary",
+            "summary": "List the critical assets an analysis found exposed",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "criticalAssetsExposureSummary"
+              ],
+              [
+                "snapshotId",
+                ""
+              ]
+            ]
+          },
+          {
+            "operationId": "getCriticalAssetTransitiveExposureDetails",
+            "summary": "List how one critical asset is exposed through other hosts",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "criticalAssetTransitiveExposureDetails"
+              ],
+              [
+                "assetId",
+                ""
+              ],
+              [
+                "snapshotId",
+                ""
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/threat-exposure-definitions": {
+      "get": {
+        "description": "Returns the network's threat exposure definitions, each with the latest snapshot analyzed against it (latestAnalyzedSnapshotId, absent when none). Requires VIEW_THREAT_EXPOSURE on the network (source: ThreatExposureController.getThreatExposureDefinitions); not gated on the THREAT_EXPOSURE org property. The Go SDK says Forward leaves latestAnalyzedSnapshotId empty (FWD-60477), but this server source fills it from the analysis repo; not resolved here. Not part of Forward's documented API. Live (GET, read-only): 404 'No endpoint' on the test account, so this build does not serve the route and the shape is source-only.",
+        "operationId": "listThreatExposureDefinitions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "definitions": [
+                    {
+                      "definition": {
+                        "createdAt": "2026-01-02T03:04:05.123456789Z",
+                        "createdBy": "me@example.com",
+                        "createdById": "11",
+                        "criticalities": [
+                          "CROWN_JEWEL"
+                        ],
+                        "exposurePoints": [
+                          {
+                            "exposurePoint": "internet-edge",
+                            "level": "SEVERE"
+                          }
+                        ],
+                        "id": "3f2c9a1e-5b7d-4c8a-9e21-0a1b2c3d4e5f",
+                        "locations": [
+                          "1"
+                        ],
+                        "maxDurationSeconds": 3600,
+                        "name": "Internet-facing crown jewels",
+                        "subnets": [
+                          "192.0.2.0/24"
+                        ],
+                        "updatedAt": "2026-01-03T03:04:05.123456789Z",
+                        "updatedBy": "me@example.com",
+                        "updatedById": "11"
+                      },
+                      "latestAnalyzedSnapshotId": "7"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ThreatExposureDefinitionInfos"
+                }
+              }
+            },
+            "description": "The network's definitions, newest created first."
+          }
+        },
+        "summary": "List a network's threat exposure definitions",
+        "tags": [
+          "Threat Exposure"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Saves a definition and returns it with its new id and a Location header. Refused with 400 and the reason when invalid: name required and not blank, 1 to 4 unique exposure points with a level of MODERATE, HIGH, SEVERE or CRITICAL, maxDurationSeconds required and positive, criticalities drawn from BUSINESS_CRITICAL, CRITICAL_INFRA or CROWN_JEWEL (source: NewThreatExposureDefinition, ThreatExposureDefinition.validate). Requires EDIT_THREAT_EXPOSURE on the network and the THREAT_EXPOSURE org property, which is off by default and not configurable by an org admin (source: ThreatExposureController.addThreatExposureDefinition). Not part of Forward's documented API. Source-only: the POST was not called live, and the build answers 404 for the GET routes of this family.",
+        "operationId": "createThreatExposureDefinition",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "criticalities": [
+                  "CROWN_JEWEL"
+                ],
+                "exposurePoints": [
+                  {
+                    "exposurePoint": "internet-edge",
+                    "level": "SEVERE"
+                  }
+                ],
+                "locations": [
+                  "1"
+                ],
+                "maxDurationSeconds": 3600,
+                "name": "Internet-facing crown jewels",
+                "subnets": [
+                  "192.0.2.0/24"
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ThreatExposureDefinitionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-01-02T03:04:05.123456789Z",
+                  "createdBy": "me@example.com",
+                  "createdById": "11",
+                  "criticalities": [
+                    "CROWN_JEWEL"
+                  ],
+                  "exposurePoints": [
+                    {
+                      "exposurePoint": "internet-edge",
+                      "level": "SEVERE"
+                    }
+                  ],
+                  "id": "3f2c9a1e-5b7d-4c8a-9e21-0a1b2c3d4e5f",
+                  "locations": [
+                    "1"
+                  ],
+                  "maxDurationSeconds": 3600,
+                  "name": "Internet-facing crown jewels",
+                  "subnets": [
+                    "192.0.2.0/24"
+                  ],
+                  "updatedAt": "2026-01-02T03:04:05.123456789Z",
+                  "updatedBy": "me@example.com",
+                  "updatedById": "11"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ThreatExposureDefinition"
+                }
+              }
+            },
+            "description": "The saved definition. The Location header names its URL."
+          }
+        },
+        "summary": "Create a threat exposure definition",
+        "tags": [
+          "Threat Exposure"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "resolveThreatExposureDefinition",
+            "summary": "Preview the critical assets a definition selects on a snapshot",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "resolve"
+              ],
+              [
+                "view",
+                "summary"
+              ],
+              [
+                "snapshotId",
+                ""
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/threat-exposure-definitions/{definitionId}": {
+      "delete": {
+        "description": "Removes the definition. Unknown ids answer 404 (source: ThreatExposureController.deleteThreatExposureDefinition). Requires EDIT_THREAT_EXPOSURE on the network, licence facet SECURITY, and is not gated on the THREAT_EXPOSURE org property, so it works after the feature is turned off. Cannot be undone. Whether its stored analyses are kept is not traced. Not part of Forward's documented API. Source-only: never called live.",
+        "operationId": "deleteThreatExposureDefinition",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The definition's UUID.",
+            "in": "path",
+            "name": "definitionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a threat exposure definition",
+        "tags": [
+          "Threat Exposure"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "Returns one saved definition. Unknown ids answer 404 (source: getOrThrow). Requires VIEW_THREAT_EXPOSURE on the network (source: ThreatExposureController.getThreatExposureDefinition); not gated on the THREAT_EXPOSURE org property. Not part of Forward's documented API. Live (GET, read-only): 404 'No endpoint' on the test account, so the route is not served there; source-only.",
+        "operationId": "getThreatExposureDefinition",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The definition's UUID.",
+            "in": "path",
+            "name": "definitionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-01-02T03:04:05.123456789Z",
+                  "createdBy": "me@example.com",
+                  "createdById": "11",
+                  "criticalities": [
+                    "CROWN_JEWEL"
+                  ],
+                  "exposurePoints": [
+                    {
+                      "exposurePoint": "internet-edge",
+                      "level": "SEVERE"
+                    }
+                  ],
+                  "id": "3f2c9a1e-5b7d-4c8a-9e21-0a1b2c3d4e5f",
+                  "locations": [
+                    "1"
+                  ],
+                  "maxDurationSeconds": 3600,
+                  "name": "Internet-facing crown jewels",
+                  "subnets": [
+                    "192.0.2.0/24"
+                  ],
+                  "updatedAt": "2026-01-03T03:04:05.123456789Z",
+                  "updatedBy": "me@example.com",
+                  "updatedById": "11"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ThreatExposureDefinition"
+                }
+              }
+            },
+            "description": "The definition."
+          }
+        },
+        "summary": "Get one threat exposure definition",
+        "tags": [
+          "Threat Exposure"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Changes the fields sent and leaves the rest. An empty locations, criticalities or subnets list clears that filter, so all critical assets are selected again. Refused when no property is sent, or when the result would be invalid (source: ThreatExposureDefinitionPatch). Requires EDIT_THREAT_EXPOSURE on the network and the THREAT_EXPOSURE org property (source: ThreatExposureController.updateThreatExposureDefinition). Not part of Forward's documented API. Source-only: not called live.",
+        "operationId": "updateThreatExposureDefinition",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The definition's UUID.",
+            "in": "path",
+            "name": "definitionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "maxDurationSeconds": 1800
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ThreatExposureDefinitionPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated."
+          }
+        },
+        "summary": "Change a threat exposure definition",
+        "tags": [
+          "Threat Exposure"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/unhealthy-devices": {
       "get": {
         "description": "Returns the devices whose CPU, memory or interface usage breached a threshold in the HEALTH_ISSUE_LIFETIME window ending at endTime (source). Omit endTime for the default. Gated by VIEW_PERFORMANCE_DATA; the snapshot must have reached START.",
@@ -51349,6 +55805,77 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/nqe/verificationQueries": {
+      "get": {
+        "description": "Lists the NQE queries enabled as checks on one change set, as NqeCheckInfo. networkId and changeSetId are both query parameters. Requires USE_NQE and MANAGE_CHANGE_SETS on the network and the organization property PREDICT_MODELING (source: NqeLibController.getChangeSetVerificationQueries). Live: 403 'Unlicensed operation: NetworkOperation.MANAGE_CHANGE_SETS' on the test account, so the body is source-only. The network-wide form of the same route is a different operation and is not covered here. Not part of Forward's documented API.",
+        "operationId": "listChangeSetNqeChecks",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "commits": [
+                      {
+                        "authorEmail": "me@example.com",
+                        "committedAt": "2026-01-15T09:30:00Z",
+                        "hasParams": false,
+                        "id": "5",
+                        "intent": "Example check query",
+                        "path": "/checks/example-isolation"
+                      }
+                    ],
+                    "lastCommitSourceCodeSha": "0000000000000000000000000000000000000001",
+                    "presentInHead": true,
+                    "queryId": "example.isolation.check",
+                    "repository": "ORG"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PredictNqeCheckInfo"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The checks. A change set with none gives an empty array."
+          },
+          "403": {
+            "description": "Refused without MANAGE_CHANGE_SETS or PREDICT_MODELING (live message on the test account, Unlicensed operation)."
+          }
+        },
+        "summary": "The NQE checks added to a change set",
+        "tags": [
+          "Change Set Checks"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "changeSetId",
+            ""
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/orgs/current": {
       "get": {
         "description": "Requires any signed-in user (@RequiresUser).",
@@ -51359,7 +55886,7 @@
               "application/json": {
                 "example": {
                   "id": "1628",
-                  "name": "ADP"
+                  "name": "Example Org"
                 },
                 "schema": {
                   "$ref": "#/components/schemas/Organization"
@@ -51844,6 +56371,94 @@
         "tags": [
           "Checks"
         ]
+      }
+    },
+    "/predict-oses": {
+      "get": {
+        "description": "Lists the vendor OS names Predict accepts, as a bare JSON array of strings. Requires only the organization property PREDICT_MODELING and no network role; not scoped to a network (source: ChangeSetController.predictOses). Live: 200 on the test account, 9 names, bare array. Not part of Forward's documented API.",
+        "operationId": "listPredictOses",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  "arista_eos",
+                  "cisco_asa",
+                  "cisco_ios"
+                ],
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The vendor OS names."
+          }
+        },
+        "summary": "The vendor operating systems Predict can model",
+        "tags": [
+          "Predict Reference"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/predict-oses/{vendorOs}/allowed-commands": {
+      "get": {
+        "description": "Returns Forward's rendering of the mode trie for one protocol on one vendor OS, as text/plain. An OS Predict does not model answers an empty body, not an error; an unknown OS is 400 (live). Requires only the organization property PREDICT_MODELING (source: ChangeSetController.getAllowedFeatureCommands). Live: 500 for cisco_ios with protocol BGP, CONFIG and STP on the test account, with the Accept header from the Go SDK (text/plain, application/json); a bare text/plain Accept gave 406. Body shape is source-only. Not part of Forward's documented API.",
+        "operationId": "getPredictOsAllowedCommands",
+        "parameters": [
+          {
+            "description": "A name from listPredictOses, lowercase as Forward sends it.",
+            "in": "path",
+            "name": "vendorOs",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The routing or switching protocol (Forward ProtocolConfigType). CONFIG covers static and direct routes.",
+            "in": "query",
+            "name": "protocol",
+            "required": true,
+            "schema": {
+              "enum": [
+                "BGP",
+                "OSPF",
+                "IS_IS",
+                "EIGRP",
+                "RIP",
+                "CONFIG",
+                "OMP",
+                "STP"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "example": "# synthetic fixture shaped like ModeTriePrettyPrinter output (source-only, not traced)\nneighbor <address> remote-as <asn>",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The rendered mode trie, as plain text."
+          },
+          "400": {
+            "description": "The OS name is not known to Forward (live message: unknown vendor OS)."
+          }
+        },
+        "summary": "The commands Predict accepts for one protocol on one vendor OS",
+        "tags": [
+          "Predict Reference"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/snapshot-processing-queue": {
@@ -53967,7 +58582,7 @@
     },
     "/users/current/tokens": {
       "get": {
-        "description": "Requires any signed-in user (@RequiresUser). The access key is returned; the secret never is. Live (ADP read-only account): 403 Access Denied on this route, while /users/{userId}/tokens works for the same account.",
+        "description": "Requires any signed-in user (@RequiresUser). The access key is returned; the secret never is. Live (read-only test account): 403 Access Denied on this route, while /users/{userId}/tokens works for the same account.",
         "operationId": "listCurrentUserApiTokens",
         "responses": {
           "200": {
@@ -54000,7 +58615,7 @@
         "x-forward-stability": "unpublished"
       },
       "post": {
-        "description": "Requires any signed-in user (@RequiresUser). For a LOCAL user the form must carry the password, and the code when 2FA requires it (source: UserController.generateApiToken). An SSO (SAML) user sends name only and must have just signed in through the identity provider (within 30 seconds); source has a second handler for that case on the same path. The secret is returned once. Source-only: not called against the ADP account.",
+        "description": "Requires any signed-in user (@RequiresUser). For a LOCAL user the form must carry the password, and the code when 2FA requires it (source: UserController.generateApiToken). An SSO (SAML) user sends name only and must have just signed in through the identity provider (within 30 seconds); source has a second handler for that case on the same path. The secret is returned once. Source-only: not called against the test account.",
         "operationId": "createCurrentUserApiToken",
         "parameters": [
           {
@@ -54228,7 +58843,7 @@
     },
     "/users/{userId}/roles": {
       "get": {
-        "description": "Requires the VIEW_USER_ACCOUNTS org operation, or the Forward support role. With type=directlyAssigned the roles granted directly are returned, without those inherited through access control groups (the same route serves both; source: UserController.getUserRoles). Live: the default and the directlyAssigned variant returned the same body for the ADP account.",
+        "description": "Requires the VIEW_USER_ACCOUNTS org operation, or the Forward support role. With type=directlyAssigned the roles granted directly are returned, without those inherited through access control groups (the same route serves both; source: UserController.getUserRoles). Live: the default and the directlyAssigned variant returned the same body for the test account.",
         "operationId": "getUserRoles",
         "parameters": [
           {
@@ -55191,6 +59806,46 @@
       "name": "System Administration",
       "x-parent": "Platform Management",
       "x-summary": "System Administration"
+    },
+    {
+      "description": "Routes brought over from the Go SDK; unpublished. See docs/services.md.",
+      "name": "Predict Reference"
+    },
+    {
+      "description": "Routes brought over from the Go SDK; unpublished. See docs/services.md.",
+      "name": "Change Set Checks"
+    },
+    {
+      "description": "Routes brought over from the Go SDK; unpublished. See docs/services.md.",
+      "name": "Protocol Modeling"
+    },
+    {
+      "description": "Routes brought over from the Go SDK; unpublished. See docs/services.md.",
+      "name": "Performance Collection"
+    },
+    {
+      "description": "Routes brought over from the Go SDK; unpublished. See docs/services.md.",
+      "name": "Device Interfaces"
+    },
+    {
+      "description": "Routes brought over from the Go SDK; unpublished. See docs/services.md.",
+      "name": "Device Diffs"
+    },
+    {
+      "description": "Routes brought over from the Go SDK; unpublished. See docs/services.md.",
+      "name": "BGP Prefixes"
+    },
+    {
+      "description": "Routes brought over from the Go SDK; unpublished. See docs/services.md.",
+      "name": "Threat Exposure"
+    },
+    {
+      "description": "Routes brought over from the Go SDK; unpublished. See docs/services.md.",
+      "name": "Edge Assets"
+    },
+    {
+      "description": "Routes brought over from the Go SDK; unpublished. See docs/services.md.",
+      "name": "NQE Explain"
     },
     {
       "description": "Saved diagrams of chosen devices, organised in folders and drawn against any snapshot.",

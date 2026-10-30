@@ -9,6 +9,7 @@ import pytest
 
 from forward_sdk._async.client import AsyncForwardClient
 from forward_sdk.errors import (
+    ForwardBadRequestError,
     ForwardConfigurationError,
     ForwardExecutionError,
     ForwardNqeQueryError,
@@ -182,6 +183,110 @@ class TestExecute:
 
         assert caught.value.outcome == "TIMED_OUT"
         assert "time budget" in str(caught.value)
+
+    async def test_failed_execution_carries_outcome_detail_and_attempts(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        error = {"message": "boom", "diagnostics": []}
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        recorder.add(
+            "GET",
+            STATUS,
+            json_response({"status": "COMPLETED", "outcome": "SYSTEM_ERROR", "error": error}),
+        )
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardExecutionError) as caught:
+                await client.nqe.query("q")
+
+        assert caught.value.outcome == "SYSTEM_ERROR"
+        assert caught.value.detail == error
+        assert caught.value.attempts == 1
+
+    async def test_outcome_retries_resubmit_a_system_error(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add(
+            "POST",
+            EXECUTIONS,
+            json_response({"executionKey": "exec-1"}),
+            json_response({"executionKey": "exec-2"}),
+        )
+        recorder.add(
+            "GET", STATUS, json_response({"status": "COMPLETED", "outcome": "SYSTEM_ERROR"})
+        )
+        recorder.add("GET", "/api/networks/101/nqe-executions/exec-2", json_response(COMPLETED))
+        recorder.add(
+            "GET",
+            "/api/networks/101/nqe-executions/exec-2/result",
+            json_response({"items": [{"a": 1}]}),
+        )
+        async with make_client(recorder) as client:
+            rows = await client.nqe.query("q", outcome_retries=2)
+
+        assert rows == [{"a": 1}]
+        assert recorder.count("POST", EXECUTIONS) == 2
+
+    async def test_outcome_retries_are_off_by_default(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        recorder.add(
+            "GET", STATUS, json_response({"status": "COMPLETED", "outcome": "SYSTEM_ERROR"})
+        )
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardExecutionError):
+                await client.nqe.query("q")
+        assert recorder.count("POST", EXECUTIONS) == 1
+
+    async def test_outcome_retries_never_resubmit_a_user_error(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        recorder.add("GET", STATUS, json_response({"status": "COMPLETED", "outcome": "USER_ERROR"}))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardExecutionError):
+                await client.nqe.query("q", outcome_retries=3, retry_outcomes={"SYSTEM_ERROR"})
+        assert recorder.count("POST", EXECUTIONS) == 1
+
+    async def test_outcome_retries_stop_at_the_limit(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        recorder.add("GET", STATUS, json_response({"status": "COMPLETED", "outcome": "TIMED_OUT"}))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardExecutionError) as caught:
+                await client.nqe.query("q", outcome_retries=2, retry_outcomes={"TIMED_OUT"})
+
+        assert caught.value.attempts == 3
+        assert recorder.count("POST", EXECUTIONS) == 3
+
+    async def test_outcome_retries_validate_their_arguments(self, recorder: Recorder) -> None:
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardConfigurationError):
+                await client.nqe.query("q", outcome_retries=-1)
+            with pytest.raises(ForwardConfigurationError):
+                await client.nqe.query("q", outcome_retries=1, retry_outcomes="SYSTEM_ERROR")
+
+    async def test_outcome_retries_back_off(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add("POST", EXECUTIONS, json_response({"executionKey": "exec-1"}))
+        recorder.add(
+            "GET", STATUS, json_response({"status": "COMPLETED", "outcome": "SYSTEM_ERROR"})
+        )
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardExecutionError):
+                await client.nqe.query("q", outcome_retries=2, retry_delay=3.0)
+        assert [d for d in no_sleep if d >= 3.0] == [3.0, 6.0]
+
+    async def test_outcome_retries_skip_a_compile_error(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add("POST", EXECUTIONS, json_response({"message": "bad query"}, status=400))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardBadRequestError):
+                await client.nqe.query("q", outcome_retries=2)
+        assert recorder.count("POST", EXECUTIONS) == 1
 
     async def test_wait_skips_polling_when_already_finished(
         self, recorder: Recorder, no_sleep: list[float]

@@ -133,10 +133,18 @@ class ForwardPaginationError(ForwardError):
 
 
 class ForwardExecutionError(ForwardError):
-    """An NQE execution finished without producing results.
+    """Background work finished without producing results.
 
-    The query ran but ended with a non-OK outcome: it timed out on the server,
-    was canceled, or failed. ``outcome`` carries Forward's own term.
+    Raised for NQE executions and for snapshot and collection jobs. ``outcome``
+    carries Forward's own term. For an NQE execution it is ``SYSTEM_ERROR`` (an
+    unexpected internal failure), ``TIMED_OUT`` (it exceeded the execution's
+    ``timeoutMinutes``) or ``USER_ERROR`` (the query itself failed); snapshot and
+    collection jobs report their failure state instead, and ``outcome`` is
+    ``None`` when there was nothing to report, such as no execution key.
+
+    ``detail`` is Forward's ``error`` object as reported, or ``None``.
+    ``attempts`` is how many times the SDK submitted the query, which is more
+    than one only when ``query(..., outcome_retries=...)`` retried it.
     """
 
     def __init__(
@@ -146,11 +154,15 @@ class ForwardExecutionError(ForwardError):
         execution_key: str | None = None,
         status: str | None = None,
         outcome: str | None = None,
+        detail: Any = None,
+        attempts: int = 1,
     ) -> None:
         super().__init__(message)
         self.execution_key = execution_key
         self.status = status
         self.outcome = outcome
+        self.detail = detail
+        self.attempts = attempts
 
 
 #: How Forward words each kind of refusal, read from its own access enforcer

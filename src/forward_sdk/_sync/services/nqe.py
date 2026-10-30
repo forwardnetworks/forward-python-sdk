@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import json
 import time
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Collection, Iterator, Mapping, Sequence
 from typing import Any
 
 from forward_sdk._generated.models import (
@@ -64,6 +64,12 @@ INITIAL_POLL_INTERVAL = 0.5
 
 TERMINAL_STATUS = "COMPLETED"
 SUCCESS_OUTCOME = "OK"
+#: The outcomes ``query(outcome_retries=...)`` resubmits by default. Forward's
+#: others besides ``OK`` are ``USER_ERROR``, the query's own fault, and
+#: ``TIMED_OUT``.
+#: ``TIMED_OUT`` is deliberately not retried by default: the query already used
+#: its whole budget, so a second run usually does the same.
+TRANSIENT_OUTCOMES: frozenset[str] = frozenset({"SYSTEM_ERROR"})
 
 # Forward reports its own budget for an execution as `timeoutMinutes`. Polling
 # past that only confirms a timeout the server has already decided, so waiting
@@ -235,6 +241,7 @@ class NqeExecution:
                         execution_key=self.key,
                         status=str(status.get("status")),
                         outcome=str(outcome),
+                        detail=status.get("error"),
                     )
                 self._record(str(outcome or SUCCESS_OUTCOME))
                 return NqeExecutionStatus.model_validate(status)
@@ -503,6 +510,9 @@ class NqeService(Service):
         guards: PageGuards | None = None,
         timeout: float | None = 1800.0,
         stream: bool = False,
+        outcome_retries: int = 0,
+        retry_outcomes: Collection[str] = TRANSIENT_OUTCOMES,
+        retry_delay: float = 2.0,
     ) -> list[Row]:
         """Run a query in the background and return every row.
 
@@ -512,9 +522,38 @@ class NqeService(Service):
             stream: Read results as a single stream rather than paging. Faster
                 for large result sets, but a dropped connection cannot be
                 resumed.
+            outcome_retries: Extra submissions allowed when the execution
+                finishes with an outcome in ``retry_outcomes``. Off by default.
+                The transport already retries failed HTTP requests; this covers
+                a query that ran and ended badly. ``timeout`` applies to each
+                attempt. A ``ForwardTimeoutError`` and a compile error (HTTP 400)
+                are never retried, and ``USER_ERROR`` only if you add it.
+            retry_outcomes: Which outcomes count as transient. Forward's are
+                ``SYSTEM_ERROR``, ``TIMED_OUT`` and ``USER_ERROR``; the default
+                is ``SYSTEM_ERROR`` alone.
+            retry_delay: Seconds before the first resubmission; doubles each time.
+
+        Raises:
+            ForwardExecutionError: The final attempt failed; ``attempts`` says
+                how many were made.
         """
-        execution = self.execute(query, network_id=network_id, snapshot_id=snapshot_id)
-        execution.wait(timeout=timeout)
+        if outcome_retries < 0:
+            raise ForwardConfigurationError("outcome_retries must not be negative")
+        if isinstance(retry_outcomes, str):
+            raise ForwardConfigurationError("retry_outcomes must be a collection, not a string")
+        attempt = 0
+        while True:
+            attempt += 1
+            execution = self.execute(query, network_id=network_id, snapshot_id=snapshot_id)
+            try:
+                execution.wait(timeout=timeout)
+            except ForwardExecutionError as exc:
+                exc.attempts = attempt
+                if exc.outcome not in retry_outcomes or attempt > outcome_retries:
+                    raise
+                time.sleep(retry_delay * 2 ** (attempt - 1))
+                continue
+            break
         if stream:
             return [row for row in execution.stream()]
         return [row for row in execution.rows(page_size=page_size, guards=guards)]

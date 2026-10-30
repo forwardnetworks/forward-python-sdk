@@ -3,6 +3,18 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses SemVer.
 
+## [Unreleased]
+
+## [0.1.29] - 2026-10-30
+
+### Added
+- `client.nqe.query(..., outcome_retries=N, retry_outcomes=..., retry_delay=...)`:
+  opt-in resubmission of a query whose execution finished with a transient
+  outcome. The default set is `SYSTEM_ERROR`; `TIMED_OUT` and `USER_ERROR` are
+  not retried unless named. Off by default.
+- `ForwardExecutionError.detail` (Forward's `error` object) and `.attempts`;
+  the possible `outcome` values are documented on the class.
+
 ## [0.1.28] - 2026-10-28
 
 ### Added

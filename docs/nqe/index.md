@@ -250,3 +250,17 @@ it into a string and reintroduces the type error.
 
 Enum members are validated as identifiers rather than quoted, since quoting one
 would make it a string and reintroduce the type error.
+
+## Retrying a transient failure
+
+`query()` can resubmit a query whose execution ended with a transient outcome:
+
+```python
+rows = client.nqe.query(ref, outcome_retries=2)  # SYSTEM_ERROR only, by default
+rows = client.nqe.query(ref, outcome_retries=2, retry_outcomes={"SYSTEM_ERROR", "TIMED_OUT"})
+```
+
+Off by default. Forward's outcomes are `OK`, `SYSTEM_ERROR`, `TIMED_OUT` and
+`USER_ERROR`. A compile error (400) and a client-side `ForwardTimeoutError` are
+never retried. When the last attempt fails, `ForwardExecutionError` carries
+`outcome`, `detail` (Forward's `error` object) and `attempts`.

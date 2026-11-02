@@ -22,6 +22,25 @@ class AsyncLicensingService(AsyncService):
     May be unavailable on your instance (admin); see docs/gating.md.
     """
 
+    async def activate_organization_license(
+        self,
+        *,
+        org_id: str,
+        license_id: str,
+        body: Any,
+    ) -> models.SysLicenseDetails:
+        """Activate a stored license on one organization, for Forward support.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["activateOrganizationLicense"](
+                org_id=org_id, license_id=license_id, body=body
+            )
+        )
+        return models.SysLicenseDetails.model_validate(payload or {})
+
     async def apply_license(
         self,
         *,
@@ -48,6 +67,55 @@ class AsyncLicensingService(AsyncService):
         payload = await self._send_json(ops.BUILDERS["decodeLicense"](body=body))
         return models.SysDecodedLicenseKey.model_validate(payload or {})
 
+    async def get_cch_debug(
+        self,
+    ) -> models.LicCchDebug:
+        """Everything held to reproduce the caller's CCH history calculation.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getCchDebug"]())
+        return models.LicCchDebug.model_validate(payload or {})
+
+    async def get_cch_history(
+        self,
+        *,
+        start: str | None = None,
+        end: str | None = None,
+    ) -> models.LicCchHistory:
+        """The caller's CCH per license over time.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getCchHistory"](start=start, end=end))
+        return models.LicCchHistory.model_validate(payload or {})
+
+    async def get_cch_usage(
+        self,
+    ) -> models.LicCchUsage:
+        """The caller's cloud credit hours used against licensed.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getCchUsage"]())
+        return models.LicCchUsage.model_validate(payload or {})
+
+    async def get_cch_used_since(
+        self,
+        *,
+        days: int,
+    ) -> models.LicCchUsedSince:
+        """The CCH the caller's organization used in the last N days.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getCchUsedSince"](days=days))
+        return models.LicCchUsedSince.model_validate(payload or {})
+
     async def get_instance_fingerprint(
         self,
     ) -> models.SysInstanceFingerprint:
@@ -70,6 +138,92 @@ class AsyncLicensingService(AsyncService):
         payload = await self._send_json(ops.BUILDERS["getLicenseTierAndStatus"]())
         return models.SysLicenseTierAndStatus.model_validate(payload or {})
 
+    async def get_license_usage_history(
+        self,
+        *,
+        start: str,
+        end: str,
+    ) -> list[models.LicUsagePoint]:
+        """The caller's device and edge asset use against caps over a period.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["getLicenseUsageHistory"](start=start, end=end)
+        )
+        return [models.LicUsagePoint.model_validate(row) for row in payload or []]
+
+    async def get_licensed_device_counts(
+        self,
+    ) -> models.LicDeviceCounts:
+        """The caller's licensed and unlicensed device counts and caps.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getLicensedDeviceCounts"]())
+        return models.LicDeviceCounts.model_validate(payload or {})
+
+    async def get_licensed_devices(
+        self,
+    ) -> models.LicLicensedDevices:
+        """Which of the caller's devices are and are not licensed.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getLicensedDevices"]())
+        return models.LicLicensedDevices.model_validate(payload or {})
+
+    async def get_licensed_edge_asset_counts(
+        self,
+    ) -> models.LicEdgeAssetCounts:
+        """The caller's licensed and unlicensed edge asset counts and cap.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getLicensedEdgeAssetCounts"]())
+        return models.LicEdgeAssetCounts.model_validate(payload or {})
+
+    async def get_organization_cloud_usage(
+        self,
+        *,
+        org_id: str,
+    ) -> models.LicCloudUsage:
+        """One organization's cloud accounting with CCH per license, for Forward support.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getOrganizationCloudUsage"](org_id=org_id))
+        return models.LicCloudUsage.model_validate(payload or {})
+
+    async def get_organization_platform_usage(
+        self,
+        *,
+        org_id: str,
+    ) -> models.LicPlatformUsage:
+        """One organization's counted devices and CCH total, for Forward support.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getOrganizationPlatformUsage"](org_id=org_id))
+        return models.LicPlatformUsage.model_validate(payload or {})
+
+    async def get_platform_usage(
+        self,
+    ) -> models.LicPlatformUsage:
+        """The caller's own organization's counted devices and CCH total.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getPlatformUsage"]())
+        return models.LicPlatformUsage.model_validate(payload or {})
+
     async def invalidate_organization_license(
         self,
         *,
@@ -85,6 +239,17 @@ class AsyncLicensingService(AsyncService):
             ops.BUILDERS["invalidateOrganizationLicense"](org_id=org_id, license_id=license_id)
         )
         return models.SysLicenseDetails.model_validate(payload or {})
+
+    async def list_all_organization_platform_usage(
+        self,
+    ) -> list[models.LicOrgPlatformUsage]:
+        """Counted usage of every SaaS organization the caller supports.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["listAllOrganizationPlatformUsage"]())
+        return [models.LicOrgPlatformUsage.model_validate(row) for row in payload or []]
 
     async def list_licenses(
         self,
@@ -109,6 +274,17 @@ class AsyncLicensingService(AsyncService):
         """
         payload = await self._send_json(ops.BUILDERS["listOrganizationLicenses"](org_id=org_id))
         return [models.SysLicenseDetailsWithStatus.model_validate(row) for row in payload or []]
+
+    async def list_saas_organization_license_infos(
+        self,
+    ) -> list[models.LicSaasOrgInfo]:
+        """Tier, status and summed caps of every SaaS organization the caller supports.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["listSaasOrganizationLicenseInfos"]())
+        return [models.LicSaasOrgInfo.model_validate(row) for row in payload or []]
 
     async def remove_all_organization_licenses(
         self,

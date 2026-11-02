@@ -81,6 +81,32 @@ class SystemAdministrationService(Service):
         payload = self._send_json(ops.BUILDERS["getCveIndexMetadata"]())
         return models.Disp2CveIndexMetadata.model_validate(payload or {})
 
+    def get_fdb_size(
+        self,
+        *,
+        prefix: str,
+    ) -> Any:
+        """Total FDB storage under a key prefix.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (license, deployment, admin); see docs/gating.md.
+        """
+        payload = self._send_json(ops.BUILDERS["getFdbSize"](prefix=prefix))
+        return payload
+
+    def get_fdb_usage(
+        self,
+        *,
+        prefix: str,
+    ) -> models.AdmFdbUsage:
+        """FDB storage usage under a key prefix.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (license, deployment, admin); see docs/gating.md.
+        """
+        payload = self._send_json(ops.BUILDERS["getFdbUsage"](prefix=prefix))
+        return models.AdmFdbUsage.model_validate(payload or {})
+
     def list_admin_networks(
         self,
     ) -> list[models.AdminNetwork]:
@@ -128,6 +154,18 @@ class SystemAdministrationService(Service):
         """
         payload = self._send_json(ops.BUILDERS["putCveIndex"](body=body, sha=sha))
         return payload
+
+    def run_fdb_garbage_collection(
+        self,
+    ) -> Iterator[bytes]:
+        """Start FDB garbage collection.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (license, deployment, admin); see docs/gating.md.
+        """
+        with self._transport.stream(ops.BUILDERS["runFdbGarbageCollection"]()) as response:
+            for chunk in response.iter_bytes():
+                yield chunk
 
     def set_user_supported_organizations(
         self,

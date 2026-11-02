@@ -326,6 +326,171 @@
         },
         "type": "object"
       },
+      "AdmFdbUsage": {
+        "description": "FDB usage under a key prefix, Forward's own debug output (WorkersController.getFdbUsage).",
+        "properties": {
+          "sizes": {
+            "description": "Usage trie sizes; the element type is not traced.",
+            "items": {},
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AdmTenableSource": {
+        "description": "A Tenable Security Center source as Forward stores it (StoredEndHostScanner with a TenableSource). type is TENABLE in the end-host-scanners list but Forward leaves it out of the create and update answers.",
+        "properties": {
+          "attribution": {
+            "$ref": "#/components/schemas/SrcAttribution"
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "collectionDisabled": {
+            "type": "boolean"
+          },
+          "collectionError": {
+            "additionalProperties": true,
+            "description": "Present when the last collection failed; not traced further.",
+            "type": "object"
+          },
+          "collectorId": {
+            "description": "Absent when no collector is named.",
+            "type": "string"
+          },
+          "credentialId": {
+            "description": "Id of an HTTP LOGIN credential.",
+            "type": "string"
+          },
+          "disableSslValidation": {
+            "type": "boolean"
+          },
+          "maxPageSize": {
+            "description": "Absent when Forward's default of 10000 applies.",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "description": "Scanner type, TENABLE for these sources.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AdmTenableSourceCreate": {
+        "description": "Body of POST tenable-sources (NewTenableSource).",
+        "properties": {
+          "baseUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "collectionDisabled": {
+            "description": "Omitted reads as false.",
+            "type": "boolean"
+          },
+          "collectorId": {
+            "type": "string"
+          },
+          "credentialId": {
+            "description": "Id of an HTTP LOGIN credential (400 otherwise).",
+            "type": "string"
+          },
+          "disableSslValidation": {
+            "type": "boolean"
+          },
+          "maxPageSize": {
+            "description": "Defaults to 10000 when omitted.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "name": {
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "baseUrl",
+          "credentialId"
+        ],
+        "type": "object"
+      },
+      "AdmTenableSourcePatch": {
+        "description": "Body of PATCH tenable-sources/{sourceName} (TenableSourcePatch). Omitted fields are unchanged; an explicit null for maxPageSize or collectorId clears it.",
+        "properties": {
+          "baseUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "collectionDisabled": {
+            "type": "boolean"
+          },
+          "collectorId": {
+            "description": "Null means no collector.",
+            "nullable": true,
+            "type": "string"
+          },
+          "credentialId": {
+            "type": "string"
+          },
+          "disableSslValidation": {
+            "type": "boolean"
+          },
+          "maxPageSize": {
+            "description": "Null resets to the default of 10000.",
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "name": {
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AdmTenableSourceTest": {
+        "description": "Body of POST tenable-sources?action=test (EndHostScannerTestConfig). Nothing is stored.",
+        "properties": {
+          "baseUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "collectorId": {
+            "description": "Collector to run the test on; omitted means the network's default.",
+            "type": "string"
+          },
+          "credentialId": {
+            "description": "Id of an HTTP LOGIN credential.",
+            "type": "string"
+          },
+          "disableSslValidation": {
+            "type": "boolean"
+          },
+          "name": {
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "baseUrl",
+          "credentialId"
+        ],
+        "type": "object"
+      },
+      "AdmTenableSourceTestResult": {
+        "description": "Verdict of a connection test (EndHostScannerTestResult). An empty object means success.",
+        "properties": {
+          "error": {
+            "description": "Present only when the test failed.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "AdminNetwork": {
         "allOf": [
           {
@@ -11816,6 +11981,514 @@
         },
         "type": "object"
       },
+      "LicActivationRequest": {
+        "description": "The body of an on-premises (SOFTWARE_CENTRAL) license activation. Not sent for a SaaS license.",
+        "properties": {
+          "fingerprint": {
+            "description": "The fingerprint of the customer's on-premises deployment (see the instance fingerprint route). A fingerprint from the wrong deployment is accepted and binds the license to it for good.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fingerprint"
+        ],
+        "type": "object"
+      },
+      "LicCchDebug": {
+        "description": "The inputs to a CCH history calculation, for support.",
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/LicCloudInstanceCounts"
+            },
+            "description": "Instance counts keyed by instant.",
+            "type": "object"
+          },
+          "licenses": {
+            "items": {
+              "$ref": "#/components/schemas/LicCchLicense"
+            },
+            "type": "array"
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/LicCchPeriod"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LicCchHistory": {
+        "properties": {
+          "instanceCounts": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/LicCloudInstanceCounts"
+            },
+            "description": "Cloud instance counts keyed by instant.",
+            "type": "object"
+          },
+          "licenses": {
+            "items": {
+              "$ref": "#/components/schemas/LicCchLicenseWithUsage"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "LicCchLicense": {
+        "description": "A license that grants or replaces cloud credit hours (CchLicense).",
+        "properties": {
+          "cch": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "replaces": {
+            "type": "boolean"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "usedAt": {
+            "description": "When the license was added or activated. Present only when known.",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LicCchLicenseWithUsage": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LicCchLicense"
+          },
+          {
+            "properties": {
+              "replaced": {
+                "description": "True when a later license ended this one early (Go SDK; not traced in Java).",
+                "type": "boolean"
+              },
+              "usage": {
+                "additionalProperties": {
+                  "format": "int64",
+                  "type": "integer"
+                },
+                "description": "Instant to cumulative CCH used under this license by then; never decreases.",
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "A CCH license with its cumulative CCH over time (CchLicenseWithUsage)."
+      },
+      "LicCchPeriod": {
+        "description": "A span of CCH accounting under one license (CchPeriod). cchUsed is inside the period.",
+        "properties": {
+          "cchUsed": {
+            "format": "double",
+            "type": "number"
+          },
+          "endReason": {
+            "description": "Why the period ended; absent while it has not. Known values LICENSE_STARTED, LICENSE_EXPIRED, LICENSE_REPLACED, LICENSE_CONSUMED, GRACE_PERIOD_ELAPSED.",
+            "type": "string"
+          },
+          "gracePeriod": {
+            "description": "Present only when true.",
+            "type": "boolean"
+          },
+          "licenseId": {
+            "description": "Null for CCH used before cloud licensing, while enforcement was off, or shortly after a license expired.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "start": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LicCchUsage": {
+        "description": "CCH used against CCH licensed at an instant (LicensedCchUsage). cchUsed past cchLicensed is debt.",
+        "properties": {
+          "cchLicensed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "cchUsed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "gracePeriodEndTime": {
+            "description": "Present only once cchUsed reached cchLicensed. After instant, the organization is still in its grace period; otherwise the period has ended.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "instant": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LicCchUsedSince": {
+        "properties": {
+          "cch": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "LicCloudInstanceCounts": {
+        "description": "Cloud compute instance counts at a moment.",
+        "properties": {
+          "inferred": {
+            "type": "integer"
+          },
+          "modeled": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "LicCloudUsage": {
+        "description": "An organization's cloud accounting (CloudUsage).",
+        "properties": {
+          "licenses": {
+            "items": {
+              "$ref": "#/components/schemas/LicCchLicense"
+            },
+            "type": "array"
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/LicCchPeriod"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "vpcUsageInfos": {
+            "items": {
+              "$ref": "#/components/schemas/LicVpcUsageInfo"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "LicDeviceCounts": {
+        "description": "Device use against caps, standard and lite (LicensedDevicesCount).",
+        "properties": {
+          "liteDeviceCap": {
+            "type": "integer"
+          },
+          "liteDeviceCount": {
+            "type": "integer"
+          },
+          "liteUnlicensedDeviceCount": {
+            "type": "integer"
+          },
+          "standardDeviceCap": {
+            "type": "integer"
+          },
+          "standardDeviceCount": {
+            "type": "integer"
+          },
+          "standardUnlicensedDeviceCount": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "LicDeviceSignature": {
+        "additionalProperties": true,
+        "description": "A device's identity for licensing. The set of types is open and vendor-specific (for example CISCO_IOS).",
+        "properties": {
+          "signature": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LicDeviceUsage": {
+        "description": "One device Forward counts toward a license (DeviceUsageInfo).",
+        "properties": {
+          "deviceSignature": {
+            "$ref": "#/components/schemas/LicDeviceSignature"
+          },
+          "ineligibleReason": {
+            "description": "Why the device cannot be licensed. Known value UNLICENSED_DEPENDENCY. Absent when it can be or is.",
+            "type": "string"
+          },
+          "licensed": {
+            "type": "boolean"
+          },
+          "lite": {
+            "description": "True for a lite (peripheral, for example an access point) device; absent for a standard one.",
+            "type": "boolean"
+          },
+          "networks": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "properties": {
+                "deviceNames": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            },
+            "description": "The networks the device is in, keyed by network id.",
+            "type": "object"
+          },
+          "replacements": {
+            "additionalProperties": true,
+            "description": "Replaced devices. Present in the Java type; shape not traced."
+          },
+          "timeOfFirstSnapshot": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "timeOfLastSnapshot": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LicEdgeAssetCounts": {
+        "description": "Edge asset use against the cap (LicensedEdgeAssetsCount).",
+        "properties": {
+          "edgeAssetCap": {
+            "type": "integer"
+          },
+          "edgeAssetCount": {
+            "type": "integer"
+          },
+          "unlicensedEdgeAssetCount": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "LicLicensedDevice": {
+        "description": "One device in the licensed-devices listing.",
+        "properties": {
+          "firstSnapshotAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "ineligibleReason": {
+            "description": "Why it cannot be licensed. Known value UNLICENSED_DEPENDENCY. Absent otherwise.",
+            "type": "string"
+          },
+          "lastSnapshotAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lite": {
+            "description": "Present only when true (a lite",
+            "peripheral device).": null,
+            "type": "boolean"
+          },
+          "names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "networkIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "signature": {
+            "$ref": "#/components/schemas/LicDeviceSignature"
+          }
+        },
+        "type": "object"
+      },
+      "LicLicensedDevices": {
+        "properties": {
+          "currentTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/LicLicensedDevice"
+            },
+            "type": "array"
+          },
+          "networkNames": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Network id to name, for the networks the devices appear in.",
+            "type": "object"
+          },
+          "unlicensedDevices": {
+            "items": {
+              "$ref": "#/components/schemas/LicLicensedDevice"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "LicOrgPlatformUsage": {
+        "description": "One SaaS organization's counted usage (OrgPlatformUsage).",
+        "properties": {
+          "cloudCreditHoursUsed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "edgeAssetCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "liteDeviceCount": {
+            "type": "integer"
+          },
+          "orgId": {
+            "type": "string"
+          },
+          "standardDeviceCount": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "LicPlatformUsage": {
+        "description": "An organization's device usage and CCH total.",
+        "properties": {
+          "cloudCreditHoursUsed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/LicDeviceUsage"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "LicSaasOrgInfo": {
+        "description": "One SaaS organization's tier, status and summed caps (SaasOrgLicenseInfo). The caps are present only when status is ACTIVE.",
+        "properties": {
+          "cloudCreditHours": {
+            "type": "integer"
+          },
+          "edgeAssetCap": {
+            "type": "integer"
+          },
+          "liteDeviceCap": {
+            "type": "integer"
+          },
+          "nextLicenseExpiration": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "orgId": {
+            "type": "string"
+          },
+          "standardDeviceCap": {
+            "type": "integer"
+          },
+          "status": {
+            "description": "Always sent; null with no status. Known values ACTIVE, EXEMPT, NOT_ACTIVE_YET, EXPIRED_RECENTLY, EXPIRED.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tier": {
+            "description": "License tier B, N, NP, S, NS or NSP (facets BASE, NETWORK, SECURITY, PREDICT). Always sent; null with no status or when EXPIRED.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "LicUsagePoint": {
+        "description": "Use against caps at one moment (LicenseUsageEvent).",
+        "properties": {
+          "edgeAssetCap": {
+            "type": "integer"
+          },
+          "edgeAssetUsage": {
+            "type": "integer"
+          },
+          "liteDeviceCap": {
+            "type": "integer"
+          },
+          "liteDeviceUsage": {
+            "type": "integer"
+          },
+          "standardDeviceCap": {
+            "type": "integer"
+          },
+          "standardDeviceUsage": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "description": "The instant",
+            "format": "int64",
+            "in whole milliseconds since the epoch.": null,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "LicVpcUsageInfo": {
+        "properties": {
+          "instanceCounts": {
+            "$ref": "#/components/schemas/LicCloudInstanceCounts"
+          },
+          "timeOfLastSnapshot": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "vpcId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "LineRange": {
         "properties": {
           "end": {
@@ -22552,6 +23225,12 @@
             "format": "date-time",
             "type": "string"
           },
+          "supportEndsOn": {
+            "description": "Last day of support, for example 2027-06-30.",
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
           "tier": {
             "description": "The license tier. The observed value is NS.",
             "enum": [
@@ -25890,6 +26569,55 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/admin/licenses": {
+      "get": {
+        "description": "Requires the Forward support role (source: ForwardSupportLicenseController.getSaasOrgLicenseInfos; @RequiresForwardSupport). SaaS deployments only. Returns a JSON array sorted by orgId, one entry per enabled, non-Software-Central organization the caller supports (a Forward administrator sees all). The caps and cloudCreditHours are present only when status is ACTIVE; tier and status are null for an organization with no status, and tier is also null when EXPIRED. nextLicenseExpiration is the earliest expiry among ACTIVE and NOT_ACTIVE_YET licenses. Tiers B, N, NP, S, NS, NSP map to the facets BASE, NETWORK, SECURITY, PREDICT (see the LicenseTier docs on SysLicenseTierAndStatus). Not part of Forward's documented API. Live: 403 'Forward support authority required' for a non-support account, so source-only.",
+        "operationId": "listSaasOrganizationLicenseInfos",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "cloudCreditHours": 1000000,
+                    "edgeAssetCap": 100,
+                    "liteDeviceCap": 1200,
+                    "nextLicenseExpiration": "2027-10-18T03:59:59Z",
+                    "orgId": "11",
+                    "standardDeviceCap": 1000,
+                    "status": "ACTIVE",
+                    "tier": "NS"
+                  },
+                  {
+                    "orgId": "12",
+                    "status": null,
+                    "tier": null
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LicSaasOrgInfo"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "One entry per supported SaaS organization."
+          }
+        },
+        "summary": "Tier, status and summed caps of every SaaS organization the caller supports",
+        "tags": [
+          "Licensing"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "saas"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/admin/networks": {
       "get": {
         "description": "Requires the support role (@RequiresForwardSupport). A Forward admin sees every network; a support user sees networks in orgs it supports and networks it may view (source). Each network is the Network object plus orgName, creator (username) and secondsToExpiry.",
@@ -26146,6 +26874,41 @@
               ]
             ]
           }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/admin/platform-usage": {
+      "get": {
+        "description": "Requires the Forward support role (source: ForwardSupportLicenseController.getPlatformUsageForSupportedOrgs; @RequiresForwardSupport). SaaS deployments only (the controller is not mapped on-premises). Returns a JSON array, sorted by orgId, with one entry per enabled, non-Software-Central organization: a Forward administrator sees all, a support user the organizations they support. It is the one read that gives edge-asset use for another organization. Pair it with /admin/licenses?view=saas for the caps. Not part of Forward's documented API. Live: 403 'Forward support authority required' for a non-support account, so source-only.",
+        "operationId": "listAllOrganizationPlatformUsage",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "cloudCreditHoursUsed": 1200,
+                    "edgeAssetCount": 45,
+                    "liteDeviceCount": 30,
+                    "orgId": "11",
+                    "standardDeviceCount": 120
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LicOrgPlatformUsage"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Counted usage per organization."
+          }
+        },
+        "summary": "Counted usage of every SaaS organization the caller supports",
+        "tags": [
+          "Licensing"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -32777,6 +33540,115 @@
         ]
       }
     },
+    "/licensed-devices": {
+      "get": {
+        "description": "Requires VIEW_LICENSING on the organization, with SOFTWARE_CENTRAL off (source: PlatformUsageController.getLicensedDevices); the organization comes from the session. Returns the licensed and unlicensed devices with their names, networks and snapshot times, and a map of network id to name for the networks they appear in. The same path also has a PATCH that licenses devices manually; it is not modelled here. Not part of Forward's documented API. Live: 200 on a hosted account.",
+        "operationId": "getLicensedDevices",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "currentTime": "2026-11-02T10:00:00Z",
+                  "devices": [
+                    {
+                      "firstSnapshotAt": "2026-01-05T10:00:00Z",
+                      "lastSnapshotAt": "2026-11-02T06:00:00Z",
+                      "names": [
+                        "branch-a-sw1"
+                      ],
+                      "networkIds": [
+                        "11"
+                      ],
+                      "signature": {
+                        "signature": "SYN0000001",
+                        "type": "CISCO_IOS"
+                      }
+                    }
+                  ],
+                  "networkNames": {
+                    "11": "Example Network"
+                  },
+                  "unlicensedDevices": [
+                    {
+                      "firstSnapshotAt": "2026-10-01T10:00:00Z",
+                      "ineligibleReason": "UNLICENSED_DEPENDENCY",
+                      "lastSnapshotAt": "2026-11-02T06:00:00Z",
+                      "lite": true,
+                      "names": [
+                        "branch-a-ap1"
+                      ],
+                      "networkIds": [
+                        "11"
+                      ],
+                      "signature": {
+                        "signature": "SYN0000002",
+                        "type": "CISCO_AP"
+                      }
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/LicLicensedDevices"
+                }
+              }
+            },
+            "description": "Licensed and unlicensed devices."
+          }
+        },
+        "summary": "Which of the caller's devices are and are not licensed",
+        "tags": [
+          "Licensing"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getLicensedDeviceCounts",
+            "summary": "The caller's licensed and unlicensed device counts and caps",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "count"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/licensed-edge-assets": {
+      "get": {
+        "description": "Requires VIEW_LICENSE_CAPACITY on the organization, with SOFTWARE_CENTRAL off (source: PlatformUsageController.getLicensedEdgeAssetCount); the organization comes from the session. The cap comes from the organization's active licenses (zero with none). The same path without view=count lists the edge assets and has a PATCH; neither is modelled here. Not part of Forward's documented API. Live: 200 on a hosted account.",
+        "operationId": "getLicensedEdgeAssetCounts",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "edgeAssetCap": 100,
+                  "edgeAssetCount": 45,
+                  "unlicensedEdgeAssetCount": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/LicEdgeAssetCounts"
+                }
+              }
+            },
+            "description": "Edge asset counts and cap."
+          }
+        },
+        "summary": "The caller's licensed and unlicensed edge asset counts and cap",
+        "tags": [
+          "Licensing"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "count"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/licenses": {
       "get": {
         "description": "Any signed-in user (@RequiresUser).",
@@ -32896,6 +33768,75 @@
               ]
             ]
           }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/metrics/license-usage": {
+      "get": {
+        "description": "Requires VIEW_LICENSE_CAPACITY on the organization (source: MetricController.getLicenseUsage); the organization comes from the session. start and end are both required ISO-8601 instants (for example 2026-11-01T00:00:00Z); epoch milliseconds are refused with 400 \"Text '...' could not be parsed\" (verified live), whereas each point's timestamp in the answer IS epoch milliseconds. Returns a JSON array, one point per recorded moment, with the caps in force then; the series is a per-moment answer, not a per-license split. An empty window gives []. Not part of Forward's documented API. Live: 200 on a hosted account.",
+        "operationId": "getLicenseUsageHistory",
+        "parameters": [
+          {
+            "description": "Start of the window, ISO-8601 instant.",
+            "in": "query",
+            "name": "start",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the window, ISO-8601 instant.",
+            "in": "query",
+            "name": "end",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "edgeAssetCap": 100,
+                    "edgeAssetUsage": 45,
+                    "liteDeviceCap": 1200,
+                    "liteDeviceUsage": 30,
+                    "standardDeviceCap": 1000,
+                    "standardDeviceUsage": 120,
+                    "timestamp": 1793329325528
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LicUsagePoint"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Usage against caps over time."
+          }
+        },
+        "summary": "The caller's device and edge asset use against caps over a period",
+        "tags": [
+          "Licensing"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "start",
+            ""
+          ],
+          [
+            "end",
+            ""
+          ]
         ],
         "x-forward-stability": "unpublished"
       }
@@ -53461,6 +54402,171 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/tenable-sources": {
+      "post": {
+        "description": "Adds a Tenable Security Center (scanner type TENABLE) end-host scanner source; Forward reads scanned assets and vulnerabilities from the Security Center at baseUrl. This is not the org-level vulnerability-scanners API, which covers Tenable Vulnerability Management (cloud.tenable.com). Requires MANAGE_END_HOST_SCANNERS on the network (source: EndHostScannerController.addTenableSource). name, baseUrl and credentialId are required; name matches [\\w.-]+ (no spaces); credentialId must name an HTTP LOGIN credential holding the Security Center access key and secret key as username and password (400 otherwise); maxPageSize must be positive and defaults to 10000 when omitted. Returns 200 with the stored source; the Go SDK notes Forward leaves type out of this answer. Writes a collection source: source-only, never exercised live (the live account could only be read). Not part of Forward's documented API.",
+        "operationId": "createTenableSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "baseUrl": "https://tenable.example.invalid",
+                "credentialId": "H-2",
+                "maxPageSize": 5000,
+                "name": "example-tenable"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/AdmTenableSourceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "baseUrl": "https://tenable.example.invalid",
+                  "collectionDisabled": false,
+                  "credentialId": "H-2",
+                  "disableSslValidation": false,
+                  "maxPageSize": 5000,
+                  "name": "example-tenable"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AdmTenableSource"
+                }
+              }
+            },
+            "description": "The stored source."
+          }
+        },
+        "summary": "Add a Tenable Security Center source",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "testTenableSource",
+            "summary": "Test a Tenable Security Center connection",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "test"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/tenable-sources/{sourceName}": {
+      "delete": {
+        "description": "Deletes the named Tenable source; it does not delete the credential. Requires DELETE_COLLECTION_SOURCES on the network (source: EndHostScannerController.deleteTenableSource, which deletes only a source of type TENABLE). Returns 204. The Go SDK treats an already-gone source as success. Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "deleteTenableSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sourceName",
+            "required": true,
+            "schema": {
+              "pattern": "^[\\w.-]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a Tenable Security Center source",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Partial update of the named Tenable source (TenableSourcePatch); omitted fields stay as they are. Send an explicit JSON null for maxPageSize (back to the default 10000) or collectorId (no collector) to clear them; omitting them leaves them alone. Requires MANAGE_END_HOST_SCANNERS on the network (source: EndHostScannerController.updateTenableSource). sourceName matches [\\w.-]+. Returns 200 with the stored source (Forward leaves type out per the Go SDK). Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "updateTenableSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sourceName",
+            "required": true,
+            "schema": {
+              "pattern": "^[\\w.-]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "collectionDisabled": true,
+                "maxPageSize": null
+              },
+              "schema": {
+                "$ref": "#/components/schemas/AdmTenableSourcePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "baseUrl": "https://tenable.example.invalid",
+                  "collectionDisabled": true,
+                  "credentialId": "H-2",
+                  "disableSslValidation": false,
+                  "name": "example-tenable"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AdmTenableSource"
+                }
+              }
+            },
+            "description": "The stored source."
+          }
+        },
+        "summary": "Change a Tenable Security Center source",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/threat-exposure-analyses/{definitionId}": {
       "get": {
         "description": "Returns the latest analysis status of the definition on each snapshot it was analyzed on, newest snapshot first. Used by the GUI; the Go SDK does not wrap this form (its Status call always passes snapshotId). Requires VIEW_THREAT_EXPOSURE on the network, not gated on the org property (source: ThreatExposureController.getThreatExposureAnalyses, ThreatExposureAnalysisService.getAnalysisSummaries). Unknown definition ids answer 404. Not part of Forward's documented API. Live (GET, read-only): 404 'No endpoint' on the test account; source-only.",
@@ -56289,6 +57395,158 @@
             "invalidate"
           ]
         ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "activateOrganizationLicense",
+            "summary": "Activate a stored license on one organization, for Forward support",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "activate"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/orgs/{orgId}/networks": {
+      "delete": {
+        "description": "Deletes every network of the org, snapshots first (NetworkController.deleteOrgNetworks, internal EDIT_ORG, which the Go SDK says only the system ADMIN role holds). Forward refuses (400) unless the org is already disabled (see disableOrganization) and refuses the NQE tutorial org. It cannot be undone, and one failing network stops it part way with the earlier ones already gone. Returns no body. Use this before DELETE /admin/orgs/{orgId} (deleteOrganization), which on its own orphans the networks' FDB data. Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "deleteOrgNetworks",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All the org's networks were deleted."
+          }
+        },
+        "summary": "Delete every network of an org",
+        "tags": [
+          "Organizations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/orgs/{orgId}/networks/{networkId}": {
+      "delete": {
+        "description": "Deletes one network of any org the Forward support login supports: its snapshots first, then the network (NetworkController.deleteNetworkForForwardSupport, @RequiresForwardSupport; no permission in the network's own org is needed). The NQE tutorial network is refused (400). It cannot be undone. Snapshots are deleted synchronously, so a large network can outlast a client or proxy timeout; a 504 does not say whether it finished, read the network again. Returns the network as it was. Note: DELETE /admin/orgs/{orgId} (deleteOrganization) orphans the network FDB data, whereas this route takes the clean path. Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "deleteNetworkInOrg",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-01-01T00:00:00.000Z",
+                  "creator": "me@example.com",
+                  "id": "11",
+                  "name": "example-network",
+                  "orgId": "2001"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Network"
+                }
+              }
+            },
+            "description": "The deleted network, as it was."
+          }
+        },
+        "summary": "Delete a network in any supported org",
+        "tags": [
+          "Organizations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/orgs/{orgId}/platform-usage": {
+      "get": {
+        "description": "Requires the Forward support role (source: PlatformUsageController.getPlatformUsageForOrg; @RequiresForwardSupport). Returns every device Forward counts toward the organization's licenses (each with its licensed flag) and the cloud credit hours (CCH) used. The organization must be reachable by the caller and must not be Software Central (400 'Org is Software Central'). Count licensed standard and lite devices from devices by licensed and lite. The same path also has a DELETE that clears usage; it is not modelled here. Not part of Forward's documented API. Live: 403 'Org 1 is not accessible to user ...' for a non-support account, so source-only; the shape is the live own-org /platform-usage answer.",
+        "operationId": "getOrganizationPlatformUsage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "cloudCreditHoursUsed": 1200,
+                  "devices": [
+                    {
+                      "deviceSignature": {
+                        "signature": "SYN0000001",
+                        "type": "CISCO_IOS"
+                      },
+                      "licensed": true,
+                      "networks": {
+                        "11": {
+                          "deviceNames": [
+                            "branch-a-sw1"
+                          ]
+                        }
+                      },
+                      "timeOfFirstSnapshot": "2026-01-05T10:00:00Z",
+                      "timeOfLastSnapshot": "2026-11-02T06:00:00Z"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/LicPlatformUsage"
+                }
+              }
+            },
+            "description": "The organization's device usage and CCH total."
+          }
+        },
+        "summary": "One organization's counted devices and CCH total, for Forward support",
+        "tags": [
+          "Licensing"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getOrganizationCloudUsage",
+            "summary": "One organization's cloud accounting with CCH per license, for Forward support",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "vpc"
+              ]
+            ]
+          }
+        ],
         "x-forward-stability": "unpublished"
       }
     },
@@ -56340,6 +57598,104 @@
         "summary": "Create a user in another org as a support admin",
         "tags": [
           "System Administration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/platform-usage": {
+      "get": {
+        "description": "Requires VIEW_LICENSING on the organization, with the SOFTWARE_CENTRAL organization property off (source: PlatformUsageController.getPlatformUsage); the organization comes from the session. Returns every device Forward counts toward a license with its licensed flag, and the cloud credit hours (CCH) used. A Software Central organization gets 400. Not part of Forward's documented API. Live: 200 on a hosted account.",
+        "operationId": "getPlatformUsage",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "cloudCreditHoursUsed": 1200,
+                  "devices": [
+                    {
+                      "deviceSignature": {
+                        "signature": "SYN0000001",
+                        "type": "CISCO_IOS"
+                      },
+                      "licensed": true,
+                      "networks": {
+                        "11": {
+                          "deviceNames": [
+                            "branch-a-sw1"
+                          ]
+                        }
+                      },
+                      "timeOfFirstSnapshot": "2026-01-05T10:00:00Z",
+                      "timeOfLastSnapshot": "2026-11-02T06:00:00Z"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/LicPlatformUsage"
+                }
+              }
+            },
+            "description": "Device usage and CCH total."
+          }
+        },
+        "summary": "The caller's own organization's counted devices and CCH total",
+        "tags": [
+          "Licensing"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getCchUsage",
+            "summary": "The caller's cloud credit hours used against licensed",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "cch"
+              ]
+            ]
+          },
+          {
+            "operationId": "getCchUsedSince",
+            "summary": "The CCH the caller's organization used in the last N days",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "cch"
+              ],
+              [
+                "days",
+                ""
+              ]
+            ]
+          },
+          {
+            "operationId": "getCchHistory",
+            "summary": "The caller's CCH per license over time",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "cch-history"
+              ],
+              [
+                "start",
+                ""
+              ],
+              [
+                "end",
+                ""
+              ]
+            ]
+          },
+          {
+            "operationId": "getCchDebug",
+            "summary": "Everything held to reproduce the caller's CCH history calculation",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "cch-debug"
+              ]
+            ]
+          }
         ],
         "x-forward-stability": "unpublished"
       }
@@ -58131,6 +59487,106 @@
         "summary": "The current system announcement",
         "tags": [
           "Banners"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/system/fdb/gc": {
+      "post": {
+        "description": "Starts Forward's FDB garbage collection and returns at once while it works in the background (WorkersController.performFdbGarbageCollection). Requires ADMINISTER_SYSTEM. Per the Go SDK it runs VACUUM ANALYZE, vacuumlo and drops old FDB databases: it removes data, but only what nothing references; it does not delete by prefix and does not reclaim the FDB data of a network deleted through an org cascade (DELETE /admin/orgs/{orgId} orphans it). The response is the bare text Garbage collection started (not valid JSON despite the JSON content type): treat the body as text. Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "runFdbGarbageCollection",
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "example": "Garbage collection started",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The text Garbage collection started."
+          }
+        },
+        "summary": "Start FDB garbage collection",
+        "tags": [
+          "System Administration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/system/fdb/size": {
+      "get": {
+        "description": "Reads the total stored size, in bytes, under an FDB key prefix (WorkersController.getFdbSize). Requires ADMINISTER_SYSTEM. prefix is required. Returns a bare JSON number. Live: the test account got 403 'Missing permission: SystemOperation.ADMINISTER_SYSTEM', so this is source-only. Not part of Forward's documented API.",
+        "operationId": "getFdbSize",
+        "parameters": [
+          {
+            "description": "FDB key prefix, for example n/<orgId>/<networkId>/.",
+            "in": "query",
+            "name": "prefix",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": 1048576,
+                "schema": {
+                  "format": "int64",
+                  "type": "integer"
+                }
+              }
+            },
+            "description": "Total size in bytes."
+          }
+        },
+        "summary": "Total FDB storage under a key prefix",
+        "tags": [
+          "System Administration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/system/fdb/usage": {
+      "get": {
+        "description": "Reads the jobs-v2 FDB (FoundationDB) usage under a key prefix such as n/<orgId>/<networkId>/ (WorkersController.getFdbUsage). Requires ADMINISTER_SYSTEM (the system ADMIN role). prefix is required. The shape is Forward's own debug output: an object whose sizes array holds the usage trie sizes; the element type is not traced, so items are left open. Live: the test account got 403 'Missing permission: SystemOperation.ADMINISTER_SYSTEM', so the response shape is source-only. Not part of Forward's documented API.",
+        "operationId": "getFdbUsage",
+        "parameters": [
+          {
+            "description": "FDB key prefix, for example n/<orgId>/<networkId>/.",
+            "in": "query",
+            "name": "prefix",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "sizes": [
+                    1024,
+                    2048
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AdmFdbUsage"
+                }
+              }
+            },
+            "description": "The usage sizes."
+          }
+        },
+        "summary": "FDB storage usage under a key prefix",
+        "tags": [
+          "System Administration"
         ],
         "x-forward-stability": "unpublished"
       }

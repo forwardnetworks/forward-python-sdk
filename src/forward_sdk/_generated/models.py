@@ -6,6 +6,7 @@ from forward_sdk._generated._base import OpenEnum
 from typing import Annotated, Any, Literal
 from pydantic import AnyUrl, AwareDatetime, ConfigDict, Field, RootModel
 from forward_sdk._generated._base import ForwardModel
+from datetime import date
 from uuid import UUID
 
 
@@ -106,6 +107,109 @@ class AclFunction(ForwardModel):
     name: str | None = None
     """
     the name of the ACL that is applied to traffic
+    """
+
+
+class AdmFdbUsage(ForwardModel):
+    """
+    FDB usage under a key prefix, Forward's own debug output (WorkersController.getFdbUsage).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    sizes: list[Any] | None = None
+    """
+    Usage trie sizes; the element type is not traced.
+    """
+
+
+class AdmTenableSourceCreate(ForwardModel):
+    """
+    Body of POST tenable-sources (NewTenableSource).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    base_url: Annotated[AnyUrl, Field(alias="baseUrl")]
+    collection_disabled: Annotated[bool | None, Field(alias="collectionDisabled")] = None
+    """
+    Omitted reads as false.
+    """
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    credential_id: Annotated[str, Field(alias="credentialId")]
+    """
+    Id of an HTTP LOGIN credential (400 otherwise).
+    """
+    disable_ssl_validation: Annotated[bool | None, Field(alias="disableSslValidation")] = None
+    max_page_size: Annotated[int | None, Field(alias="maxPageSize", ge=1)] = None
+    """
+    Defaults to 10000 when omitted.
+    """
+    name: Annotated[str, Field(pattern="^[\\w.-]+$")]
+
+
+class AdmTenableSourcePatch(ForwardModel):
+    """
+    Body of PATCH tenable-sources/{sourceName} (TenableSourcePatch). Omitted fields are unchanged; an explicit null for maxPageSize or collectorId clears it.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    base_url: Annotated[AnyUrl | None, Field(alias="baseUrl")] = None
+    collection_disabled: Annotated[bool | None, Field(alias="collectionDisabled")] = None
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    """
+    Null means no collector.
+    """
+    credential_id: Annotated[str | None, Field(alias="credentialId")] = None
+    disable_ssl_validation: Annotated[bool | None, Field(alias="disableSslValidation")] = None
+    max_page_size: Annotated[int | None, Field(alias="maxPageSize", ge=1)] = None
+    """
+    Null resets to the default of 10000.
+    """
+    name: Annotated[str | None, Field(pattern="^[\\w.-]+$")] = None
+
+
+class AdmTenableSourceTest(ForwardModel):
+    """
+    Body of POST tenable-sources?action=test (EndHostScannerTestConfig). Nothing is stored.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    base_url: Annotated[AnyUrl, Field(alias="baseUrl")]
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    """
+    Collector to run the test on; omitted means the network's default.
+    """
+    credential_id: Annotated[str, Field(alias="credentialId")]
+    """
+    Id of an HTTP LOGIN credential.
+    """
+    disable_ssl_validation: Annotated[bool | None, Field(alias="disableSslValidation")] = None
+    name: Annotated[str, Field(pattern="^[\\w.-]+$")]
+
+
+class AdmTenableSourceTestResult(ForwardModel):
+    """
+    Verdict of a connection test (EndHostScannerTestResult). An empty object means success.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    error: str | None = None
+    """
+    Present only when the test failed.
     """
 
 
@@ -4580,6 +4684,343 @@ class L3VpnPatch(ForwardModel):
 
 class L7Application(Node):
     pass
+
+
+class LicActivationRequest(ForwardModel):
+    """
+    The body of an on-premises (SOFTWARE_CENTRAL) license activation. Not sent for a SaaS license.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    fingerprint: str
+    """
+    The fingerprint of the customer's on-premises deployment (see the instance fingerprint route). A fingerprint from the wrong deployment is accepted and binds the license to it for good.
+    """
+
+
+class LicCchLicense(ForwardModel):
+    """
+    A license that grants or replaces cloud credit hours (CchLicense).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cch: int | None = None
+    expires_at: Annotated[AwareDatetime | None, Field(alias="expiresAt")] = None
+    id: str | None = None
+    replaces: bool | None = None
+    started_at: Annotated[AwareDatetime | None, Field(alias="startedAt")] = None
+    starts_at: Annotated[AwareDatetime | None, Field(alias="startsAt")] = None
+    used_at: Annotated[AwareDatetime | None, Field(alias="usedAt")] = None
+    """
+    When the license was added or activated. Present only when known.
+    """
+
+
+class LicCchLicenseWithUsage(LicCchLicense):
+    """
+    A CCH license with its cumulative CCH over time (CchLicenseWithUsage).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    replaced: bool | None = None
+    """
+    True when a later license ended this one early (Go SDK; not traced in Java).
+    """
+    usage: dict[str, int] | None = None
+    """
+    Instant to cumulative CCH used under this license by then; never decreases.
+    """
+
+
+class LicCchPeriod(ForwardModel):
+    """
+    A span of CCH accounting under one license (CchPeriod). cchUsed is inside the period.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cch_used: Annotated[float | None, Field(alias="cchUsed")] = None
+    end_reason: Annotated[str | None, Field(alias="endReason")] = None
+    """
+    Why the period ended; absent while it has not. Known values LICENSE_STARTED, LICENSE_EXPIRED, LICENSE_REPLACED, LICENSE_CONSUMED, GRACE_PERIOD_ELAPSED.
+    """
+    grace_period: Annotated[bool | None, Field(alias="gracePeriod")] = None
+    """
+    Present only when true.
+    """
+    license_id: Annotated[str | None, Field(alias="licenseId")] = None
+    """
+    Null for CCH used before cloud licensing, while enforcement was off, or shortly after a license expired.
+    """
+    start: AwareDatetime | None = None
+
+
+class LicCchUsage(ForwardModel):
+    """
+    CCH used against CCH licensed at an instant (LicensedCchUsage). cchUsed past cchLicensed is debt.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cch_licensed: Annotated[int | None, Field(alias="cchLicensed")] = None
+    cch_used: Annotated[int | None, Field(alias="cchUsed")] = None
+    grace_period_end_time: Annotated[AwareDatetime | None, Field(alias="gracePeriodEndTime")] = None
+    """
+    Present only once cchUsed reached cchLicensed. After instant, the organization is still in its grace period; otherwise the period has ended.
+    """
+    instant: AwareDatetime | None = None
+
+
+class LicCchUsedSince(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cch: int | None = None
+
+
+class LicCloudInstanceCounts(ForwardModel):
+    """
+    Cloud compute instance counts at a moment.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    inferred: int | None = None
+    modeled: int | None = None
+
+
+class LicDeviceCounts(ForwardModel):
+    """
+    Device use against caps, standard and lite (LicensedDevicesCount).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    lite_device_cap: Annotated[int | None, Field(alias="liteDeviceCap")] = None
+    lite_device_count: Annotated[int | None, Field(alias="liteDeviceCount")] = None
+    lite_unlicensed_device_count: Annotated[
+        int | None, Field(alias="liteUnlicensedDeviceCount")
+    ] = None
+    standard_device_cap: Annotated[int | None, Field(alias="standardDeviceCap")] = None
+    standard_device_count: Annotated[int | None, Field(alias="standardDeviceCount")] = None
+    standard_unlicensed_device_count: Annotated[
+        int | None, Field(alias="standardUnlicensedDeviceCount")
+    ] = None
+
+
+class LicDeviceSignature(ForwardModel):
+    """
+    A device's identity for licensing. The set of types is open and vendor-specific (for example CISCO_IOS).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    signature: str | None = None
+    type: str | None = None
+
+
+class Networks(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_names: Annotated[list[str] | None, Field(alias="deviceNames")] = None
+
+
+class LicDeviceUsage(ForwardModel):
+    """
+    One device Forward counts toward a license (DeviceUsageInfo).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_signature: Annotated[LicDeviceSignature | None, Field(alias="deviceSignature")] = None
+    ineligible_reason: Annotated[str | None, Field(alias="ineligibleReason")] = None
+    """
+    Why the device cannot be licensed. Known value UNLICENSED_DEPENDENCY. Absent when it can be or is.
+    """
+    licensed: bool | None = None
+    lite: bool | None = None
+    """
+    True for a lite (peripheral, for example an access point) device; absent for a standard one.
+    """
+    networks: dict[str, Networks] | None = None
+    """
+    The networks the device is in, keyed by network id.
+    """
+    replacements: Any | None = None
+    """
+    Replaced devices. Present in the Java type; shape not traced.
+    """
+    time_of_first_snapshot: Annotated[AwareDatetime | None, Field(alias="timeOfFirstSnapshot")] = (
+        None
+    )
+    time_of_last_snapshot: Annotated[AwareDatetime | None, Field(alias="timeOfLastSnapshot")] = None
+
+
+class LicEdgeAssetCounts(ForwardModel):
+    """
+    Edge asset use against the cap (LicensedEdgeAssetsCount).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    edge_asset_cap: Annotated[int | None, Field(alias="edgeAssetCap")] = None
+    edge_asset_count: Annotated[int | None, Field(alias="edgeAssetCount")] = None
+    unlicensed_edge_asset_count: Annotated[int | None, Field(alias="unlicensedEdgeAssetCount")] = (
+        None
+    )
+
+
+class LicLicensedDevice(ForwardModel):
+    """
+    One device in the licensed-devices listing.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    first_snapshot_at: Annotated[AwareDatetime | None, Field(alias="firstSnapshotAt")] = None
+    ineligible_reason: Annotated[str | None, Field(alias="ineligibleReason")] = None
+    """
+    Why it cannot be licensed. Known value UNLICENSED_DEPENDENCY. Absent otherwise.
+    """
+    last_snapshot_at: Annotated[AwareDatetime | None, Field(alias="lastSnapshotAt")] = None
+    lite: bool | None = None
+    """
+    Present only when true (a lite
+    """
+    names: list[str] | None = None
+    network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
+    signature: LicDeviceSignature | None = None
+
+
+class LicLicensedDevices(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    current_time: Annotated[AwareDatetime | None, Field(alias="currentTime")] = None
+    devices: list[LicLicensedDevice] | None = None
+    network_names: Annotated[dict[str, str] | None, Field(alias="networkNames")] = None
+    """
+    Network id to name, for the networks the devices appear in.
+    """
+    unlicensed_devices: Annotated[
+        list[LicLicensedDevice] | None, Field(alias="unlicensedDevices")
+    ] = None
+
+
+class LicOrgPlatformUsage(ForwardModel):
+    """
+    One SaaS organization's counted usage (OrgPlatformUsage).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cloud_credit_hours_used: Annotated[int | None, Field(alias="cloudCreditHoursUsed")] = None
+    edge_asset_count: Annotated[int | None, Field(alias="edgeAssetCount")] = None
+    lite_device_count: Annotated[int | None, Field(alias="liteDeviceCount")] = None
+    org_id: Annotated[str | None, Field(alias="orgId")] = None
+    standard_device_count: Annotated[int | None, Field(alias="standardDeviceCount")] = None
+
+
+class LicPlatformUsage(ForwardModel):
+    """
+    An organization's device usage and CCH total.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cloud_credit_hours_used: Annotated[int | None, Field(alias="cloudCreditHoursUsed")] = None
+    devices: list[LicDeviceUsage] | None = None
+
+
+class LicSaasOrgInfo(ForwardModel):
+    """
+    One SaaS organization's tier, status and summed caps (SaasOrgLicenseInfo). The caps are present only when status is ACTIVE.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cloud_credit_hours: Annotated[int | None, Field(alias="cloudCreditHours")] = None
+    edge_asset_cap: Annotated[int | None, Field(alias="edgeAssetCap")] = None
+    lite_device_cap: Annotated[int | None, Field(alias="liteDeviceCap")] = None
+    next_license_expiration: Annotated[
+        AwareDatetime | None, Field(alias="nextLicenseExpiration")
+    ] = None
+    org_id: Annotated[str | None, Field(alias="orgId")] = None
+    standard_device_cap: Annotated[int | None, Field(alias="standardDeviceCap")] = None
+    status: str | None = None
+    """
+    Always sent; null with no status. Known values ACTIVE, EXEMPT, NOT_ACTIVE_YET, EXPIRED_RECENTLY, EXPIRED.
+    """
+    tier: str | None = None
+    """
+    License tier B, N, NP, S, NS or NSP (facets BASE, NETWORK, SECURITY, PREDICT). Always sent; null with no status or when EXPIRED.
+    """
+
+
+class LicUsagePoint(ForwardModel):
+    """
+    Use against caps at one moment (LicenseUsageEvent).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    edge_asset_cap: Annotated[int | None, Field(alias="edgeAssetCap")] = None
+    edge_asset_usage: Annotated[int | None, Field(alias="edgeAssetUsage")] = None
+    lite_device_cap: Annotated[int | None, Field(alias="liteDeviceCap")] = None
+    lite_device_usage: Annotated[int | None, Field(alias="liteDeviceUsage")] = None
+    standard_device_cap: Annotated[int | None, Field(alias="standardDeviceCap")] = None
+    standard_device_usage: Annotated[int | None, Field(alias="standardDeviceUsage")] = None
+    timestamp: int | None = None
+    """
+    The instant
+    """
+
+
+class LicVpcUsageInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    instance_counts: Annotated[LicCloudInstanceCounts | None, Field(alias="instanceCounts")] = None
+    time_of_last_snapshot: Annotated[AwareDatetime | None, Field(alias="timeOfLastSnapshot")] = None
+    vpc_id: Annotated[str | None, Field(alias="vpcId")] = None
 
 
 class LineRange(ForwardModel):
@@ -10076,6 +10517,10 @@ class SysLicense(ForwardModel):
     replaces: bool | None = None
     standard_device_cap: Annotated[int | None, Field(alias="standardDeviceCap")] = None
     starts_at: Annotated[AwareDatetime | None, Field(alias="startsAt")] = None
+    support_ends_on: Annotated[date | None, Field(alias="supportEndsOn")] = None
+    """
+    Last day of support, for example 2027-06-30.
+    """
     tier: Tier | None = None
     """
     The license tier. The observed value is NS.
@@ -11952,6 +12397,42 @@ class AdjacentNetworkPatch(ForwardModel):
     name: str | None = None
     owned_subnets: Annotated[list[str] | None, Field(alias="ownedSubnets")] = None
     query_id: Annotated[str | None, Field(alias="queryId")] = None
+
+
+class AdmTenableSource(ForwardModel):
+    """
+    A Tenable Security Center source as Forward stores it (StoredEndHostScanner with a TenableSource). type is TENABLE in the end-host-scanners list but Forward leaves it out of the create and update answers.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    attribution: SrcAttribution | None = None
+    base_url: Annotated[str | None, Field(alias="baseUrl")] = None
+    collection_disabled: Annotated[bool | None, Field(alias="collectionDisabled")] = None
+    collection_error: Annotated[dict[str, Any] | None, Field(alias="collectionError")] = None
+    """
+    Present when the last collection failed; not traced further.
+    """
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    """
+    Absent when no collector is named.
+    """
+    credential_id: Annotated[str | None, Field(alias="credentialId")] = None
+    """
+    Id of an HTTP LOGIN credential.
+    """
+    disable_ssl_validation: Annotated[bool | None, Field(alias="disableSslValidation")] = None
+    max_page_size: Annotated[int | None, Field(alias="maxPageSize")] = None
+    """
+    Absent when Forward's default of 10000 applies.
+    """
+    name: str | None = None
+    type: str | None = None
+    """
+    Scanner type, TENABLE for these sources.
+    """
 
 
 class AdminNetwork(Network):
@@ -14985,6 +15466,53 @@ class L3DynamicConnectionsComputeResult(ForwardModel):
     )
     connections: list[L3SyntheticWanConnection] | None = None
     error: DynamicConnectionsComputeError | None = None
+
+
+class LicCchDebug(ForwardModel):
+    """
+    The inputs to a CCH history calculation, for support.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    counts: dict[str, LicCloudInstanceCounts] | None = None
+    """
+    Instance counts keyed by instant.
+    """
+    licenses: list[LicCchLicense] | None = None
+    periods: list[LicCchPeriod] | None = None
+    updated_at: Annotated[AwareDatetime | None, Field(alias="updatedAt")] = None
+
+
+class LicCchHistory(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    instance_counts: Annotated[
+        dict[str, LicCloudInstanceCounts] | None, Field(alias="instanceCounts")
+    ] = None
+    """
+    Cloud instance counts keyed by instant.
+    """
+    licenses: list[LicCchLicenseWithUsage] | None = None
+
+
+class LicCloudUsage(ForwardModel):
+    """
+    An organization's cloud accounting (CloudUsage).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    licenses: list[LicCchLicense] | None = None
+    periods: list[LicCchPeriod] | None = None
+    updated_at: Annotated[AwareDatetime | None, Field(alias="updatedAt")] = None
+    vpc_usage_infos: Annotated[list[LicVpcUsageInfo] | None, Field(alias="vpcUsageInfos")] = None
 
 
 class LocationFilter4(HopLocationFilter3):

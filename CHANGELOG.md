@@ -5,6 +5,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.31] - 2026-11-02
+
+### Added
+
+Routes brought over from the Go SDK (v0.8.3 to v0.8.7), all unpublished and read from Forward's source; the
+account used for live checks could read the own-org usage routes only.
+
+- Licensing: `activate_organization_license` (cannot be undone), organization and admin platform usage, own-org
+  platform usage with the CCH views, licensed devices and edge-asset counts, and license usage history.
+  `start` and `end` take ISO-8601 instants, not epoch milliseconds. `License` gained `supportEndsOn`.
+- Tenable Security Center sources: create, test, update (explicit `null` clears `maxPageSize` and `collectorId`)
+  and delete, under `client.integrations`.
+- `delete_network_in_org` and `delete_org_networks` (destructive; the second needs the org disabled), and
+  `get_fdb_usage`, `get_fdb_size`, `run_fdb_garbage_collection` under `client.system_administration`.
+
 ## [0.1.30] - 2026-11-02
 
 ### Added

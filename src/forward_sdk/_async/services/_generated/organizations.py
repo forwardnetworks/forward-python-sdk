@@ -47,6 +47,36 @@ class AsyncOrganizationsService(AsyncService):
         )
         return models.Organization.model_validate(payload or {})
 
+    async def delete_network_in_org(
+        self,
+        *,
+        org_id: str,
+        network_id: str | None = None,
+    ) -> models.Network:
+        """Delete a network in any supported org.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["deleteNetworkInOrg"](org_id=org_id, network_id=self._network(network_id))
+        )
+        return models.Network.model_validate(payload or {})
+
+    async def delete_org_networks(
+        self,
+        *,
+        org_id: str,
+    ) -> Any:
+        """Delete every network of an org.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["deleteOrgNetworks"](org_id=org_id))
+        return payload
+
     async def delete_organization(
         self,
         *,

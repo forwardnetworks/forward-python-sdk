@@ -50,6 +50,22 @@ class IntegrationsService(Service):
         )
         return models.SrcEndHostScanner.model_validate(payload or {})
 
+    def create_tenable_source(
+        self,
+        *,
+        body: Any,
+        network_id: str | None = None,
+    ) -> models.AdmTenableSource:
+        """Add a Tenable Security Center source.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["createTenableSource"](network_id=self._network(network_id), body=body)
+        )
+        return models.AdmTenableSource.model_validate(payload or {})
+
     def delete_infoblox_instance(
         self,
         *,
@@ -88,6 +104,24 @@ class IntegrationsService(Service):
         Unpublished: not part of Forward's documented API.
         """
         payload = self._send_json(ops.BUILDERS["deleteServiceNowSettings"]())
+        return payload
+
+    def delete_tenable_source(
+        self,
+        *,
+        source_name: str,
+        network_id: str | None = None,
+    ) -> Any:
+        """Delete a Tenable Security Center source.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["deleteTenableSource"](
+                network_id=self._network(network_id), source_name=source_name
+            )
+        )
         return payload
 
     def enable_service_now_cmdb(
@@ -181,6 +215,22 @@ class IntegrationsService(Service):
         payload = self._send_json(ops.BUILDERS["saveServiceNowCmdbConfiguration"](body=body))
         return payload
 
+    def test_tenable_source(
+        self,
+        *,
+        body: Any,
+        network_id: str | None = None,
+    ) -> models.AdmTenableSourceTestResult:
+        """Test a Tenable Security Center connection.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["testTenableSource"](network_id=self._network(network_id), body=body)
+        )
+        return models.AdmTenableSourceTestResult.model_validate(payload or {})
+
     def update_infoblox_instance(
         self,
         *,
@@ -214,3 +264,22 @@ class IntegrationsService(Service):
             )
         )
         return models.SrcEndHostScanner.model_validate(payload or {})
+
+    def update_tenable_source(
+        self,
+        *,
+        source_name: str,
+        body: Any,
+        network_id: str | None = None,
+    ) -> models.AdmTenableSource:
+        """Change a Tenable Security Center source.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["updateTenableSource"](
+                network_id=self._network(network_id), source_name=source_name, body=body
+            )
+        )
+        return models.AdmTenableSource.model_validate(payload or {})

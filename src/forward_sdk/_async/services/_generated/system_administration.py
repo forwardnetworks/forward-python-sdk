@@ -80,6 +80,32 @@ class AsyncSystemAdministrationService(AsyncService):
         payload = await self._send_json(ops.BUILDERS["getCveIndexMetadata"]())
         return models.Disp2CveIndexMetadata.model_validate(payload or {})
 
+    async def get_fdb_size(
+        self,
+        *,
+        prefix: str,
+    ) -> Any:
+        """Total FDB storage under a key prefix.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (license, deployment, admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getFdbSize"](prefix=prefix))
+        return payload
+
+    async def get_fdb_usage(
+        self,
+        *,
+        prefix: str,
+    ) -> models.AdmFdbUsage:
+        """FDB storage usage under a key prefix.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (license, deployment, admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getFdbUsage"](prefix=prefix))
+        return models.AdmFdbUsage.model_validate(payload or {})
+
     async def list_admin_networks(
         self,
     ) -> list[models.AdminNetwork]:
@@ -129,6 +155,18 @@ class AsyncSystemAdministrationService(AsyncService):
         """
         payload = await self._send_json(ops.BUILDERS["putCveIndex"](body=body, sha=sha))
         return payload
+
+    async def run_fdb_garbage_collection(
+        self,
+    ) -> AsyncIterator[bytes]:
+        """Start FDB garbage collection.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (license, deployment, admin); see docs/gating.md.
+        """
+        async with self._transport.stream(ops.BUILDERS["runFdbGarbageCollection"]()) as response:
+            async for chunk in response.aiter_bytes():
+                yield chunk
 
     async def set_user_supported_organizations(
         self,

@@ -500,6 +500,50 @@ class NqeService(Service):
             reports=self._reports,
         )
 
+    def execute_and_wait(
+        self,
+        query: QueryRef | str,
+        *,
+        network_id: str | None = None,
+        snapshot_id: str | None = None,
+        timeout: float | None = 1800.0,
+        outcome_retries: int = 0,
+        retry_outcomes: Collection[str] = TRANSIENT_OUTCOMES,
+        retry_delay: float = 2.0,
+    ) -> NqeExecution:
+        """Start a query, wait for it, and return the finished execution.
+
+        For callers that read results themselves, for example one bounded page
+        through ``result_page()``. ``outcome_retries``, ``retry_outcomes`` and
+        ``retry_delay`` behave as in :meth:`query`, which is built on this.
+        """
+        if outcome_retries < 0:
+            raise ForwardConfigurationError("outcome_retries must not be negative")
+        if isinstance(retry_outcomes, str):
+            raise ForwardConfigurationError("retry_outcomes must be a collection, not a string")
+        attempt = 0
+        while True:
+            attempt += 1
+            execution = self.execute(query, network_id=network_id, snapshot_id=snapshot_id)
+            try:
+                execution.wait(timeout=timeout)
+            except ForwardExecutionError as exc:
+                exc.attempts = attempt
+                if exc.outcome not in retry_outcomes or attempt > outcome_retries:
+                    raise
+                time.sleep(retry_delay * 2 ** (attempt - 1))
+                continue
+            return execution
+
+    def execution(self, key: str, *, network_id: str | None = None) -> NqeExecution:
+        """A handle on an execution that already exists, by its key.
+
+        Makes no request. Call ``status()``, ``wait()`` or ``result_page()`` on it.
+        """
+        return NqeExecution(
+            self, key=key, network_id=self._network(network_id), reports=self._reports
+        )
+
     def query(
         self,
         query: QueryRef | str,
@@ -537,23 +581,15 @@ class NqeService(Service):
             ForwardExecutionError: The final attempt failed; ``attempts`` says
                 how many were made.
         """
-        if outcome_retries < 0:
-            raise ForwardConfigurationError("outcome_retries must not be negative")
-        if isinstance(retry_outcomes, str):
-            raise ForwardConfigurationError("retry_outcomes must be a collection, not a string")
-        attempt = 0
-        while True:
-            attempt += 1
-            execution = self.execute(query, network_id=network_id, snapshot_id=snapshot_id)
-            try:
-                execution.wait(timeout=timeout)
-            except ForwardExecutionError as exc:
-                exc.attempts = attempt
-                if exc.outcome not in retry_outcomes or attempt > outcome_retries:
-                    raise
-                time.sleep(retry_delay * 2 ** (attempt - 1))
-                continue
-            break
+        execution = self.execute_and_wait(
+            query,
+            network_id=network_id,
+            snapshot_id=snapshot_id,
+            timeout=timeout,
+            outcome_retries=outcome_retries,
+            retry_outcomes=retry_outcomes,
+            retry_delay=retry_delay,
+        )
         if stream:
             return [row for row in execution.stream()]
         return [row for row in execution.rows(page_size=page_size, guards=guards)]

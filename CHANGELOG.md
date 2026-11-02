@@ -5,6 +5,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.30] - 2026-11-02
+
+### Added
+- `client.nqe.execution(key, network_id=None)`: a public handle on an existing execution, replacing
+  the private `NqeExecution` constructor. Makes no request.
+- `client.nqe.execute_and_wait(...)`: start, wait and return the finished execution, with the same
+  `outcome_retries`, `retry_outcomes` and `retry_delay` as `query()` (which now uses it). For callers
+  that read one bounded page through `result_page()`.
+- `forward_sdk.testing`: `ForwardRecorder` (scripted `httpx.MockTransport` that runs the real
+  transport) and `snapshot_payload()` (includes `createdAt`, which `latest_processed` orders by).
+
 ## [0.1.29] - 2026-10-30
 
 ### Added

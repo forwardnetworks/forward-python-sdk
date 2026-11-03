@@ -169,6 +169,38 @@ def get_snapshot_file(*, snapshot_id: str, file_name: str) -> RequestSpec:
     )
 
 
+@op("getSnapshotFileExcerpts")
+def get_snapshot_file_excerpts(*, snapshot_id: str, file_name: str, lines: str) -> RequestSpec:
+    """Read line ranges of one raw file; ``lines`` is ``"0-9,40-49"``."""
+    return spec_for(
+        "getSnapshotFileExcerpts",
+        path_params={"snapshotId": snapshot_id, "fileName": file_name},
+        query={"lines": lines},
+    )
+
+
+@op("postSnapshotFileExcerpts")
+def post_snapshot_file_excerpts(
+    *, snapshot_id: str, file_name: str, ranges: Sequence[tuple[int, int]]
+) -> RequestSpec:
+    """The same read with the ranges in the body, for a list too long for a URL."""
+    return spec_for(
+        "postSnapshotFileExcerpts",
+        path_params={"snapshotId": snapshot_id, "fileName": file_name},
+        json=[{"start": start, "end": end} for start, end in ranges],
+    )
+
+
+@op("searchSnapshotFile")
+def search_snapshot_file(*, snapshot_id: str, file_name: str, query: str) -> RequestSpec:
+    """Line indexes of a raw file that contain ``query``."""
+    return spec_for(
+        "searchSnapshotFile",
+        path_params={"snapshotId": snapshot_id, "fileName": file_name},
+        query={"q": query},
+    )
+
+
 @op("getSnapshotExceptions")
 def list_snapshot_exceptions(*, snapshot_id: str) -> RequestSpec:
     """Exceptions raised while processing a snapshot, grouped by stack trace."""

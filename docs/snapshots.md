@@ -128,6 +128,9 @@ run.snapshot_id  # the new snapshot; it may still be processing
 client.snapshots.wait_until_processed(run.snapshot_id)
 ```
 
+To wait for a collection someone else started, pass `start=False`: it joins the newest queued or running
+collection on the network and raises `ForwardExecutionError` (outcome `NO_COLLECTION`) when there is none.
+
 This puts the collector-task calls (`collector_tasks.add_collector_task` and
 `get_collector_task`) together, since the task carries no snapshot id. The new
 snapshot is the one that appears in the network's listing once the task

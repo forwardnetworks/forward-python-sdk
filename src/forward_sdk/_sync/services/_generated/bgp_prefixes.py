@@ -95,6 +95,52 @@ class BGPPrefixesService(Service):
         )
         return models.DevRoutingDevicePrefixInfo.model_validate(payload or {})
 
+    def get_device_rp_prefix_info(
+        self,
+        *,
+        device_name: str,
+        prefix: str,
+        network_id: str | None = None,
+        snapshot_id: str | None = None,
+    ) -> models.DevRoutingRpDevicePrefixInfo:
+        """What one device has for a prefix, per VRF and protocol.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getDeviceRpPrefixInfo"](
+                network_id=self._network(network_id),
+                device_name=device_name,
+                prefix=prefix,
+                snapshot_id=self._snapshot(snapshot_id),
+            )
+        )
+        return models.DevRoutingRpDevicePrefixInfo.model_validate(payload or {})
+
+    def get_rp_prefix_details(
+        self,
+        *,
+        body: Any,
+        network_id: str | None = None,
+        snapshot_id: str | None = None,
+    ) -> models.DevRoutingRpPrefixDetails:
+        """Route attributes and policies at one hop of a trace, for any modelled protocol.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getRpPrefixDetails"](
+                network_id=self._network(network_id),
+                body=body,
+                snapshot_id=self._snapshot(snapshot_id),
+            )
+        )
+        return models.DevRoutingRpPrefixDetails.model_validate(payload or {})
+
     def search_bgp_prefix(
         self,
         *,
@@ -117,6 +163,28 @@ class BGPPrefixesService(Service):
         )
         return models.DevRoutingPrefixSearchResult.model_validate(payload or {})
 
+    def search_rp_prefix(
+        self,
+        *,
+        body: Any,
+        network_id: str | None = None,
+        snapshot_id: str | None = None,
+    ) -> models.DevRoutingPrefixSearchResult:
+        """Where a prefix originates and which nodes have it, for any modelled protocol.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["searchRpPrefix"](
+                network_id=self._network(network_id),
+                body=body,
+                snapshot_id=self._snapshot(snapshot_id),
+            )
+        )
+        return models.DevRoutingPrefixSearchResult.model_validate(payload or {})
+
     def trace_bgp_prefix(
         self,
         *,
@@ -132,6 +200,28 @@ class BGPPrefixesService(Service):
         """
         payload = self._send_json(
             ops.BUILDERS["traceBgpPrefix"](
+                network_id=self._network(network_id),
+                body=body,
+                snapshot_id=self._snapshot(snapshot_id),
+            )
+        )
+        return [models.DevRoutingNode.model_validate(row) for row in payload or []]
+
+    def trace_rp_prefix(
+        self,
+        *,
+        body: Any,
+        network_id: str | None = None,
+        snapshot_id: str | None = None,
+    ) -> list[models.DevRoutingNode]:
+        """Propagation of a prefix from its origin to a router, for any modelled protocol.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["traceRpPrefix"](
                 network_id=self._network(network_id),
                 body=body,
                 snapshot_id=self._snapshot(snapshot_id),

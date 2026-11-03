@@ -22,6 +22,7 @@ from forward_sdk._generated.models import (
     AnalysisSnapshotProcessingQueue,
     AnalysisSnapshotProgress,
     CollectorTask,
+    SnapFileExcerpts,
     SnapshotException,
     SnapshotExceptions,
     SnapshotInfo,
@@ -96,6 +97,8 @@ PREDICT_TRIGGER = "PREDICT"
 
 #: A fork copies another snapshot's data; Forward never treats one as the latest.
 FORK_TRIGGER = "FORK"
+#: Past this many ranges the list moves from the URL to the request body.
+FILE_EXCERPT_URL_RANGES = 20
 
 
 def _trigger_of(snapshot: SnapshotInfo) -> str | None:
@@ -500,6 +503,39 @@ class AsyncSnapshotsService(AsyncService):
         )
         return response.text
 
+    async def file_excerpts(
+        self, snapshot_id: str, file_name: str, ranges: Sequence[tuple[int, int]]
+    ) -> SnapFileExcerpts:
+        """Read line ranges of one raw file without fetching the rest.
+
+        ``file_name`` is ``"<device>,<file>"`` as ``files()`` lists it. Ranges are
+        0-based and inclusive; they must not overlap (Forward answers 400) and a
+        start past the end of the file is a 400, while an end past it is cut
+        short. Many ranges go in the request body instead of the URL.
+        """
+        if len(ranges) > FILE_EXCERPT_URL_RANGES:
+            spec = ops.post_snapshot_file_excerpts(
+                snapshot_id=snapshot_id, file_name=file_name, ranges=ranges
+            )
+        else:
+            spec = ops.get_snapshot_file_excerpts(
+                snapshot_id=snapshot_id,
+                file_name=file_name,
+                lines=",".join(f"{start}-{end}" for start, end in ranges),
+            )
+        payload = await self._send_json(spec)
+        return SnapFileExcerpts.model_validate(payload or {})
+
+    async def search_file(self, snapshot_id: str, file_name: str, query: str) -> Sequence[int]:
+        """The 0-based lines of a raw file containing ``query``, ignoring case.
+
+        A line with several matches is repeated once per match.
+        """
+        payload = await self._send_json(
+            ops.search_snapshot_file(snapshot_id=snapshot_id, file_name=file_name, query=query)
+        )
+        return [int(n) for n in payload or []]
+
     async def exceptions(self, snapshot_id: str) -> Sequence[SnapshotException]:
         """Exceptions Forward raised while processing a snapshot, grouped.
 
@@ -764,6 +800,7 @@ class AsyncSnapshotsService(AsyncService):
         network_id: str | None = None,
         *,
         wait: bool = True,
+        start: bool = True,
         timeout: float | None = 3600.0,
         poll_interval: float = 10.0,
         snapshot_timeout: float = 120.0,
@@ -784,6 +821,9 @@ class AsyncSnapshotsService(AsyncService):
         Args:
             wait: Poll until the task finishes. With ``False`` the call returns as
                 soon as the task is queued, with no snapshot id.
+            start: With ``False``, start nothing and wait for the collection
+                already queued or running on this network (the newest one, if
+                there are several). Raises if there is none.
             timeout: Give up waiting after this many seconds. The collection
                 carries on in Forward.
             poll_interval: Seconds between looks at the task.
@@ -799,12 +839,15 @@ class AsyncSnapshotsService(AsyncService):
         """
         resolved = self._network(network_id)
         before = {s.id for s in await self.list(resolved, limit=_RECENT) if s.id}
-        started = await self._send_json(rest.BUILDERS["addCollectorTask"](network_id=resolved))
-        task_id = StartCollectionResponse.model_validate(started or {}).task_id
-        if not task_id:
-            raise ForwardExecutionError(
-                f"Forward started a collection on network {resolved} but returned no task id"
-            )
+        if start:
+            started = await self._send_json(rest.BUILDERS["addCollectorTask"](network_id=resolved))
+            task_id = StartCollectionResponse.model_validate(started or {}).task_id
+            if not task_id:
+                raise ForwardExecutionError(
+                    f"Forward started a collection on network {resolved} but returned no task id"
+                )
+        else:
+            task_id = await self._active_collection_task(resolved)
         self.clear_cache()
         if not wait:
             return CollectionRun(task_id=task_id, status="QUEUED")
@@ -849,6 +892,21 @@ class AsyncSnapshotsService(AsyncService):
                     outcome="NO_SNAPSHOT",
                 )
             await asyncio.sleep(min(poll_interval, 5.0))
+
+    async def _active_collection_task(self, network_id: str) -> str:
+        """The newest queued or running collector task for a network."""
+        listing = await self._send_json(
+            rest.BUILDERS["getCollectorTasks"](status=["QUEUED", "RUNNING"])
+        )
+        tasks = [CollectorTask.model_validate(item) for item in (listing or {}).get("tasks") or []]
+        mine = [t for t in tasks if t.id and t.network_id == network_id]
+        if not mine:
+            raise ForwardExecutionError(
+                f"no collection is queued or running on network {network_id}",
+                outcome="NO_COLLECTION",
+            )
+        # Forward lists newest first, but do not lean on that.
+        return str(max(mine, key=lambda t: str(t.created_at or "")).id)
 
     async def compute_advanced_reachability(self, snapshot_id: str) -> Mapping[str, Any]:
         """Start advanced reachability computation for a snapshot."""

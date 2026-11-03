@@ -152,6 +152,14 @@ def discard_device_draft(*, network_id: str, change_set_id: str, device_name: st
     )
 
 
+@op("discardChangeSetDeviceChanges")
+def discard_device_changes(*, network_id: str, change_set_id: str, device_name: str) -> RequestSpec:
+    return spec_for(
+        "discardChangeSetDeviceChanges",
+        path_params=_cs(network_id, change_set_id, deviceName=device_name),
+    )
+
+
 @op("validateChangeSetDeviceCommands")
 def validate_device_commands(
     *,
@@ -171,11 +179,16 @@ def validate_device_commands(
 
 
 @op("commitChangeSet")
-def commit(*, network_id: str, change_set_id: str, note: str) -> RequestSpec:
+def commit(
+    *, network_id: str, change_set_id: str, note: str, analysis_mode: str | None = None
+) -> RequestSpec:
+    query = {"note": note}
+    if analysis_mode is not None:
+        query["analysisMode"] = analysis_mode
     return spec_for(
         "commitChangeSet",
         path_params=_cs(network_id, change_set_id),
-        query={"note": note},
+        query=query,
         idempotent=False,
     )
 

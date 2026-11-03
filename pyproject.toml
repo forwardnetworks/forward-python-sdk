@@ -34,7 +34,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/forwardnetworks/forward-python-sdk"
-Documentation = "https://forwardnetworks.github.io/forward-python-sdk/"
+Documentation = "https://github.com/forwardnetworks/forward-python-sdk/tree/main/docs"
 Repository = "https://github.com/forwardnetworks/forward-python-sdk"
 Changelog = "https://github.com/forwardnetworks/forward-python-sdk/blob/main/CHANGELOG.md"
 Issues = "https://github.com/forwardnetworks/forward-python-sdk/issues"

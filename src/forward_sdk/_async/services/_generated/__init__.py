@@ -77,6 +77,9 @@ from forward_sdk._async.services._generated.performance_metrics import (
 )
 from forward_sdk._async.services._generated.predict_assist import AsyncPredictAssistService
 from forward_sdk._async.services._generated.predict_reference import AsyncPredictReferenceService
+from forward_sdk._async.services._generated.predict_verification import (
+    AsyncPredictVerificationService,
+)
 from forward_sdk._async.services._generated.protocol_modeling import AsyncProtocolModelingService
 from forward_sdk._async.services._generated.resource_pools import AsyncResourcePoolsService
 from forward_sdk._async.services._generated.saml import AsyncSAMLService
@@ -168,6 +171,7 @@ __all__ = [
     "AsyncPerformanceMetricsService",
     "AsyncPredictAssistService",
     "AsyncPredictReferenceService",
+    "AsyncPredictVerificationService",
     "AsyncProtocolModelingService",
     "AsyncResourcePoolsService",
     "AsyncSAMLService",
@@ -253,6 +257,7 @@ class AsyncGeneratedServices:
     performance_metrics: AsyncPerformanceMetricsService
     predict_assist: AsyncPredictAssistService
     predict_reference: AsyncPredictReferenceService
+    predict_verification: AsyncPredictVerificationService
     protocol_modeling: AsyncProtocolModelingService
     resource_pools: AsyncResourcePoolsService
     saml: AsyncSAMLService
@@ -330,6 +335,7 @@ class AsyncGeneratedServices:
         self.performance_metrics = AsyncPerformanceMetricsService(transport)
         self.predict_assist = AsyncPredictAssistService(transport)
         self.predict_reference = AsyncPredictReferenceService(transport)
+        self.predict_verification = AsyncPredictVerificationService(transport)
         self.protocol_modeling = AsyncProtocolModelingService(transport)
         self.resource_pools = AsyncResourcePoolsService(transport)
         self.saml = AsyncSAMLService(transport)
@@ -409,6 +415,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Performance Metrics": "performance_metrics",
     "Predict Assist": "predict_assist",
     "Predict Reference": "predict_reference",
+    "Predict Verification": "predict_verification",
     "Protocol Modeling": "protocol_modeling",
     "Resource Pools": "resource_pools",
     "SAML": "saml",

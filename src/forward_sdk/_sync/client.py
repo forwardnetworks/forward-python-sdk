@@ -5,10 +5,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from difflib import get_close_matches
 from typing import Any, Literal
 
 import httpx
 
+from forward_sdk._generated.operations import OPERATIONS
+from forward_sdk._ops import REGISTRY
+from forward_sdk._ops import rest as _rest  # noqa: F401  registers every builder
+from forward_sdk._ops._generic import snake
 from forward_sdk._sync.services._generated import GeneratedServices
 from forward_sdk._sync.services.ai import AiService
 from forward_sdk._sync.services.change_sets import ChangeSetsService
@@ -25,7 +31,11 @@ from forward_sdk._sync.throttle import Throttle
 from forward_sdk._sync.transport import Transport
 from forward_sdk.access import Access
 from forward_sdk.config import ClientConfig, RetryPolicy, build_config, config_from_env
-from forward_sdk.errors import ForwardNotFoundError, ForwardPermissionError
+from forward_sdk.errors import (
+    ForwardConfigurationError,
+    ForwardNotFoundError,
+    ForwardPermissionError,
+)
 from forward_sdk.rbac import RoleTable
 from forward_sdk.telemetry import Counters, CounterSnapshot, Hooks
 
@@ -134,17 +144,60 @@ class ForwardClient(GeneratedServices):
         self._attach_generated_services(self._transport)
 
     @classmethod
-    def from_env(cls, **overrides: Any) -> ForwardClient:
+    def from_env(cls, environ: Mapping[str, str] | None = None, **overrides: Any) -> ForwardClient:
         """Build a client from ``FORWARD_*`` environment variables.
+
+        ``environ`` replaces ``os.environ`` as the source, for a caller that
+        translates its own variable names first.
 
         Reads ``FORWARD_URL``, ``FORWARD_USERNAME``, ``FORWARD_PASSWORD``,
         ``FORWARD_NETWORK_ID``, ``FORWARD_SNAPSHOT_ID``, ``FORWARD_VERIFY_TLS``,
         ``FORWARD_TIMEOUT``, ``FORWARD_RETRIES``, ``FORWARD_RATE_LIMIT_RPM`` and
         ``FORWARD_USER_AGENT``. Keyword arguments win over the environment.
         """
-        settings = config_from_env(**overrides)
+        settings = config_from_env(None if environ is None else dict(environ), **overrides)
         base_url = settings.pop("base_url")
         return cls(base_url, **settings)
+
+    def call(self, operation_id: str, /, **arguments: Any) -> Any:
+        """Call any operation by its ``operationId``, with the generated methods' keywords.
+
+        For callers that choose the operation at run time, such as a configuration
+        tool driven by data. Arguments are the snake_case names the generated
+        service methods use (``network_id``, ``snapshot_id``, ...), plus ``body``
+        for a request body. ``network_id`` and ``snapshot_id`` fall back to the
+        client's defaults when the operation takes them.
+
+        Returns the decoded JSON, the response text when it is not JSON, or
+        ``None`` for an empty response. Streaming operations are refused: use
+        the service method that streams.
+
+        Raises:
+            ForwardConfigurationError: Unknown ``operation_id``, or a streaming one.
+        """
+        builder = REGISTRY.get(operation_id)
+        operation = OPERATIONS.get(operation_id)
+        if builder is None or operation is None:
+            near = ", ".join(get_close_matches(operation_id, list(OPERATIONS), n=3))
+            raise ForwardConfigurationError(
+                f"unknown operation {operation_id!r}" + (f"; did you mean {near}?" if near else "")
+            )
+        if operation.stream:
+            raise ForwardConfigurationError(
+                f"{operation_id} streams its response; call the service method that streams it"
+            )
+        declared = {snake(p.name) for p in (*operation.path_params, *operation.query_params)}
+        if "network_id" in declared and arguments.get("network_id") is None:
+            arguments["network_id"] = self._transport.config.network_id
+        if "snapshot_id" in declared and arguments.get("snapshot_id") is None:
+            arguments["snapshot_id"] = self.snapshots._snapshot(None)
+        arguments = {k: v for k, v in arguments.items() if v is not None}
+        response = self._transport.send(builder(**arguments))
+        if not response.content:
+            return None
+        if "json" in response.headers.get("content-type", ""):
+            return response.json()
+        return response.text
 
     def version(self) -> Any:
         """The Forward release this instance is running."""

@@ -11,6 +11,7 @@ from __future__ import annotations
 import pytest
 
 from forward_sdk._async.client import AsyncForwardClient
+from forward_sdk.errors import ForwardConfigurationError
 from tests.conftest import Recorder, json_response
 
 pytestmark = pytest.mark.anyio
@@ -88,3 +89,100 @@ class TestProtocolModeling:
             await client.protocol_modeling.list_predict_affected_devices(snapshot_id="900")
 
         assert recorder.query_for() == {"view": ["affected-devices"]}
+
+
+class TestChangeSetHandle:
+    async def test_commit_sends_the_analysis_mode_only_when_given(self, recorder: Recorder) -> None:
+        path = "/api/networks/101/change-sets/CHG-1/commits"
+        recorder.add("POST", path, json_response({"commitId": "c1"}))
+        async with make_client(recorder) as client:
+            handle = client.change_sets.handle("CHG-1")
+            await handle.commit("plain")
+            assert recorder.query_for() == {"note": ["plain"]}
+            await handle.commit("config", analysis_mode="CONFIG_ONLY")
+
+        assert recorder.query_for() == {"note": ["config"], "analysisMode": ["CONFIG_ONLY"]}
+
+    async def test_discard_device_changes_is_its_own_route(self, recorder: Recorder) -> None:
+        path = "/api/networks/101/change-sets/CHG-1/devices/edge-1"
+        recorder.add("POST", path, json_response(None, status=204))
+        async with make_client(recorder) as client:
+            await client.change_sets.handle("CHG-1").discard_device_changes("edge-1")
+
+        assert recorder.query_for() == {"action": ["discardChanges"]}
+
+
+class TestSnapshotFileExcerpts:
+    PATH = "/api/snapshots/s1/files/edge-1,show_run.txt"
+    BODY = {
+        "lineCount": 120,
+        "excerpts": [{"start": 0, "end": 1, "lines": ["hostname edge-1", "!"]}],
+        "predictedFileInfo": {"numModifiedLines": 2, "changeSetId": "CHG-1"},
+    }
+
+    async def test_a_few_ranges_go_in_one_comma_separated_value(self, recorder: Recorder) -> None:
+        recorder.add("GET", self.PATH, json_response(self.BODY))
+        async with make_client(recorder) as client:
+            result = await client.snapshots.file_excerpts(
+                "s1", "edge-1,show_run.txt", [(0, 1), (40, 49)]
+            )
+
+        assert recorder.query_for() == {"lines": ["0-1,40-49"]}
+        assert result.line_count == 120
+        assert result.excerpts is not None
+        assert result.excerpts[0].lines == ["hostname edge-1", "!"]
+        assert result.predicted_file_info is not None
+        assert result.predicted_file_info.num_modified_lines == 2
+
+    async def test_many_ranges_move_to_the_body(self, recorder: Recorder) -> None:
+        recorder.add("POST", self.PATH, json_response(self.BODY))
+        ranges = [(i * 10, i * 10 + 4) for i in range(25)]
+        async with make_client(recorder) as client:
+            await client.snapshots.file_excerpts("s1", "edge-1,show_run.txt", ranges)
+
+        assert recorder.body_for()[:2] == [{"start": 0, "end": 4}, {"start": 10, "end": 14}]
+        assert len(recorder.body_for()) == 25
+
+    async def test_search_returns_line_indexes(self, recorder: Recorder) -> None:
+        recorder.add("GET", self.PATH + "/search", json_response([3, 17, 17]))
+        async with make_client(recorder) as client:
+            lines = await client.snapshots.search_file("s1", "edge-1,show_run.txt", "ospf")
+
+        assert lines == [3, 17, 17]
+        assert recorder.query_for() == {"q": ["ospf"]}
+
+
+class TestCallAndFromEnv:
+    async def test_call_runs_an_operation_by_id_with_the_clients_defaults(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add("GET", "/api/networks/101/snapshots", json_response({"snapshots": []}))
+        async with make_client(recorder) as client:
+            result = await client.call("listNetworkSnapshots")
+
+        assert result == {"snapshots": []}
+
+    async def test_call_names_the_nearest_operation_when_the_id_is_wrong(
+        self, recorder: Recorder
+    ) -> None:
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardConfigurationError, match="listNetworkSnapshots"):
+                await client.call("listNetworkSnapshot")
+
+    async def test_call_refuses_a_streaming_operation(self, recorder: Recorder) -> None:
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardConfigurationError, match="streams"):
+                await client.call("getSnapshotCollectionLog", snapshot_id="s1")
+
+    async def test_from_env_reads_a_custom_environment(self) -> None:
+        client = AsyncForwardClient.from_env(
+            {
+                "FORWARD_URL": "https://forward.test",
+                "FORWARD_USERNAME": "key",
+                "FORWARD_PASSWORD": "secret",
+                "FORWARD_NETWORK_ID": "55",
+            },
+            rate_limit_rpm=None,
+        )
+        assert client.config.network_id == "55"
+        await client.aclose()

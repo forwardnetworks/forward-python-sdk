@@ -59,14 +59,14 @@ and a documented hint about what gates that operation.
 
 ## Documentation
 
-<https://forwardnetworks.github.io/forward-python-sdk/>
+The guides live in the repository's [docs folder](https://github.com/forwardnetworks/forward-python-sdk/tree/main/docs).
 
-- [Quickstart](docs/quickstart.md)
-- [Configuration](docs/configuration.md)
-- [NQE guide](docs/nqe/index.md)
-- [Availability and gating](docs/gating.md)
-- [Migrating from the NetBox plugin](docs/migration/netbox.md) or
-  [the Nautobot plugin](docs/migration/nautobot.md)
+- [Quickstart](https://github.com/forwardnetworks/forward-python-sdk/blob/main/docs/quickstart.md)
+- [Configuration](https://github.com/forwardnetworks/forward-python-sdk/blob/main/docs/configuration.md)
+- [NQE guide](https://github.com/forwardnetworks/forward-python-sdk/blob/main/docs/nqe/index.md)
+- [Availability and gating](https://github.com/forwardnetworks/forward-python-sdk/blob/main/docs/gating.md)
+- [Migrating from the NetBox plugin](https://github.com/forwardnetworks/forward-python-sdk/blob/main/docs/migration/netbox.md) or
+  [the Nautobot plugin](https://github.com/forwardnetworks/forward-python-sdk/blob/main/docs/migration/nautobot.md)
 
 ## Requirements
 

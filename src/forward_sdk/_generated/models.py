@@ -816,6 +816,15 @@ class Type6(OpenEnum):
     device_alias_filter = "DeviceAliasFilter"
 
 
+class AnalysisMode(OpenEnum):
+    """
+    The Predict mode chosen at a commit. Absent until one is chosen; the change set then runs BEHAVIORAL.
+    """
+
+    behavioral = "BEHAVIORAL"
+    config_only = "CONFIG_ONLY"
+
+
 class ChangeSetCheckResult(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -880,18 +889,6 @@ class ChangeSetPatch(ForwardModel):
     )
     description: str | None = None
     name: str | None = None
-    snapshot_id: Annotated[str | None, Field(alias="snapshotId")] = None
-    tags: list[str] | None = None
-
-
-class ChangeSetSummary(ForwardModel):
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    description: str | None = None
-    name: str | None = None
-    network_id: Annotated[str | None, Field(alias="networkId")] = None
     snapshot_id: Annotated[str | None, Field(alias="snapshotId")] = None
     tags: list[str] | None = None
 
@@ -1853,16 +1850,6 @@ class CommandValidationRequest(ForwardModel):
     """
 
 
-class CommandValidationResponse(ForwardModel):
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    command_errors: Annotated[list[dict[str, Any]] | None, Field(alias="commandErrors")] = None
-    suggestions: list[dict[str, Any]] | None = None
-    text_marks: Annotated[list[dict[str, Any]] | None, Field(alias="textMarks")] = None
-
-
 class CommitResult(ForwardModel):
     """
     The outcome of a commit, or the report from a dry run.
@@ -2633,7 +2620,7 @@ class DevRoutingInterfaceNeighbor(ForwardModel):
 
 class DevRoutingNode(ForwardModel):
     """
-    One hop of a prefix trace (Go SDK RoutingNode). Pass it back unchanged to getBgpPrefixDetails: Forward needs fields this schema does not list (the node key and the route set), so the object is open.
+    One hop of a prefix trace (Go SDK RoutingNode). On master each hop carries an opaque nodeKey and a routeSetId; getRpPrefixDetails and getBgpPrefixDetails take {nodeKey, routeSetId} from it. The primary build's hops carry the device, VRF and other members instead. The object is open: fields not listed here exist and were not traced.
     """
 
     model_config = ConfigDict(
@@ -2642,10 +2629,14 @@ class DevRoutingNode(ForwardModel):
     )
     as_number: Annotated[int | None, Field(alias="asNumber")] = None
     boundary_id: Annotated[str | None, Field(alias="boundaryId")] = None
-    device: str
+    device: str | None = None
     export_policy_names: Annotated[list[str] | None, Field(alias="exportPolicyNames")] = None
     import_policy_names: Annotated[list[str] | None, Field(alias="importPolicyNames")] = None
     location_id: Annotated[str | None, Field(alias="locationId")] = None
+    node_key: Annotated[dict[str, Any] | None, Field(alias="nodeKey")] = None
+    """
+    Opaque node key (master). Its protocol member says which protocol's key it is.
+    """
     protocol: str | None = None
     route_set_id: Annotated[int | None, Field(alias="routeSetId")] = None
     router_id: Annotated[str | None, Field(alias="routerId")] = None
@@ -2701,37 +2692,24 @@ class DevRoutingPrefixDetails(ForwardModel):
     vrf: str | None = None
 
 
-class DevRoutingPrefixDetailsRequest(ForwardModel):
-    """
-    The question of getBgpPrefixDetails (source: FrontendRpPrefixDetailsRequest; the Go SDK RoutingPrefixDetailsRequest). Take previousNode, nextNode and previousPreviousNode from one trace path, unchanged.
-    """
-
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    next_node: Annotated[DevRoutingNode | None, Field(alias="nextNode")] = None
-    node: DevRoutingNode
-    prefix: str
-    previous_node: Annotated[DevRoutingNode | None, Field(alias="previousNode")] = None
-    previous_previous_node: Annotated[
-        DevRoutingNode | None, Field(alias="previousPreviousNode")
-    ] = None
-
-
 class DevRoutingPrefixSearchRequest(ForwardModel):
     """
-    The question of searchBgpPrefix (source: FrontendRpPrefixSearchRequest; the Go SDK RoutingPrefixSearch). Leave router and originatedFrom out to search every router and origin. The pinned Go SDK sends routerKey and originatedFromKey with the protocol and says current builds answer 500 without them; the newer source reads router and originatedFrom with protocol. Not verified live.
+    The question of searchBgpPrefix (master fe0daf63c899, source: FrontendRpPrefixSearchRequest; the Go SDK RoutingPrefixSearch). Leave router and originatedFrom out to search every router and origin. When set they are {device, vrf?, protocol} with protocol required. routerKey and originatedFromKey are the OLD body of the primary build (5f7e4ec1841) and are not read by master; send them only to a build that old. Stable builds lack the rp routes.
     """
 
     model_config = ConfigDict(
         extra="allow",
         populate_by_name=True,
     )
-    originated_from: Annotated[DevRoutingDeviceVrf | None, Field(alias="originatedFrom")] = None
+    originated_from: Annotated[
+        DevRoutingDeviceVrfProtocol | None, Field(alias="originatedFrom")
+    ] = None
     originated_from_key: Annotated[
         DevRoutingDeviceVrfProtocol | None, Field(alias="originatedFromKey")
     ] = None
+    """
+    Old body only (primary build).
+    """
     outcome: str | None = None
     """
     INSTALLED, FILTERED_OUT or NOT_PREFERRED. Set to look only at routers where the prefix has that outcome.
@@ -2740,8 +2718,11 @@ class DevRoutingPrefixSearchRequest(ForwardModel):
     """
     The prefix in CIDR form, for example 192.0.2.0/24.
     """
-    router: DevRoutingDeviceVrf | None = None
+    router: DevRoutingDeviceVrfProtocol | None = None
     router_key: Annotated[DevRoutingDeviceVrfProtocol | None, Field(alias="routerKey")] = None
+    """
+    Old body only (primary build): the protocol-bearing router, beside a protocol-less router.
+    """
 
 
 class DevRoutingPrefixSearchResult(ForwardModel):
@@ -2761,24 +2742,174 @@ class DevRoutingPrefixSearchResult(ForwardModel):
 
 class DevRoutingPrefixTraceRequest(ForwardModel):
     """
-    The question of traceBgpPrefix (source: FrontendRpPrefixTraceRequest; the Go SDK RoutingTraceRequest). prefix, router, originatedFrom and outcome are all required. Wire shape of router and originatedFrom is the same open question as the search request.
+    The question of traceBgpPrefix (master fe0daf63c899, source: FrontendRpPrefixTraceRequest; the Go SDK RoutingTraceRequest). prefix, router, originatedFrom and outcome are all required; router and originatedFrom are {device, vrf?, protocol} with protocol required. routerKey and originatedFromKey are the OLD body of the primary build and are not read by master.
     """
 
     model_config = ConfigDict(
         extra="allow",
         populate_by_name=True,
     )
-    originated_from: Annotated[DevRoutingDeviceVrf, Field(alias="originatedFrom")]
+    originated_from: Annotated[DevRoutingDeviceVrfProtocol, Field(alias="originatedFrom")]
     originated_from_key: Annotated[
         DevRoutingDeviceVrfProtocol | None, Field(alias="originatedFromKey")
     ] = None
+    """
+    Old body only (primary build).
+    """
     outcome: str
     """
     INSTALLED, FILTERED_OUT or NOT_PREFERRED.
     """
     prefix: str
-    router: DevRoutingDeviceVrf
+    router: DevRoutingDeviceVrfProtocol
     router_key: Annotated[DevRoutingDeviceVrfProtocol | None, Field(alias="routerKey")] = None
+    """
+    Old body only (primary build).
+    """
+
+
+class RecvAdvertisement1(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    nexthop: str | None = None
+    originated_from: Annotated[
+        DevRoutingDeviceVrfProtocol | None, Field(alias="originatedFrom")
+    ] = None
+    outcome: str | None = None
+    protocol: str | None = None
+    """
+    The protocol the advertisement arrived by.
+    """
+
+
+class Vrf1(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    more_specific_installed_routes: Annotated[
+        list[str] | None, Field(alias="moreSpecificInstalledRoutes")
+    ] = None
+    recv_advertisements: Annotated[
+        list[RecvAdvertisement1] | None, Field(alias="recvAdvertisements")
+    ] = None
+    vrf: str | None = None
+
+
+class DevRoutingRpDevicePrefixInfo(ForwardModel):
+    """
+    What a device has for a prefix, per VRF and protocol (Go SDK RPDevicePrefixInfo).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device: str | None = None
+    error: str | None = None
+    """
+    Set instead of the other members when the device has no model for the prefix.
+    """
+    model: str | None = None
+    vendor: str | None = None
+    vrfs: list[Vrf1] | None = None
+
+
+class DevRoutingRpNodeRef(ForwardModel):
+    """
+    A trace node as the rp-prefix-details body takes it (master, source: RpNodeRef): the opaque nodeKey of a trace hop and that hop's routeSetId. Both are required. additionalProperties are allowed so a whole hop can be passed as it came back.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    node_key: Annotated[dict[str, Any], Field(alias="nodeKey")]
+    """
+    Opaque; take it from a trace hop. Its protocol member (BGP, OSPF, IS_IS, OMP or CONFIG) says which protocol's key it is; device and vrf name the node. Other members are not traced.
+    """
+    route_set_id: Annotated[int, Field(alias="routeSetId")]
+
+
+class DevRoutingRpPrefixDetails(ForwardModel):
+    """
+    The route a node holds for a prefix (Go SDK RPPrefixDetails; the Java response was not traced). attributes and nodeAttributes (BGP and OSPF nodes only) carry a protocol member and differ by protocol; policies maps a rule type to matched policy rules. All are open. A node that did not resolve comes back as an object with an error member instead.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    attributes: dict[str, Any] | None = None
+    error: str | None = None
+    """
+    Set instead of the other members when the lookup matched nothing.
+    """
+    node_attributes: Annotated[dict[str, Any] | None, Field(alias="nodeAttributes")] = None
+    node_key: Annotated[dict[str, Any] | None, Field(alias="nodeKey")] = None
+    policies: dict[str, Any] | None = None
+    prefix: str | None = None
+
+
+class DevRoutingRpPrefixDetailsRequest(ForwardModel):
+    """
+    The question of getRpPrefixDetails (master, source: FrontendRpPrefixDetailsRequest). Take the nodes from one trace path.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    next_node: Annotated[DevRoutingRpNodeRef | None, Field(alias="nextNode")] = None
+    node: DevRoutingRpNodeRef
+    prefix: str
+    previous_node: Annotated[DevRoutingRpNodeRef | None, Field(alias="previousNode")] = None
+    previous_previous_node: Annotated[
+        DevRoutingRpNodeRef | None, Field(alias="previousPreviousNode")
+    ] = None
+
+
+class DevRoutingRpPrefixSearchRequest(ForwardModel):
+    """
+    The question of searchRpPrefix (master, source: FrontendRpPrefixSearchRequest). Leave router and originatedFrom out to search every router and origin. When set, each needs a protocol.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    originated_from: Annotated[
+        DevRoutingDeviceVrfProtocol | None, Field(alias="originatedFrom")
+    ] = None
+    outcome: str | None = None
+    """
+    INSTALLED, FILTERED_OUT or NOT_PREFERRED. Set to look only at routers where the prefix has that outcome.
+    """
+    prefix: str
+    """
+    The prefix in CIDR form, for example 192.0.2.0/24.
+    """
+    router: DevRoutingDeviceVrfProtocol | None = None
+
+
+class DevRoutingRpPrefixTraceRequest(ForwardModel):
+    """
+    The question of traceRpPrefix (master, source: FrontendRpPrefixTraceRequest). All four fields are required; router and originatedFrom carry their protocol.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    originated_from: Annotated[DevRoutingDeviceVrfProtocol, Field(alias="originatedFrom")]
+    outcome: str
+    """
+    INSTALLED, FILTERED_OUT or NOT_PREFERRED.
+    """
+    prefix: str
+    router: DevRoutingDeviceVrfProtocol
 
 
 class DeviceAccessLabel(Attribution):
@@ -7355,6 +7486,104 @@ class PredictChangeSetCheckPatch(ForwardModel):
     """
 
 
+class ErrorType(OpenEnum):
+    """
+    UNSUPPORTED is a valid command that Predict does not model.
+    """
+
+    incomplete = "INCOMPLETE"
+    invalid = "INVALID"
+    unsupported = "UNSUPPORTED"
+
+
+class PredictCommandError(ForwardModel):
+    """
+    A problem with one command line (source: CommandError). applied is set if and only if errorType is UNSUPPORTED.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    applied: bool | None = None
+    """
+    Whether the line is kept in the predicted config. Only on UNSUPPORTED errors; INCOMPLETE and INVALID lines are never applied.
+    """
+    end_column_number: Annotated[int | None, Field(alias="endColumnNumber")] = None
+    error_msg: Annotated[str | None, Field(alias="errorMsg")] = None
+    error_type: Annotated[ErrorType | None, Field(alias="errorType")] = None
+    """
+    UNSUPPORTED is a valid command that Predict does not model.
+    """
+    expected_args: Annotated[list[dict[str, Any]] | None, Field(alias="expectedArgs")] = None
+    line_number: Annotated[int | None, Field(alias="lineNumber")] = None
+    """
+    1-based.
+    """
+    start_column_number: Annotated[int | None, Field(alias="startColumnNumber")] = None
+
+
+class Type53(OpenEnum):
+    ip = "IP"
+    mpls = "MPLS"
+
+
+class CheckType7(OpenEnum):
+    """
+    Matched exactly and in lower case: any other value is silently marked PASS.
+    """
+
+    exists = "exists"
+    notexists = "notexists"
+
+
+class EntryType(OpenEnum):
+    """
+    The device table to check. Only these two are checked.
+    """
+
+    i_pv4 = "IPv4"
+    i_pv6 = "IPv6"
+
+
+class Status8(OpenEnum):
+    pass_ = "PASS"
+    fail = "FAIL"
+    error = "ERROR"
+
+
+class PredictIpEntryAction(ForwardModel):
+    """
+    One forwarding action of an IP entry (source: ComparableIpEntry.Action). Absent members are not compared.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    advertiser_ip_addr: Annotated[str | None, Field(alias="advertiserIpAddr")] = None
+    drop: bool | None = None
+    mpls_push_label: Annotated[int | None, Field(alias="mplsPushLabel")] = None
+    next_hop_ip_addr: Annotated[str | None, Field(alias="nextHopIpAddr")] = None
+    next_hop_vrf: Annotated[str | None, Field(alias="nextHopVrf")] = None
+    output_port: Annotated[str | None, Field(alias="outputPort")] = None
+    receive: bool | None = None
+
+
+class PredictModelScore(ForwardModel):
+    """
+    Precision, recall and F1 of Predict's model against the collected entries, as percentages 0 to 100 (source: PredictModelScore).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    f1: float | None = None
+    precision: float | None = None
+    recall: float | None = None
+
+
 class PredictNqeCheckCommit(ForwardModel):
     """
     The commit of an NQE check's query (source NqeCheckCommitInfo and CommitAuthor). The author is authorId or authorEmail, never both.
@@ -7453,6 +7682,29 @@ class PredictProtocolModelingStatus(ForwardModel):
     """
     True once a successful result is stored. A failed job also reads false.
     """
+
+
+class AnalysisMode3(OpenEnum):
+    """
+    BEHAVIORAL for legacy data.
+    """
+
+    behavioral = "BEHAVIORAL"
+    config_only = "CONFIG_ONLY"
+
+
+class PredictSnapshotRef(ForwardModel):
+    """
+    A snapshot identified lightly (source: SnapshotIdentificationLight).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    creation_instant: Annotated[AwareDatetime | None, Field(alias="creationInstant")] = None
+    id: str | None = None
+    network_id: Annotated[str | None, Field(alias="networkId")] = None
 
 
 class PredictedSnapshotMeta(ForwardModel):
@@ -7600,7 +7852,7 @@ class RepositoryQueryPage(ForwardModel):
     queries: list[RepositoryQuery] | None = None
 
 
-class Type53(OpenEnum):
+class Type54(OpenEnum):
     device_zone = "DEVICE_ZONE"
     on_prem = "ON_PREM"
     cloud = "CLOUD"
@@ -7785,7 +8037,7 @@ class ScopedUserObject(ForwardModel):
     scope_id: Annotated[str | None, Field(alias="scopeId")] = None
 
 
-class Status8(OpenEnum):
+class Status9(OpenEnum):
     valid = "VALID"
     irrelevant = "IRRELEVANT"
     inactive = "INACTIVE"
@@ -7814,7 +8066,7 @@ class ScorecardCheckScore(ForwardModel):
     """
     The check's score on the snapshot.
     """
-    status: Status8 | None = None
+    status: Status9 | None = None
     type: str | None = None
     weight: int | None = None
 
@@ -7897,7 +8149,7 @@ class ScorecardKpiCheckDefinition(ForwardModel):
     weight: int | None = None
 
 
-class Status9(OpenEnum):
+class Status10(OpenEnum):
     unlicensed = "UNLICENSED"
     requires_additional_snapshot_processing = "REQUIRES_ADDITIONAL_SNAPSHOT_PROCESSING"
     processing = "PROCESSING"
@@ -7921,7 +8173,7 @@ class ScorecardSnapshot(ForwardModel):
     """
     Overall score between 0 and 1; null unless status is PROCESSED.
     """
-    status: Status9 | None = None
+    status: Status10 | None = None
     system_managed: Annotated[bool | None, Field(alias="systemManaged")] = None
 
 
@@ -8025,8 +8277,51 @@ class SecurityMatrixFiltersList(ForwardModel):
     filters: list[SecurityMatrixFilterWithUsers] | None = None
 
 
-class SecurityObjectId(ScopedUserObject):
-    pass
+class SecurityObjectId(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    name: str | None = None
+    object_id: Annotated[str | None, Field(alias="objectId")] = None
+    """
+    The object's id when it differs from its name. Optional on a write; the reference then resolves by name.
+    """
+    scope_id: Annotated[str | None, Field(alias="scopeId")] = None
+
+
+class SecurityRuleAddressSpecification(ForwardModel):
+    """
+    Which addresses a rule matches (source: AddressSpecification). Empty members with negated false match any address. Empty members are omitted.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    dynamic_address_objects: Annotated[
+        list[SecurityObjectId] | None, Field(alias="dynamicAddressObjects")
+    ] = None
+    groups: list[SecurityObjectId] | None = None
+    ip_ranges: Annotated[list[IpRange] | None, Field(alias="ipRanges")] = None
+    negated: bool | None = None
+    objects: list[SecurityObjectId] | None = None
+    regions: list[SecurityObjectId] | None = None
+    subnets: list[str] | None = None
+
+
+class SecurityRuleApplicationSpecification(ForwardModel):
+    """
+    Which applications a rule matches (source: ApplicationSpecification).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    dynamic_groups: Annotated[list[SecurityObjectId] | None, Field(alias="dynamicGroups")] = None
+    groups: list[SecurityObjectId] | None = None
+    objects: list[SecurityObjectId] | None = None
 
 
 class Action3(OpenEnum):
@@ -8038,38 +8333,34 @@ class Action3(OpenEnum):
     reset_server = "RESET_SERVER"
 
 
-class SecurityRuleDefinition(ForwardModel):
+class SecurityRuleServiceSpecification(ForwardModel):
     """
-    A firewall rule as Forward models it. name is required and must not be blank. The specification fields sit flat beside name, id and description rather than nested. Read one from the diff and mirror it; the full field list is address, user, application and service specifications plus zones, an action and a schedule.
-    """
-
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    action: Action3 | None = None
-    description: str | None = None
-    destination_zones: Annotated[list[str] | None, Field(alias="destinationZones")] = None
-    enabled: bool | None = None
-    id: str | None = None
-    name: str
-    source_zones: Annotated[list[str] | None, Field(alias="sourceZones")] = None
-
-
-class SecurityRulePatch(ForwardModel):
-    """
-    Exactly one of definition or predecessor.
+    Which services a rule matches (source: ServiceSpecification).
     """
 
     model_config = ConfigDict(
         extra="allow",
         populate_by_name=True,
     )
-    definition: SecurityRuleDefinition | None = None
-    predecessor: str | None = None
+    groups: list[SecurityObjectId] | None = None
+    objects: list[SecurityObjectId] | None = None
+    use_application_defaults: Annotated[bool | None, Field(alias="useApplicationDefaults")] = None
+
+
+class SecurityRuleUserSpecification(ForwardModel):
     """
-    Move after this rule id; null moves to the top.
+    Which users a rule matches (source: UserSpecification).
     """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    identity_references: Annotated[list[str] | None, Field(alias="identityReferences")] = None
+    """
+    Opaque, vendor-specific references to users or external groups.
+    """
+    objects: list[SecurityObjectId] | None = None
 
 
 class SecurityZone(ForwardModel):
@@ -8122,6 +8413,74 @@ class ServiceDefinition(ForwardModel):
     source_ports: Annotated[list[PortRange] | None, Field(alias="sourcePorts")] = None
 
 
+class ServiceNowChangeRequestAttachment(ForwardModel):
+    """
+    A file attached to a change request (source: ServiceNowAttachment).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    file_name: Annotated[str | None, Field(alias="fileName")] = None
+    file_sys_id: Annotated[str | None, Field(alias="fileSysId")] = None
+
+
+class ServiceNowChangeRequestRef(ForwardModel):
+    """
+    A change request linked to a change set (source: ServiceNowChangeRequestRef).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    number: str | None = None
+    sys_id: Annotated[str | None, Field(alias="sysId")] = None
+
+
+class Impact(OpenEnum):
+    """
+    Only these names are accepted (400 otherwise).
+    """
+
+    high = "HIGH"
+    medium = "MEDIUM"
+    low = "LOW"
+
+
+class Priority(OpenEnum):
+    critical = "CRITICAL"
+    high = "HIGH"
+    moderate = "MODERATE"
+    low = "LOW"
+
+
+class ServiceNowNewChangeRequest(ForwardModel):
+    """
+    The body of createChangeSetChangeRequest (source: NewServiceNowChangeRequest). Text is trimmed; blank text counts as absent.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    details: str | None = None
+    """
+    The ticket's description.
+    """
+    impact: Impact
+    """
+    Only these names are accepted (400 otherwise).
+    """
+    priority: Priority | None = None
+    summary: str
+    """
+    The ticket's short description. Required and not blank.
+    """
+    work_notes: Annotated[str | None, Field(alias="workNotes")] = None
+
+
 class DeviceSubCategory(OpenEnum):
     none = "NONE"
     master = "MASTER"
@@ -8151,6 +8510,42 @@ class SetupPhaseResult(ForwardModel):
     ] = None
     error: ConnectivityTestError | None = None
     phase: Literal["SETUP"]
+
+
+class SnapExcerpt(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    end: int | None = None
+    lines: list[str] | None = None
+    start: int | None = None
+
+
+class SnapLineRange(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    end: int
+    """
+    Last line
+    """
+    start: int
+    """
+    First line
+    """
+
+
+class SnapPredictedFileInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    base_snapshot_id: Annotated[str | None, Field(alias="baseSnapshotId")] = None
+    change_set_id: Annotated[str | None, Field(alias="changeSetId")] = None
+    commit_id: Annotated[str | None, Field(alias="commitId")] = None
+    num_modified_lines: Annotated[int | None, Field(alias="numModifiedLines")] = None
 
 
 class SnapshotExceptionType(OpenEnum):
@@ -8846,7 +9241,7 @@ class SrcAwsCapCredential(ForwardModel):
     id: str | None = None
 
 
-class Type56(OpenEnum):
+class Type57(OpenEnum):
     cloud = "CLOUD"
 
 
@@ -8863,7 +9258,7 @@ class SrcCloudDiscoveryParams(ForwardModel):
     type: Literal["CLOUD"]
 
 
-class Type57(OpenEnum):
+class Type58(OpenEnum):
     meraki = "MERAKI"
     velo_cloud = "VELO_CLOUD"
     mist = "MIST"
@@ -8895,7 +9290,7 @@ class SrcCloudManagedSetup(ForwardModel):
     """
     Last discovery outcome; shape per type (MIST: savedAt, error, discoveredHosts).
     """
-    type: Type57
+    type: Type58
 
 
 class SrcCmdbConfigurationItemField(ForwardModel):
@@ -8954,12 +9349,12 @@ class SrcControllerInfo(ForwardModel):
     name: str | None = None
 
 
-class Type58(OpenEnum):
+class Type59(OpenEnum):
     cisco_aci = "CISCO_ACI"
     sd_wan = "SD_WAN"
 
 
-class Type59(OpenEnum):
+class Type60(OpenEnum):
     cli = "CLI"
     snmp = "SNMP"
 
@@ -9002,7 +9397,7 @@ class CollectionSourceType(OpenEnum):
     controller_managed = "CONTROLLER_MANAGED"
 
 
-class Status10(OpenEnum):
+class Status11(OpenEnum):
     production = "PRODUCTION"
     tech_preview = "TECH_PREVIEW"
     internal = "INTERNAL"
@@ -9026,7 +9421,7 @@ class SrcDeviceConnTypeInfo(ForwardModel):
     secondary_cli_credential_types: Annotated[
         list[str] | None, Field(alias="secondaryCliCredentialTypes")
     ] = None
-    status: Status10
+    status: Status11
     vendor: str
 
 
@@ -9065,7 +9460,7 @@ class SrcDeviceStatus(ForwardModel):
     total_chars_received: Annotated[int | None, Field(alias="totalCharsReceived")] = None
 
 
-class Type60(OpenEnum):
+class Type61(OpenEnum):
     direct = "DIRECT"
 
 
@@ -9126,7 +9521,7 @@ class Counts(ForwardModel):
     queued: int | None = None
 
 
-class Type61(OpenEnum):
+class Type62(OpenEnum):
     subnet_scan = "SUBNET_SCAN"
     seeded = "SEEDED"
     direct = "DIRECT"
@@ -9160,7 +9555,7 @@ class SrcDiscoveryJob(ForwardModel):
     Epoch milliseconds (live).
     """
     started_by: Annotated[str | None, Field(alias="startedBy")] = None
-    type: Type61
+    type: Type62
 
 
 class SrcEndHostScanner(ForwardModel):
@@ -9442,7 +9837,7 @@ class SrcRapid7SourcePatch(ForwardModel):
     report_names: Annotated[list[str] | None, Field(alias="reportNames")] = None
 
 
-class Type62(OpenEnum):
+class Type63(OpenEnum):
     seeded = "SEEDED"
 
 
@@ -9613,7 +10008,7 @@ class ConnectionScanPort(RootModel[int]):
     root: Annotated[int, Field(ge=1, le=65535)]
 
 
-class Type63(OpenEnum):
+class Type64(OpenEnum):
     subnet_scan = "SUBNET_SCAN"
 
 
@@ -10010,7 +10405,7 @@ class SysCliCommandAssessment(ForwardModel):
     unapproved: list[str]
 
 
-class Type64(OpenEnum):
+class Type65(OpenEnum):
     backup = "BACKUP"
     restore = "RESTORE"
 
@@ -10035,7 +10430,7 @@ class SysClusterOperation(ForwardModel):
     """
     The state of each snapshot involved, keyed by snapshot id.
     """
-    type: Type64 | None = None
+    type: Type65 | None = None
 
 
 class SysClusterOperationResult(ForwardModel):
@@ -10389,7 +10784,7 @@ class SysCustomBannerList(ForwardModel):
     banners: list[SysCustomBanner]
 
 
-class Status11(OpenEnum):
+class Status12(OpenEnum):
     valid = "VALID"
     invalid_license = "INVALID_LICENSE"
     invalid_signature = "INVALID_SIGNATURE"
@@ -10559,7 +10954,7 @@ class SysLicenseDetails(ForwardModel):
     """
 
 
-class Status12(OpenEnum):
+class Status13(OpenEnum):
     not_active_yet = "NOT_ACTIVE_YET"
     active = "ACTIVE"
     expired = "EXPIRED"
@@ -10571,7 +10966,7 @@ class SysLicenseDetailsWithStatus(SysLicenseDetails):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status12 | None = None
+    status: Status13 | None = None
 
 
 class LicenseStatus(OpenEnum):
@@ -11135,7 +11530,7 @@ class ThreatTablePagingOptions(ForwardModel):
     offset: Annotated[int | None, Field(ge=0)] = None
 
 
-class Status13(OpenEnum):
+class Status14(OpenEnum):
     neutral = "NEUTRAL"
     ok = "OK"
     warning = "WARNING"
@@ -11147,7 +11542,7 @@ class ThresholdRule(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status13 | None = None
+    status: Status14 | None = None
     value: float | None = None
     """
     Null marks the default rule.
@@ -11222,7 +11617,7 @@ class TopologyLink(ForwardModel):
     target_port: Annotated[str | None, Field(alias="targetPort")] = None
 
 
-class Type65(OpenEnum):
+class Type66(OpenEnum):
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -11247,7 +11642,7 @@ class TotalHits(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    type: Type65 | None = None
+    type: Type66 | None = None
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -11464,7 +11859,7 @@ class UserAccountApiTokenAndSecret(ForwardModel):
     token: UserAccountApiToken
 
 
-class Status14(OpenEnum):
+class Status15(OpenEnum):
     active = "ACTIVE"
     expired = "EXPIRED"
 
@@ -11478,7 +11873,7 @@ class UserAccountApiTokenView(UserAccountApiToken):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status14 | None = None
+    status: Status15 | None = None
 
 
 class UserAccountBulkEdit(ForwardModel):
@@ -12081,7 +12476,7 @@ class VulnerabilityDevice(ForwardModel):
     """
 
 
-class Status15(OpenEnum):
+class Status16(OpenEnum):
     """
     The device’s vulnerability status for the CVE.
     """
@@ -12113,7 +12508,7 @@ class VulnerabilityDeviceWithResult(VulnerabilityDevice):
     The device’s [detection result](https://docs.fwd.app/latest/application/security/vulnerability/#detection-results)
     for the CVE.
     """
-    status: Annotated[Status15 | None, Field(examples=["VULNERABLE"])] = None
+    status: Annotated[Status16 | None, Field(examples=["VULNERABLE"])] = None
     """
     The device’s vulnerability status for the CVE.
     """
@@ -12277,7 +12672,7 @@ class WanCircuitPatch(ForwardModel):
     name: Annotated[str | None, Field(examples=["wan-circuit-01"])] = None
 
 
-class Type66(OpenEnum):
+class Type67(OpenEnum):
     basic_auth = "BASIC_AUTH"
 
 
@@ -12291,11 +12686,11 @@ class WebhookCredential(ForwardModel):
         populate_by_name=True,
     )
     password: str | None = None
-    type: Type66 | None = None
+    type: Type67 | None = None
     username: str | None = None
 
 
-class Type67(OpenEnum):
+class Type68(OpenEnum):
     snapshot_ready = "SNAPSHOT_READY"
     nqe_verification_failure = "NQE_VERIFICATION_FAILURE"
     intent_verification_failure = "INTENT_VERIFICATION_FAILURE"
@@ -12311,7 +12706,7 @@ class WebhookEventParams(ForwardModel):
         populate_by_name=True,
     )
     network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
-    type: Type67
+    type: Type68
 
 
 class PayloadFormat(OpenEnum):
@@ -12768,6 +13163,10 @@ class ChangeSet(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
+    analysis_mode: Annotated[AnalysisMode | None, Field(alias="analysisMode")] = None
+    """
+    The Predict mode chosen at a commit. Absent until one is chosen; the change set then runs BEHAVIORAL.
+    """
     created_at: Annotated[str | None, Field(alias="createdAt")] = None
     created_by: Annotated[str | None, Field(alias="createdBy")] = None
     created_by_id: Annotated[str | None, Field(alias="createdById")] = None
@@ -12825,12 +13224,19 @@ class ChangeSetInfo(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
+    analysis_mode: Annotated[AnalysisMode | None, Field(alias="analysisMode")] = None
+    """
+    The Predict mode chosen at a commit. Absent until one is chosen; the change set then runs BEHAVIORAL.
+    """
     created_at: Annotated[str | None, Field(alias="createdAt")] = None
     created_by: Annotated[str | None, Field(alias="createdBy")] = None
     created_by_id: Annotated[str | None, Field(alias="createdById")] = None
     description: str | None = None
     id: str | None = None
     modified_device_count: Annotated[int | None, Field(alias="modifiedDeviceCount")] = None
+    """
+    Devices modified, from the latest draft or head commit.
+    """
     name: str | None = None
     network_id: Annotated[str | None, Field(alias="networkId")] = None
     predicted_snapshots: Annotated[
@@ -12841,6 +13247,28 @@ class ChangeSetInfo(ForwardModel):
     updated_at: Annotated[str | None, Field(alias="updatedAt")] = None
     updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
     updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
+
+
+class ChangeSetSummary(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    analysis_mode: Annotated[AnalysisMode | None, Field(alias="analysisMode")] = None
+    """
+    The Predict mode chosen at a commit. Absent until one is chosen; the change set then runs BEHAVIORAL.
+    """
+    description: str | None = None
+    name: str | None = None
+    network_id: Annotated[str | None, Field(alias="networkId")] = None
+    service_now_change_requests: Annotated[
+        list[ServiceNowChangeRequestRef] | None, Field(alias="serviceNowChangeRequests")
+    ] = None
+    """
+    ServiceNow change requests linked to the change set, by number. Omitted when there are none.
+    """
+    snapshot_id: Annotated[str | None, Field(alias="snapshotId")] = None
+    tags: list[str] | None = None
 
 
 class CheckDefinition4(QueryStringCheck):
@@ -13973,6 +14401,16 @@ class ColumnFilter1(DefaultColumnFilter):
     operator: Literal["DEFAULT"]
 
 
+class CommandValidationResponse(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    command_errors: Annotated[list[PredictCommandError] | None, Field(alias="commandErrors")] = None
+    suggestions: list[dict[str, Any]] | None = None
+    text_marks: Annotated[list[dict[str, Any]] | None, Field(alias="textMarks")] = None
+
+
 class CommittedChangeSet(ForwardModel):
     """
     A commit with the change set's device changes as of that commit, flattened together.
@@ -14458,6 +14896,24 @@ class DevRoutingInterfaceList(ForwardModel):
         populate_by_name=True,
     )
     interfaces: list[DevRoutingInterface]
+
+
+class DevRoutingPrefixDetailsRequest(ForwardModel):
+    """
+    The question of getBgpPrefixDetails (master fe0daf63c899, source: FrontendRpPrefixDetailsRequest; the Go SDK RoutingPrefixDetailsRequest). Each node is {nodeKey, routeSetId}, taken from one trace path. The primary build instead takes whole trace hops; additionalProperties on the node let those be sent.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    next_node: Annotated[DevRoutingRpNodeRef | None, Field(alias="nextNode")] = None
+    node: DevRoutingRpNodeRef
+    prefix: str
+    previous_node: Annotated[DevRoutingRpNodeRef | None, Field(alias="previousNode")] = None
+    previous_previous_node: Annotated[
+        DevRoutingRpNodeRef | None, Field(alias="previousPreviousNode")
+    ] = None
 
 
 class Device(ForwardModel):
@@ -16070,18 +16526,6 @@ class NewSecurityMatrixFilter(ForwardModel):
     """
 
 
-class NewSecurityRule(ForwardModel):
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    definition: SecurityRuleDefinition
-    predecessor: str | None = None
-    """
-    Insert after this rule id. Omit to insert at the top.
-    """
-
-
 class NewSnmpCredential(ForwardModel):
     """
     communityString applies to V2C, authSettings to V3.
@@ -16822,6 +17266,103 @@ class PredefinedCheck(ForwardModel):
     ] = None
 
 
+class PredictIEntry(ForwardModel):
+    """
+    A forwarding or routing entry (source: ComparableIEntry). type picks the kind: IP (ComparableIpEntry: vrf, subnetAddress, actions, adminDistance, igpMetric, routeType) or MPLS (ComparableMplsEntry: labels, prefix, vrf, actions of labelActionType, newLabels, nextHopIpAddress, nextHopVrf). Unit packet tests check IP entries only. Left open for the MPLS members.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    actions: list[PredictIpEntryAction] | None = None
+    admin_distance: Annotated[int | None, Field(alias="adminDistance")] = None
+    igp_metric: Annotated[int | None, Field(alias="igpMetric")] = None
+    route_type: Annotated[str | None, Field(alias="routeType")] = None
+    subnet_address: Annotated[str | None, Field(alias="subnetAddress")] = None
+    """
+    The prefix in CIDR form (IP entries).
+    """
+    type: Type53
+    vrf: str | None = None
+    """
+    Omit for the default VRF.
+    """
+
+
+class PredictIEntryCheck(ForwardModel):
+    """
+    One unit packet test (source: IEntryCheck). entry must, or must not, be present on deviceName's entryType table.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    check_type: Annotated[CheckType7, Field(alias="checkType")]
+    """
+    Matched exactly and in lower case: any other value is silently marked PASS.
+    """
+    device_name: Annotated[str, Field(alias="deviceName")]
+    entry: PredictIEntry
+    entry_type: Annotated[EntryType, Field(alias="entryType")]
+    """
+    The device table to check. Only these two are checked.
+    """
+    name: str
+
+
+class PredictIEntryCheckResult(ForwardModel):
+    """
+    A check with its verdict (source: IEntryCheckResult; the check's fields sit flat beside status and description). Results come back unordered.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    check_type: Annotated[str, Field(alias="checkType")]
+    description: str | None = None
+    """
+    Empty on PASS; Mismatch on FAIL; the reason on ERROR (for example a missing table).
+    """
+    device_name: Annotated[str, Field(alias="deviceName")]
+    entry: PredictIEntry
+    entry_type: Annotated[str, Field(alias="entryType")]
+    name: str
+    status: Status8
+
+
+class PredictSnapshotPredictInfo(ForwardModel):
+    """
+    How a predicted snapshot came about (source: SnapshotPredictInfo; GUI SnapshotPredictInfo). Present as predictInfo on a predicted snapshot's info and absent otherwise. It is NOT in the published SnapshotInfo schema (spec/forward-openapi.yaml).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    analysis_mode: Annotated[AnalysisMode3 | None, Field(alias="analysisMode")] = None
+    """
+    BEHAVIORAL for legacy data.
+    """
+    base_snapshot: Annotated[PredictSnapshotRef | None, Field(alias="baseSnapshot")] = None
+    """
+    The base snapshot the prediction was generated over. An object, not an id.
+    """
+    change_set_id: Annotated[str | None, Field(alias="changeSetId")] = None
+    commit_id: Annotated[str | None, Field(alias="commitId")] = None
+    """
+    The change set commit the prediction ran from.
+    """
+    committed_at: Annotated[AwareDatetime | None, Field(alias="committedAt")] = None
+    modified_device_count: Annotated[int | None, Field(alias="modifiedDeviceCount")] = None
+    name: str | None = None
+    """
+    The change set's name. Absent on legacy data.
+    """
+
+
 class QueryPhaseResult(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -16884,21 +17425,6 @@ class ScopedApplicationObject(ForwardModel):
     scope_id: Annotated[str | None, Field(alias="scopeId")] = None
 
 
-class ScopedSecurityRule(ForwardModel):
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    created_at: Annotated[str | None, Field(alias="createdAt")] = None
-    definition: SecurityRuleDefinition | None = None
-    hit_count: Annotated[int | None, Field(alias="hitCount")] = None
-    last_modified: Annotated[str | None, Field(alias="lastModified")] = None
-    last_used: Annotated[str | None, Field(alias="lastUsed")] = None
-    rank: int | None = None
-    rulebase_id: Annotated[str | None, Field(alias="rulebaseId")] = None
-    scope_id: Annotated[str | None, Field(alias="scopeId")] = None
-
-
 class ScopedServiceGroup(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -16953,29 +17479,52 @@ class ScorecardKpiCategoryDefinition(ForwardModel):
     system_managed: Annotated[bool, Field(alias="systemManaged")]
 
 
-class SecurityRuleDiffEntry(ForwardModel):
+class SecurityRuleDefinition(ForwardModel):
+    """
+    A firewall rule as Forward models it. name is required and must not be blank. The specification fields sit flat beside name, id and description rather than nested. Read one from the diff and mirror it; the full field list is address, user, application and service specifications plus zones, an action and a schedule.
+    """
+
     model_config = ConfigDict(
         extra="allow",
         populate_by_name=True,
     )
-    a: ScopedSecurityRule | None = None
+    action: Action3 | None = None
+    applications: SecurityRuleApplicationSpecification | None = None
+    description: str | None = None
+    destination_addresses: Annotated[
+        SecurityRuleAddressSpecification | None, Field(alias="destinationAddresses")
+    ] = None
+    destination_zones: Annotated[list[str] | None, Field(alias="destinationZones")] = None
+    enabled: bool | None = None
+    id: str | None = None
+    name: str
+    schedule: SecurityObjectId | None = None
     """
-    The rule before. Absent when ADDED.
+    Present when the rule is activated on a schedule.
     """
-    b: ScopedSecurityRule | None = None
-    """
-    The rule after. Absent when DELETED.
-    """
-    diff_type: Annotated[DiffType | None, Field(alias="diffType")] = None
+    services: SecurityRuleServiceSpecification | None = None
+    source_addresses: Annotated[
+        SecurityRuleAddressSpecification | None, Field(alias="sourceAddresses")
+    ] = None
+    source_users: Annotated[SecurityRuleUserSpecification | None, Field(alias="sourceUsers")] = None
+    source_zones: Annotated[list[str] | None, Field(alias="sourceZones")] = None
+    url_objects: Annotated[list[SecurityObjectId] | None, Field(alias="urlObjects")] = None
 
 
-class SecurityRulesDiff(ForwardModel):
+class SecurityRulePatch(ForwardModel):
+    """
+    Exactly one of definition or predecessor.
+    """
+
     model_config = ConfigDict(
         extra="allow",
         populate_by_name=True,
     )
-    entries: list[SecurityRuleDiffEntry] | None = None
-    rulebases: list[RulebaseDescriptor] | None = None
+    definition: SecurityRuleDefinition | None = None
+    predecessor: str | None = None
+    """
+    Move after this rule id; null moves to the top.
+    """
 
 
 class SecurityZoneDetails(ForwardModel):
@@ -16997,6 +17546,38 @@ class ServiceGroupCollection(ForwardModel):
     service_groups: Annotated[list[ScopedServiceGroup] | None, Field(alias="serviceGroups")] = None
 
 
+class ServiceNowChangeRequest(ForwardModel):
+    """
+    A change request as Forward returns it (source: ServiceNowChangeRequest; number and sysId are flattened from the ref). impact and priority are in ServiceNow display form such as '2 - Medium' (impact: 1 High, 2 Medium, 3 Low; priority: 1 Critical, 2 High, 3 Moderate, 4 Low).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    attachments: list[ServiceNowChangeRequestAttachment] | None = None
+    """
+    Present only on the read, and only when there are some.
+    """
+    details: str | None = None
+    impact: str
+    number: str
+    """
+    The ServiceNow change number.
+    """
+    priority: str | None = None
+    state: str | None = None
+    """
+    A label: New, Assess, Authorize, Scheduled, Implement, Review, Closed or Canceled. Absent when ServiceNow sent a value Forward does not know.
+    """
+    summary: str | None = None
+    sys_id: Annotated[str, Field(alias="sysId")]
+    url: str
+    """
+    The change request's page in ServiceNow.
+    """
+
+
 class ServiceObjectCollection(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -17005,6 +17586,21 @@ class ServiceObjectCollection(ForwardModel):
     service_objects: Annotated[list[ScopedServiceObject] | None, Field(alias="serviceObjects")] = (
         None
     )
+
+
+class SnapFileExcerpts(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    excerpts: list[SnapExcerpt] | None = None
+    line_count: Annotated[int | None, Field(alias="lineCount")] = None
+    """
+    The file's total number of lines.
+    """
+    predicted_file_info: Annotated[
+        SnapPredictedFileInfo | None, Field(alias="predictedFileInfo")
+    ] = None
 
 
 class SnapshotException(ForwardModel):
@@ -17315,7 +17911,7 @@ class SrcCustomCommandGroup(ForwardModel):
     disabled: bool | None = None
     name: str
     oids: list[SrcCustomOid] | None = None
-    type: Type59
+    type: Type60
 
 
 class SrcCustomCommandGroupUpdate(ForwardModel):
@@ -17456,7 +18052,7 @@ class SysDecodedLicenseKey(ForwardModel):
     """
     Whether the license has started by now.
     """
-    status: Status11
+    status: Status12
 
 
 class SysDeploymentArtifact(ForwardModel):
@@ -18523,6 +19119,18 @@ class NewHttpDataConnector(ForwardModel):
     """
 
 
+class NewSecurityRule(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    definition: SecurityRuleDefinition
+    predecessor: str | None = None
+    """
+    Insert after this rule id. Omit to insert at the top.
+    """
+
+
 class NqeDiffRequest(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -18851,6 +19459,45 @@ class PerfInterfaceMetrics(ForwardModel):
     metrics: list[PerfInterfaceMetric]
 
 
+class PredictDeviceEntryDiffs(ForwardModel):
+    """
+    Entries Predict failed to model and entries it modelled that were not collected, for one device (source: SnapshotIEntryComparisonResult.DeviceIEntryDiffs).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    extra_predicted_entries: Annotated[
+        list[PredictIEntry] | None, Field(alias="extraPredictedEntries")
+    ] = None
+    missing_predicted_entries: Annotated[
+        list[PredictIEntry] | None, Field(alias="missingPredictedEntries")
+    ] = None
+
+
+class PredictModelVerification(ForwardModel):
+    """
+    What verifyPredictModelingBase answers (source: SnapshotIEntryComparisonResult). With returnDiffs false only the scores are meaningful; whether diffs is then empty or absent is not traced.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    diffs: dict[str, PredictDeviceEntryDiffs] | None = None
+    """
+    Per device name.
+    """
+    score: PredictModelScore | None = None
+    scores_by_protocol: Annotated[
+        dict[str, PredictModelScore] | None, Field(alias="scoresByProtocol")
+    ] = None
+    """
+    Per protocol name, such as BGP.
+    """
+
+
 class ReachabilityCheck(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -18878,6 +19525,27 @@ class SampleQuery(ForwardModel):
     )
     from_: Annotated[EndpointFilter, Field(alias="from")]
     to: EndpointFilter
+
+
+class ScopedSecurityRule(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[str | None, Field(alias="createdAt")] = None
+    """
+    Rule lifecycle data, flattened. Each is omitted when unknown.
+    """
+    definition: SecurityRuleDefinition | None = None
+    hit_count: Annotated[int | None, Field(alias="hitCount")] = None
+    """
+    Truncated hit count.
+    """
+    last_modified: Annotated[str | None, Field(alias="lastModified")] = None
+    last_used: Annotated[str | None, Field(alias="lastUsed")] = None
+    rank: int | None = None
+    rulebase_id: Annotated[str | None, Field(alias="rulebaseId")] = None
+    scope_id: Annotated[str | None, Field(alias="scopeId")] = None
 
 
 class SecurityMatrixConnectivity(ForwardModel):
@@ -18915,6 +19583,31 @@ class SecurityMatrixResult(ForwardModel):
     ] = None
 
 
+class SecurityRuleDiffEntry(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    a: ScopedSecurityRule | None = None
+    """
+    The rule before. Absent when ADDED.
+    """
+    b: ScopedSecurityRule | None = None
+    """
+    The rule after. Absent when DELETED.
+    """
+    diff_type: Annotated[DiffType | None, Field(alias="diffType")] = None
+
+
+class SecurityRulesDiff(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    entries: list[SecurityRuleDiffEntry] | None = None
+    rulebases: list[RulebaseDescriptor] | None = None
+
+
 class SrcControllerManagedSetup(ForwardModel):
     """
     A controller-managed setup. type is derived from the controllers' device types (Java ControllerManagedSetupType). Names are stored lowercase.
@@ -18935,7 +19628,7 @@ class SrcControllerManagedSetup(ForwardModel):
     Guests collected through the controllers. Absent (not an empty list) when the setup has never had guests declared.
     """
     name: str
-    type: Type58
+    type: Type59
 
 
 class SrcControllerManagedSetupPatch(ForwardModel):

@@ -255,6 +255,19 @@ class ChangeSetHandle:
             )
         )
 
+    def discard_device_changes(self, device_name: str) -> None:
+        """Remove a device from the change set, so committing reverts it to the base.
+
+        Unlike :meth:`discard_device`, which reverts the draft to the last commit,
+        this drops every change the change set makes to the device, committed or
+        not. 404 when the change set has no changes for it.
+        """
+        self._service._transport.send(
+            ops.discard_device_changes(
+                network_id=self.network_id, change_set_id=self.id, device_name=device_name
+            )
+        )
+
     def update(
         self,
         *,
@@ -280,10 +293,19 @@ class ChangeSetHandle:
 
     # -- committing and predicting ----------------------------------------
 
-    def commit(self, note: str) -> ChangeSetCommit:
-        """Commit the staged changes. ``note`` is required and must not be blank."""
+    def commit(self, note: str, *, analysis_mode: str | None = None) -> ChangeSetCommit:
+        """Commit the staged changes. ``note`` is required and must not be blank.
+
+        ``analysis_mode`` is ``BEHAVIORAL`` or ``CONFIG_ONLY``. Forward honours it
+        only when the organization property ``PREDICT_CONFIG_ONLY`` is on.
+        """
         payload = self._service._send_json(
-            ops.commit(network_id=self.network_id, change_set_id=self.id, note=note)
+            ops.commit(
+                network_id=self.network_id,
+                change_set_id=self.id,
+                note=note,
+                analysis_mode=analysis_mode,
+            )
         )
         return ChangeSetCommit.model_validate(payload or {})
 

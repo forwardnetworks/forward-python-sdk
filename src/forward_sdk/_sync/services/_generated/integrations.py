@@ -10,6 +10,7 @@ These endpoints are not part of Forward's published API.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 
 from forward_sdk._generated import models
@@ -21,6 +22,48 @@ __all__ = ["IntegrationsService"]
 
 class IntegrationsService(Service):
     """Integrations."""
+
+    def attach_change_set_change_request_file(
+        self,
+        *,
+        change_set_id: str,
+        sys_id: str,
+        body: Any,
+        network_id: str | None = None,
+    ) -> Any:
+        """Attach a file to a change set's ServiceNow change request.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["attachChangeSetChangeRequestFile"](
+                network_id=self._network(network_id),
+                change_set_id=change_set_id,
+                sys_id=sys_id,
+                body=body,
+            )
+        )
+        return payload
+
+    def create_change_set_change_request(
+        self,
+        *,
+        change_set_id: str,
+        body: Any,
+        network_id: str | None = None,
+    ) -> models.ServiceNowChangeRequest:
+        """Raise a ServiceNow change request for a change set.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["createChangeSetChangeRequest"](
+                network_id=self._network(network_id), change_set_id=change_set_id, body=body
+            )
+        )
+        return models.ServiceNowChangeRequest.model_validate(payload or {})
 
     def create_infoblox_instance(
         self,
@@ -124,6 +167,30 @@ class IntegrationsService(Service):
         )
         return payload
 
+    def download_change_set_change_request_attachment(
+        self,
+        *,
+        change_set_id: str,
+        sys_id: str,
+        file_sys_id: str,
+        network_id: str | None = None,
+    ) -> Iterator[bytes]:
+        """Download an attachment of a change set's ServiceNow change request.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        with self._transport.stream(
+            ops.BUILDERS["downloadChangeSetChangeRequestAttachment"](
+                network_id=self._network(network_id),
+                change_set_id=change_set_id,
+                sys_id=sys_id,
+                file_sys_id=file_sys_id,
+            )
+        ) as response:
+            for chunk in response.iter_bytes():
+                yield chunk
+
     def enable_service_now_cmdb(
         self,
     ) -> Any:
@@ -133,6 +200,25 @@ class IntegrationsService(Service):
         """
         payload = self._send_json(ops.BUILDERS["enableServiceNowCmdb"]())
         return payload
+
+    def get_change_set_change_request(
+        self,
+        *,
+        change_set_id: str,
+        sys_id: str,
+        network_id: str | None = None,
+    ) -> models.ServiceNowChangeRequest:
+        """A change set's ServiceNow change request, with its attachments.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getChangeSetChangeRequest"](
+                network_id=self._network(network_id), change_set_id=change_set_id, sys_id=sys_id
+            )
+        )
+        return models.ServiceNowChangeRequest.model_validate(payload or {})
 
     def get_infoblox_integration(
         self,

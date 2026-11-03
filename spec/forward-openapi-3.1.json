@@ -1921,6 +1921,14 @@
       "ChangeSet": {
         "description": "A change set with its device changes. Attribution fields sit flat on the object rather than nested.",
         "properties": {
+          "analysisMode": {
+            "description": "The Predict mode chosen at a commit. Absent until one is chosen; the change set then runs BEHAVIORAL.",
+            "enum": [
+              "BEHAVIORAL",
+              "CONFIG_ONLY"
+            ],
+            "type": "string"
+          },
           "createdAt": {
             "type": "string"
           },
@@ -2109,6 +2117,14 @@
       "ChangeSetInfo": {
         "description": "A change set as listed, with its predicted snapshots newest first.",
         "properties": {
+          "analysisMode": {
+            "description": "The Predict mode chosen at a commit. Absent until one is chosen; the change set then runs BEHAVIORAL.",
+            "enum": [
+              "BEHAVIORAL",
+              "CONFIG_ONLY"
+            ],
+            "type": "string"
+          },
           "createdAt": {
             "type": "string"
           },
@@ -2125,6 +2141,7 @@
             "type": "string"
           },
           "modifiedDeviceCount": {
+            "description": "Devices modified, from the latest draft or head commit.",
             "type": "integer"
           },
           "name": {
@@ -2183,6 +2200,14 @@
       },
       "ChangeSetSummary": {
         "properties": {
+          "analysisMode": {
+            "description": "The Predict mode chosen at a commit. Absent until one is chosen; the change set then runs BEHAVIORAL.",
+            "enum": [
+              "BEHAVIORAL",
+              "CONFIG_ONLY"
+            ],
+            "type": "string"
+          },
           "description": {
             "type": "string"
           },
@@ -2191,6 +2216,13 @@
           },
           "networkId": {
             "type": "string"
+          },
+          "serviceNowChangeRequests": {
+            "description": "ServiceNow change requests linked to the change set, by number. Omitted when there are none.",
+            "items": {
+              "$ref": "#/components/schemas/ServiceNowChangeRequestRef"
+            },
+            "type": "array"
           },
           "snapshotId": {
             "type": "string"
@@ -5011,8 +5043,7 @@
         "properties": {
           "commandErrors": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/PredictCommandError"
             },
             "type": "array"
           },
@@ -6949,7 +6980,7 @@
       },
       "DevRoutingNode": {
         "additionalProperties": true,
-        "description": "One hop of a prefix trace (Go SDK RoutingNode). Pass it back unchanged to getBgpPrefixDetails: Forward needs fields this schema does not list (the node key and the route set), so the object is open.",
+        "description": "One hop of a prefix trace (Go SDK RoutingNode). On master each hop carries an opaque nodeKey and a routeSetId; getRpPrefixDetails and getBgpPrefixDetails take {nodeKey, routeSetId} from it. The primary build's hops carry the device, VRF and other members instead. The object is open: fields not listed here exist and were not traced.",
         "properties": {
           "asNumber": {
             "type": "integer"
@@ -6975,6 +7006,11 @@
           "locationId": {
             "type": "string"
           },
+          "nodeKey": {
+            "additionalProperties": true,
+            "description": "Opaque node key (master). Its protocol member says which protocol's key it is.",
+            "type": "object"
+          },
           "protocol": {
             "type": "string"
           },
@@ -6988,9 +7024,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "device"
-        ],
         "type": "object"
       },
       "DevRoutingNodePrefixes": {
@@ -7057,22 +7090,22 @@
         "type": "object"
       },
       "DevRoutingPrefixDetailsRequest": {
-        "description": "The question of getBgpPrefixDetails (source: FrontendRpPrefixDetailsRequest; the Go SDK RoutingPrefixDetailsRequest). Take previousNode, nextNode and previousPreviousNode from one trace path, unchanged.",
+        "description": "The question of getBgpPrefixDetails (master fe0daf63c899, source: FrontendRpPrefixDetailsRequest; the Go SDK RoutingPrefixDetailsRequest). Each node is {nodeKey, routeSetId}, taken from one trace path. The primary build instead takes whole trace hops; additionalProperties on the node let those be sent.",
         "properties": {
           "nextNode": {
-            "$ref": "#/components/schemas/DevRoutingNode"
+            "$ref": "#/components/schemas/DevRoutingRpNodeRef"
           },
           "node": {
-            "$ref": "#/components/schemas/DevRoutingNode"
+            "$ref": "#/components/schemas/DevRoutingRpNodeRef"
           },
           "prefix": {
             "type": "string"
           },
           "previousNode": {
-            "$ref": "#/components/schemas/DevRoutingNode"
+            "$ref": "#/components/schemas/DevRoutingRpNodeRef"
           },
           "previousPreviousNode": {
-            "$ref": "#/components/schemas/DevRoutingNode"
+            "$ref": "#/components/schemas/DevRoutingRpNodeRef"
           }
         },
         "required": [
@@ -7082,13 +7115,18 @@
         "type": "object"
       },
       "DevRoutingPrefixSearchRequest": {
-        "description": "The question of searchBgpPrefix (source: FrontendRpPrefixSearchRequest; the Go SDK RoutingPrefixSearch). Leave router and originatedFrom out to search every router and origin. The pinned Go SDK sends routerKey and originatedFromKey with the protocol and says current builds answer 500 without them; the newer source reads router and originatedFrom with protocol. Not verified live.",
+        "description": "The question of searchBgpPrefix (master fe0daf63c899, source: FrontendRpPrefixSearchRequest; the Go SDK RoutingPrefixSearch). Leave router and originatedFrom out to search every router and origin. When set they are {device, vrf?, protocol} with protocol required. routerKey and originatedFromKey are the OLD body of the primary build (5f7e4ec1841) and are not read by master; send them only to a build that old. Stable builds lack the rp routes.",
         "properties": {
           "originatedFrom": {
-            "$ref": "#/components/schemas/DevRoutingDeviceVrf"
+            "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
           },
           "originatedFromKey": {
-            "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
+              }
+            ],
+            "description": "Old body only (primary build)."
           },
           "outcome": {
             "description": "INSTALLED, FILTERED_OUT or NOT_PREFERRED. Set to look only at routers where the prefix has that outcome.",
@@ -7099,10 +7137,15 @@
             "type": "string"
           },
           "router": {
-            "$ref": "#/components/schemas/DevRoutingDeviceVrf"
+            "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
           },
           "routerKey": {
-            "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
+              }
+            ],
+            "description": "Old body only (primary build): the protocol-bearing router, beside a protocol-less router."
           }
         },
         "required": [
@@ -7132,12 +7175,204 @@
         "type": "object"
       },
       "DevRoutingPrefixTraceRequest": {
-        "description": "The question of traceBgpPrefix (source: FrontendRpPrefixTraceRequest; the Go SDK RoutingTraceRequest). prefix, router, originatedFrom and outcome are all required. Wire shape of router and originatedFrom is the same open question as the search request.",
+        "description": "The question of traceBgpPrefix (master fe0daf63c899, source: FrontendRpPrefixTraceRequest; the Go SDK RoutingTraceRequest). prefix, router, originatedFrom and outcome are all required; router and originatedFrom are {device, vrf?, protocol} with protocol required. routerKey and originatedFromKey are the OLD body of the primary build and are not read by master.",
         "properties": {
           "originatedFrom": {
-            "$ref": "#/components/schemas/DevRoutingDeviceVrf"
+            "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
           },
           "originatedFromKey": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
+              }
+            ],
+            "description": "Old body only (primary build)."
+          },
+          "outcome": {
+            "description": "INSTALLED, FILTERED_OUT or NOT_PREFERRED.",
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "router": {
+            "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
+          },
+          "routerKey": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
+              }
+            ],
+            "description": "Old body only (primary build)."
+          }
+        },
+        "required": [
+          "prefix",
+          "router",
+          "originatedFrom",
+          "outcome"
+        ],
+        "type": "object"
+      },
+      "DevRoutingRpDevicePrefixInfo": {
+        "description": "What a device has for a prefix, per VRF and protocol (Go SDK RPDevicePrefixInfo).",
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "error": {
+            "description": "Set instead of the other members when the device has no model for the prefix.",
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "string"
+          },
+          "vrfs": {
+            "items": {
+              "properties": {
+                "moreSpecificInstalledRoutes": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "recvAdvertisements": {
+                  "items": {
+                    "additionalProperties": true,
+                    "properties": {
+                      "nexthop": {
+                        "type": "string"
+                      },
+                      "originatedFrom": {
+                        "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
+                      },
+                      "outcome": {
+                        "type": "string"
+                      },
+                      "protocol": {
+                        "description": "The protocol the advertisement arrived by.",
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "vrf": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DevRoutingRpNodeRef": {
+        "additionalProperties": true,
+        "description": "A trace node as the rp-prefix-details body takes it (master, source: RpNodeRef): the opaque nodeKey of a trace hop and that hop's routeSetId. Both are required. additionalProperties are allowed so a whole hop can be passed as it came back.",
+        "properties": {
+          "nodeKey": {
+            "additionalProperties": true,
+            "description": "Opaque; take it from a trace hop. Its protocol member (BGP, OSPF, IS_IS, OMP or CONFIG) says which protocol's key it is; device and vrf name the node. Other members are not traced.",
+            "type": "object"
+          },
+          "routeSetId": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "nodeKey",
+          "routeSetId"
+        ],
+        "type": "object"
+      },
+      "DevRoutingRpPrefixDetails": {
+        "description": "The route a node holds for a prefix (Go SDK RPPrefixDetails; the Java response was not traced). attributes and nodeAttributes (BGP and OSPF nodes only) carry a protocol member and differ by protocol; policies maps a rule type to matched policy rules. All are open. A node that did not resolve comes back as an object with an error member instead.",
+        "properties": {
+          "attributes": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "error": {
+            "description": "Set instead of the other members when the lookup matched nothing.",
+            "type": "string"
+          },
+          "nodeAttributes": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "nodeKey": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "policies": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "prefix": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DevRoutingRpPrefixDetailsRequest": {
+        "description": "The question of getRpPrefixDetails (master, source: FrontendRpPrefixDetailsRequest). Take the nodes from one trace path.",
+        "properties": {
+          "nextNode": {
+            "$ref": "#/components/schemas/DevRoutingRpNodeRef"
+          },
+          "node": {
+            "$ref": "#/components/schemas/DevRoutingRpNodeRef"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "previousNode": {
+            "$ref": "#/components/schemas/DevRoutingRpNodeRef"
+          },
+          "previousPreviousNode": {
+            "$ref": "#/components/schemas/DevRoutingRpNodeRef"
+          }
+        },
+        "required": [
+          "prefix",
+          "node"
+        ],
+        "type": "object"
+      },
+      "DevRoutingRpPrefixSearchRequest": {
+        "description": "The question of searchRpPrefix (master, source: FrontendRpPrefixSearchRequest). Leave router and originatedFrom out to search every router and origin. When set, each needs a protocol.",
+        "properties": {
+          "originatedFrom": {
+            "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
+          },
+          "outcome": {
+            "description": "INSTALLED, FILTERED_OUT or NOT_PREFERRED. Set to look only at routers where the prefix has that outcome.",
+            "type": "string"
+          },
+          "prefix": {
+            "description": "The prefix in CIDR form, for example 192.0.2.0/24.",
+            "type": "string"
+          },
+          "router": {
+            "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
+          }
+        },
+        "required": [
+          "prefix"
+        ],
+        "type": "object"
+      },
+      "DevRoutingRpPrefixTraceRequest": {
+        "description": "The question of traceRpPrefix (master, source: FrontendRpPrefixTraceRequest). All four fields are required; router and originatedFrom carry their protocol.",
+        "properties": {
+          "originatedFrom": {
             "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
           },
           "outcome": {
@@ -7148,9 +7383,6 @@
             "type": "string"
           },
           "router": {
-            "$ref": "#/components/schemas/DevRoutingDeviceVrf"
-          },
-          "routerKey": {
             "$ref": "#/components/schemas/DevRoutingDeviceVrfProtocol"
           }
         },
@@ -17796,6 +18028,247 @@
         },
         "type": "object"
       },
+      "PredictCommandError": {
+        "description": "A problem with one command line (source: CommandError). applied is set if and only if errorType is UNSUPPORTED.",
+        "properties": {
+          "applied": {
+            "description": "Whether the line is kept in the predicted config. Only on UNSUPPORTED errors; INCOMPLETE and INVALID lines are never applied.",
+            "type": "boolean"
+          },
+          "endColumnNumber": {
+            "type": "integer"
+          },
+          "errorMsg": {
+            "type": "string"
+          },
+          "errorType": {
+            "description": "UNSUPPORTED is a valid command that Predict does not model.",
+            "enum": [
+              "INCOMPLETE",
+              "INVALID",
+              "UNSUPPORTED"
+            ],
+            "type": "string"
+          },
+          "expectedArgs": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "lineNumber": {
+            "description": "1-based.",
+            "type": "integer"
+          },
+          "startColumnNumber": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "PredictDeviceEntryDiffs": {
+        "description": "Entries Predict failed to model and entries it modelled that were not collected, for one device (source: SnapshotIEntryComparisonResult.DeviceIEntryDiffs).",
+        "properties": {
+          "extraPredictedEntries": {
+            "items": {
+              "$ref": "#/components/schemas/PredictIEntry"
+            },
+            "type": "array"
+          },
+          "missingPredictedEntries": {
+            "items": {
+              "$ref": "#/components/schemas/PredictIEntry"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "PredictIEntry": {
+        "additionalProperties": true,
+        "description": "A forwarding or routing entry (source: ComparableIEntry). type picks the kind: IP (ComparableIpEntry: vrf, subnetAddress, actions, adminDistance, igpMetric, routeType) or MPLS (ComparableMplsEntry: labels, prefix, vrf, actions of labelActionType, newLabels, nextHopIpAddress, nextHopVrf). Unit packet tests check IP entries only. Left open for the MPLS members.",
+        "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/PredictIpEntryAction"
+            },
+            "type": "array"
+          },
+          "adminDistance": {
+            "type": "integer"
+          },
+          "igpMetric": {
+            "type": "integer"
+          },
+          "routeType": {
+            "type": "string"
+          },
+          "subnetAddress": {
+            "description": "The prefix in CIDR form (IP entries).",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "IP",
+              "MPLS"
+            ],
+            "type": "string"
+          },
+          "vrf": {
+            "description": "Omit for the default VRF.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "PredictIEntryCheck": {
+        "description": "One unit packet test (source: IEntryCheck). entry must, or must not, be present on deviceName's entryType table.",
+        "properties": {
+          "checkType": {
+            "description": "Matched exactly and in lower case: any other value is silently marked PASS.",
+            "enum": [
+              "exists",
+              "notexists"
+            ],
+            "type": "string"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "entry": {
+            "$ref": "#/components/schemas/PredictIEntry"
+          },
+          "entryType": {
+            "description": "The device table to check. Only these two are checked.",
+            "enum": [
+              "IPv4",
+              "IPv6"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "deviceName",
+          "entry",
+          "entryType",
+          "checkType"
+        ],
+        "type": "object"
+      },
+      "PredictIEntryCheckResult": {
+        "description": "A check with its verdict (source: IEntryCheckResult; the check's fields sit flat beside status and description). Results come back unordered.",
+        "properties": {
+          "checkType": {
+            "type": "string"
+          },
+          "description": {
+            "description": "Empty on PASS; Mismatch on FAIL; the reason on ERROR (for example a missing table).",
+            "type": "string"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "entry": {
+            "$ref": "#/components/schemas/PredictIEntry"
+          },
+          "entryType": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "ERROR"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "deviceName",
+          "entry",
+          "entryType",
+          "checkType",
+          "status"
+        ],
+        "type": "object"
+      },
+      "PredictIpEntryAction": {
+        "description": "One forwarding action of an IP entry (source: ComparableIpEntry.Action). Absent members are not compared.",
+        "properties": {
+          "advertiserIpAddr": {
+            "type": "string"
+          },
+          "drop": {
+            "type": "boolean"
+          },
+          "mplsPushLabel": {
+            "type": "integer"
+          },
+          "nextHopIpAddr": {
+            "type": "string"
+          },
+          "nextHopVrf": {
+            "type": "string"
+          },
+          "outputPort": {
+            "type": "string"
+          },
+          "receive": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "PredictModelScore": {
+        "description": "Precision, recall and F1 of Predict's model against the collected entries, as percentages 0 to 100 (source: PredictModelScore).",
+        "properties": {
+          "f1": {
+            "type": "number"
+          },
+          "precision": {
+            "type": "number"
+          },
+          "recall": {
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "PredictModelVerification": {
+        "description": "What verifyPredictModelingBase answers (source: SnapshotIEntryComparisonResult). With returnDiffs false only the scores are meaningful; whether diffs is then empty or absent is not traced.",
+        "properties": {
+          "diffs": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PredictDeviceEntryDiffs"
+            },
+            "description": "Per device name.",
+            "type": "object"
+          },
+          "score": {
+            "$ref": "#/components/schemas/PredictModelScore"
+          },
+          "scoresByProtocol": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PredictModelScore"
+            },
+            "description": "Per protocol name, such as BGP.",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
       "PredictNqeCheckCommit": {
         "description": "The commit of an NQE check's query (source NqeCheckCommitInfo and CommitAuthor). The author is authorId or authorEmail, never both.",
         "properties": {
@@ -17887,6 +18360,62 @@
         "required": [
           "done"
         ],
+        "type": "object"
+      },
+      "PredictSnapshotPredictInfo": {
+        "description": "How a predicted snapshot came about (source: SnapshotPredictInfo; GUI SnapshotPredictInfo). Present as predictInfo on a predicted snapshot's info and absent otherwise. It is NOT in the published SnapshotInfo schema (spec/forward-openapi.yaml).",
+        "properties": {
+          "analysisMode": {
+            "description": "BEHAVIORAL for legacy data.",
+            "enum": [
+              "BEHAVIORAL",
+              "CONFIG_ONLY"
+            ],
+            "type": "string"
+          },
+          "baseSnapshot": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PredictSnapshotRef"
+              }
+            ],
+            "description": "The base snapshot the prediction was generated over. An object, not an id."
+          },
+          "changeSetId": {
+            "type": "string"
+          },
+          "commitId": {
+            "description": "The change set commit the prediction ran from.",
+            "type": "string"
+          },
+          "committedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "modifiedDeviceCount": {
+            "type": "integer"
+          },
+          "name": {
+            "description": "The change set's name. Absent on legacy data.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PredictSnapshotRef": {
+        "description": "A snapshot identified lightly (source: SnapshotIdentificationLight).",
+        "properties": {
+          "creationInstant": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "networkId": {
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "PredictedSnapshotMeta": {
@@ -18459,12 +18988,14 @@
       "ScopedSecurityRule": {
         "properties": {
           "createdAt": {
+            "description": "Rule lifecycle data, flattened. Each is omitted when unknown.",
             "type": "string"
           },
           "definition": {
             "$ref": "#/components/schemas/SecurityRuleDefinition"
           },
           "hitCount": {
+            "description": "Truncated hit count.",
             "type": "integer"
           },
           "lastModified": {
@@ -18995,8 +19526,81 @@
           "name": {
             "type": "string"
           },
+          "objectId": {
+            "description": "The object's id when it differs from its name. Optional on a write; the reference then resolves by name.",
+            "type": "string"
+          },
           "scopeId": {
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SecurityRuleAddressSpecification": {
+        "description": "Which addresses a rule matches (source: AddressSpecification). Empty members with negated false match any address. Empty members are omitted.",
+        "properties": {
+          "dynamicAddressObjects": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "ipRanges": {
+            "items": {
+              "$ref": "#/components/schemas/IpRange"
+            },
+            "type": "array"
+          },
+          "negated": {
+            "type": "boolean"
+          },
+          "objects": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "regions": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "subnets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "SecurityRuleApplicationSpecification": {
+        "description": "Which applications a rule matches (source: ApplicationSpecification).",
+        "properties": {
+          "dynamicGroups": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "objects": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -19016,8 +19620,14 @@
             ],
             "type": "string"
           },
+          "applications": {
+            "$ref": "#/components/schemas/SecurityRuleApplicationSpecification"
+          },
           "description": {
             "type": "string"
+          },
+          "destinationAddresses": {
+            "$ref": "#/components/schemas/SecurityRuleAddressSpecification"
           },
           "destinationZones": {
             "items": {
@@ -19034,9 +19644,32 @@
           "name": {
             "type": "string"
           },
+          "schedule": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SecurityObjectId"
+              }
+            ],
+            "description": "Present when the rule is activated on a schedule."
+          },
+          "services": {
+            "$ref": "#/components/schemas/SecurityRuleServiceSpecification"
+          },
+          "sourceAddresses": {
+            "$ref": "#/components/schemas/SecurityRuleAddressSpecification"
+          },
+          "sourceUsers": {
+            "$ref": "#/components/schemas/SecurityRuleUserSpecification"
+          },
           "sourceZones": {
             "items": {
               "type": "string"
+            },
+            "type": "array"
+          },
+          "urlObjects": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
             },
             "type": "array"
           }
@@ -19085,6 +19718,46 @@
           "predecessor": {
             "description": "Move after this rule id; null moves to the top.",
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SecurityRuleServiceSpecification": {
+        "description": "Which services a rule matches (source: ServiceSpecification).",
+        "properties": {
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "objects": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
+          },
+          "useApplicationDefaults": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "SecurityRuleUserSpecification": {
+        "description": "Which users a rule matches (source: UserSpecification).",
+        "properties": {
+          "identityReferences": {
+            "description": "Opaque, vendor-specific references to users or external groups.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "objects": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityObjectId"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -19225,6 +19898,115 @@
         },
         "type": "object"
       },
+      "ServiceNowChangeRequest": {
+        "description": "A change request as Forward returns it (source: ServiceNowChangeRequest; number and sysId are flattened from the ref). impact and priority are in ServiceNow display form such as '2 - Medium' (impact: 1 High, 2 Medium, 3 Low; priority: 1 Critical, 2 High, 3 Moderate, 4 Low).",
+        "properties": {
+          "attachments": {
+            "description": "Present only on the read, and only when there are some.",
+            "items": {
+              "$ref": "#/components/schemas/ServiceNowChangeRequestAttachment"
+            },
+            "type": "array"
+          },
+          "details": {
+            "type": "string"
+          },
+          "impact": {
+            "type": "string"
+          },
+          "number": {
+            "description": "The ServiceNow change number.",
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "state": {
+            "description": "A label: New, Assess, Authorize, Scheduled, Implement, Review, Closed or Canceled. Absent when ServiceNow sent a value Forward does not know.",
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "sysId": {
+            "type": "string"
+          },
+          "url": {
+            "description": "The change request's page in ServiceNow.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "sysId",
+          "impact",
+          "url"
+        ],
+        "type": "object"
+      },
+      "ServiceNowChangeRequestAttachment": {
+        "description": "A file attached to a change request (source: ServiceNowAttachment).",
+        "properties": {
+          "fileName": {
+            "type": "string"
+          },
+          "fileSysId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ServiceNowChangeRequestRef": {
+        "description": "A change request linked to a change set (source: ServiceNowChangeRequestRef).",
+        "properties": {
+          "number": {
+            "type": "string"
+          },
+          "sysId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ServiceNowNewChangeRequest": {
+        "description": "The body of createChangeSetChangeRequest (source: NewServiceNowChangeRequest). Text is trimmed; blank text counts as absent.",
+        "properties": {
+          "details": {
+            "description": "The ticket's description.",
+            "type": "string"
+          },
+          "impact": {
+            "description": "Only these names are accepted (400 otherwise).",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "type": "string"
+          },
+          "priority": {
+            "enum": [
+              "CRITICAL",
+              "HIGH",
+              "MODERATE",
+              "LOW"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "description": "The ticket's short description. Required and not blank.",
+            "type": "string"
+          },
+          "workNotes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary",
+          "impact"
+        ],
+        "type": "object"
+      },
       "ServiceObjectCollection": {
         "properties": {
           "serviceObjects": {
@@ -19280,6 +20062,78 @@
         "required": [
           "phase"
         ],
+        "type": "object"
+      },
+      "SnapExcerpt": {
+        "properties": {
+          "end": {
+            "type": "integer"
+          },
+          "lines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "start": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SnapFileExcerpts": {
+        "properties": {
+          "excerpts": {
+            "items": {
+              "$ref": "#/components/schemas/SnapExcerpt"
+            },
+            "type": "array"
+          },
+          "lineCount": {
+            "description": "The file's total number of lines.",
+            "type": "integer"
+          },
+          "predictedFileInfo": {
+            "$ref": "#/components/schemas/SnapPredictedFileInfo"
+          }
+        },
+        "type": "object"
+      },
+      "SnapLineRange": {
+        "properties": {
+          "end": {
+            "description": "Last line",
+            "inclusive.": null,
+            "type": "integer"
+          },
+          "start": {
+            "0-based": null,
+            "description": "First line",
+            "inclusive.": null,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ],
+        "type": "object"
+      },
+      "SnapPredictedFileInfo": {
+        "properties": {
+          "baseSnapshotId": {
+            "type": "string"
+          },
+          "changeSetId": {
+            "type": "string"
+          },
+          "commitId": {
+            "type": "string"
+          },
+          "numModifiedLines": {
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "SnapshotException": {
@@ -33329,7 +34183,155 @@
                 "affected-devices"
               ]
             ]
+          },
+          {
+            "operationId": "getProtocolModelingSeedRoutes",
+            "summary": "The seed route sets for a prefix, before propagation",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "seed-routes"
+              ]
+            ]
+          },
+          {
+            "operationId": "getProtocolModelingPathSelection",
+            "summary": "The path-selection candidates for a prefix, per protocol",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "path-selection"
+              ]
+            ]
           }
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Submits the protocol-modeling job and returns at once with 202 and no body; the job runs on the backend master. Poll getProtocolModelingStatus to watch it. Changes state: it starts a compute job. Requires MANAGE_PROTOCOL_MODELING on the network (network ADMIN only) and the organization property PREDICT_MODELING; the snapshot must be past creation (source: BenchmarkController.triggerProtocolModeling). Never called live. Internal route, not part of Forward's documented API.",
+        "operationId": "triggerProtocolModeling",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted; the job runs asynchronously."
+          },
+          "403": {
+            "description": "Refused without MANAGE_PROTOCOL_MODELING and PREDICT_MODELING."
+          }
+        },
+        "summary": "Start protocol modeling for a snapshot",
+        "tags": [
+          "Protocol Modeling"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "trigger"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "retriggerProtocolModeling",
+            "summary": "Run protocol modeling again for a snapshot",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "retrigger"
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/internal/snapshots/{snapshotId}/verify-predict-modeling": {
+      "post": {
+        "description": "Compares the entries Predict models for a BASE snapshot with the entries the snapshot collected, and returns per-device differences, an overall score and a score per protocol. returnDiffs (default true) false returns only the scores. A read, but it can be slow on a large snapshot. Requires MANAGE_PROTOCOL_MODELING on the network (ADMIN only); the snapshot must be past creation. Unlike its siblings it names no organization property in the annotation (source: IEntryCheckController.verifyPredictModelingBase). Source-only: not called live. Internal route, not part of Forward's documented API.",
+        "operationId": "verifyPredictModelingBase",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Whether to include the per-device differences. Defaults to true.",
+            "in": "query",
+            "name": "returnDiffs",
+            "required": false,
+            "schema": {
+              "default": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "diffs": {
+                    "branch-a-rtr1": {
+                      "extraPredictedEntries": [],
+                      "missingPredictedEntries": [
+                        {
+                          "actions": [
+                            {
+                              "nextHopIpAddr": "198.51.100.1"
+                            }
+                          ],
+                          "subnetAddress": "192.0.2.0/24",
+                          "type": "IP",
+                          "vrf": "default"
+                        }
+                      ]
+                    }
+                  },
+                  "score": {
+                    "f1": 98.7,
+                    "precision": 99.5,
+                    "recall": 98.0
+                  },
+                  "scoresByProtocol": {
+                    "BGP": {
+                      "f1": 98.5,
+                      "precision": 100.0,
+                      "recall": 97.0
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PredictModelVerification"
+                }
+              }
+            },
+            "description": "The comparison."
+          },
+          "403": {
+            "description": "Refused without MANAGE_PROTOCOL_MODELING."
+          }
+        },
+        "summary": "Compare Predict's model of a base snapshot with what it collected",
+        "tags": [
+          "Predict Verification"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "mode",
+            "base"
+          ]
         ],
         "x-forward-stability": "unpublished"
       }
@@ -34944,7 +35946,7 @@
     },
     "/networks/{networkId}/bgp-prefix-details": {
       "post": {
-        "description": "Read query, posted as JSON, that returns the route a node holds for a prefix: protocol attributes (BGP communities, AS path, local preference and so on, shape varies by protocol and vendor) and the policies applied on the way in and out. Forward needs the neighbouring hops (previousNode, nextNode, previousPreviousNode) taken from one trace path to find the policies. The node must be a hop from a trace of the same snapshot; a node that does not resolve gets 200 with an error object, which the Go SDK returns as RoutingLookupError. Source-only: not called live, for the same reason as searchBgpPrefix. Requires RP_PREFIX_SEARCH on the network and PREDICT_MODELING on the organization (source: PredictController.getBgpPrefixDetails). Source marks the route deprecated in favour of rp-prefix-details. Not part of Forward's documented API.",
+        "description": "Read query, posted as JSON, that returns the route a node holds for a prefix: protocol attributes (BGP communities, AS path, local preference and so on, shape varies by protocol and vendor) and the policies applied on the way in and out. Forward needs the neighbouring hops (previousNode, nextNode, previousPreviousNode) taken from one trace path to find the policies. BODY (master fe0daf63c899): each node is {nodeKey, routeSetId}, the opaque nodeKey and the routeSetId of a trace hop of the same snapshot, not the full hop; on master the route delegates to the same handler as rp-prefix-details (getRpPrefixDetails). Primary builds take the old full-node body; stable builds lack the route. A node that does not resolve gets 200 with an error object, which the Go SDK returns as RoutingLookupError. Source-only: not called live, for the same reason as searchBgpPrefix. Requires RP_PREFIX_SEARCH on the network and PREDICT_MODELING on the organization (source: PredictController.getBgpPrefixDetails). Source marks the route deprecated in favour of rp-prefix-details. Not part of Forward's documented API.",
         "operationId": "getBgpPrefixDetails",
         "parameters": [
           {
@@ -35019,7 +36021,7 @@
     },
     "/networks/{networkId}/bgp-prefix-search": {
       "post": {
-        "description": "Read query, posted as JSON, that says where a prefix originates (origin) and, for each trace outcome, which nodes have it (devicesByOutcome). A prefix with no routing data gives an empty result. The body is the router and origin (device and VRF, with the protocol key the current build needs), the outcome, and an optional filter on each. Source-only: not called live, because the controller hands the request to a backend search job that is queued and, by its name, may first start protocol modelling; that body was not traced. The pinned Go SDK sends router and originatedFrom as device and VRF with routerKey and originatedFromKey carrying the protocol, while the newer source reads router and originatedFrom as device, VRF and protocol; the wire shape is not verified. Source marks the route deprecated in favour of rp-prefix-search. Requires RP_PREFIX_SEARCH on the network and PREDICT_MODELING on the organization (source: PredictController.searchBgpPrefix); the same gate returned 403 on getBgpInstalledPrefixes (live, 2026-10-28); this POST was not called live, so its 403 is inferred. Not part of Forward's documented API.",
+        "description": "Read query, posted as JSON, that says where a prefix originates (origin) and, for each trace outcome, which nodes have it (devicesByOutcome). A prefix with no routing data gives an empty result. BODY (master fe0daf63c899): router and originatedFrom are {device, vrf?, protocol} with protocol required (BGP, OSPF, IS_IS, OMP or CONFIG), plus the outcome; each filter is optional. On master this deprecated route delegates to the same handler as rp-prefix-search (searchRpPrefix) and reads the same body. Stable builds (b1feb6fe1c34) do not serve it; the primary build (5f7e4ec1841) has it with the OLD body (router and originatedFrom as device and VRF, with routerKey and originatedFromKey carrying the protocol), which the legacy routerKey and originatedFromKey fields of the request still model. Source-only: not called live, because the controller hands the request to a backend search job that is queued; that response body was not traced. Source marks the route deprecated in favour of rp-prefix-search. Requires RP_PREFIX_SEARCH on the network and PREDICT_MODELING on the organization (source: PredictController.searchBgpPrefix); the same gate returned 403 on getBgpInstalledPrefixes (live, 2026-10-28); this POST was not called live, so its 403 is inferred. Not part of Forward's documented API.",
         "operationId": "searchBgpPrefix",
         "parameters": [
           {
@@ -35095,7 +36097,7 @@
     },
     "/networks/{networkId}/bgp-prefix-trace": {
       "post": {
-        "description": "Read query, posted as JSON, that returns the paths a prefix took from its origin to one router, each path a list of hops from origin to router. Take the router, the origin and the outcome from searchBgpPrefix. A prefix with no routing data gives no paths. Pass the hops unchanged to getBgpPrefixDetails. Source-only: not called live, for the same reason as searchBgpPrefix (a queued backend job that may start protocol modelling, body not traced). The same wire-shape question as searchBgpPrefix applies to router and originatedFrom. Source marks the route deprecated in favour of rp-prefix-trace. Requires RP_PREFIX_SEARCH on the network and PREDICT_MODELING on the organization (source: PredictController.getBgpPrefixTrace). Not part of Forward's documented API.",
+        "description": "Read query, posted as JSON, that returns the paths a prefix took from its origin to one router, each path a list of hops from origin to router. Take the router, the origin and the outcome from searchBgpPrefix. A prefix with no routing data gives no paths. Pass the hops unchanged to getBgpPrefixDetails. Source-only: not called live, for the same reason as searchBgpPrefix (a queued backend job that may start protocol modelling, body not traced). BODY (master fe0daf63c899): router and originatedFrom are {device, vrf?, protocol} with protocol required, as in searchBgpPrefix; on master the route delegates to the same handler as rp-prefix-trace (traceRpPrefix). Primary builds have it with the old routerKey body; stable builds lack it. Each master hop carries an opaque nodeKey. Source marks the route deprecated in favour of rp-prefix-trace. Requires RP_PREFIX_SEARCH on the network and PREDICT_MODELING on the organization (source: PredictController.getBgpPrefixTrace). Not part of Forward's documented API.",
         "operationId": "traceBgpPrefix",
         "parameters": [
           {
@@ -35735,7 +36737,7 @@
         "x-forward-stability": "unpublished"
       },
       "get": {
-        "description": "There is no plain GET on a change set; this view is the only read of one by id.",
+        "description": "There is no plain GET on a change set; this view is the only read of one by id. It also lists the ServiceNow change requests linked to the change set (serviceNowChangeRequests, omitted when none) and the Predict analysisMode once chosen (source: ChangeSetController.getChangeSetSummary, ChangeSetSummaryResponse).",
         "operationId": "getChangeSetSummary",
         "parameters": [
           {
@@ -35760,8 +36762,15 @@
             "content": {
               "application/json": {
                 "example": {
+                  "analysisMode": "BEHAVIORAL",
                   "name": "Core uplink change",
                   "networkId": "115",
+                  "serviceNowChangeRequests": [
+                    {
+                      "number": "CHG0000001",
+                      "sysId": "0123456789abcdef0123456789abcdef"
+                    }
+                  ],
                   "snapshotId": "656",
                   "tags": []
                 },
@@ -36214,7 +37223,7 @@
         "x-forward-stability": "unpublished"
       },
       "post": {
-        "description": "note is a required query parameter and must not be blank.",
+        "description": "Commits the staged changes (the user's draft) as a new version. note is REQUIRED and must not be blank (400 otherwise). analysisMode (BEHAVIORAL or CONFIG_ONLY) records the change set's one-time Predict mode choice; it is honoured only when the organization property PREDICT_CONFIG_ONLY is on (default off) and is ignored while it is off. Choosing the mode already recorded is a plain commit; choosing a different mode than the recorded one is 409. A commit that records the choice starts its note with 'Chose behavioral Predict' or 'Chose config-only Predict'. With no draft and an existing head commit the call is a no-op that returns the head commit's metadata. Answers the commit metadata with the committer's id, name and time flattened. Requires MANAGE_CHANGE_SETS on the network and the organization property PREDICT_MODELING (source: ChangeSetController.commitChangeSet, ChangeSetService.commit).",
         "operationId": "commitChangeSet",
         "parameters": [
           {
@@ -36234,10 +37243,24 @@
             }
           },
           {
+            "description": "The commit note. Required; not blank.",
             "in": "query",
             "name": "note",
             "required": true,
             "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Chooses the change set's Predict mode. Honoured only when PREDICT_CONFIG_ONLY is on for the organization.",
+            "in": "query",
+            "name": "analysisMode",
+            "required": false,
+            "schema": {
+              "enum": [
+                "BEHAVIORAL",
+                "CONFIG_ONLY"
+              ],
               "type": "string"
             }
           }
@@ -36249,6 +37272,8 @@
                 "example": {
                   "commitId": "9d2e1c0c8b3a4f5e6d7c8b9a0f1e2d3c4b5a6978",
                   "committedAt": "2026-09-11T10:02:00Z",
+                  "committedBy": "me@example.com",
+                  "committedById": "11",
                   "note": "staged for review"
                 },
                 "schema": {
@@ -36257,6 +37282,12 @@
               }
             },
             "description": "The commit."
+          },
+          "400": {
+            "description": "A missing or blank note."
+          },
+          "409": {
+            "description": "analysisMode differs from the mode the change set already uses."
           }
         },
         "summary": "Commit the staged changes",
@@ -36683,6 +37714,57 @@
         "summary": "Read one device's configuration as a committed version has it",
         "tags": [
           "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/devices/{deviceName}": {
+      "post": {
+        "description": "Removes the device from the change set so that committing it reverts the device to the base snapshot state. Works from the effective state (the user's draft if present, otherwise the head commit) and writes a draft that keeps every other device's changes. 204 with no body. Differs from DELETE .../draft/devices/{deviceName} (discardDraftChanges), which reverts the draft to the last commit. 404 when the change set, or the device within it, has no changes. Requires MANAGE_CHANGE_SETS on the network and the organization property PREDICT_MODELING (source: ChangeSetController.discardAllChanges). Not called live. Not part of Forward's documented API.",
+        "operationId": "discardChangeSetDeviceChanges",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Discarded."
+          },
+          "404": {
+            "description": "The change set does not exist or has no changes for the device."
+          }
+        },
+        "summary": "Discard every change a change set makes to one device",
+        "tags": [
+          "Change Sets"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "discardChanges"
+          ]
         ],
         "x-forward-stability": "unpublished"
       }
@@ -38315,6 +39397,272 @@
         "summary": "The snapshots Predict has produced for a change set",
         "tags": [
           "Change Sets"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/servicenow/change-requests": {
+      "post": {
+        "description": "Creates a change request in ServiceNow from summary, details (optional), impact HIGH, MEDIUM or LOW, priority (optional) CRITICAL, HIGH, MODERATE or LOW, and workNotes (optional), then links it to the change set. Blank text is dropped; a blank summary is an error. Forward checks the change set exists before it creates the ticket, but the ticket is created before it is linked, and there is no route that lists a change set's requests (the summary view lists them by number and sysId), so keep the sysId of the answer. In the answer impact and priority come back in ServiceNow display form such as '2 - Medium', not as the names sent. Changes state in ServiceNow and in Forward. Requires MANAGE_CHANGE_SETS on the network, the organization properties PREDICT_MODELING and SERVICENOW_CHANGE_REQUESTS (default off, not organization-admin configurable) and the deployment's OUTBOUND_CONNECTIONS, plus the ServiceNow integration settings (source: ServiceNowController.createChangeRequest). Never called live. Not part of Forward's documented API.",
+        "operationId": "createChangeSetChangeRequest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceNowNewChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "impact": "2 - Medium",
+                  "number": "CHG0000001",
+                  "priority": "3 - Moderate",
+                  "state": "New",
+                  "summary": "Core uplink change",
+                  "sysId": "0123456789abcdef0123456789abcdef",
+                  "url": "https://example.service-now.com/nav_to.do?uri=/change_request.do?sys_id=0123456789abcdef0123456789abcdef"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceNowChangeRequest"
+                }
+              }
+            },
+            "description": "The change request."
+          },
+          "400": {
+            "description": "A blank summary, a missing or unknown impact, or an unknown priority."
+          },
+          "403": {
+            "description": "Refused without MANAGE_CHANGE_SETS, the organization properties, or outbound connections."
+          },
+          "404": {
+            "description": "The change set does not exist."
+          }
+        },
+        "summary": "Raise a ServiceNow change request for a change set",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/servicenow/change-requests/{sysId}": {
+      "get": {
+        "description": "Reads the change request live from ServiceNow, with its attachments fetched alongside. sysId must be linked to the change set (else 404). Impact and priority are in ServiceNow display form. state is a ServiceNow state label and is absent when ServiceNow sent a value Forward does not know. Requires MANAGE_CHANGE_SETS on the network and the deployment's OUTBOUND_CONNECTIONS only (not the PREDICT_MODELING or SERVICENOW_CHANGE_REQUESTS gates the writes carry) (source: ServiceNowController.getChangeRequest). Never called live. Not part of Forward's documented API.",
+        "operationId": "getChangeSetChangeRequest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The ServiceNow sys_id from createChangeSetChangeRequest.",
+            "in": "path",
+            "name": "sysId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "attachments": [
+                    {
+                      "fileName": "plan.pdf",
+                      "fileSysId": "fedcba9876543210fedcba9876543210"
+                    }
+                  ],
+                  "details": "Rehearsal",
+                  "impact": "2 - Medium",
+                  "number": "CHG0000001",
+                  "priority": "3 - Moderate",
+                  "state": "Assess",
+                  "summary": "Core uplink change",
+                  "sysId": "0123456789abcdef0123456789abcdef",
+                  "url": "https://example.service-now.com/nav_to.do?uri=/change_request.do?sys_id=0123456789abcdef0123456789abcdef"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceNowChangeRequest"
+                }
+              }
+            },
+            "description": "The change request."
+          },
+          "404": {
+            "description": "The change request is not linked to the change set."
+          }
+        },
+        "summary": "A change set's ServiceNow change request, with its attachments",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/servicenow/change-requests/{sysId}/attachments": {
+      "post": {
+        "description": "Uploads one file to the change request in ServiceNow. The body is multipart/form-data with a single part named file. Forward refuses files over 25 MB and file types other than png, jpg, jpeg, pdf, xlsx, docx and csv (400), and shortens a file name past 100 characters instead of refusing it. sysId must be linked to the change set (else 404). 204 with no body. Changes state in ServiceNow. Requires MANAGE_CHANGE_SETS on the network, the organization properties PREDICT_MODELING and SERVICENOW_CHANGE_REQUESTS (default off) and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowController.attachFileToChangeRequest). Never called live. Not part of Forward's documented API.",
+        "operationId": "attachChangeSetChangeRequestFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sysId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "file": {
+                    "description": "The attachment: png, jpg, jpeg, pdf, xlsx, docx or csv, at most 25 MB.",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Attached."
+          },
+          "400": {
+            "description": "Too large, a disallowed file type, or no file part."
+          },
+          "403": {
+            "description": "Refused without the roles, organization properties or outbound connections."
+          },
+          "404": {
+            "description": "The change request is not linked to the change set."
+          }
+        },
+        "summary": "Attach a file to a change set's ServiceNow change request",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/change-sets/{changeSetId}/servicenow/change-requests/{sysId}/attachments/{fileSysId}": {
+      "get": {
+        "description": "Streams the attachment's bytes as application/octet-stream with a Content-Disposition file name. Forward audits the download and sends the headers before the bytes, so a failure mid-stream leaves partial bytes with the error. 404 when sysId is not linked to the change set or fileSysId is not an attachment of it. Requires MANAGE_CHANGE_SETS on the network and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowController.downloadAttachment). Never called live. Not part of Forward's documented API.",
+        "operationId": "downloadChangeSetChangeRequestAttachment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "changeSetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sysId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The attachment's sys_id from getChangeSetChangeRequest.",
+            "in": "path",
+            "name": "fileSysId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {}
+            },
+            "description": "The file bytes."
+          },
+          "404": {
+            "description": "No such linked change request or attachment."
+          }
+        },
+        "summary": "Download an attachment of a change set's ServiceNow change request",
+        "tags": [
+          "Integrations"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -45614,6 +46962,16 @@
                 "bgp-prefix-info"
               ]
             ]
+          },
+          {
+            "operationId": "getDeviceRpPrefixInfo",
+            "summary": "What one device has for a prefix, per VRF and protocol",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "rp-prefix-info"
+              ]
+            ]
           }
         ]
       }
@@ -52756,6 +54114,268 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/rp-prefix-details": {
+      "post": {
+        "description": "Read query, posted as JSON, that returns the route a node holds for a prefix: protocol attributes (shape varies by protocol and vendor) and the policies applied on the way in and out. Each node in the body is {nodeKey, routeSetId}: the opaque nodeKey and the routeSetId of a hop from traceRpPrefix of the same snapshot. node and prefix are required; previousNode and previousPreviousNode give the import policies and nextNode the export policies (from one trace path). A node that does not resolve gets 200 with an error object. Replaces the deprecated bgp-prefix-details (getBgpPrefixDetails). BUILD SUPPORT: absent on stable builds (404); the primary build has the route with the old full-node body. Requires RP_PREFIX_SEARCH on the network and PREDICT_MODELING on the organization (source: PredictController.getRpPrefixDetails). Source-only: not called live. The response shape is the Go SDK's (RPPrefixDetails), not traced in the Java. Not part of Forward's documented API.",
+        "operationId": "getRpPrefixDetails",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot the trace came from.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevRoutingRpPrefixDetailsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "attributes": {
+                    "asPath": [
+                      65002
+                    ],
+                    "localPref": 100,
+                    "protocol": "BGP"
+                  },
+                  "nodeKey": {
+                    "device": "branch-a-rtr1",
+                    "protocol": "BGP",
+                    "vrf": "default"
+                  },
+                  "policies": {
+                    "IMPORT": [
+                      "example-import-policy"
+                    ]
+                  },
+                  "prefix": "192.0.2.0/24"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DevRoutingRpPrefixDetails"
+                }
+              }
+            },
+            "description": "The route at the node. A node that did not resolve comes back as 200 with an error field instead."
+          },
+          "400": {
+            "description": "A missing prefix or node."
+          },
+          "403": {
+            "description": "Refused without RP_PREFIX_SEARCH or PREDICT_MODELING (inferred)."
+          },
+          "404": {
+            "description": "No endpoint: a stable build that lacks the route."
+          },
+          "409": {
+            "description": "The snapshot is still being processed."
+          }
+        },
+        "summary": "Route attributes and policies at one hop of a trace, for any modelled protocol",
+        "tags": [
+          "BGP Prefixes"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/rp-prefix-search": {
+      "post": {
+        "description": "Read query, posted as JSON, that says where a prefix originates (origin) and, for each trace outcome, which nodes have it (devicesByOutcome), across BGP, OSPF, IS_IS, OMP and CONFIG. router and originatedFrom are optional filters, each {device, vrf?, protocol} with protocol REQUIRED (an omitted vrf means the default VRF). outcome is INSTALLED, FILTERED_OUT or NOT_PREFERRED. Replaces the deprecated bgp-prefix-search (searchBgpPrefix), which on master reads the same body. BUILD SUPPORT: stable builds (b1feb6fe1c34) do not serve the route (404 No endpoint); the primary build (5f7e4ec1841) serves it but with the old bodies (routerKey, full nodes) that this operation does not send. Requires RP_PREFIX_SEARCH on the network (only ADMIN holds it) and PREDICT_MODELING on the organization; the snapshot must be past creation (source: PredictController.searchRpPrefix). The response body is compressed protobuf content that Forward serves as JSON; its shape is the Go SDK's, not traced in the Java. Source-only: not called live (a queued backend job). Not part of Forward's documented API.",
+        "operationId": "searchRpPrefix",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to search.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevRoutingRpPrefixSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "devicesByOutcome": {
+                    "INSTALLED": [
+                      {
+                        "device": "branch-a-rtr1",
+                        "protocol": "BGP",
+                        "vrf": "default"
+                      }
+                    ]
+                  },
+                  "origin": [
+                    {
+                      "device": "branch-a-rtr2",
+                      "protocol": "BGP",
+                      "vrf": "default"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DevRoutingPrefixSearchResult"
+                }
+              }
+            },
+            "description": "The origin and the nodes per outcome."
+          },
+          "400": {
+            "description": "A router or origin without a protocol, a bad prefix, or an unknown outcome."
+          },
+          "403": {
+            "description": "Refused without RP_PREFIX_SEARCH or PREDICT_MODELING (inferred from the sibling BGP routes, which returned 403 live on 2026-10-28)."
+          },
+          "404": {
+            "description": "No endpoint: a stable build that lacks the route."
+          },
+          "409": {
+            "description": "The snapshot is still being processed."
+          }
+        },
+        "summary": "Where a prefix originates and which nodes have it, for any modelled protocol",
+        "tags": [
+          "BGP Prefixes"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/rp-prefix-trace": {
+      "post": {
+        "description": "Read query, posted as JSON, that returns the paths a prefix took from its origin to one router, each path a list of hops from origin to router. prefix, router, originatedFrom and outcome are all required; router and originatedFrom are {device, vrf?, protocol} with protocol required. Take them from searchRpPrefix. Each hop carries an opaque nodeKey (its protocol member names the protocol); pass hops to getRpPrefixDetails as {nodeKey, routeSetId}. A prefix with no routing data gives no paths. Replaces the deprecated bgp-prefix-trace (traceBgpPrefix). BUILD SUPPORT: absent on stable builds (404); the primary build has the route with the old bodies. Requires RP_PREFIX_SEARCH on the network and PREDICT_MODELING on the organization (source: PredictController.getRpPrefixTrace). Source-only: not called live. The hop fields beyond nodeKey and routeSetId are the Go SDK's, not traced in the Java. Not part of Forward's documented API.",
+        "operationId": "traceRpPrefix",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to trace.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevRoutingRpPrefixTraceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  [
+                    {
+                      "device": "branch-a-rtr2",
+                      "nodeKey": {
+                        "device": "branch-a-rtr2",
+                        "protocol": "BGP",
+                        "vrf": "default"
+                      },
+                      "protocol": "BGP",
+                      "routeSetId": 1,
+                      "vrf": "default"
+                    },
+                    {
+                      "device": "branch-a-rtr1",
+                      "nodeKey": {
+                        "device": "branch-a-rtr1",
+                        "protocol": "BGP",
+                        "vrf": "default"
+                      },
+                      "protocol": "BGP",
+                      "routeSetId": 2,
+                      "vrf": "default"
+                    }
+                  ]
+                ],
+                "schema": {
+                  "items": {
+                    "items": {
+                      "$ref": "#/components/schemas/DevRoutingNode"
+                    },
+                    "type": "array"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The paths, each a list of hops from origin to router. Empty when the prefix has no routing data."
+          },
+          "400": {
+            "description": "A missing field or a router or origin without a protocol."
+          },
+          "403": {
+            "description": "Refused without RP_PREFIX_SEARCH or PREDICT_MODELING (inferred)."
+          },
+          "404": {
+            "description": "No endpoint: a stable build that lacks the route."
+          },
+          "409": {
+            "description": "The snapshot is still being processed."
+          }
+        },
+        "summary": "Propagation of a prefix from its origin to a router, for any modelled protocol",
+        "tags": [
+          "BGP Prefixes"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/scheduled-discoveries": {
       "get": {
         "description": "Lists the network's scheduled discoveries. Gated by VIEW_COLLECTION_SETTINGS (Java ScheduledDiscoveryController). Live-verified.",
@@ -58862,6 +60482,238 @@
         "tags": [
           "Network Snapshots"
         ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getSnapshotFileExcerpts",
+            "summary": "Read line ranges of one raw file",
+            "x-forward-fixed-query": [
+              [
+                "lines",
+                ""
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "The same answer as getSnapshotFileExcerpts, for a list of ranges too long for a URL. The body is a JSON array of {start, end}, 0-based and inclusive; ranges are sorted for you but must not overlap. Requires VIEW_COLLECTED_FILES on the network (source: StoredFileController.getStoredFileExcerptsByPost). Not part of Forward's documented API. Not called live.",
+        "operationId": "postSnapshotFileExcerpts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "fileName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": [
+                {
+                  "end": 9,
+                  "start": 0
+                }
+              ],
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/SnapLineRange"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "excerpts": [
+                    {
+                      "end": 1,
+                      "lines": [
+                        "hostname branch-a-sw1",
+                        "!"
+                      ],
+                      "start": 0
+                    }
+                  ],
+                  "lineCount": 120
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SnapFileExcerpts"
+                }
+              }
+            },
+            "description": "The excerpts."
+          },
+          "400": {
+            "description": "Ranges overlap, or a range starts past the end of the file."
+          }
+        },
+        "summary": "Read line ranges of one raw file, ranges in the body",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/snapshots/{snapshotId}/files/{fileName}/search": {
+      "get": {
+        "description": "Case-insensitive. Returns the 0-based indexes of matching lines in ascending order; a line with several matches appears once per match. An empty q is a 400. Requires VIEW_COLLECTED_FILES on the network (source: StoredFileController.searchStoredFile). Not part of Forward's documented API. Not called live.",
+        "operationId": "searchSnapshotFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "fileName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  3,
+                  17,
+                  17
+                ],
+                "schema": {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Line indexes."
+          },
+          "400": {
+            "description": "q is empty."
+          }
+        },
+        "summary": "Find the lines of one raw file that contain a string",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/snapshots/{snapshotId}/ientrychecks": {
+      "post": {
+        "description": "Runs checks that an IP entry must (checkType exists) or must not (notexists) be present on a device's IPv4 or IPv6 table in the snapshot's model, and returns one result per check. checkType must be exactly the lower-case string exists or notexists: any other value is silently marked PASS. entryType must be IPv4 or IPv6 (another table type is a 500); a device without that table gives status ERROR with a description. The results are NOT in request order: Forward groups them by device and table, so match each to its check by the check fields the result repeats. entry needs a type member, IP or MPLS (the checker casts to an IP entry, so send IP). A read: it changes nothing. Requires VIEW_NETWORK_AND_SNAPSHOTS and the organization property UNIT_PACKET_TEST; the snapshot must be past creation (source: IEntryCheckController.runChecks). Source-only: not called live. Not part of Forward's documented API.",
+        "operationId": "runIEntryChecks",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/PredictIEntryCheck"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "checkType": "exists",
+                    "description": "",
+                    "deviceName": "branch-a-rtr1",
+                    "entry": {
+                      "actions": [
+                        {
+                          "nextHopIpAddr": "198.51.100.1"
+                        }
+                      ],
+                      "subnetAddress": "192.0.2.0/24",
+                      "type": "IP",
+                      "vrf": "default"
+                    },
+                    "entryType": "IPv4",
+                    "name": "uplink-route-present",
+                    "status": "PASS"
+                  },
+                  {
+                    "checkType": "notexists",
+                    "description": "Mismatch",
+                    "deviceName": "branch-a-rtr1",
+                    "entry": {
+                      "actions": [],
+                      "subnetAddress": "203.0.113.0/24",
+                      "type": "IP",
+                      "vrf": "default"
+                    },
+                    "entryType": "IPv4",
+                    "name": "no-leak",
+                    "status": "FAIL"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PredictIEntryCheckResult"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "One result per check, in no guaranteed order."
+          },
+          "403": {
+            "description": "Refused without VIEW_NETWORK_AND_SNAPSHOTS or the UNIT_PACKET_TEST organization property."
+          }
+        },
+        "summary": "Run unit packet tests against a snapshot's model",
+        "tags": [
+          "Predict Verification"
+        ],
         "x-forward-stability": "unpublished"
       }
     },
@@ -61270,6 +63122,10 @@
     {
       "description": "Routes brought over from the Go SDK; unpublished. See docs/services.md.",
       "name": "Change Set Checks"
+    },
+    {
+      "description": "Routes brought over from the Go SDK; unpublished. See docs/services.md.",
+      "name": "Predict Verification"
     },
     {
       "description": "Routes brought over from the Go SDK; unpublished. See docs/services.md.",

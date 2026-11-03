@@ -19,7 +19,9 @@ client = ForwardClient(
 
 ## From the environment
 
-`ForwardClient.from_env()` reads these, and keyword arguments override them:
+`ForwardClient.from_env()` reads these, and keyword arguments override them. Pass a mapping first to read
+from it instead of `os.environ`, for example after translating your own variable names:
+`ForwardClient.from_env({"FORWARD_URL": ...})`. The underlying `forward_sdk.config.config_from_env` is public.
 
 | Variable | Meaning |
 | --- | --- |

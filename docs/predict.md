@@ -68,6 +68,11 @@ fw.add_security_rule(
 )
 ```
 
+Two more PAN-OS traps, the first from Forward's source and the second observed live by an integration: a
+`DROP` rule predicts as `DENY`, because Forward models every non-allow action as deny; and a rule whose action is
+`RESET_CLIENT`, `RESET_SERVER` or `RESET_CLIENT_AND_SERVER` stages fine but breaks the prediction, which then
+shows an empty rulebase with every flow permitted. Use `DENY` when predicting.
+
 Only scope `LOCAL` with rulebase `PRIMARY` accepts writes; everything else
 Forward returns is read-only and refuses with "Rulebase 'X' in scope 'Y' is not
 editable". The feature is gated on the `FIREWALL_PREDICT` org property. The
@@ -220,6 +225,18 @@ Change sets live in a directory tree, through `client.change_set_directories`.
 A directory path contains slashes and travels percent-encoded in the URL, which
 the SDK does for you. Deleting a directory keeps the change sets inside it
 unless `retain_change_sets` is passed as false.
+
+## Things that look like failures
+
+- A prediction over a stale base can fail with no reason through any route (observed). Reprocess the base
+  snapshot and predict again.
+- `protocol_modeling.list_predict_affected_devices` answered every device with an L3 address (49 of 49 on the one
+  network observed), not only the devices the change touched. Do not read it as the change's blast radius; use the
+  diffs for that.
+- Deleting a change set, several at once, or a directory with `retain_change_sets=False`, also deletes their
+  predicted snapshots.
+- `validate_commands` errors seen live were all `INVALID` with line, columns and expected arguments. PAN-OS
+  answers empty for anything, and EOS flags some real commands, so an empty or negative result is not proof.
 
 ## Cleaning up
 

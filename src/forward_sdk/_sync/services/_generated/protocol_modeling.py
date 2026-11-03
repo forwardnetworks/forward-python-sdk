@@ -22,6 +22,44 @@ __all__ = ["ProtocolModelingService"]
 class ProtocolModelingService(Service):
     """Protocol Modeling."""
 
+    def get_protocol_modeling_path_selection(
+        self,
+        *,
+        snapshot_id: str,
+        prefix: str,
+        device_name: str | None = None,
+        vrf_name: str | None = None,
+    ) -> Any:
+        """The path-selection candidates for a prefix, per protocol.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getProtocolModelingPathSelection"](
+                snapshot_id=snapshot_id, prefix=prefix, device_name=device_name, vrf_name=vrf_name
+            )
+        )
+        return payload
+
+    def get_protocol_modeling_seed_routes(
+        self,
+        *,
+        snapshot_id: str,
+        prefix: str,
+        device_name: str | None = None,
+        vrf_name: str | None = None,
+    ) -> Any:
+        """The seed route sets for a prefix, before propagation.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getProtocolModelingSeedRoutes"](
+                snapshot_id=snapshot_id, prefix=prefix, device_name=device_name, vrf_name=vrf_name
+            )
+        )
+        return payload
+
     def get_protocol_modeling_status(
         self,
         *,
@@ -48,4 +86,30 @@ class ProtocolModelingService(Service):
         payload = self._send_json(
             ops.BUILDERS["listPredictAffectedDevices"](snapshot_id=snapshot_id)
         )
+        return payload
+
+    def retrigger_protocol_modeling(
+        self,
+        *,
+        snapshot_id: str,
+    ) -> Any:
+        """Run protocol modeling again for a snapshot.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["retriggerProtocolModeling"](snapshot_id=snapshot_id)
+        )
+        return payload
+
+    def trigger_protocol_modeling(
+        self,
+        *,
+        snapshot_id: str,
+    ) -> Any:
+        """Start protocol modeling for a snapshot.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["triggerProtocolModeling"](snapshot_id=snapshot_id))
         return payload

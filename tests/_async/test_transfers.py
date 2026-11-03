@@ -334,6 +334,42 @@ class TestCollect:
 
         assert run.snapshot_id == "2"
 
+    async def test_start_false_waits_on_the_collection_already_running(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        self._listings(recorder, self.NEW)
+        recorder.add(
+            "GET",
+            TASKS,
+            json_response(
+                {
+                    "tasks": [
+                        {"id": "OTHER", "networkId": "999", "status": "RUNNING"},
+                        {"id": "T7", "networkId": "101", "status": "RUNNING"},
+                    ]
+                }
+            ),
+        )
+        recorder.add("GET", f"{TASKS}/T7", json_response({"id": "T7", "status": "SUCCEEDED"}))
+        async with make_client(recorder) as client:
+            run = await client.snapshots.collect(start=False)
+
+        assert (run.task_id, run.snapshot_id) == ("T7", "2")
+        assert not [r for r in recorder.requests if r.method == "POST"]
+        listing = next(r for r in recorder.requests if r.url.path == TASKS)
+        assert listing.url.params.get_list("status") == [
+            "QUEUED,RUNNING"
+        ] or listing.url.params.get_list("status") == ["QUEUED", "RUNNING"]
+
+    async def test_start_false_with_nothing_running_raises(self, recorder: Recorder) -> None:
+        recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [self.OLD]}))
+        recorder.add("GET", TASKS, json_response({"tasks": []}))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardExecutionError) as caught:
+                await client.snapshots.collect(start=False)
+
+        assert caught.value.outcome == "NO_COLLECTION"
+
     async def test_without_waiting_it_returns_the_task(self, recorder: Recorder) -> None:
         recorder.add("GET", SNAPSHOTS, json_response({"snapshots": [self.OLD]}))
         recorder.add("POST", TASKS, json_response({"taskId": "T9"}))

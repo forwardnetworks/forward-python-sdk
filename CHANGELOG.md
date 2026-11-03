@@ -5,6 +5,43 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.32] - 2026-11-03
+
+### Fixed
+- The PyPI page's links went nowhere: the README linked to `docs/...` relatively, and the documentation site
+  it named has never been published (GitHub Pages is not enabled). Links now point at the guides on GitHub,
+  and `Documentation` in the package metadata points at the `docs` folder.
+
+### Added
+
+- `client.call(operation_id, **kwargs)` runs any operation by its `operationId` with the generated methods'
+  keywords (`network_id` and `snapshot_id` default from the client); streaming operations are refused.
+- `ForwardClient.from_env(environ)` reads from a mapping instead of `os.environ`; `config_from_env` is documented
+  as public.
+- `snapshots.collect(start=False)` waits on the collection already queued or running on the network instead of
+  starting one, and raises `ForwardExecutionError` (outcome `NO_COLLECTION`) when there is none.
+
+Predict routes brought up to Forward master (`fe0daf63c899`) from the Go SDK v0.8.9; all unpublished and read
+from source, none run live.
+
+- Protocol modeling: `trigger_protocol_modeling`, `retrigger_protocol_modeling`,
+  `get_protocol_modeling_seed_routes`, `get_protocol_modeling_path_selection`.
+- Unit packet tests: `run_i_entry_checks` and `verify_predict_modeling_base` under `client.predict_verification`.
+- ServiceNow change requests for a change set: create, get, attach a file, download an attachment
+  (`client.integrations`).
+- Routing prefix routes with master's new bodies (`search_rp_prefix`, `trace_rp_prefix`,
+  `get_rp_prefix_details`, `get_device_rp_prefix_info`). The older `*_bgp_prefix*` operations keep the primary
+  build's bodies; stable builds have neither.
+- `handle.commit(note, analysis_mode=...)` (`BEHAVIORAL` or `CONFIG_ONLY`, honoured only with
+  `PREDICT_CONFIG_ONLY` on) and `handle.discard_device_changes(device)`, which drops every change the change set
+  makes to a device (unlike `discard_device`, which reverts the draft to the last commit).
+- Raw snapshot files: `snapshots.file_excerpts(snapshot_id, "<device>,<file>", ranges)` reads line ranges
+  without fetching the file (more than 20 ranges go in the body) and `snapshots.search_file(...)` finds the
+  lines containing a string. `predictedFileInfo` is present only on a predicted snapshot with `PREDICT_MODELING` on.
+- Models: `analysisMode` on change sets, a typed `commandError`, rule schedule, URL, address and user
+  specifications, and `SecurityObjectId.objectId`. `PREDICT_DIFF_INSIGHT_ENHANCEMENTS` is retired on master and
+  still gates the bidirectional diffs on pinned builds.
+
 ## [0.1.31] - 2026-11-02
 
 ### Added

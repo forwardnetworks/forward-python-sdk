@@ -80,6 +80,9 @@ from forward_sdk._sync.services._generated.performance_metrics import (
 )
 from forward_sdk._sync.services._generated.predict_assist import PredictAssistService
 from forward_sdk._sync.services._generated.predict_reference import PredictReferenceService
+from forward_sdk._sync.services._generated.predict_verification import (
+    PredictVerificationService,
+)
 from forward_sdk._sync.services._generated.protocol_modeling import ProtocolModelingService
 from forward_sdk._sync.services._generated.resource_pools import ResourcePoolsService
 from forward_sdk._sync.services._generated.saml import SAMLService
@@ -171,6 +174,7 @@ __all__ = [
     "PerformanceMetricsService",
     "PredictAssistService",
     "PredictReferenceService",
+    "PredictVerificationService",
     "ProtocolModelingService",
     "ResourcePoolsService",
     "SAMLService",
@@ -256,6 +260,7 @@ class GeneratedServices:
     performance_metrics: PerformanceMetricsService
     predict_assist: PredictAssistService
     predict_reference: PredictReferenceService
+    predict_verification: PredictVerificationService
     protocol_modeling: ProtocolModelingService
     resource_pools: ResourcePoolsService
     saml: SAMLService
@@ -333,6 +338,7 @@ class GeneratedServices:
         self.performance_metrics = PerformanceMetricsService(transport)
         self.predict_assist = PredictAssistService(transport)
         self.predict_reference = PredictReferenceService(transport)
+        self.predict_verification = PredictVerificationService(transport)
         self.protocol_modeling = ProtocolModelingService(transport)
         self.resource_pools = ResourcePoolsService(transport)
         self.saml = SAMLService(transport)
@@ -412,6 +418,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Performance Metrics": "performance_metrics",
     "Predict Assist": "predict_assist",
     "Predict Reference": "predict_reference",
+    "Predict Verification": "predict_verification",
     "Protocol Modeling": "protocol_modeling",
     "Resource Pools": "resource_pools",
     "SAML": "saml",

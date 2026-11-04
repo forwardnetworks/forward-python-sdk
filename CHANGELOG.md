@@ -5,12 +5,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.35] - 2026-11-05
+
 ### Added
 - `snapshots.file_info(snapshot_id, file_name)`: a raw file's id, name, creation time and size without its
   content, and `snapshots.file_access(network_id=None, snapshot_id=None)`: which devices' collected files the
   caller may read (`BLOCK` with no devices is full access). Both checked live.
 - The documentation site is published to GitHub Pages from `main`
-  (<https://forwardnetworks.github.io/forward-python-sdk/>).
+  (<https://forwardnetworks.github.io/forward-python-sdk/>), and the README and package metadata link to it again.
 
 ### Changed
 - Development tools: pytest 9.2, ruff 0.17, mypy 2.4. `pymdown-extensions` is held below 12, which breaks

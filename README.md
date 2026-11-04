@@ -59,14 +59,14 @@ and a documented hint about what gates that operation.
 
 ## Documentation
 
-The guides live in the repository's [docs folder](https://github.com/forwardnetworks/forward-python-sdk/tree/main/docs).
+<https://forwardnetworks.github.io/forward-python-sdk/>
 
-- [Quickstart](https://github.com/forwardnetworks/forward-python-sdk/blob/main/docs/quickstart.md)
-- [Configuration](https://github.com/forwardnetworks/forward-python-sdk/blob/main/docs/configuration.md)
-- [NQE guide](https://github.com/forwardnetworks/forward-python-sdk/blob/main/docs/nqe/index.md)
-- [Availability and gating](https://github.com/forwardnetworks/forward-python-sdk/blob/main/docs/gating.md)
-- [Migrating from the NetBox plugin](https://github.com/forwardnetworks/forward-python-sdk/blob/main/docs/migration/netbox.md) or
-  [the Nautobot plugin](https://github.com/forwardnetworks/forward-python-sdk/blob/main/docs/migration/nautobot.md)
+- [Quickstart](https://forwardnetworks.github.io/forward-python-sdk/quickstart/)
+- [Configuration](https://forwardnetworks.github.io/forward-python-sdk/configuration/)
+- [NQE guide](https://forwardnetworks.github.io/forward-python-sdk/nqe/)
+- [Availability and gating](https://forwardnetworks.github.io/forward-python-sdk/gating/)
+- [Migrating from the NetBox plugin](https://forwardnetworks.github.io/forward-python-sdk/migration/netbox/) or
+  [the Nautobot plugin](https://forwardnetworks.github.io/forward-python-sdk/migration/nautobot/)
 
 ## Requirements
 

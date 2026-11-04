@@ -86,6 +86,7 @@ from forward_sdk._sync.services._generated.predict_verification import (
 from forward_sdk._sync.services._generated.protocol_modeling import ProtocolModelingService
 from forward_sdk._sync.services._generated.resource_pools import ResourcePoolsService
 from forward_sdk._sync.services._generated.saml import SAMLService
+from forward_sdk._sync.services._generated.sase import SASEService
 from forward_sdk._sync.services._generated.scorecards import ScorecardsService
 from forward_sdk._sync.services._generated.security_matrix import SecurityMatrixService
 from forward_sdk._sync.services._generated.security_matrix_filters import (
@@ -178,6 +179,7 @@ __all__ = [
     "ProtocolModelingService",
     "ResourcePoolsService",
     "SAMLService",
+    "SASEService",
     "SNMPCredentialsService",
     "ScorecardsService",
     "SecurityMatrixFiltersService",
@@ -264,6 +266,7 @@ class GeneratedServices:
     protocol_modeling: ProtocolModelingService
     resource_pools: ResourcePoolsService
     saml: SAMLService
+    sase: SASEService
     snmp_credentials: SNMPCredentialsService
     scorecards: ScorecardsService
     security_matrix: SecurityMatrixService
@@ -342,6 +345,7 @@ class GeneratedServices:
         self.protocol_modeling = ProtocolModelingService(transport)
         self.resource_pools = ResourcePoolsService(transport)
         self.saml = SAMLService(transport)
+        self.sase = SASEService(transport)
         self.snmp_credentials = SNMPCredentialsService(transport)
         self.scorecards = ScorecardsService(transport)
         self.security_matrix = SecurityMatrixService(transport)
@@ -422,6 +426,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Protocol Modeling": "protocol_modeling",
     "Resource Pools": "resource_pools",
     "SAML": "saml",
+    "SASE": "sase",
     "SNMP Credentials": "snmp_credentials",
     "Scorecards": "scorecards",
     "Security Matrix": "security_matrix",

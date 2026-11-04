@@ -5,6 +5,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.34] - 2026-11-04
+
+### Added
+
+From the Go SDK v0.8.11 to v0.8.13; unpublished, read from Forward master, none run live except empty reads.
+
+- `client.sase`: Zscaler SASE setups under `/networks/{id}/sase-setups` (list, get, create, patch, delete, newly
+  discovered connectors, and the four connectivity tests). The test calls return 204 once queued; poll
+  `get_sase_setup` until `testResult.savedAt` moves. Create saves first and then tests, so it answers 400 with no
+  online collector even though the setup exists.
+- `client.configuration`: `get_global_config_property_org_overrides` (every org's override of one property;
+  Forward support), `get_network_config_property_overrides` and `patch_network_config_property_overrides`
+  (a JSON `null` removes a network's override).
+
 ## [0.1.33] - 2026-11-04
 
 ### Fixed

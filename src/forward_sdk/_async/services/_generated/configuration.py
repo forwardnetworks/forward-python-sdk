@@ -94,6 +94,20 @@ class AsyncConfigurationService(AsyncService):
         payload = await self._send_json(ops.BUILDERS["getDeploymentConfigValue"](property=property))
         return models.ConfigValue.model_validate(payload or {})
 
+    async def get_global_config_property_org_overrides(
+        self,
+        *,
+        property: str,
+    ) -> models.ConfigOrgOverrides:
+        """Every org's override of one property.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["getGlobalConfigPropertyOrgOverrides"](property=property)
+        )
+        return models.ConfigOrgOverrides.model_validate(payload or {})
+
     async def get_global_config_value(
         self,
         *,
@@ -117,6 +131,20 @@ class AsyncConfigurationService(AsyncService):
         """
         payload = await self._send_json(ops.BUILDERS["getGlobalConfigValues"](filter=filter))
         return models.ConfigValues.model_validate(payload or {})
+
+    async def get_network_config_property_overrides(
+        self,
+        *,
+        property: str,
+    ) -> models.ConfigNetworkOverrides:
+        """Per-network overrides of one network-scoped property.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["getNetworkConfigPropertyOverrides"](property=property)
+        )
+        return models.ConfigNetworkOverrides.model_validate(payload or {})
 
     async def get_org_config_value(
         self,
@@ -171,6 +199,21 @@ class AsyncConfigurationService(AsyncService):
             ops.BUILDERS["getOrgScopedConfigValues"](org_id=org_id, filter=filter)
         )
         return models.ConfigValues.model_validate(payload or {})
+
+    async def patch_network_config_property_overrides(
+        self,
+        *,
+        property: str,
+        body: Any,
+    ) -> Any:
+        """Set or clear one property's override on several networks at once.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["patchNetworkConfigPropertyOverrides"](property=property, body=body)
+        )
+        return payload
 
     async def set_deployment_config_value(
         self,

@@ -83,6 +83,7 @@ from forward_sdk._async.services._generated.predict_verification import (
 from forward_sdk._async.services._generated.protocol_modeling import AsyncProtocolModelingService
 from forward_sdk._async.services._generated.resource_pools import AsyncResourcePoolsService
 from forward_sdk._async.services._generated.saml import AsyncSAMLService
+from forward_sdk._async.services._generated.sase import AsyncSASEService
 from forward_sdk._async.services._generated.scorecards import AsyncScorecardsService
 from forward_sdk._async.services._generated.security_matrix import AsyncSecurityMatrixService
 from forward_sdk._async.services._generated.security_matrix_filters import (
@@ -175,6 +176,7 @@ __all__ = [
     "AsyncProtocolModelingService",
     "AsyncResourcePoolsService",
     "AsyncSAMLService",
+    "AsyncSASEService",
     "AsyncSNMPCredentialsService",
     "AsyncScorecardsService",
     "AsyncSecurityMatrixFiltersService",
@@ -261,6 +263,7 @@ class AsyncGeneratedServices:
     protocol_modeling: AsyncProtocolModelingService
     resource_pools: AsyncResourcePoolsService
     saml: AsyncSAMLService
+    sase: AsyncSASEService
     snmp_credentials: AsyncSNMPCredentialsService
     scorecards: AsyncScorecardsService
     security_matrix: AsyncSecurityMatrixService
@@ -339,6 +342,7 @@ class AsyncGeneratedServices:
         self.protocol_modeling = AsyncProtocolModelingService(transport)
         self.resource_pools = AsyncResourcePoolsService(transport)
         self.saml = AsyncSAMLService(transport)
+        self.sase = AsyncSASEService(transport)
         self.snmp_credentials = AsyncSNMPCredentialsService(transport)
         self.scorecards = AsyncScorecardsService(transport)
         self.security_matrix = AsyncSecurityMatrixService(transport)
@@ -419,6 +423,7 @@ SERVICE_TAGS: dict[str, str] = {
     "Protocol Modeling": "protocol_modeling",
     "Resource Pools": "resource_pools",
     "SAML": "saml",
+    "SASE": "sase",
     "SNMP Credentials": "snmp_credentials",
     "Scorecards": "scorecards",
     "Security Matrix": "security_matrix",

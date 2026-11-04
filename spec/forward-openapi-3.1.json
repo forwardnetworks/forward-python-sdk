@@ -5175,6 +5175,18 @@
         ],
         "type": "string"
       },
+      "ConfigNetworkOverrides": {
+        "additionalProperties": {
+          "nullable": true
+        },
+        "description": "Network id to a property value. In a PATCH body a null value deletes that network's override.",
+        "type": "object"
+      },
+      "ConfigOrgOverrides": {
+        "additionalProperties": true,
+        "description": "Org id to the value that org overrides a property with. Value type depends on the property.",
+        "type": "object"
+      },
       "ConfigValue": {
         "additionalProperties": true,
         "description": "A single property and its value, keyed by the property name in lower case. Read it with `forward_sdk.config_value`, which returns the value whatever the key.",
@@ -18867,6 +18879,322 @@
         ],
         "type": "object"
       },
+      "SaseAppConnectorSetup": {
+        "description": "One App Connector inside a setup. Source: AppConnectorSetup.",
+        "properties": {
+          "collect": {
+            "description": "Absent reads as true; false parks the connector.",
+            "type": "boolean"
+          },
+          "collectionType": {
+            "description": "SSH or MANUAL (MANUAL connectors are assumed reachable, are not probed and lose their port).",
+            "type": "string"
+          },
+          "connectorId": {
+            "description": "ZPA's id for the connector.",
+            "type": "string"
+          },
+          "credentialId": {
+            "description": "CLI credential id (SSH).",
+            "type": "string"
+          },
+          "host": {
+            "description": "Hostname or IP.",
+            "type": "string"
+          },
+          "jumpServerId": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "name": {
+            "description": "Becomes the device name; lower-cased by Forward.",
+            "type": "string"
+          },
+          "port": {
+            "description": "1-65535; required for SSH.",
+            "type": "integer"
+          },
+          "testResult": {
+            "$ref": "#/components/schemas/SaseConnectivityResult"
+          }
+        },
+        "required": [
+          "connectorId",
+          "name",
+          "host",
+          "collectionType"
+        ],
+        "type": "object"
+      },
+      "SaseAttribution": {
+        "description": "Who created or last changed a setup. Every field may be absent; names are absent when the user was deleted.",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "updatedById": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SaseConnectivityResult": {
+        "description": "Outcome of the latest test of a setup or one App Connector. error is a Forward ConnectivityTestError enum name (for example AUTHENTICATION_FAILED, PING_FAILED), absent on success.",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SaseConnectivityTestRequest": {
+        "description": "Body of the unsaved-setup tenant probe. Source: ZscalerConnectivityTestRequest.",
+        "properties": {
+          "baseUrl": {
+            "type": "string"
+          },
+          "collectorId": {
+            "description": "Collector to probe from, written C<n>.",
+            "type": "string"
+          },
+          "httpCredId": {
+            "type": "string"
+          },
+          "id": {
+            "description": "Device name the probe runs under.",
+            "type": "string"
+          },
+          "scimConfigs": {
+            "items": {
+              "$ref": "#/components/schemas/SaseScimConfig"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "baseUrl"
+        ],
+        "type": "object"
+      },
+      "SaseDiscoveredAppConnector": {
+        "description": "A connector the Zscaler API reported. latitude and longitude are both set or both absent.",
+        "properties": {
+          "connectorId": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "locationName": {
+            "type": "string"
+          },
+          "longitude": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SaseNewlyDiscoveredConnector": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SaseDiscoveredAppConnector"
+          },
+          {
+            "properties": {
+              "setupName": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "A discovered connector plus the setup it was found under."
+      },
+      "SaseNewlyDiscoveredList": {
+        "properties": {
+          "discoveredAppConnectors": {
+            "items": {
+              "$ref": "#/components/schemas/SaseNewlyDiscoveredConnector"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "SaseScimConfig": {
+        "description": "A SCIM endpoint whose users and groups Forward reads. Source: ScimConfig.",
+        "properties": {
+          "httpCredId": {
+            "description": "Id of an HTTP credential of type API_KEY; others are refused.",
+            "type": "string"
+          },
+          "url": {
+            "description": "Absolute http(s) URL shaped like .../scim/<cloudId>/<idpId>/v<N>.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "httpCredId"
+        ],
+        "type": "object"
+      },
+      "SaseSetupList": {
+        "properties": {
+          "setups": {
+            "items": {
+              "$ref": "#/components/schemas/SaseZscalerSetup"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "SaseZscalerSetup": {
+        "description": "A Zscaler SASE setup as sent to create and read back. testResult and attribution are read-only (cleared on create). Source: ZscalerSetup.",
+        "properties": {
+          "appConnectorSetups": {
+            "items": {
+              "$ref": "#/components/schemas/SaseAppConnectorSetup"
+            },
+            "type": "array"
+          },
+          "attribution": {
+            "$ref": "#/components/schemas/SaseAttribution"
+          },
+          "baseUrl": {
+            "description": "Absolute http or https ZPA API base; only its host is kept.",
+            "type": "string"
+          },
+          "collect": {
+            "description": "Absent participates in collections; false parks the setup.",
+            "type": "boolean"
+          },
+          "collectorId": {
+            "description": "Preferred collector, written by Forward as C<n>. Absent means the network's default.",
+            "type": "string"
+          },
+          "httpCredId": {
+            "description": "HTTP credential for ZPA signin, type LOGIN (client id as username, client secret as password).",
+            "type": "string"
+          },
+          "name": {
+            "description": "Lower-cased by Forward.",
+            "type": "string"
+          },
+          "scimConfigs": {
+            "items": {
+              "$ref": "#/components/schemas/SaseScimConfig"
+            },
+            "type": "array"
+          },
+          "testResult": {
+            "$ref": "#/components/schemas/SaseZscalerTestResult"
+          },
+          "type": {
+            "description": "Always ZSCALER (the only SASE type).",
+            "enum": [
+              "ZSCALER"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "baseUrl"
+        ],
+        "type": "object"
+      },
+      "SaseZscalerSetupPatch": {
+        "description": "Patch body. Absent keys are left alone; the lists replace the whole list. type is the polymorphic discriminator and should be sent as ZSCALER. A JSON null on httpCredId, collectorId or collect is read as clear (per the Go SDK, not traced in Java). Source: ZscalerSetupPatch.",
+        "properties": {
+          "appConnectorSetups": {
+            "items": {
+              "$ref": "#/components/schemas/SaseAppConnectorSetup"
+            },
+            "type": "array"
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "collect": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "collectorId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "httpCredId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "A different name (ignoring case) renames the setup.",
+            "type": "string"
+          },
+          "scimConfigs": {
+            "items": {
+              "$ref": "#/components/schemas/SaseScimConfig"
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "ZSCALER"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SaseZscalerTestResult": {
+        "description": "Latest tenant-level test. discoveredConnectors is present only when the test succeeded and found any.",
+        "properties": {
+          "discoveredConnectors": {
+            "items": {
+              "$ref": "#/components/schemas/SaseDiscoveredAppConnector"
+            },
+            "type": "array"
+          },
+          "error": {
+            "description": "ConnectivityTestError enum name, absent on success.",
+            "type": "string"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "ScopedAddressGroup": {
         "description": "description repeats name on the wire; Forward populates it from the name.",
         "properties": {
@@ -29942,6 +30270,88 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/config/{property}/overrides": {
+      "get": {
+        "description": "Returns a map of network id to the value that network overrides the property with, limited to the calling user's org and to networks the user holds EDIT_NETWORK_SETTINGS on. Needs only a signed-in user (source: ConfigController.getNetworkPropertyOverrides, @RequiresUser). The property must be a NetworkProperty (DISABLE_FLOW_COMPUTATION, ALERT_NEW_DEVICE_FAILURE_PERCENTAGE or ADVANCED_REACHABILITY_ANALYSIS); other names are not traced beyond that. Live GET returned an empty object. Not part of Forward's documented API.",
+        "operationId": "getNetworkConfigPropertyOverrides",
+        "parameters": [
+          {
+            "description": "A NetworkProperty name; the controller resolves it case-insensitively (not verified live for lower case).",
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "11": true
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigNetworkOverrides"
+                }
+              }
+            },
+            "description": "Network id to the overriding value (type depends on the property)."
+          }
+        },
+        "summary": "Per-network overrides of one network-scoped property",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Body is a map of network id to value. A non-null value sets that network's override (validated for the property, after which change listeners run); a JSON null deletes the override so the network falls back to the org value. Every network id must belong to the caller's org (else 400 Network(s) not found in org: [...]) and the caller needs EDIT_NETWORK_SETTINGS on each (else 403 No EDIT_NETWORK_SETTINGS permission for network(s): [...]); nothing is applied if any check fails. The writes are not atomic: sets are stored first and deletes after, so a failure in between keeps the sets. A value of the wrong type may come back as 500 rather than 400, because the parse throws IllegalArgumentException (from reading the code, not a live run; reported by the Go SDK). An invalid value otherwise answers 400 (not traced which validator). Needs only a signed-in user otherwise (source: ConfigController.patchNetworkPropertyOverrides, ConfigServiceImpl.patchNetworkConfigOverrides). Writes; source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "patchNetworkConfigPropertyOverrides",
+        "parameters": [
+          {
+            "description": "A NetworkProperty name.",
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "11": true,
+                "12": null
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ConfigNetworkOverrides"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Applied. No body."
+          },
+          "400": {
+            "description": "Unknown network id for the org, or invalid value."
+          },
+          "403": {
+            "description": "Missing EDIT_NETWORK_SETTINGS on a listed network."
+          }
+        },
+        "summary": "Set or clear one property's override on several networks at once",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/critical-states": {
       "get": {
         "description": "Any signed-in user (@RequiresUser). Only the states that apply to this deployment appear as keys. A value of false means the state is not active.",
@@ -33541,10 +33951,11 @@
         "x-forward-stability": "unpublished"
       },
       "get": {
-        "description": "The fixed default only. This never reflects an org's override, so it keeps reporting the default after an org value has been set. That is correct behaviour and easily mistaken for a failed write.",
-        "operationId": "getGlobalConfigValue",
+        "description": "Returns a map of org id to the value that org overrides the property with; orgs without an override are absent. A Forward administrator sees all orgs, a Forward support account only the orgs it supports. Requires Forward support access (source: ConfigController.getConfigPropertyOverrides, @RequiresForwardSupport); an ordinary account answers 403 Forward support authority required (confirmed live). Not part of Forward's documented API. Source-only for the response shape.",
+        "operationId": "getGlobalConfigPropertyOrgOverrides",
         "parameters": [
           {
+            "description": "An OrgProperty name, upper snake case.",
             "in": "path",
             "name": "property",
             "required": true,
@@ -33558,19 +33969,36 @@
             "content": {
               "application/json": {
                 "example": {
-                  "firewall_predict": false
+                  "101": true,
+                  "102": false
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/ConfigValue"
+                  "$ref": "#/components/schemas/ConfigOrgOverrides"
                 }
               }
             },
-            "description": "The property and its global default."
+            "description": "Org id to the overriding value (type depends on the property)."
+          },
+          "403": {
+            "description": "Forward support authority required."
           }
         },
-        "summary": "An org property's global default",
+        "summary": "Every org's override of one property",
         "tags": [
           "Configuration"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "overrides"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getGlobalConfigValue",
+            "summary": "An org property's global default",
+            "x-forward-fixed-query": []
+          }
         ],
         "x-forward-stability": "unpublished"
       },
@@ -54378,6 +54806,448 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/sase-setups": {
+      "get": {
+        "description": "Each entry is a discovered App Connector plus the name of the setup it was found under (setupName, flattened beside the connector fields). Empty list when nothing is new. Requires VIEW_COLLECTION_SOURCES on the network (source: SaseSetupController.getNewlyDiscoveredAppConnectors). Live GET on a network with no SASE setups returned an empty list; the populated shape is from source and the Go SDK. Not part of Forward's documented API.",
+        "operationId": "listNewlyDiscoveredSaseAppConnectors",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "discoveredAppConnectors": [
+                    {
+                      "connectorId": "1001",
+                      "host": "192.0.2.20",
+                      "latitude": 51.5,
+                      "locationName": "Branch A",
+                      "longitude": -0.12,
+                      "name": "branch-a-connector",
+                      "setupName": "zpa-prod"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SaseNewlyDiscoveredList"
+                }
+              }
+            },
+            "description": "The newly discovered connectors."
+          }
+        },
+        "summary": "App Connectors the Zscaler API reported that no setup lists yet",
+        "tags": [
+          "SASE"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "newlyDiscovered"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "listSaseSetups",
+            "summary": "List the network's SASE setups",
+            "x-forward-fixed-query": []
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Queues a tenant probe on a collector and answers 204 at once. The result is not stored or returned over REST (Forward reports it only as a server-sent event), so 204 means the probe was queued, not that the tenant works; Create the setup and read testResult to learn that. Answers 400 for an invalid body or when no collector is online or supported. Requires TEST_COLLECTION_SOURCES on the network (source: SaseSetupController.testConnectivity). Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "testSaseConnectivity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "baseUrl": "https://config.private.zscaler.example",
+                "collectorId": "C1",
+                "httpCredId": "H-1",
+                "id": "zpa-prod"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SaseConnectivityTestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The probe was queued. No body."
+          },
+          "400": {
+            "description": "Invalid body, or no online or supported collector."
+          }
+        },
+        "summary": "Probe a Zscaler tenant before saving a setup",
+        "tags": [
+          "SASE"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "test"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "createSaseSetup",
+            "summary": "Create a Zscaler SASE setup",
+            "x-forward-fixed-query": []
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/sase-setups/{name}": {
+      "delete": {
+        "description": "Removes the setup and its connectors from collection. Answers 404 with a message when the network has no setup of that name; callers that want idempotent deletes may treat that 404 as success, but not a 404 meaning the deployment serves no such route (a No endpoint 404). Requires DELETE_COLLECTION_SOURCES on the network (source: SaseSetupController.deleteSetup). Deletes; source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "deleteSaseSetup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted. No body."
+          },
+          "404": {
+            "description": "Network has no SASE setup of that name."
+          }
+        },
+        "summary": "Delete a SASE setup",
+        "tags": [
+          "SASE"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "Returns the setup including its latest testResult, the per-connector testResults and attribution. Poll this after a test call until testResult.savedAt moves. testResult.error is a Forward ConnectivityTestError enum name such as AUTHENTICATION_FAILED or PING_FAILED, absent on success. Requires VIEW_COLLECTION_SOURCES on the network (source: SaseSetupController.getSetup). Not part of Forward's documented API. Source and Go SDK only for the populated shape; live GET of the list route returned no setups.",
+        "operationId": "getSaseSetup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "appConnectorSetups": [
+                    {
+                      "collect": true,
+                      "collectionType": "SSH",
+                      "connectorId": "1001",
+                      "credentialId": "L-1",
+                      "host": "192.0.2.20",
+                      "name": "branch-a-connector",
+                      "port": 22,
+                      "testResult": {
+                        "error": "PING_FAILED",
+                        "savedAt": "2026-01-01T00:00:00Z"
+                      }
+                    }
+                  ],
+                  "attribution": {
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "createdBy": "me@example.com",
+                    "createdById": "7"
+                  },
+                  "baseUrl": "https://config.private.zscaler.example",
+                  "collectorId": "C1",
+                  "httpCredId": "H-1",
+                  "name": "zpa-prod",
+                  "testResult": {
+                    "discoveredConnectors": [
+                      {
+                        "connectorId": "1001",
+                        "host": "192.0.2.20",
+                        "name": "branch-a-connector"
+                      }
+                    ],
+                    "savedAt": "2026-01-01T00:00:00Z"
+                  },
+                  "type": "ZSCALER"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SaseZscalerSetup"
+                }
+              }
+            },
+            "description": "The setup."
+          },
+          "404": {
+            "description": "No such setup."
+          }
+        },
+        "summary": "Get one SASE setup",
+        "tags": [
+          "SASE"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Absent fields are left alone; the JSON null Forward reads as clear (httpCredId, collectorId, collect) is per the Go SDK. appConnectorSetups and scimConfigs replace the whole list, and each connector's testResult is stored as sent, so round-trip the connectors from Get or the saved results are lost. A name that differs from the path name (ignoring case) renames the setup by replacing it under the new name. Body validation errors answer 400. Returns the updated setup. Requires MANAGE_COLLECTION_SOURCES on the network (source: SaseSetupController.updateSetup). Writes; source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "patchSaseSetup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "collect": false,
+                "type": "ZSCALER"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SaseZscalerSetupPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "appConnectorSetups": [],
+                  "baseUrl": "https://config.private.zscaler.example",
+                  "collect": false,
+                  "name": "zpa-prod",
+                  "type": "ZSCALER"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SaseZscalerSetup"
+                }
+              }
+            },
+            "description": "The updated setup."
+          },
+          "400": {
+            "description": "Invalid patch."
+          },
+          "404": {
+            "description": "No such setup."
+          }
+        },
+        "summary": "Change a SASE setup",
+        "tags": [
+          "SASE"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Queues a tenant test on the collector and answers 204 at once; the collector saves the outcome onto the setup later, so poll Get until testResult.savedAt moves. 400 when no collector is online or the setup is not a Zscaler setup. Requires TEST_COLLECTION_SOURCES on the network (source: SaseSetupController.testExistingSetup). Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "testSaseSetup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The test was queued. No body."
+          },
+          "400": {
+            "description": "No online collector, or not a Zscaler setup."
+          },
+          "404": {
+            "description": "No such setup."
+          }
+        },
+        "summary": "Re-test a saved setup's Zscaler tenant",
+        "tags": [
+          "SASE"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "test"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/sase-setups/{name}/connectors": {
+      "post": {
+        "description": "Queues a test of each SSH connector and answers 204 at once; each outcome lands later on that connector's testResult. Requires TEST_COLLECTION_SOURCES on the network (source: SaseSetupController.testAllConnectors). Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "testSaseSetupConnectors",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The tests were queued. No body."
+          },
+          "400": {
+            "description": "No online collector, or not a Zscaler setup."
+          },
+          "404": {
+            "description": "No such setup."
+          }
+        },
+        "summary": "Test every SSH App Connector of a saved setup",
+        "tags": [
+          "SASE"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "test"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/sase-setups/{name}/connectors/{connectorId}": {
+      "post": {
+        "description": "Queues a test of one connector and answers 204 at once; the outcome lands later on its testResult. 404 for an unknown connectorId; 400 when the connector is not collected over SSH (a MANUAL connector cannot be tested). Requires TEST_COLLECTION_SOURCES on the network (source: SaseSetupController.testSingleConnector). Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "testSaseSetupConnector",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "ZPA's id for the connector, as in appConnectorSetups[].connectorId.",
+            "in": "path",
+            "name": "connectorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The test was queued. No body."
+          },
+          "400": {
+            "description": "Not an SSH connector, no online collector, or not a Zscaler setup."
+          },
+          "404": {
+            "description": "No such setup or connector."
+          }
+        },
+        "summary": "Test one App Connector of a saved setup",
+        "tags": [
+          "SASE"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "test"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/scheduled-discoveries": {
       "get": {
         "description": "Lists the network's scheduled discoveries. Gated by VIEW_COLLECTION_SETTINGS (Java ScheduledDiscoveryController). Live-verified.",
@@ -63116,6 +63986,10 @@
       "name": "System Administration",
       "x-parent": "Platform Management",
       "x-summary": "System Administration"
+    },
+    {
+      "description": "Zscaler SASE collection setups, their App Connectors and connectivity tests; unpublished.",
+      "name": "SASE"
     },
     {
       "description": "Routes brought over from the Go SDK; unpublished. See docs/services.md.",

@@ -31,6 +31,8 @@ info:
 servers:
   - url: /api
 tags:
+  - name: SASE
+    description: Zscaler SASE collection setups, their App Connectors and connectivity tests; unpublished.
   - name: Predict Reference
     description: Routes brought over from the Go SDK; unpublished. See docs/services.md.
   - name: Change Set Checks
@@ -1118,6 +1120,62 @@ paths:
         - { name: property, in: path, required: true, schema: { type: string } }
       responses:
         "204": { description: Cleared. }
+
+  /global-config/{property}?view=overrides:
+    get:
+      operationId: getGlobalConfigPropertyOrgOverrides
+      summary: Every org's override of one property
+      description: "Returns a map of org id to the value that org overrides the property with; orgs without an override are absent. A Forward administrator sees all orgs, a Forward support account only the orgs it supports. Requires Forward support access (source: ConfigController.getConfigPropertyOverrides, @RequiresForwardSupport); an ordinary account answers 403 Forward support authority required (confirmed live). Not part of Forward's documented API. Source-only for the response shape."
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: property, in: path, required: true, schema: { type: string }, description: "An OrgProperty name, upper snake case." }
+      responses:
+        "200":
+          description: Org id to the overriding value (type depends on the property).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigOrgOverrides" }
+              # synthetic fixture shaped like the Map<OrgId, Object> getConfigPropertyOverrides returns
+              example: { "101": true, "102": false }
+        "403": { description: Forward support authority required. }
+
+  /config/{property}/overrides:
+    get:
+      operationId: getNetworkConfigPropertyOverrides
+      summary: Per-network overrides of one network-scoped property
+      description: "Returns a map of network id to the value that network overrides the property with, limited to the calling user's org and to networks the user holds EDIT_NETWORK_SETTINGS on. Needs only a signed-in user (source: ConfigController.getNetworkPropertyOverrides, @RequiresUser). The property must be a NetworkProperty (DISABLE_FLOW_COMPUTATION, ALERT_NEW_DEVICE_FAILURE_PERCENTAGE or ADVANCED_REACHABILITY_ANALYSIS); other names are not traced beyond that. Live GET returned an empty object. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: property, in: path, required: true, schema: { type: string }, description: "A NetworkProperty name; the controller resolves it case-insensitively (not verified live for lower case)." }
+      responses:
+        "200":
+          description: Network id to the overriding value (type depends on the property).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigNetworkOverrides" }
+              # synthetic fixture shaped like the Map<NetworkId, Object> getNetworkPropertyOverrides returns
+              example: { "11": true }
+    patch:
+      operationId: patchNetworkConfigPropertyOverrides
+      summary: Set or clear one property's override on several networks at once
+      description: "Body is a map of network id to value. A non-null value sets that network's override (validated for the property, after which change listeners run); a JSON null deletes the override so the network falls back to the org value. Every network id must belong to the caller's org (else 400 Network(s) not found in org: [...]) and the caller needs EDIT_NETWORK_SETTINGS on each (else 403 No EDIT_NETWORK_SETTINGS permission for network(s): [...]); nothing is applied if any check fails. The writes are not atomic: sets are stored first and deletes after, so a failure in between keeps the sets. A value of the wrong type may come back as 500 rather than 400, because the parse throws IllegalArgumentException (from reading the code, not a live run; reported by the Go SDK). An invalid value otherwise answers 400 (not traced which validator). Needs only a signed-in user otherwise (source: ConfigController.patchNetworkPropertyOverrides, ConfigServiceImpl.patchNetworkConfigOverrides). Writes; source-only, never exercised live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Configuration]
+      parameters:
+        - { name: property, in: path, required: true, schema: { type: string }, description: "A NetworkProperty name." }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConfigNetworkOverrides" }
+            # synthetic fixture: set on network 11, clear on network 12
+            example: { "11": true, "12": null }
+      responses:
+        "204": { description: Applied. No body. }
+        "400": { description: "Unknown network id for the org, or invalid value." }
+        "403": { description: Missing EDIT_NETWORK_SETTINGS on a listed network. }
 
   /global-config/{property}:
     get:
@@ -16309,6 +16367,227 @@ paths:
               # synthetic fixture shaped like the string performFdbGarbageCollection returns
               example: Garbage collection started
 
+  /networks/{networkId}/sase-setups?view=newlyDiscovered:
+    get:
+      operationId: listNewlyDiscoveredSaseAppConnectors
+      summary: App Connectors the Zscaler API reported that no setup lists yet
+      description: "Each entry is a discovered App Connector plus the name of the setup it was found under (setupName, flattened beside the connector fields). Empty list when nothing is new. Requires VIEW_COLLECTION_SOURCES on the network (source: SaseSetupController.getNewlyDiscoveredAppConnectors). Live GET on a network with no SASE setups returned an empty list; the populated shape is from source and the Go SDK. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [SASE]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The newly discovered connectors.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SaseNewlyDiscoveredList" }
+              # synthetic fixture shaped like getNewlyDiscoveredAppConnectors
+              example:
+                discoveredAppConnectors:
+                  - { setupName: zpa-prod, connectorId: "1001", name: branch-a-connector, host: 192.0.2.20, locationName: Branch A, latitude: 51.5, longitude: -0.12 }
+
+  /networks/{networkId}/sase-setups?action=test:
+    post:
+      operationId: testSaseConnectivity
+      summary: Probe a Zscaler tenant before saving a setup
+      description: "Queues a tenant probe on a collector and answers 204 at once. The result is not stored or returned over REST (Forward reports it only as a server-sent event), so 204 means the probe was queued, not that the tenant works; Create the setup and read testResult to learn that. Answers 400 for an invalid body or when no collector is online or supported. Requires TEST_COLLECTION_SOURCES on the network (source: SaseSetupController.testConnectivity). Source-only, never exercised live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [SASE]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SaseConnectivityTestRequest" }
+            # synthetic fixture shaped like ZscalerConnectivityTestRequest
+            example: { id: zpa-prod, baseUrl: "https://config.private.zscaler.example", httpCredId: H-1, collectorId: C1 }
+      responses:
+        "204": { description: The probe was queued. No body. }
+        "400": { description: "Invalid body, or no online or supported collector." }
+
+  /networks/{networkId}/sase-setups:
+    get:
+      operationId: listSaseSetups
+      summary: List the network's SASE setups
+      description: "Returns every SASE setup on the network (today only type ZSCALER) in a setups list; attribution is augmented with user names. Requires VIEW_COLLECTION_SOURCES on the network (source: SaseSetupController.getSetups). Live GET on a network with no setups returned an empty list; the populated shape is from source and the Go SDK. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [SASE]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The setups.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SaseSetupList" }
+              # synthetic fixture shaped like SaseSetups
+              example:
+                setups:
+                  - type: ZSCALER
+                    name: zpa-prod
+                    baseUrl: "https://config.private.zscaler.example"
+                    httpCredId: H-1
+                    collectorId: C1
+                    appConnectorSetups:
+                      - { connectorId: "1001", name: branch-a-connector, host: 192.0.2.20, collectionType: SSH, port: 22, credentialId: L-1, collect: true, testResult: { savedAt: "2026-01-01T00:00:00Z" } }
+                    testResult: { savedAt: "2026-01-01T00:00:00Z" }
+    post:
+      operationId: createSaseSetup
+      summary: Create a Zscaler SASE setup
+      description: "Saves the setup, then queues a tenant test and a test of every SSH connector on the collector. Not transactional: with no online or supported collector the second step answers 400 AFTER the setup exists, so after any error Get or List before retrying (a retry meets the duplicate-name refusal). The tests run asynchronously; poll Get until testResult.savedAt appears. testResult and attribution in the body are ignored (cleared). Name is lower-cased; collectorId is written as C<n>. The ZPA signin credential (httpCredId) is a LOGIN HTTP credential (client id as username, client secret as password); each scimConfigs credential must be API_KEY. Not idempotent. Requires MANAGE_COLLECTION_SOURCES on the network (source: SaseSetupController.createSetup). Writes; source-only, never exercised live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [SASE]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SaseZscalerSetup" }
+            # synthetic fixture shaped like ZscalerSetup
+            example:
+              type: ZSCALER
+              name: zpa-prod
+              baseUrl: "https://config.private.zscaler.example"
+              httpCredId: H-1
+              appConnectorSetups:
+                - { connectorId: "1001", name: branch-a-connector, host: 192.0.2.20, collectionType: SSH, port: 22, credentialId: L-1 }
+              scimConfigs:
+                - { url: "https://scim.example/scim/1/2/v1", httpCredId: H-2 }
+      responses:
+        "200":
+          description: The setup as saved (no test results yet).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SaseZscalerSetup" }
+              # synthetic fixture shaped like createSetup's response
+              example:
+                type: ZSCALER
+                name: zpa-prod
+                baseUrl: "https://config.private.zscaler.example"
+                httpCredId: H-1
+                appConnectorSetups:
+                  - { connectorId: "1001", name: branch-a-connector, host: 192.0.2.20, collectionType: SSH, port: 22, credentialId: L-1, collect: true }
+                attribution: { createdBy: me@example.com, createdById: "7", createdAt: "2026-01-01T00:00:00Z" }
+        "400": { description: "Invalid body, duplicate name, or no online or supported collector (the setup may exist anyway)." }
+
+  /networks/{networkId}/sase-setups/{name}?action=test:
+    post:
+      operationId: testSaseSetup
+      summary: Re-test a saved setup's Zscaler tenant
+      description: "Queues a tenant test on the collector and answers 204 at once; the collector saves the outcome onto the setup later, so poll Get until testResult.savedAt moves. 400 when no collector is online or the setup is not a Zscaler setup. Requires TEST_COLLECTION_SOURCES on the network (source: SaseSetupController.testExistingSetup). Source-only, never exercised live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [SASE]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: name, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: The test was queued. No body. }
+        "400": { description: "No online collector, or not a Zscaler setup." }
+        "404": { description: No such setup. }
+
+  /networks/{networkId}/sase-setups/{name}/connectors?action=test:
+    post:
+      operationId: testSaseSetupConnectors
+      summary: Test every SSH App Connector of a saved setup
+      description: "Queues a test of each SSH connector and answers 204 at once; each outcome lands later on that connector's testResult. Requires TEST_COLLECTION_SOURCES on the network (source: SaseSetupController.testAllConnectors). Source-only, never exercised live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [SASE]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: name, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: The tests were queued. No body. }
+        "400": { description: "No online collector, or not a Zscaler setup." }
+        "404": { description: No such setup. }
+
+  /networks/{networkId}/sase-setups/{name}/connectors/{connectorId}?action=test:
+    post:
+      operationId: testSaseSetupConnector
+      summary: Test one App Connector of a saved setup
+      description: "Queues a test of one connector and answers 204 at once; the outcome lands later on its testResult. 404 for an unknown connectorId; 400 when the connector is not collected over SSH (a MANUAL connector cannot be tested). Requires TEST_COLLECTION_SOURCES on the network (source: SaseSetupController.testSingleConnector). Source-only, never exercised live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [SASE]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: name, in: path, required: true, schema: { type: string } }
+        - { name: connectorId, in: path, required: true, schema: { type: string }, description: "ZPA's id for the connector, as in appConnectorSetups[].connectorId." }
+      responses:
+        "204": { description: The test was queued. No body. }
+        "400": { description: "Not an SSH connector, no online collector, or not a Zscaler setup." }
+        "404": { description: No such setup or connector. }
+
+  /networks/{networkId}/sase-setups/{name}:
+    get:
+      operationId: getSaseSetup
+      summary: Get one SASE setup
+      description: "Returns the setup including its latest testResult, the per-connector testResults and attribution. Poll this after a test call until testResult.savedAt moves. testResult.error is a Forward ConnectivityTestError enum name such as AUTHENTICATION_FAILED or PING_FAILED, absent on success. Requires VIEW_COLLECTION_SOURCES on the network (source: SaseSetupController.getSetup). Not part of Forward's documented API. Source and Go SDK only for the populated shape; live GET of the list route returned no setups."
+      x-forward-stability: unpublished
+      tags: [SASE]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: name, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The setup.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SaseZscalerSetup" }
+              # synthetic fixture shaped like ZscalerSetup
+              example:
+                type: ZSCALER
+                name: zpa-prod
+                baseUrl: "https://config.private.zscaler.example"
+                httpCredId: H-1
+                collectorId: C1
+                appConnectorSetups:
+                  - { connectorId: "1001", name: branch-a-connector, host: 192.0.2.20, collectionType: SSH, port: 22, credentialId: L-1, collect: true, testResult: { savedAt: "2026-01-01T00:00:00Z", error: PING_FAILED } }
+                testResult:
+                  savedAt: "2026-01-01T00:00:00Z"
+                  discoveredConnectors:
+                    - { connectorId: "1001", name: branch-a-connector, host: 192.0.2.20 }
+                attribution: { createdBy: me@example.com, createdById: "7", createdAt: "2026-01-01T00:00:00Z" }
+        "404": { description: No such setup. }
+    patch:
+      operationId: patchSaseSetup
+      summary: Change a SASE setup
+      description: "Absent fields are left alone; the JSON null Forward reads as clear (httpCredId, collectorId, collect) is per the Go SDK. appConnectorSetups and scimConfigs replace the whole list, and each connector's testResult is stored as sent, so round-trip the connectors from Get or the saved results are lost. A name that differs from the path name (ignoring case) renames the setup by replacing it under the new name. Body validation errors answer 400. Returns the updated setup. Requires MANAGE_COLLECTION_SOURCES on the network (source: SaseSetupController.updateSetup). Writes; source-only, never exercised live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [SASE]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: name, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SaseZscalerSetupPatch" }
+            # synthetic fixture shaped like ZscalerSetupPatch
+            example: { type: ZSCALER, collect: false }
+      responses:
+        "200":
+          description: The updated setup.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SaseZscalerSetup" }
+              # synthetic fixture shaped like ZscalerSetup
+              example: { type: ZSCALER, name: zpa-prod, baseUrl: "https://config.private.zscaler.example", collect: false, appConnectorSetups: [] }
+        "400": { description: Invalid patch. }
+        "404": { description: No such setup. }
+    delete:
+      operationId: deleteSaseSetup
+      summary: Delete a SASE setup
+      description: "Removes the setup and its connectors from collection. Answers 404 with a message when the network has no setup of that name; callers that want idempotent deletes may treat that 404 as success, but not a 404 meaning the deployment serves no such route (a No endpoint 404). Requires DELETE_COLLECTION_SOURCES on the network (source: SaseSetupController.deleteSetup). Deletes; source-only, never exercised live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [SASE]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: name, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted. No body. }
+        "404": { description: Network has no SASE setup of that name. }
 
 components:
   schemas:
@@ -24012,3 +24291,148 @@ components:
         indexCreatedAt: { type: string, format: date-time, description: "When Forward built the index (source: Instant.toString)." }
         indexUploadedAt: { type: string, format: date-time, nullable: true, description: "When the index was uploaded. Null for the bundled index (source)." }
         indexUploadedBy: { type: string, nullable: true, description: "Who uploaded the index. Null for the bundled index (source)." }
+
+    SaseScimConfig:
+      type: object
+      description: "A SCIM endpoint whose users and groups Forward reads. Source: ScimConfig."
+      required: [url, httpCredId]
+      properties:
+        url: { type: string, description: "Absolute http(s) URL shaped like .../scim/<cloudId>/<idpId>/v<N>." }
+        httpCredId: { type: string, description: "Id of an HTTP credential of type API_KEY; others are refused." }
+
+    SaseConnectivityResult:
+      type: object
+      description: "Outcome of the latest test of a setup or one App Connector. error is a Forward ConnectivityTestError enum name (for example AUTHENTICATION_FAILED, PING_FAILED), absent on success."
+      properties:
+        savedAt: { type: string, format: date-time }
+        error: { type: string }
+
+    SaseDiscoveredAppConnector:
+      type: object
+      description: "A connector the Zscaler API reported. latitude and longitude are both set or both absent."
+      properties:
+        connectorId: { type: string }
+        name: { type: string }
+        host: { type: string }
+        locationName: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+
+    SaseZscalerTestResult:
+      type: object
+      description: "Latest tenant-level test. discoveredConnectors is present only when the test succeeded and found any."
+      properties:
+        savedAt: { type: string, format: date-time }
+        error: { type: string, description: "ConnectivityTestError enum name, absent on success." }
+        discoveredConnectors:
+          type: array
+          items: { $ref: "#/components/schemas/SaseDiscoveredAppConnector" }
+
+    SaseAppConnectorSetup:
+      type: object
+      description: "One App Connector inside a setup. Source: AppConnectorSetup."
+      required: [connectorId, name, host, collectionType]
+      properties:
+        connectorId: { type: string, description: "ZPA's id for the connector." }
+        name: { type: string, description: "Becomes the device name; lower-cased by Forward." }
+        host: { type: string, description: "Hostname or IP." }
+        collectionType: { type: string, description: "SSH or MANUAL (MANUAL connectors are assumed reachable, are not probed and lose their port)." }
+        port: { type: integer, description: "1-65535; required for SSH." }
+        credentialId: { type: string, description: "CLI credential id (SSH)." }
+        jumpServerId: { type: string }
+        locationId: { type: string }
+        collect: { type: boolean, description: "Absent reads as true; false parks the connector." }
+        testResult: { $ref: "#/components/schemas/SaseConnectivityResult" }
+
+    SaseAttribution:
+      type: object
+      description: "Who created or last changed a setup. Every field may be absent; names are absent when the user was deleted."
+      properties:
+        createdBy: { type: string }
+        createdById: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedBy: { type: string }
+        updatedById: { type: string }
+        updatedAt: { type: string, format: date-time }
+
+    SaseZscalerSetup:
+      type: object
+      description: "A Zscaler SASE setup as sent to create and read back. testResult and attribution are read-only (cleared on create). Source: ZscalerSetup."
+      required: [name, baseUrl]
+      properties:
+        type: { type: string, description: "Always ZSCALER (the only SASE type).", enum: [ZSCALER] }
+        name: { type: string, description: "Lower-cased by Forward." }
+        collect: { type: boolean, description: "Absent participates in collections; false parks the setup." }
+        collectorId: { type: string, description: "Preferred collector, written by Forward as C<n>. Absent means the network's default." }
+        baseUrl: { type: string, description: "Absolute http or https ZPA API base; only its host is kept." }
+        httpCredId: { type: string, description: "HTTP credential for ZPA signin, type LOGIN (client id as username, client secret as password)." }
+        appConnectorSetups:
+          type: array
+          items: { $ref: "#/components/schemas/SaseAppConnectorSetup" }
+        scimConfigs:
+          type: array
+          items: { $ref: "#/components/schemas/SaseScimConfig" }
+        testResult: { $ref: "#/components/schemas/SaseZscalerTestResult" }
+        attribution: { $ref: "#/components/schemas/SaseAttribution" }
+
+    SaseZscalerSetupPatch:
+      type: object
+      description: "Patch body. Absent keys are left alone; the lists replace the whole list. type is the polymorphic discriminator and should be sent as ZSCALER. A JSON null on httpCredId, collectorId or collect is read as clear (per the Go SDK, not traced in Java). Source: ZscalerSetupPatch."
+      properties:
+        type: { type: string, enum: [ZSCALER] }
+        name: { type: string, description: "A different name (ignoring case) renames the setup." }
+        collect: { type: boolean, nullable: true }
+        collectorId: { type: string, nullable: true }
+        baseUrl: { type: string }
+        httpCredId: { type: string, nullable: true }
+        appConnectorSetups:
+          type: array
+          items: { $ref: "#/components/schemas/SaseAppConnectorSetup" }
+        scimConfigs:
+          type: array
+          items: { $ref: "#/components/schemas/SaseScimConfig" }
+
+    SaseConnectivityTestRequest:
+      type: object
+      description: "Body of the unsaved-setup tenant probe. Source: ZscalerConnectivityTestRequest."
+      required: [id, baseUrl]
+      properties:
+        id: { type: string, description: "Device name the probe runs under." }
+        baseUrl: { type: string }
+        httpCredId: { type: string }
+        scimConfigs:
+          type: array
+          items: { $ref: "#/components/schemas/SaseScimConfig" }
+        collectorId: { type: string, description: "Collector to probe from, written C<n>." }
+
+    SaseSetupList:
+      type: object
+      properties:
+        setups:
+          type: array
+          items: { $ref: "#/components/schemas/SaseZscalerSetup" }
+
+    SaseNewlyDiscoveredConnector:
+      description: "A discovered connector plus the setup it was found under."
+      allOf:
+        - $ref: "#/components/schemas/SaseDiscoveredAppConnector"
+        - type: object
+          properties:
+            setupName: { type: string }
+
+    SaseNewlyDiscoveredList:
+      type: object
+      properties:
+        discoveredAppConnectors:
+          type: array
+          items: { $ref: "#/components/schemas/SaseNewlyDiscoveredConnector" }
+
+    ConfigOrgOverrides:
+      type: object
+      description: "Org id to the value that org overrides a property with. Value type depends on the property."
+      additionalProperties: true
+
+    ConfigNetworkOverrides:
+      type: object
+      description: "Network id to a property value. In a PATCH body a null value deletes that network's override."
+      additionalProperties: { nullable: true }

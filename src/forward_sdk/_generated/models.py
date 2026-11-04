@@ -1882,6 +1882,25 @@ class ComputationStatus(OpenEnum):
     canceled = "CANCELED"
 
 
+class ConfigNetworkOverrides(RootModel[dict[str, Any]]):
+    """
+    Network id to a property value. In a PATCH body a null value deletes that network's override.
+    """
+
+    root: dict[str, Any]
+
+
+class ConfigOrgOverrides(ForwardModel):
+    """
+    Org id to the value that org overrides a property with. Value type depends on the property.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+
+
 class ConfigValue(ForwardModel):
     """
     A single property and its value, keyed by the property name in lower case. Read it with `forward_sdk.config_value`, which returns the value whatever the key.
@@ -8003,6 +8022,125 @@ class SamlSettings(ForwardModel):
     saml_auth_settings: Annotated[SamlAuthSettings | None, Field(alias="samlAuthSettings")] = None
 
 
+class SaseAttribution(ForwardModel):
+    """
+    Who created or last changed a setup. Every field may be absent; names are absent when the user was deleted.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[AwareDatetime | None, Field(alias="createdAt")] = None
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    created_by_id: Annotated[str | None, Field(alias="createdById")] = None
+    updated_at: Annotated[AwareDatetime | None, Field(alias="updatedAt")] = None
+    updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
+    updated_by_id: Annotated[str | None, Field(alias="updatedById")] = None
+
+
+class SaseConnectivityResult(ForwardModel):
+    """
+    Outcome of the latest test of a setup or one App Connector. error is a Forward ConnectivityTestError enum name (for example AUTHENTICATION_FAILED, PING_FAILED), absent on success.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    error: str | None = None
+    saved_at: Annotated[AwareDatetime | None, Field(alias="savedAt")] = None
+
+
+class SaseDiscoveredAppConnector(ForwardModel):
+    """
+    A connector the Zscaler API reported. latitude and longitude are both set or both absent.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    connector_id: Annotated[str | None, Field(alias="connectorId")] = None
+    host: str | None = None
+    latitude: float | None = None
+    location_name: Annotated[str | None, Field(alias="locationName")] = None
+    longitude: float | None = None
+    name: str | None = None
+
+
+class SaseNewlyDiscoveredConnector(SaseDiscoveredAppConnector):
+    """
+    A discovered connector plus the setup it was found under.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    setup_name: Annotated[str | None, Field(alias="setupName")] = None
+
+
+class SaseNewlyDiscoveredList(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    discovered_app_connectors: Annotated[
+        list[SaseNewlyDiscoveredConnector] | None, Field(alias="discoveredAppConnectors")
+    ] = None
+
+
+class SaseScimConfig(ForwardModel):
+    """
+    A SCIM endpoint whose users and groups Forward reads. Source: ScimConfig.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    http_cred_id: Annotated[str, Field(alias="httpCredId")]
+    """
+    Id of an HTTP credential of type API_KEY; others are refused.
+    """
+    url: str
+    """
+    Absolute http(s) URL shaped like .../scim/<cloudId>/<idpId>/v<N>.
+    """
+
+
+class Type57(OpenEnum):
+    """
+    Always ZSCALER (the only SASE type).
+    """
+
+    zscaler = "ZSCALER"
+
+
+class Type58(OpenEnum):
+    zscaler = "ZSCALER"
+
+
+class SaseZscalerTestResult(ForwardModel):
+    """
+    Latest tenant-level test. discoveredConnectors is present only when the test succeeded and found any.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    discovered_connectors: Annotated[
+        list[SaseDiscoveredAppConnector] | None, Field(alias="discoveredConnectors")
+    ] = None
+    error: str | None = None
+    """
+    ConnectivityTestError enum name, absent on success.
+    """
+    saved_at: Annotated[AwareDatetime | None, Field(alias="savedAt")] = None
+
+
 class ScopedAddressObject(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -9241,7 +9379,7 @@ class SrcAwsCapCredential(ForwardModel):
     id: str | None = None
 
 
-class Type57(OpenEnum):
+class Type59(OpenEnum):
     cloud = "CLOUD"
 
 
@@ -9258,7 +9396,7 @@ class SrcCloudDiscoveryParams(ForwardModel):
     type: Literal["CLOUD"]
 
 
-class Type58(OpenEnum):
+class Type60(OpenEnum):
     meraki = "MERAKI"
     velo_cloud = "VELO_CLOUD"
     mist = "MIST"
@@ -9290,7 +9428,7 @@ class SrcCloudManagedSetup(ForwardModel):
     """
     Last discovery outcome; shape per type (MIST: savedAt, error, discoveredHosts).
     """
-    type: Type58
+    type: Type60
 
 
 class SrcCmdbConfigurationItemField(ForwardModel):
@@ -9349,12 +9487,12 @@ class SrcControllerInfo(ForwardModel):
     name: str | None = None
 
 
-class Type59(OpenEnum):
+class Type61(OpenEnum):
     cisco_aci = "CISCO_ACI"
     sd_wan = "SD_WAN"
 
 
-class Type60(OpenEnum):
+class Type62(OpenEnum):
     cli = "CLI"
     snmp = "SNMP"
 
@@ -9460,7 +9598,7 @@ class SrcDeviceStatus(ForwardModel):
     total_chars_received: Annotated[int | None, Field(alias="totalCharsReceived")] = None
 
 
-class Type61(OpenEnum):
+class Type63(OpenEnum):
     direct = "DIRECT"
 
 
@@ -9521,7 +9659,7 @@ class Counts(ForwardModel):
     queued: int | None = None
 
 
-class Type62(OpenEnum):
+class Type64(OpenEnum):
     subnet_scan = "SUBNET_SCAN"
     seeded = "SEEDED"
     direct = "DIRECT"
@@ -9555,7 +9693,7 @@ class SrcDiscoveryJob(ForwardModel):
     Epoch milliseconds (live).
     """
     started_by: Annotated[str | None, Field(alias="startedBy")] = None
-    type: Type62
+    type: Type64
 
 
 class SrcEndHostScanner(ForwardModel):
@@ -9837,7 +9975,7 @@ class SrcRapid7SourcePatch(ForwardModel):
     report_names: Annotated[list[str] | None, Field(alias="reportNames")] = None
 
 
-class Type63(OpenEnum):
+class Type65(OpenEnum):
     seeded = "SEEDED"
 
 
@@ -10008,7 +10146,7 @@ class ConnectionScanPort(RootModel[int]):
     root: Annotated[int, Field(ge=1, le=65535)]
 
 
-class Type64(OpenEnum):
+class Type66(OpenEnum):
     subnet_scan = "SUBNET_SCAN"
 
 
@@ -10405,7 +10543,7 @@ class SysCliCommandAssessment(ForwardModel):
     unapproved: list[str]
 
 
-class Type65(OpenEnum):
+class Type67(OpenEnum):
     backup = "BACKUP"
     restore = "RESTORE"
 
@@ -10430,7 +10568,7 @@ class SysClusterOperation(ForwardModel):
     """
     The state of each snapshot involved, keyed by snapshot id.
     """
-    type: Type65 | None = None
+    type: Type67 | None = None
 
 
 class SysClusterOperationResult(ForwardModel):
@@ -11617,7 +11755,7 @@ class TopologyLink(ForwardModel):
     target_port: Annotated[str | None, Field(alias="targetPort")] = None
 
 
-class Type66(OpenEnum):
+class Type68(OpenEnum):
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -11642,7 +11780,7 @@ class TotalHits(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    type: Type66 | None = None
+    type: Type68 | None = None
     """
     Specifies the type of total hits.
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
@@ -12672,7 +12810,7 @@ class WanCircuitPatch(ForwardModel):
     name: Annotated[str | None, Field(examples=["wan-circuit-01"])] = None
 
 
-class Type67(OpenEnum):
+class Type69(OpenEnum):
     basic_auth = "BASIC_AUTH"
 
 
@@ -12686,11 +12824,11 @@ class WebhookCredential(ForwardModel):
         populate_by_name=True,
     )
     password: str | None = None
-    type: Type67 | None = None
+    type: Type69 | None = None
     username: str | None = None
 
 
-class Type68(OpenEnum):
+class Type70(OpenEnum):
     snapshot_ready = "SNAPSHOT_READY"
     nqe_verification_failure = "NQE_VERIFICATION_FAILURE"
     intent_verification_failure = "INTENT_VERIFICATION_FAILURE"
@@ -12706,7 +12844,7 @@ class WebhookEventParams(ForwardModel):
         populate_by_name=True,
     )
     network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
-    type: Type68
+    type: Type70
 
 
 class PayloadFormat(OpenEnum):
@@ -17383,6 +17521,135 @@ class QueryPhaseResult(ForwardModel):
     phase: Literal["QUERY"]
 
 
+class SaseAppConnectorSetup(ForwardModel):
+    """
+    One App Connector inside a setup. Source: AppConnectorSetup.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collect: bool | None = None
+    """
+    Absent reads as true; false parks the connector.
+    """
+    collection_type: Annotated[str, Field(alias="collectionType")]
+    """
+    SSH or MANUAL (MANUAL connectors are assumed reachable, are not probed and lose their port).
+    """
+    connector_id: Annotated[str, Field(alias="connectorId")]
+    """
+    ZPA's id for the connector.
+    """
+    credential_id: Annotated[str | None, Field(alias="credentialId")] = None
+    """
+    CLI credential id (SSH).
+    """
+    host: str
+    """
+    Hostname or IP.
+    """
+    jump_server_id: Annotated[str | None, Field(alias="jumpServerId")] = None
+    location_id: Annotated[str | None, Field(alias="locationId")] = None
+    name: str
+    """
+    Becomes the device name; lower-cased by Forward.
+    """
+    port: int | None = None
+    """
+    1-65535; required for SSH.
+    """
+    test_result: Annotated[SaseConnectivityResult | None, Field(alias="testResult")] = None
+
+
+class SaseConnectivityTestRequest(ForwardModel):
+    """
+    Body of the unsaved-setup tenant probe. Source: ZscalerConnectivityTestRequest.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    base_url: Annotated[str, Field(alias="baseUrl")]
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    """
+    Collector to probe from, written C<n>.
+    """
+    http_cred_id: Annotated[str | None, Field(alias="httpCredId")] = None
+    id: str
+    """
+    Device name the probe runs under.
+    """
+    scim_configs: Annotated[list[SaseScimConfig] | None, Field(alias="scimConfigs")] = None
+
+
+class SaseZscalerSetup(ForwardModel):
+    """
+    A Zscaler SASE setup as sent to create and read back. testResult and attribution are read-only (cleared on create). Source: ZscalerSetup.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    app_connector_setups: Annotated[
+        list[SaseAppConnectorSetup] | None, Field(alias="appConnectorSetups")
+    ] = None
+    attribution: SaseAttribution | None = None
+    base_url: Annotated[str, Field(alias="baseUrl")]
+    """
+    Absolute http or https ZPA API base; only its host is kept.
+    """
+    collect: bool | None = None
+    """
+    Absent participates in collections; false parks the setup.
+    """
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    """
+    Preferred collector, written by Forward as C<n>. Absent means the network's default.
+    """
+    http_cred_id: Annotated[str | None, Field(alias="httpCredId")] = None
+    """
+    HTTP credential for ZPA signin, type LOGIN (client id as username, client secret as password).
+    """
+    name: str
+    """
+    Lower-cased by Forward.
+    """
+    scim_configs: Annotated[list[SaseScimConfig] | None, Field(alias="scimConfigs")] = None
+    test_result: Annotated[SaseZscalerTestResult | None, Field(alias="testResult")] = None
+    type: Type57 | None = None
+    """
+    Always ZSCALER (the only SASE type).
+    """
+
+
+class SaseZscalerSetupPatch(ForwardModel):
+    """
+    Patch body. Absent keys are left alone; the lists replace the whole list. type is the polymorphic discriminator and should be sent as ZSCALER. A JSON null on httpCredId, collectorId or collect is read as clear (per the Go SDK, not traced in Java). Source: ZscalerSetupPatch.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    app_connector_setups: Annotated[
+        list[SaseAppConnectorSetup] | None, Field(alias="appConnectorSetups")
+    ] = None
+    base_url: Annotated[str | None, Field(alias="baseUrl")] = None
+    collect: bool | None = None
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    http_cred_id: Annotated[str | None, Field(alias="httpCredId")] = None
+    name: str | None = None
+    """
+    A different name (ignoring case) renames the setup.
+    """
+    scim_configs: Annotated[list[SaseScimConfig] | None, Field(alias="scimConfigs")] = None
+    type: Type58 | None = None
+
+
 class ScopedAddressGroup(ForwardModel):
     """
     description repeats name on the wire; Forward populates it from the name.
@@ -17913,7 +18180,7 @@ class SrcCustomCommandGroup(ForwardModel):
     disabled: bool | None = None
     name: str
     oids: list[SrcCustomOid] | None = None
-    type: Type60
+    type: Type62
 
 
 class SrcCustomCommandGroupUpdate(ForwardModel):
@@ -19529,6 +19796,14 @@ class SampleQuery(ForwardModel):
     to: EndpointFilter
 
 
+class SaseSetupList(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    setups: list[SaseZscalerSetup] | None = None
+
+
 class ScopedSecurityRule(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -19630,7 +19905,7 @@ class SrcControllerManagedSetup(ForwardModel):
     Guests collected through the controllers. Absent (not an empty list) when the setup has never had guests declared.
     """
     name: str
-    type: Type59
+    type: Type61
 
 
 class SrcControllerManagedSetupPatch(ForwardModel):

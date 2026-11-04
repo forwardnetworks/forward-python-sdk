@@ -222,3 +222,27 @@ class TestOsVulnerabilities:
 
         assert result.vulnerabilities is not None
         assert [v.depends_on_config for v in result.vulnerabilities] == [None, True]
+
+
+class TestSaseAndOverrides:
+    async def test_a_setup_test_is_dispatched_on_its_action(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            "/api/networks/101/sase-setups/zs-main/connectors",
+            json_response(None, status=204),
+        )
+        async with make_client(recorder) as client:
+            await client.sase.test_sase_setup_connectors(name="zs-main")
+
+        assert recorder.query_for() == {"action": ["test"]}
+
+    async def test_overrides_patch_sends_null_to_clear(self, recorder: Recorder) -> None:
+        recorder.add(
+            "PATCH", "/api/config/DISABLE_FLOW_COMPUTATION/overrides", json_response(None, 204)
+        )
+        async with make_client(recorder) as client:
+            await client.configuration.patch_network_config_property_overrides(
+                property="DISABLE_FLOW_COMPUTATION", body={"101": True, "102": None}
+            )
+
+        assert recorder.body_for() == {"101": True, "102": None}

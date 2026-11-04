@@ -5,6 +5,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.33] - 2026-11-04
+
+### Fixed
+- `vulnerability_analysis.get_os_vulnerabilities` raised `ForwardResponseError` when a CVE came back with
+  `dependsOnConfig: null`. Forward documents it as null when unknown but lists it as required. It is now optional
+  and nullable. The generator gained `x-relax-schema-properties` for such cases; this was the only published
+  property whose own description says it can be null while the schema requires it.
+
 ## [0.1.32] - 2026-11-03
 
 ### Fixed

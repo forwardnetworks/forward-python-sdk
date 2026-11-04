@@ -16170,7 +16170,10 @@
             "examples": [
               true
             ],
-            "type": "boolean"
+            "type": [
+              "boolean",
+              "null"
+            ]
           },
           "description": {
             "examples": [
@@ -16319,7 +16322,6 @@
           "vendor",
           "os",
           "osVersions",
-          "dependsOnConfig",
           "detectionMethod"
         ],
         "type": "object"

@@ -280,6 +280,43 @@ def extend_schemas(schemas: dict[str, Any], extensions: dict[str, Any]) -> int:
     return 0
 
 
+def relax_schema_properties(schemas: dict[str, Any], relaxations: dict[str, Any]) -> int:
+    """Let published properties be absent or null where Forward sends them that way.
+
+    Forward's own description can say "Null if unknown" while the schema lists the
+    property as required and non-null, and a client that trusts the schema then
+    rejects a good response. Each named property stops being required and
+    accepts null. Refused if the schema already allows both, so an entry is
+    removed once Forward corrects its description.
+
+    Returns the number of properties relaxed.
+    """
+    relaxed = 0
+    for name, props in relaxations.items():
+        target = schemas.get(name)
+        if target is None:
+            raise UnsupportedSpecFeature(f"x-relax-schema-properties names {name!r}, not published")
+        required = target.get("required") or []
+        for prop in props:
+            definition = (target.get("properties") or {}).get(prop)
+            if definition is None:
+                raise UnsupportedSpecFeature(f"{name}.{prop} is not a published property")
+            declared = definition.get("type")
+            if prop not in required and isinstance(declared, list) and "null" in declared:
+                raise UnsupportedSpecFeature(
+                    f"{name}.{prop} is optional and nullable now; remove it from "
+                    "x-relax-schema-properties"
+                )
+            if prop in required:
+                required.remove(prop)
+            if isinstance(declared, str):
+                definition["type"] = [declared, "null"]
+            relaxed += 1
+        if not required:
+            target.pop("required", None)
+    return relaxed
+
+
 def merge_unpublished(doc: dict[str, Any], extra: dict[str, Any]) -> int:
     """Fold the hand-written description of unpublished endpoints into ``doc``.
 
@@ -296,6 +333,7 @@ def merge_unpublished(doc: dict[str, Any], extra: dict[str, Any]) -> int:
         schemas[name] = schema
 
     merged += extend_schemas(schemas, extra.get("x-extend-schemas") or {})
+    relax_schema_properties(schemas, extra.get("x-relax-schema-properties") or {})
 
     for path, item in (extra.get("paths") or {}).items():
         target = doc.setdefault("paths", {}).setdefault(path, {})

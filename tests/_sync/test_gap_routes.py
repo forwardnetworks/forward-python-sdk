@@ -187,3 +187,39 @@ class TestCallAndFromEnv:
         )
         assert client.config.network_id == "55"
         client.close()
+
+
+class TestOsVulnerabilities:
+    def test_a_cve_whose_config_dependence_is_unknown_still_parses(
+        self, recorder: Recorder
+    ) -> None:
+        """Forward's description says dependsOnConfig is null when unknown."""
+        cve = {
+            "id": "CVE-2025-0001",
+            "severity": "HIGH",
+            "vendor": "ARISTA",
+            "os": "EOS",
+            "osVersions": ["4.36.0.1F"],
+            "detectionMethod": "VERSION",
+            "devices": ["r1", "r2"],
+        }
+        recorder.add(
+            "GET",
+            "/api/networks/101/vulnerabilities",
+            json_response(
+                {
+                    "vulnerabilities": [
+                        {**cve, "dependsOnConfig": None},
+                        {**cve, "id": "CVE-2025-0002", "dependsOnConfig": True},
+                    ],
+                    "offset": 0,
+                    "total": 2,
+                    "indexCreatedAt": "2026-11-01T00:00:00Z",
+                }
+            ),
+        )
+        with make_client(recorder) as client:
+            result = client.vulnerability_analysis.get_os_vulnerabilities(snapshot_id="s1")
+
+        assert result.vulnerabilities is not None
+        assert [v.depends_on_config for v in result.vulnerabilities] == [None, True]

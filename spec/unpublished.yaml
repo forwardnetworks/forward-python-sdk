@@ -135,6 +135,11 @@ tags:
   - name: Collection Settings
     description: Organization-wide and per-collector collection tuning, and per-network performance collection.
 
+# Properties the published schema lists as required and non-null, but whose own
+# description says they can be null. Applied by scripts/downconvert_spec.py.
+x-relax-schema-properties:
+  OsVulnerability: [dependsOnConfig]
+
 x-extend-schemas:
   NewClassicDevice:
     properties:

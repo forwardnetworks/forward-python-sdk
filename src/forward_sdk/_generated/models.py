@@ -16787,7 +16787,9 @@ class OsVulnerability(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    depends_on_config: Annotated[bool, Field(alias="dependsOnConfig", examples=[True])]
+    depends_on_config: Annotated[bool | None, Field(alias="dependsOnConfig", examples=[True])] = (
+        None
+    )
     """
     Whether the CVE depends on configuration for this OS. Null if unknown.
     """

@@ -62,7 +62,10 @@ docs = [
   "mkdocs>=1.6",
   "mkdocs-material>=9.5",
   "mkdocstrings[python]>=0.27",
-  "pymdown-extensions>=10",
+  # 12 changed Highlight's constructor and mkdocstrings' highlighter breaks on it
+  # ("Highlight.__init__() missing ... 'md'"). Lift with the matching
+  # dependabot ignore once mkdocstrings supports it.
+  "pymdown-extensions>=10,<12",
 ]
 
 [tool.hatch.version]

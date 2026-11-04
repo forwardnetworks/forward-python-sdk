@@ -120,6 +120,19 @@ line must not abort a transfer that has been running for an hour.
 
 ## Collecting
 
+## Raw files
+
+`files(snapshot_id)` lists every raw file Forward stored, named `"<device>,<file>"`. From there:
+
+```python
+name = "edge-1,configuration.txt"
+client.snapshots.file(snap, name)  # the whole file as text
+client.snapshots.file_info(snap, name)  # id, size, creation time; no content
+client.snapshots.file_excerpts(snap, name, [(0, 9), (40, 49)])  # line ranges, 0-based, inclusive
+client.snapshots.search_file(snap, name, "ospf")  # matching line numbers
+client.snapshots.file_access()  # which devices' files you may read
+```
+
 `collect()` starts a network collection and waits for the snapshot it produces:
 
 ```python

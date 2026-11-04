@@ -8650,6 +8650,27 @@ class SetupPhaseResult(ForwardModel):
     phase: Literal["SETUP"]
 
 
+class Action4(OpenEnum):
+    """
+    ALLOW: only the listed devices. BLOCK: all but the listed devices.
+    """
+
+    allow = "ALLOW"
+    block = "BLOCK"
+
+
+class SnapDeviceAccessInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    action: Action4 | None = None
+    """
+    ALLOW: only the listed devices. BLOCK: all but the listed devices.
+    """
+    devices: list[str] | None = None
+
+
 class SnapExcerpt(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -8684,6 +8705,23 @@ class SnapPredictedFileInfo(ForwardModel):
     change_set_id: Annotated[str | None, Field(alias="changeSetId")] = None
     commit_id: Annotated[str | None, Field(alias="commitId")] = None
     num_modified_lines: Annotated[int | None, Field(alias="numModifiedLines")] = None
+
+
+class SnapStoredFileInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    creation_date_millis: Annotated[int | None, Field(alias="creationDateMillis")] = None
+    file_name: Annotated[str | None, Field(alias="fileName")] = None
+    """
+    '<device>,<file>', as getSnapshotFiles lists it.
+    """
+    id: str | None = None
+    size: int | None = None
+    """
+    Bytes of the original file.
+    """
 
 
 class SnapshotExceptionType(OpenEnum):

@@ -20394,6 +20394,25 @@
         ],
         "type": "object"
       },
+      "SnapDeviceAccessInfo": {
+        "properties": {
+          "action": {
+            "description": "ALLOW: only the listed devices. BLOCK: all but the listed devices.",
+            "enum": [
+              "ALLOW",
+              "BLOCK"
+            ],
+            "type": "string"
+          },
+          "devices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "SnapExcerpt": {
         "properties": {
           "end": {
@@ -20461,6 +20480,27 @@
             "type": "string"
           },
           "numModifiedLines": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SnapStoredFileInfo": {
+        "properties": {
+          "creationDateMillis": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fileName": {
+            "description": "'<device>,<file>', as getSnapshotFiles lists it.",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "size": {
+            "description": "Bytes of the original file.",
+            "format": "int64",
             "type": "integer"
           }
         },
@@ -48941,6 +48981,51 @@
         "x-position": 11
       }
     },
+    "/networks/{networkId}/file-access": {
+      "get": {
+        "description": "A device-level access policy for the calling user: action ALLOW means only the listed devices are readable, BLOCK means every device except the listed ones is. BLOCK with an empty list is full access, and ALLOW with an empty list is none. Defaults to the network's latest processed snapshot when snapshotId is omitted. Requires VIEW_NETWORK_AND_SNAPSHOTS on the network (source: StoredFileController.getFileAccessInfo, DeviceAccessInfo). Not part of Forward's documented API. Live: 200 {action: BLOCK, devices: []} for an account without device restrictions, with and without snapshotId.",
+        "operationId": "getNetworkFileAccess",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "action": "BLOCK",
+                  "devices": []
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SnapDeviceAccessInfo"
+                }
+              }
+            },
+            "description": "The policy."
+          }
+        },
+        "summary": "Which devices' collected files the caller may read",
+        "tags": [
+          "Network Snapshots"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/http-credentials": {
       "get": {
         "description": "Substitutes a system-generated identifier for each sensitive `password`.",
@@ -61355,6 +61440,16 @@
           "Network Snapshots"
         ],
         "x-forward-operation-variants": [
+          {
+            "operationId": "getSnapshotFileInfo",
+            "summary": "One raw file's metadata, without its content",
+            "x-forward-fixed-query": [
+              [
+                "info",
+                ""
+              ]
+            ]
+          },
           {
             "operationId": "getSnapshotFileExcerpts",
             "summary": "Read line ranges of one raw file",

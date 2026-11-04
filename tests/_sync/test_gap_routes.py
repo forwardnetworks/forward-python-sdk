@@ -247,3 +247,32 @@ class TestSaseAndOverrides:
             )
 
         assert recorder.body_for() == {"101": True, "102": None}
+
+
+class TestSnapshotFileMetadata:
+    def test_file_info_asks_for_metadata_only(self, recorder: Recorder) -> None:
+        path = "/api/snapshots/s1/files/edge-1,show_run.txt"
+        recorder.add(
+            "GET",
+            path,
+            json_response(
+                {"id": "7", "fileName": "edge-1,show_run.txt", "creationDateMillis": 1, "size": 9}
+            ),
+        )
+        with make_client(recorder) as client:
+            info = client.snapshots.file_info("s1", "edge-1,show_run.txt")
+
+        assert "info" in recorder.query_for()
+        assert (info.file_name, info.size) == ("edge-1,show_run.txt", 9)
+
+    def test_file_access_reads_the_policy(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/networks/101/file-access",
+            json_response({"action": "ALLOW", "devices": ["edge-1"]}),
+        )
+        with make_client(recorder) as client:
+            access = client.snapshots.file_access(snapshot_id="s1")
+
+        assert recorder.query_for() == {"snapshotId": ["s1"]}
+        assert (str(access.action), access.devices) == ("ALLOW", ["edge-1"])

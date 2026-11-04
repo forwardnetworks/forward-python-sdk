@@ -22,6 +22,7 @@ from forward_sdk._generated.models import (
     AnalysisSnapshotProcessingQueue,
     AnalysisSnapshotProgress,
     CollectorTask,
+    SnapDeviceAccessInfo,
     SnapFileExcerpts,
     SnapshotException,
     SnapshotExceptions,
@@ -29,6 +30,7 @@ from forward_sdk._generated.models import (
     SnapshotRetentionPolicy,
     SnapshotRetentionPreview,
     SnapshotState,
+    SnapStoredFileInfo,
     StartCollectionResponse,
 )
 from forward_sdk._ops import core as ops
@@ -525,6 +527,28 @@ class SnapshotsService(Service):
             )
         payload = self._send_json(spec)
         return SnapFileExcerpts.model_validate(payload or {})
+
+    def file_info(self, snapshot_id: str, file_name: str) -> SnapStoredFileInfo:
+        """One raw file's id, name, creation time and size, without its content."""
+        payload = self._send_json(
+            rest.BUILDERS["getSnapshotFileInfo"](snapshot_id=snapshot_id, file_name=file_name)
+        )
+        return SnapStoredFileInfo.model_validate(payload or {})
+
+    def file_access(
+        self, network_id: str | None = None, *, snapshot_id: str | None = None
+    ) -> SnapDeviceAccessInfo:
+        """Which devices' collected files the caller may read.
+
+        ``action`` ``ALLOW`` means only the listed devices, ``BLOCK`` every device
+        but the listed ones, so ``BLOCK`` with no devices is full access.
+        """
+        payload = self._send_json(
+            rest.BUILDERS["getNetworkFileAccess"](
+                network_id=self._network(network_id), snapshot_id=self._snapshot(snapshot_id)
+            )
+        )
+        return SnapDeviceAccessInfo.model_validate(payload or {})
 
     def search_file(self, snapshot_id: str, file_name: str, query: str) -> Sequence[int]:
         """The 0-based lines of a raw file containing ``query``, ignoring case.

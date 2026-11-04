@@ -5278,6 +5278,25 @@ paths:
   # modeled device -- what a device's own file list (published) cannot reach,
   # since a raw file need not belong to one, such as a cloud provider's
   # metadata for an object no device represents.
+  /networks/{networkId}/file-access:
+    get:
+      operationId: getNetworkFileAccess
+      summary: Which devices' collected files the caller may read
+      description: "A device-level access policy for the calling user: action ALLOW means only the listed devices are readable, BLOCK means every device except the listed ones is. BLOCK with an empty list is full access, and ALLOW with an empty list is none. Defaults to the network's latest processed snapshot when snapshotId is omitted. Requires VIEW_NETWORK_AND_SNAPSHOTS on the network (source: StoredFileController.getFileAccessInfo, DeviceAccessInfo). Not part of Forward's documented API. Live: 200 {action: BLOCK, devices: []} for an account without device restrictions, with and without snapshotId."
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: false, schema: { type: string } }
+      responses:
+        "200":
+          description: The policy.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SnapDeviceAccessInfo" }
+              # synthetic fixture shaped like a live response (2026-11-05)
+              example: { action: BLOCK, devices: [] }
+
   /snapshots/{snapshotId}/files:
     get:
       operationId: getSnapshotFiles
@@ -5335,6 +5354,25 @@ paths:
               schema: { $ref: "#/components/schemas/SnapFileExcerpts" }
               example: { lineCount: 120, excerpts: [{ start: 0, end: 1, lines: ["hostname branch-a-sw1", "!"] }] }
         "400": { description: "Ranges overlap, or a range starts past the end of the file." }
+
+  /snapshots/{snapshotId}/files/{fileName}?info:
+    get:
+      operationId: getSnapshotFileInfo
+      summary: One raw file's metadata, without its content
+      description: "Returns the stored file's id, fileName ('<device>,<file>' as getSnapshotFiles lists it), creationDateMillis (epoch milliseconds) and size in bytes of the original. Forward serialises only those four; the line count is not here (getSnapshotFileExcerpts reports it as lineCount). 404 when the snapshot has no such file. Requires VIEW_COLLECTED_FILES on the network (source: StoredFileController.getStoredFile). Not part of Forward's documented API. Live: 200 with exactly these four keys, id a string."
+      x-forward-stability: unpublished
+      tags: [Network Snapshots]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+        - { name: fileName, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The file's metadata.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SnapStoredFileInfo" }
+              # synthetic fixture shaped like a live response (2026-11-05)
+              example: { id: "1234", fileName: "branch-a-sw1,configuration.txt", creationDateMillis: 1762300000000, size: 4096 }
 
   /snapshots/{snapshotId}/files/{fileName}?lines:
     get:
@@ -16591,6 +16629,18 @@ paths:
 
 components:
   schemas:
+    SnapStoredFileInfo:
+      type: object
+      properties:
+        id: { type: string }
+        fileName: { type: string, description: "'<device>,<file>', as getSnapshotFiles lists it." }
+        creationDateMillis: { type: integer, format: int64 }
+        size: { type: integer, format: int64, description: Bytes of the original file. }
+    SnapDeviceAccessInfo:
+      type: object
+      properties:
+        action: { type: string, enum: [ALLOW, BLOCK], description: "ALLOW: only the listed devices. BLOCK: all but the listed devices." }
+        devices: { type: array, items: { type: string } }
     SnapLineRange:
       type: object
       required: [start, end]

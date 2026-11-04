@@ -5822,6 +5822,20 @@ OPERATIONS: dict[str, OpDef] = {
         response_model="NetworkEndpoints",
         summary="Get a network’s endpoints",
     ),
+    "getNetworkFileAccess": OpDef(
+        operation_id="getNetworkFileAccess",
+        method="get",
+        path="/networks/{networkId}/file-access",
+        tag="Network Snapshots",
+        parameters=(
+            ParamDef(name="networkId", location="path", required=True, schema_type="string"),
+            ParamDef(name="snapshotId", location="query", schema_type="string"),
+        ),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="SnapDeviceAccessInfo",
+        summary="Which devices' collected files the caller may read",
+    ),
     "getNetworkMap": OpDef(
         operation_id="getNetworkMap",
         method="get",
@@ -6818,6 +6832,21 @@ OPERATIONS: dict[str, OpDef] = {
         stability="unpublished",
         response_model="SnapFileExcerpts",
         summary="Read line ranges of one raw file",
+    ),
+    "getSnapshotFileInfo": OpDef(
+        operation_id="getSnapshotFileInfo",
+        method="get",
+        path="/snapshots/{snapshotId}/files/{fileName}",
+        tag="Network Snapshots",
+        fixed_query=(('info', None),),
+        parameters=(
+            ParamDef(name="snapshotId", location="path", required=True, schema_type="string"),
+            ParamDef(name="fileName", location="path", required=True, schema_type="string"),
+        ),
+        response_media=('application/json',),
+        stability="unpublished",
+        response_model="SnapStoredFileInfo",
+        summary="One raw file's metadata, without its content",
     ),
     "getSnapshotFiles": OpDef(
         operation_id="getSnapshotFiles",

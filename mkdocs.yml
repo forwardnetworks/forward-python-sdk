@@ -1,5 +1,6 @@
 site_name: forward-sdk
 site_description: Python SDK for the Forward Networks REST API (Field Integration)
+site_url: https://forwardnetworks.github.io/forward-python-sdk/
 repo_url: https://github.com/forwardnetworks/forward-python-sdk
 repo_name: forwardnetworks/forward-python-sdk
 edit_uri: edit/main/docs/

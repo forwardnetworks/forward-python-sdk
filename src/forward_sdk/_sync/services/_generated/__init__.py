@@ -52,7 +52,9 @@ from forward_sdk._sync.services._generated.device_interfaces import DeviceInterf
 from forward_sdk._sync.services._generated.edge_assets import EdgeAssetsService
 from forward_sdk._sync.services._generated.encryptors import EncryptorsService
 from forward_sdk._sync.services._generated.endpoint_profiles import EndpointProfilesService
+from forward_sdk._sync.services._generated.entity_decorators import EntityDecoratorsService
 from forward_sdk._sync.services._generated.firewall_predict import FirewallPredictService
+from forward_sdk._sync.services._generated.flow_trace import FlowTraceService
 from forward_sdk._sync.services._generated.integrations import IntegrationsService
 from forward_sdk._sync.services._generated.internet_exposure import InternetExposureService
 from forward_sdk._sync.services._generated.internet_node import InternetNodeService
@@ -150,7 +152,9 @@ __all__ = [
     "EdgeAssetsService",
     "EncryptorsService",
     "EndpointProfilesService",
+    "EntityDecoratorsService",
     "FirewallPredictService",
+    "FlowTraceService",
     "GeneratedServices",
     "IntegrationsService",
     "InternetExposureService",
@@ -238,7 +242,9 @@ class GeneratedServices:
     edge_assets: EdgeAssetsService
     encryptors: EncryptorsService
     endpoint_profiles: EndpointProfilesService
+    entity_decorators: EntityDecoratorsService
     firewall_predict: FirewallPredictService
+    flow_trace: FlowTraceService
     integrations: IntegrationsService
     internet_exposure: InternetExposureService
     internet_node: InternetNodeService
@@ -317,7 +323,9 @@ class GeneratedServices:
         self.edge_assets = EdgeAssetsService(transport)
         self.encryptors = EncryptorsService(transport)
         self.endpoint_profiles = EndpointProfilesService(transport)
+        self.entity_decorators = EntityDecoratorsService(transport)
         self.firewall_predict = FirewallPredictService(transport)
+        self.flow_trace = FlowTraceService(transport)
         self.integrations = IntegrationsService(transport)
         self.internet_exposure = InternetExposureService(transport)
         self.internet_node = InternetNodeService(transport)
@@ -398,7 +406,9 @@ SERVICE_TAGS: dict[str, str] = {
     "Edge Assets": "edge_assets",
     "Encryptors": "encryptors",
     "Endpoint Profiles": "endpoint_profiles",
+    "Entity Decorators": "entity_decorators",
     "Firewall Predict": "firewall_predict",
+    "Flow Trace": "flow_trace",
     "Integrations": "integrations",
     "Internet Exposure": "internet_exposure",
     "Internet Node": "internet_node",

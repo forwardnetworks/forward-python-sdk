@@ -5,6 +5,56 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.36] - 2026-11-07
+
+### Added
+
+From the Go SDK v0.8.15 to v0.8.17; unpublished, read from Forward master.
+
+- `client.entity_decorators`: list, upsert (create and update are both `PATCH /decorators/{name}`), delete,
+  enable or disable a system-managed decorator, and `decorate_entities` for a snapshot. Each decorator query
+  has a 5-minute limit on Forward, so give the client a longer timeout for `decorate_entities`. Listing was
+  checked live; the writes and `decorate_entities` were not run.
+- `client.flow_trace`: the Forward GUI's own flow-trace routes (trace facets, one traced path, trace responses,
+  behaviors, flows and trace diffs). Undocumented by Forward, with no stability promise. All six read only and
+  were called live. Put every header filter under `filters.from.headers`; an empty result is only
+  `{"timedOut": false}`.
+- `ClassicDevice.bmpStationHost` on the read. A batch `put_classic_devices` rebuilds each device from its item,
+  so leaving the field out clears it.
+
+From the Go SDK v0.8.18; unpublished, read from Forward master.
+
+- ServiceNow incidents on `client.integrations`: `get_service_now_incident`, `close_service_now_incident` and
+  `close_service_now_incidents` (a JSON array of numbers).
+- ServiceNow incidents on checks, on `client.checks`: list the incidents linked to a snapshot's checks, raise
+  one or several, link and unlink an existing one, refresh their state from ServiceNow, and read the work-note
+  update history. `type` takes Forward's spellings (`Isolation`, `Existential`, `Predefined`, `NQE`, ...).
+  Each link carries only `checkId`, `number`, `state` and `stateLastUpdated`.
+- The rest of the ServiceNow CMDB routes: read and delete the configuration, disable, push, status,
+  synchronization history and report, payload preview and download, connection test, and the lists of
+  classes and discovery sources. The configuration and its connection details are now fully modeled.
+  Stored secrets read back as `""`, and Forward keeps them when the configuration is saved back with
+  `save_service_now_cmdb_configuration(body=config.to_api())` (pydantic 2.12 or later; see Fixed).
+- `close_service_now_incident` is refused with 400 while the incident still applies to a check. To detach
+  an incident from a check, use `unlink_check_service_now_incident`.
+
+Reads checked live: CMDB status, configuration and history, check incidents, update history. Nothing that
+writes was run.
+
+### Fixed
+
+- ServiceNow settings `autoCreateImpact` and `autoCreateUrgency` are ServiceNow's numeric levels
+  (`"1"` high, `"2"` medium, `"3"` low). The SDK had `HIGH`/`MEDIUM`/`LOW`, which Forward neither sends
+  nor accepts. The enum member names (`AutoCreateImpact.high` and so on) are unchanged, but the values are
+  now the numbers.
+- ServiceNow settings `password` and `token` are documented as Forward sends them: `""` when set, never
+  the secret itself.
+- A CMDB connection's `password` is optional (Forward keeps the stored one) and `proxyConfig` is modeled.
+- URLs round-trip exactly: a model read from Forward no longer turns `https://host` into `https://host/` when
+  sent back. Forward compares some URLs as they are, and the slash made it ask again for a CMDB password it
+  already held. This needs pydantic 2.12 or later; older versions keep adding the slash. `str()` of a URL field
+  read from Forward drops the trailing slash too.
+
 ## [0.1.35] - 2026-11-05
 
 ### Added

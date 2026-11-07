@@ -57,6 +57,8 @@ Forward's API documentation: `getLocations` becomes `get_locations`.
 | `client.webhooks` | Webhooks | Unpublished; writes need `OUTBOUND_CONNECTIONS` |
 | `client.configuration` | Configuration | Unpublished; org admin or Forward support |
 | `client.sase` | SASE | Zscaler setups: list, create, patch, delete and connectivity tests (unpublished) |
+| `client.entity_decorators` | Entity Decorators | NQE entity decorators and decorations (unpublished) |
+| `client.flow_trace` | Flow Trace | The GUI's flow-trace routes; undocumented, no stability promise |
 | `client.snapshot_diff_details` | Snapshot Diff Details | Unpublished; per-area RBAC |
 | `client.bgp_advertisements` | BGP Advertisements | Unpublished; `PREDICT_MODELING` org property |
 | `client.change_set_directories` | Change Set Directories | Unpublished; `PREDICT_MODELING` org property |
@@ -159,12 +161,12 @@ described by hand in `spec/unpublished.yaml` (see [unpublished endpoints](unpubl
 | `client.collection_sources` | Controller-managed and cloud-managed setups | reads |
 | `client.custom_command_groups` | Extra CLI commands and OIDs collection runs | reads |
 | `client.device_discovery` | Finding devices by scanning, including scheduled scans | reads |
-| `client.integrations` | Infoblox, ServiceNow (incidents and CMDB), Rapid7 | Infoblox status |
+| `client.integrations` | Infoblox, ServiceNow (incidents and CMDB), Rapid7 | Infoblox status, CMDB history |
 | `client.data_files` | The org's data-file library and a network's use of it | reads |
 | `client.performance_metrics` | Device and interface utilization and health | reads |
 | `client.scorecards` | Scorecards, KPI categories and trends | reads |
 | `client.cloud_objects` | Cloud objects and the files collected for them | reads |
-| `client.checks` | The checks report (a spreadsheet) and the per-category report | both |
+| `client.checks` | The checks report (a spreadsheet), the per-category report, and ServiceNow incidents on checks | reports, incident lists |
 | `client.snapshots` | Progress, estimate, queue, logs, notes, favourites, retention | most reads |
 | `client.change_sets` | Commits, restores, copies, whole-device configurations | none (403) |
 | `client.nqe`, `client.ai` | The NQE schema, slow-run metrics, and the four NQE assists | schema, metrics |
@@ -172,11 +174,12 @@ described by hand in `spec/unpublished.yaml` (see [unpublished endpoints](unpubl
 
 Three things to know before using them:
 
-- **Secrets can come back.** By Forward's source, the ServiceNow and Infoblox
-  settings and the AWS CAP credential carry passwords, tokens or a client
-  certificate in their GET responses. This has not been seen, since the account
-  had none of them configured. Treat those models as sensitive and keep them out
-  of logs.
+- **Secrets can come back.** By Forward's source, the Infoblox settings and the
+  AWS CAP credential carry passwords, tokens or a client certificate in their
+  GET responses. This has not been seen, since the account had none of them
+  configured. Treat those models as sensitive and keep them out of logs. The
+  ServiceNow settings and the ServiceNow CMDB configuration are the exception:
+  Forward writes their stored secrets as `""`.
 - **Some calls are destructive or admin-only.** Deleting an org, resetting 2FA,
   restoring a backup and deleting a commit cannot be undone. Admin routes answer
   403 unless the account holds the role; see [availability](gating.md).

@@ -20,7 +20,8 @@ class ForwardModel(BaseModel):
 
     ``extra="allow"`` is deliberate: Forward adds fields to responses between
     releases, and an SDK that rejected them would break on upgrade. Unknown
-    fields are preserved and round-trip through :meth:`to_api`.
+    fields are preserved and round-trip through :meth:`to_api`, and so do URLs:
+    an empty path is not turned into ``/``.
     """
 
     model_config = ConfigDict(
@@ -28,6 +29,11 @@ class ForwardModel(BaseModel):
         populate_by_name=True,
         validate_assignment=False,
         arbitrary_types_allowed=True,
+        # Keep "https://host" as sent, not "https://host/". Forward compares
+        # some URLs exactly (a ServiceNow CMDB instance URL decides whether a
+        # stored secret is reused), so a read model sent back must match.
+        # pydantic < 2.12 ignores the key and keeps adding the slash.
+        url_preserve_empty_path=True,
     )
 
     @classmethod

@@ -11,10 +11,12 @@ operation.
 
 from __future__ import annotations
 
+import httpx
 import pytest
 
 from forward_sdk._sync.client import ForwardClient
 from forward_sdk.errors import ForwardConfigurationError
+from forward_sdk.models import AutoCreateImpact, SrcUpdateServiceNowSettings
 from tests.conftest import Recorder, json_response
 
 pytestmark = pytest.mark.anyio
@@ -276,3 +278,320 @@ class TestSnapshotFileMetadata:
 
         assert recorder.query_for() == {"snapshotId": ["s1"]}
         assert (str(access.action), access.devices) == ("ALLOW", ["edge-1"])
+
+
+class TestServiceNowIncidents:
+    def test_check_incidents_repeat_the_type_and_dispatch_on_the_view(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add(
+            "GET",
+            "/api/snapshots/s1/checks",
+            json_response(
+                [{"checkId": "7", "number": "INC1", "state": "In Progress", "stateLastUpdated": 5}]
+            ),
+        )
+        with make_client(recorder) as client:
+            links = client.checks.list_check_service_now_incidents(
+                snapshot_id="s1", type=["Isolation", "NQE"]
+            )
+
+        assert recorder.query_for() == {
+            "view": ["serviceNowIncidents"],
+            "type": ["Isolation", "NQE"],
+        }
+        assert [(link.check_id, link.number, str(link.state)) for link in links] == [
+            ("7", "INC1", "In Progress")
+        ]
+
+    def test_bulk_add_sends_check_id_to_incident(self, recorder: Recorder) -> None:
+        recorder.add("POST", "/api/snapshots/s1/checks", json_response([]))
+        body = {"7": {"summary": "Isolation failed", "impact": "2", "urgency": "3"}}
+        with make_client(recorder) as client:
+            client.checks.add_check_service_now_incidents(snapshot_id="s1", body=body)
+
+        assert recorder.query_for() == {"action": ["addServiceNowIncidents"]}
+        assert recorder.body_for() == body
+
+    def test_link_names_the_incident_in_the_query(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            "/api/snapshots/s1/checks/7",
+            json_response(
+                {"checkId": "7", "number": "INC1", "state": "New", "stateLastUpdated": 5}
+            ),
+        )
+        with make_client(recorder) as client:
+            client.checks.link_check_service_now_incident(
+                snapshot_id="s1", check_id="7", incident="INC1"
+            )
+
+        assert recorder.query_for() == {"action": ["linkServiceNowIncident"], "incident": ["INC1"]}
+
+    def test_closing_several_sends_a_bare_array(self, recorder: Recorder) -> None:
+        recorder.add("POST", "/api/integrations/servicenow/incidents", json_response(None, 204))
+        with make_client(recorder) as client:
+            client.integrations.close_service_now_incidents(body=["INC1", "INC2"])
+
+        assert recorder.query_for() == {"action": ["close"]}
+        assert recorder.body_for() == ["INC1", "INC2"]
+
+    def test_levels_are_servicenow_numbers(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/integrations/servicenow/incidents/INC1",
+            json_response(
+                {
+                    "number": "INC1",
+                    "sysId": "abc",
+                    "impact": "1",
+                    "urgency": "3",
+                    "state": "New",
+                    "url": "https://example.service-now.invalid/nav_to.do",
+                }
+            ),
+        )
+        recorder.add(
+            "GET",
+            "/api/integrations/servicenow",
+            json_response(
+                {
+                    "instanceUrl": "https://example.service-now.invalid",
+                    "username": "api-user",
+                    "password": "",
+                    "enabled": True,
+                    "autoCreate": False,
+                    "autoUpdate": True,
+                    "autoCreateImpact": "3",
+                    "autoCreateUrgency": "2",
+                }
+            ),
+        )
+        with make_client(recorder) as client:
+            incident = client.integrations.get_service_now_incident(incident_number="INC1")
+            settings = client.integrations.get_service_now_settings()
+
+        assert (incident.impact, incident.urgency) == ("1", "3")
+        assert incident.impact is not None and incident.impact.name == "high"
+        assert (settings.auto_create_impact, settings.auto_create_urgency) == ("3", "2")
+        assert settings.auto_create_impact is not None
+        assert settings.auto_create_impact.name == "low"
+
+    def test_settings_levels_go_out_as_numbers(self, recorder: Recorder) -> None:
+        recorder.add(
+            "PATCH",
+            "/api/integrations/servicenow",
+            json_response(
+                {
+                    "instanceUrl": "https://example.service-now.invalid",
+                    "token": "",
+                    "enabled": True,
+                    "autoCreate": True,
+                    "autoUpdate": True,
+                    "autoCreateImpact": "1",
+                    "autoCreateUrgency": "3",
+                }
+            ),
+        )
+        update = SrcUpdateServiceNowSettings(
+            autoCreateImpact=AutoCreateImpact.high, autoCreateUrgency=AutoCreateImpact.low
+        )
+        with make_client(recorder) as client:
+            client.integrations.patch_service_now_settings(body=update.to_api())
+
+        assert recorder.body_for() == {"autoCreateImpact": "1", "autoCreateUrgency": "3"}
+
+    def test_single_close_unlink_and_refresh_dispatch_correctly(self, recorder: Recorder) -> None:
+        recorder.add("POST", "/api/integrations/servicenow/incidents/INC1", json_response(None))
+        recorder.add("POST", "/api/snapshots/s1/checks/7", json_response(None))
+        recorder.add("POST", "/api/snapshots/s1/checks", json_response(None, 204))
+        recorder.add(
+            "GET",
+            "/api/snapshots/s1/checks/7",
+            json_response([{"snapshotCreationTime": 1, "totalFailures": 4}]),
+        )
+        with make_client(recorder) as client:
+            client.integrations.close_service_now_incident(incident_number="INC1")
+            client.checks.unlink_check_service_now_incident(
+                snapshot_id="s1", check_id="7", incident="INC1"
+            )
+            client.checks.refresh_check_service_now_incidents(snapshot_id="s1")
+            history = client.checks.get_check_service_now_incident_update_history(
+                snapshot_id="s1", check_id="7", incident="INC1"
+            )
+
+        assert [recorder.query_for(i) for i in range(4)] == [
+            {"action": ["close"]},
+            {"action": ["unlinkServiceNowIncident"], "incident": ["INC1"]},
+            {"action": ["refreshServiceNowIncidents"]},
+            {"view": ["serviceNowIncidentUpdateHistory"], "incident": ["INC1"]},
+        ]
+        assert [(h.snapshot_creation_time, h.total_failures) for h in history] == [(1, 4)]
+
+
+class TestServiceNowCmdb:
+    def test_the_two_payload_reads_are_told_apart_by_query(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/integrations/servicenow-cmdb",
+            json_response(
+                {"tables": [{"tableName": "cmdb_ci_ip_router", "rows": [{"name": "r1"}]}]}
+            ),
+            httpx.Response(200, content=b"PK\x03\x04zip"),
+        )
+        with make_client(recorder) as client:
+            preview = client.integrations.get_service_now_cmdb_payload(network_id="101")
+            chunks = [c for c in client.integrations.download_service_now_cmdb_payload()]
+
+        assert recorder.query_for(0) == {"view": ["payload"], "networkId": ["101"]}
+        assert recorder.query_for(1) == {"view": ["payload"], "disposition": ["attachment"]}
+        assert preview.tables is not None and preview.tables[0].rows == [{"name": "r1"}]
+        assert b"".join(chunks) == b"PK\x03\x04zip"
+
+    def test_history_unwraps_push_status_and_errors(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/integrations/servicenow-cmdb/synchronization-history",
+            json_response(
+                {
+                    "infos": [
+                        {
+                            "syncInstant": 1,
+                            "networkName": "n",
+                            "entitiesInserted": 2,
+                            "entitiesUpdated": 3,
+                        },
+                        {
+                            "syncInstant": 2,
+                            "networkName": "n",
+                            "error": "boom",
+                            "errors": [
+                                {
+                                    "errorType": "AUTH_INVALID_CREDENTIALS",
+                                    "userMessage": "bad login",
+                                    "fieldContext": {"ciTableName": "cmdb_ci_ip_router"},
+                                    "count": 2,
+                                }
+                            ],
+                        },
+                    ]
+                }
+            ),
+        )
+        with make_client(recorder) as client:
+            history = client.integrations.get_service_now_cmdb_synchronization_history()
+
+        ok, failed = history.infos
+        assert (ok.entities_inserted, ok.entities_updated, ok.error) == (2, 3, None)
+        assert failed.error == "boom" and failed.errors is not None
+        assert str(failed.errors[0].error_type) == "AUTH_INVALID_CREDENTIALS"
+        assert failed.errors[0].field_context is not None
+        assert failed.errors[0].field_context.ci_table_name == "cmdb_ci_ip_router"
+
+    def test_a_read_configuration_with_blank_secrets_validates(self, recorder: Recorder) -> None:
+        conf = {
+            "settings": {
+                "connectionName": "prod",
+                "connectionDetails": {
+                    "instanceUrl": "https://example.service-now.invalid",
+                    "username": "api-user",
+                    "password": "",
+                    "clientId": "cid",
+                    "clientSecret": "",
+                    "proxyConfig": {
+                        "host": "http://proxy.invalid",
+                        "port": 3128,
+                        "username": "p",
+                        "password": "",
+                    },
+                },
+                "sourceName": "ForwardNetworks",
+            },
+            "mappings": [
+                {
+                    "name": "cmdb_ci_ip_router",
+                    "queryId": "Q_abc",
+                    "fieldRelations": [
+                        {
+                            "cmdbField": {
+                                "label": "Name",
+                                "element": "name",
+                                "dataType": "string",
+                                "mandatory": True,
+                                "maxLength": 255,
+                            },
+                            "queryColumnName": "name",
+                        }
+                    ],
+                }
+            ],
+            "syncConfig": {"networkIds": ["101"]},
+            "enabled": True,
+        }
+        recorder.add("GET", "/api/integrations/servicenow-cmdb/configuration", json_response(conf))
+        with make_client(recorder) as client:
+            got = client.integrations.get_service_now_cmdb_configuration()
+
+        assert got.settings is not None
+        assert got.settings.connection_details.password == ""
+        assert got.settings.connection_details.proxy_config is not None
+        assert got.settings.connection_details.proxy_config.port == 3128
+        assert got.mappings[0].query_id == "Q_abc"
+
+    def test_a_read_configuration_saves_back_unchanged(self, recorder: Recorder) -> None:
+        # Forward reuses a stored secret only while the instance URL compares
+        # equal, so the URL must go back exactly as it came, without a "/".
+        conf = {
+            "settings": {
+                "connectionName": "prod",
+                "connectionDetails": {
+                    "instanceUrl": "https://example.service-now.invalid",
+                    "username": "api-user",
+                    "password": "",
+                    "proxyConfig": {"host": "http://proxy.invalid", "port": 3128},
+                },
+                "sourceName": "ForwardNetworks",
+            },
+            "mappings": [
+                {
+                    "name": "cmdb_ci_ip_router",
+                    "queryId": "Q_abc",
+                    "fieldRelations": [
+                        {
+                            "cmdbField": {
+                                "label": "Name",
+                                "element": "name",
+                                "dataType": "string",
+                                "mandatory": True,
+                                "maxLength": 255,
+                            }
+                        }
+                    ],
+                }
+            ],
+            "syncConfig": {"networkIds": ["101"]},
+            "enabled": False,
+        }
+        recorder.add("GET", "/api/integrations/servicenow-cmdb/configuration", json_response(conf))
+        recorder.add("POST", "/api/integrations/servicenow-cmdb/configuration", json_response(None))
+        with make_client(recorder) as client:
+            got = client.integrations.get_service_now_cmdb_configuration()
+            client.integrations.save_service_now_cmdb_configuration(body=got.to_api())
+
+        assert recorder.body_for() == conf
+
+    def test_disable_and_push_dispatch_on_their_action(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            "/api/integrations/servicenow-cmdb",
+            json_response(None, 204),
+            json_response(None, 204),
+        )
+        with make_client(recorder) as client:
+            client.integrations.disable_service_now_cmdb()
+            client.integrations.push_service_now_cmdb()
+
+        assert [recorder.query_for(i) for i in (0, 1)] == [
+            {"action": ["disable"]},
+            {"action": ["push"]},
+        ]

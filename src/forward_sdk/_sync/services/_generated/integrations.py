@@ -46,6 +46,32 @@ class IntegrationsService(Service):
         )
         return payload
 
+    def close_service_now_incident(
+        self,
+        *,
+        incident_number: str,
+    ) -> Any:
+        """Close a ServiceNow incident.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["closeServiceNowIncident"](incident_number=incident_number)
+        )
+        return payload
+
+    def close_service_now_incidents(
+        self,
+        *,
+        body: Any,
+    ) -> Any:
+        """Close several ServiceNow incidents.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["closeServiceNowIncidents"](body=body))
+        return payload
+
     def create_change_set_change_request(
         self,
         *,
@@ -139,6 +165,16 @@ class IntegrationsService(Service):
         )
         return payload
 
+    def delete_service_now_cmdb_configuration(
+        self,
+    ) -> Any:
+        """Delete the CMDB configuration.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["deleteServiceNowCmdbConfiguration"]())
+        return payload
+
     def delete_service_now_settings(
         self,
     ) -> Any:
@@ -167,6 +203,16 @@ class IntegrationsService(Service):
         )
         return payload
 
+    def disable_service_now_cmdb(
+        self,
+    ) -> Any:
+        """Disable the ServiceNow CMDB sync.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["disableServiceNowCmdb"]())
+        return payload
+
     def download_change_set_change_request_attachment(
         self,
         *,
@@ -188,6 +234,17 @@ class IntegrationsService(Service):
                 file_sys_id=file_sys_id,
             )
         ) as response:
+            for chunk in response.iter_bytes():
+                yield chunk
+
+    def download_service_now_cmdb_payload(
+        self,
+    ) -> Iterator[bytes]:
+        """Download a preview of what a CMDB push would send.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        with self._transport.stream(ops.BUILDERS["downloadServiceNowCmdbPayload"]()) as response:
             for chunk in response.iter_bytes():
                 yield chunk
 
@@ -230,6 +287,28 @@ class IntegrationsService(Service):
         payload = self._send_json(ops.BUILDERS["getInfobloxIntegration"]())
         return models.SrcInfobloxIntegration.model_validate(payload or {})
 
+    def get_service_now_cmdb_configuration(
+        self,
+    ) -> models.SrcServiceNowCmdbConfiguration:
+        """Read the CMDB configuration.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["getServiceNowCmdbConfiguration"]())
+        return models.SrcServiceNowCmdbConfiguration.model_validate(payload or {})
+
+    def get_service_now_cmdb_payload(
+        self,
+        *,
+        network_id: str,
+    ) -> models.CmdbPayloadPreview:
+        """Preview what a CMDB push would send for one network.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["getServiceNowCmdbPayload"](network_id=network_id))
+        return models.CmdbPayloadPreview.model_validate(payload or {})
+
     def get_service_now_cmdb_schema(
         self,
         *,
@@ -241,6 +320,53 @@ class IntegrationsService(Service):
         """
         payload = self._send_json(ops.BUILDERS["getServiceNowCmdbSchema"](body=body))
         return [models.SrcCmdbConfigurationItemSchema.model_validate(row) for row in payload or []]
+
+    def get_service_now_cmdb_status(
+        self,
+    ) -> models.CmdbConfigurationStatus:
+        """Check the CMDB configuration against the instance.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["getServiceNowCmdbStatus"]())
+        return models.CmdbConfigurationStatus.model_validate(payload or {})
+
+    def get_service_now_cmdb_synchronization_history(
+        self,
+    ) -> models.CmdbSynchronizationHistory:
+        """Past CMDB pushes and their outcomes.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["getServiceNowCmdbSynchronizationHistory"]())
+        return models.CmdbSynchronizationHistory.model_validate(payload or {})
+
+    def get_service_now_cmdb_synchronization_report(
+        self,
+    ) -> Iterator[bytes]:
+        """Download the CMDB sync report as an Excel workbook.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        with self._transport.stream(
+            ops.BUILDERS["getServiceNowCmdbSynchronizationReport"]()
+        ) as response:
+            for chunk in response.iter_bytes():
+                yield chunk
+
+    def get_service_now_incident(
+        self,
+        *,
+        incident_number: str,
+    ) -> models.ServiceNowIncident:
+        """Read a ServiceNow incident.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getServiceNowIncident"](incident_number=incident_number)
+        )
+        return models.ServiceNowIncident.model_validate(payload or {})
 
     def get_service_now_settings(
         self,
@@ -277,6 +403,30 @@ class IntegrationsService(Service):
         payload = self._send_json(ops.BUILDERS["listInfobloxInstanceStatuses"]())
         return models.SrcInfobloxInstancesStatus.model_validate(payload or {})
 
+    def list_service_now_cmdb_configuration_items(
+        self,
+        *,
+        body: Any,
+    ) -> Any:
+        """List the CMDB classes on a ServiceNow instance.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["listServiceNowCmdbConfigurationItems"](body=body))
+        return payload
+
+    def list_service_now_cmdb_discovery_sources(
+        self,
+        *,
+        body: Any,
+    ) -> Any:
+        """List the discovery sources on a ServiceNow instance.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["listServiceNowCmdbDiscoverySources"](body=body))
+        return payload
+
     def patch_service_now_settings(
         self,
         *,
@@ -289,6 +439,16 @@ class IntegrationsService(Service):
         payload = self._send_json(ops.BUILDERS["patchServiceNowSettings"](body=body))
         return models.SrcServiceNowSettings.model_validate(payload or {})
 
+    def push_service_now_cmdb(
+        self,
+    ) -> Any:
+        """Push to the ServiceNow CMDB now.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["pushServiceNowCmdb"]())
+        return payload
+
     def save_service_now_cmdb_configuration(
         self,
         *,
@@ -300,6 +460,18 @@ class IntegrationsService(Service):
         """
         payload = self._send_json(ops.BUILDERS["saveServiceNowCmdbConfiguration"](body=body))
         return payload
+
+    def test_service_now_cmdb_connection(
+        self,
+        *,
+        body: Any,
+    ) -> models.ServiceNowCmdbTestResult:
+        """Test a ServiceNow CMDB connection.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["testServiceNowCmdbConnection"](body=body))
+        return models.ServiceNowCmdbTestResult.model_validate(payload or {})
 
     def test_tenable_source(
         self,

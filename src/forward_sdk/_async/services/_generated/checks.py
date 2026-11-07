@@ -33,6 +33,39 @@ class AsyncChecksService(AsyncService):
         )
         return models.NetworkCheckResult.model_validate(payload or {})
 
+    async def add_check_service_now_incident(
+        self,
+        *,
+        snapshot_id: str,
+        check_id: str,
+        body: Any,
+    ) -> models.ServiceNowIncidentLink:
+        """Raise a ServiceNow incident for a failing check.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["addCheckServiceNowIncident"](
+                snapshot_id=snapshot_id, check_id=check_id, body=body
+            )
+        )
+        return models.ServiceNowIncidentLink.model_validate(payload or {})
+
+    async def add_check_service_now_incidents(
+        self,
+        *,
+        snapshot_id: str,
+        body: Any,
+    ) -> list[models.ServiceNowIncidentLink]:
+        """Raise ServiceNow incidents for several failing checks.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["addCheckServiceNowIncidents"](snapshot_id=snapshot_id, body=body)
+        )
+        return [models.ServiceNowIncidentLink.model_validate(row) for row in payload or []]
+
     async def deactivate_check(
         self,
         *,
@@ -90,6 +123,24 @@ class AsyncChecksService(AsyncService):
             async for chunk in response.aiter_bytes():
                 yield chunk
 
+    async def get_check_service_now_incident_update_history(
+        self,
+        *,
+        snapshot_id: str,
+        check_id: str,
+        incident: str,
+    ) -> list[models.ServiceNowIncidentUpdate]:
+        """When Forward updated a linked incident's work notes.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["getCheckServiceNowIncidentUpdateHistory"](
+                snapshot_id=snapshot_id, check_id=check_id, incident=incident
+            )
+        )
+        return [models.ServiceNowIncidentUpdate.model_validate(row) for row in payload or []]
+
     async def get_checks(
         self,
         *,
@@ -120,3 +171,68 @@ class AsyncChecksService(AsyncService):
         ) as response:
             async for chunk in response.aiter_bytes():
                 yield chunk
+
+    async def link_check_service_now_incident(
+        self,
+        *,
+        snapshot_id: str,
+        check_id: str,
+        incident: str,
+    ) -> models.ServiceNowIncidentLink:
+        """Link an existing ServiceNow incident to a check.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["linkCheckServiceNowIncident"](
+                snapshot_id=snapshot_id, check_id=check_id, incident=incident
+            )
+        )
+        return models.ServiceNowIncidentLink.model_validate(payload or {})
+
+    async def list_check_service_now_incidents(
+        self,
+        *,
+        snapshot_id: str,
+        type: Sequence[str],
+    ) -> list[models.ServiceNowIncidentLink]:
+        """ServiceNow incidents linked to a snapshot's active checks.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["listCheckServiceNowIncidents"](snapshot_id=snapshot_id, type=type)
+        )
+        return [models.ServiceNowIncidentLink.model_validate(row) for row in payload or []]
+
+    async def refresh_check_service_now_incidents(
+        self,
+        *,
+        snapshot_id: str,
+    ) -> Any:
+        """Refresh the state of a snapshot's linked ServiceNow incidents.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["refreshCheckServiceNowIncidents"](snapshot_id=snapshot_id)
+        )
+        return payload
+
+    async def unlink_check_service_now_incident(
+        self,
+        *,
+        snapshot_id: str,
+        check_id: str,
+        incident: str,
+    ) -> Any:
+        """Unlink a ServiceNow incident from a check.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["unlinkCheckServiceNowIncident"](
+                snapshot_id=snapshot_id, check_id=check_id, incident=incident
+            )
+        )
+        return payload

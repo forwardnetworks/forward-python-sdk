@@ -1594,6 +1594,37 @@ class CloudTestResult(ForwardModel):
     """
 
 
+class Status1(OpenEnum):
+    successful = "SUCCESSFUL"
+    connection_failed = "CONNECTION_FAILED"
+    incorrect_mappings = "INCORRECT_MAPPINGS"
+
+
+class CmdbConfigurationStatus(ForwardModel):
+    """
+    Whether the saved mappings still match the instance. Empty sets are omitted (source CmdbConfigurationStatus.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    incorrect_mapping_class_names: Annotated[
+        list[str] | None, Field(alias="incorrectMappingClassNames")
+    ] = None
+    missing_class_names: Annotated[list[str] | None, Field(alias="missingClassNames")] = None
+    status: Status1
+
+
+class CmdbTablePayload(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    rows: list[dict[str, Any]]
+    table_name: Annotated[str, Field(alias="tableName")]
+
+
 class CollectorBinding(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -1624,7 +1655,7 @@ class CollectorHealthIssue(ForwardModel):
     type: Type15 | None = None
 
 
-class Status1(OpenEnum):
+class Status2(OpenEnum):
     healthy = "HEALTHY"
     unhealthy = "UNHEALTHY"
     unknown = "UNKNOWN"
@@ -1636,7 +1667,7 @@ class CollectorHealthSummary(ForwardModel):
         populate_by_name=True,
     )
     issues: list[CollectorHealthIssue] | None = None
-    status: Status1 | None = None
+    status: Status2 | None = None
 
 
 class CollectorStatus(OpenEnum):
@@ -1649,7 +1680,7 @@ class CollectorStatus(OpenEnum):
     updating = "UPDATING"
 
 
-class Status2(OpenEnum):
+class Status3(OpenEnum):
     """
     The current status of the task.
     """
@@ -1722,7 +1753,7 @@ class CollectorTask(ForwardModel):
     """
     When this task started. Absent if the task hasn’t started yet.
     """
-    status: Annotated[Status2 | None, Field(examples=["SUCCEEDED"])] = None
+    status: Annotated[Status3 | None, Field(examples=["SUCCEEDED"])] = None
     """
     The current status of the task.
     """
@@ -2442,6 +2473,193 @@ class DataFileType(OpenEnum):
     yaml = "YAML"
     text = "TEXT"
     stig = "STIG"
+
+
+class DecoDecorationsRequest(ForwardModel):
+    """
+    Body of decorateEntities (source: SnapshotDecorationsRequest.java). Both lists must be non-empty.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    decorator_names: Annotated[list[str], Field(alias="decoratorNames")]
+    """
+    Decorators to run, matched case-insensitively.
+    """
+    entity_ids: Annotated[list[str], Field(alias="entityIds")]
+    """
+    Device names (DEVICE), '<device> <interface>' (INTERFACE), decimal host ids (HOST) or path descriptors (PATH types).
+    """
+
+
+class DecoEntityDecoration(ForwardModel):
+    """
+    One decorator's result for one entity (source: EntityDecoration.java). rowType and rows are present only on SUCCESS.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    decorator_name: Annotated[str, Field(alias="decoratorName")]
+    entity_id: Annotated[str, Field(alias="entityId")]
+    """
+    Forward's spelling of the entity (catalogue device name, an interface's main name), which may differ in case from what was sent.
+    """
+    row_type: Annotated[dict[str, Any] | None, Field(alias="rowType")] = None
+    """
+    The NQE record type of the rows (GUI RecordType: type, name, fields of name/isNullable/type).
+    """
+    rows: list[dict[str, Any]] | None = None
+    """
+    One object per row, keyed by column name, in Forward's internal NQE value JSON (NqeRow/QValue); exact value encoding not traced.
+    """
+    status: str
+    """
+    Known values: SUCCESS, INVALID_DECORATOR (columns do not fit the query output; DEVICE, INTERFACE and HOST only), INVALID_QUERY (does not compile or type-check), QUERY_ERROR (the query reported errors), SERVER_ERROR, TIMEOUT, CANCELED.
+    """
+
+
+class DecoEntityDecorator(ForwardModel):
+    """
+    An entity decorator as Forward returns it (source: EntityDecorator.java with DecoratorDefinition unwrapped). Only the join columns for type are present; createdAt/createdBy/updatedAt/updatedBy are absent on system-managed decorators.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    created_at: Annotated[AwareDatetime | None, Field(alias="createdAt")] = None
+    created_by: Annotated[str | None, Field(alias="createdBy")] = None
+    """
+    Username of the creator.
+    """
+    description: str | None = None
+    """
+    Present only when set.
+    """
+    device_col_name: Annotated[str | None, Field(alias="deviceColName")] = None
+    """
+    DEVICE and INTERFACE (required), HOST (optional): the device-name column.
+    """
+    direction_col_name: Annotated[str | None, Field(alias="directionColName")] = None
+    """
+    PATH_INTERFACE: the direction column.
+    """
+    enabled: bool
+    """
+    Whether Forward shows this decorator on entities.
+    """
+    hop_index_col_name: Annotated[str | None, Field(alias="hopIndexColName")] = None
+    """
+    PATH_DEVICE and PATH_INTERFACE: the hop index column.
+    """
+    host_col_name: Annotated[str | None, Field(alias="hostColName")] = None
+    """
+    HOST, optional: the host-name column.
+    """
+    interface_col_name: Annotated[str | None, Field(alias="interfaceColName")] = None
+    """
+    INTERFACE: the interface-name column.
+    """
+    ip_address_col_name: Annotated[str | None, Field(alias="ipAddressColName")] = None
+    """
+    HOST: the IP address column (IpAddress).
+    """
+    mac_address_col_name: Annotated[str | None, Field(alias="macAddressColName")] = None
+    """
+    HOST, optional: the MAC address column (MacAddress).
+    """
+    metadata_col_names: Annotated[list[str], Field(alias="metadataColNames")]
+    """
+    The query columns attached to the entity. Empty means every column that is not a join column.
+    """
+    name: str
+    """
+    Unique per org, compared case-insensitively. Names starting fwd- are system-managed.
+    """
+    query_id: Annotated[str, Field(alias="queryId")]
+    """
+    The NQE query whose rows are attached: a Q_ id for an org query, an FQ_ id for a Forward library query.
+    """
+    system_managed: Annotated[bool, Field(alias="systemManaged")]
+    """
+    True for Forward's built-in fwd- decorators, which can be enabled or disabled but not edited or deleted.
+    """
+    type: str
+    """
+    The entity type decorated. Known values: DEVICE, INTERFACE, HOST, PATH, PATH_DEVICE, PATH_INTERFACE.
+    """
+    updated_at: Annotated[AwareDatetime | None, Field(alias="updatedAt")] = None
+    updated_by: Annotated[str | None, Field(alias="updatedBy")] = None
+    """
+    Username of the last editor.
+    """
+
+
+class DecoEntityDecoratorPatch(ForwardModel):
+    """
+    Body of upsertDecorator (source: web/json/decorator/EntityDecoratorPatch.java and its six subtypes, dispatched on type). Absent fields are left unchanged. A create needs name, queryId, metadataColNames and the join columns for type. Join columns that do not belong to type are ignored (source: each subtype only reads its own).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    description: str | None = None
+    """
+    null clears it.
+    """
+    device_col_name: Annotated[str | None, Field(alias="deviceColName")] = None
+    """
+    DEVICE, INTERFACE; optional on HOST, where null clears it.
+    """
+    direction_col_name: Annotated[str | None, Field(alias="directionColName")] = None
+    """
+    PATH_INTERFACE.
+    """
+    enabled: bool | None = None
+    """
+    A new decorator is disabled unless this is true.
+    """
+    hop_index_col_name: Annotated[str | None, Field(alias="hopIndexColName")] = None
+    """
+    PATH_DEVICE, PATH_INTERFACE.
+    """
+    host_col_name: Annotated[str | None, Field(alias="hostColName")] = None
+    """
+    HOST, optional; null clears it.
+    """
+    interface_col_name: Annotated[str | None, Field(alias="interfaceColName")] = None
+    """
+    INTERFACE.
+    """
+    ip_address_col_name: Annotated[str | None, Field(alias="ipAddressColName")] = None
+    """
+    HOST.
+    """
+    mac_address_col_name: Annotated[str | None, Field(alias="macAddressColName")] = None
+    """
+    HOST, optional; null clears it.
+    """
+    metadata_col_names: Annotated[list[str] | None, Field(alias="metadataColNames")] = None
+    """
+    Columns to attach; an empty array means all non-join columns.
+    """
+    name: str | None = None
+    """
+    The decorator's name; required to create one (Forward does not default it to the path name). On an update, a different value renames the decorator. Must not start with fwd-.
+    """
+    query_id: Annotated[str | None, Field(alias="queryId")] = None
+    """
+    Must name a query in the head of the org's NQE library.
+    """
+    type: str
+    """
+    Selects the body shape and must match an existing decorator's type. Known values: DEVICE, INTERFACE, HOST, PATH, PATH_DEVICE, PATH_INTERFACE.
+    """
 
 
 class DefaultColumnFilter(ForwardModel):
@@ -3558,7 +3776,7 @@ class Disp2AtlasLocation(ForwardModel):
     """
 
 
-class Status4(OpenEnum):
+class Status5(OpenEnum):
     """
     The subtask's state (source: TaskStatus).
     """
@@ -3608,13 +3826,13 @@ class Disp2CollectorSubTask(ForwardModel):
     """
     When the subtask started. Omitted until it does (source: NON_NULL).
     """
-    status: Status4
+    status: Status5
     """
     The subtask's state (source: TaskStatus).
     """
 
 
-class Status5(OpenEnum):
+class Status6(OpenEnum):
     """
     The task's state (source: TaskStatus).
     """
@@ -4050,7 +4268,7 @@ class DraftChangePage(ForwardModel):
     changes: list[DraftChange] | None = None
 
 
-class Status6(OpenEnum):
+class Status7(OpenEnum):
     no_latest_snapshot = "NO_LATEST_SNAPSHOT"
     query_missing = "QUERY_MISSING"
     query_run_error = "QUERY_RUN_ERROR"
@@ -4065,7 +4283,7 @@ class DynamicConnectionsComputeError(ForwardModel):
         populate_by_name=True,
     )
     error_msg: Annotated[str, Field(alias="errorMsg")]
-    status: Status6
+    status: Status7
 
 
 class EnrichmentSource(OpenEnum):
@@ -6316,7 +6534,7 @@ class Outcome(OpenEnum):
     user_error = "USER_ERROR"
 
 
-class Status7(OpenEnum):
+class Status8(OpenEnum):
     """
     The current state of the query execution:
     - `SUBMITTED`: the query has been accepted and is queued, but execution has not yet begun.
@@ -7565,7 +7783,7 @@ class EntryType(OpenEnum):
     i_pv6 = "IPv6"
 
 
-class Status8(OpenEnum):
+class Status9(OpenEnum):
     pass_ = "PASS"
     fail = "FAIL"
     error = "ERROR"
@@ -8175,7 +8393,7 @@ class ScopedUserObject(ForwardModel):
     scope_id: Annotated[str | None, Field(alias="scopeId")] = None
 
 
-class Status9(OpenEnum):
+class Status10(OpenEnum):
     valid = "VALID"
     irrelevant = "IRRELEVANT"
     inactive = "INACTIVE"
@@ -8204,7 +8422,7 @@ class ScorecardCheckScore(ForwardModel):
     """
     The check's score on the snapshot.
     """
-    status: Status9 | None = None
+    status: Status10 | None = None
     type: str | None = None
     weight: int | None = None
 
@@ -8287,7 +8505,7 @@ class ScorecardKpiCheckDefinition(ForwardModel):
     weight: int | None = None
 
 
-class Status10(OpenEnum):
+class Status11(OpenEnum):
     unlicensed = "UNLICENSED"
     requires_additional_snapshot_processing = "REQUIRES_ADDITIONAL_SNAPSHOT_PROCESSING"
     processing = "PROCESSING"
@@ -8311,7 +8529,7 @@ class ScorecardSnapshot(ForwardModel):
     """
     Overall score between 0 and 1; null unless status is PROCESSED.
     """
-    status: Status10 | None = None
+    status: Status11 | None = None
     system_managed: Annotated[bool | None, Field(alias="systemManaged")] = None
 
 
@@ -8575,6 +8793,127 @@ class ServiceNowChangeRequestRef(ForwardModel):
     )
     number: str | None = None
     sys_id: Annotated[str | None, Field(alias="sysId")] = None
+
+
+class ServiceNowCheckType(OpenEnum):
+    """
+    A check type as Forward spells it in a query parameter (source: CheckType.fromJson). The last five are legacy spellings of the first ones.
+    """
+
+    isolation = "Isolation"
+    reachability = "Reachability"
+    existential = "Existential"
+    query_string_based = "QueryStringBased"
+    predefined = "Predefined"
+    nqe = "NQE"
+    exists = "Exists"
+    existential_check = "ExistentialCheck"
+    isolation_check = "IsolationCheck"
+    reachability_check = "ReachabilityCheck"
+    network_query = "NetworkQuery"
+
+
+class ErrorType1(OpenEnum):
+    unknown_error = "UNKNOWN_ERROR"
+    servicenow_server_error = "SERVICENOW_SERVER_ERROR"
+    connection_dns_failure = "CONNECTION_DNS_FAILURE"
+    connection_timeout = "CONNECTION_TIMEOUT"
+    connection_refused = "CONNECTION_REFUSED"
+    connection_ssl_error = "CONNECTION_SSL_ERROR"
+    auth_invalid_credentials = "AUTH_INVALID_CREDENTIALS"
+    instance_hibernating = "INSTANCE_HIBERNATING"
+    instance_suspended = "INSTANCE_SUSPENDED"
+    instance_rate_limited = "INSTANCE_RATE_LIMITED"
+    permission_acl_restriction = "PERMISSION_ACL_RESTRICTION"
+    api_endpoint_not_found = "API_ENDPOINT_NOT_FOUND"
+    auth_account_locked = "AUTH_ACCOUNT_LOCKED"
+    auth_missing_role = "AUTH_MISSING_ROLE"
+    validation_required_field_missing = "VALIDATION_REQUIRED_FIELD_MISSING"
+    validation_type_mismatch = "VALIDATION_TYPE_MISMATCH"
+    validation_choice_invalid = "VALIDATION_CHOICE_INVALID"
+    validation_readonly_field = "VALIDATION_READONLY_FIELD"
+    reference_not_found = "REFERENCE_NOT_FOUND"
+    schema_ci_not_found = "SCHEMA_CI_NOT_FOUND"
+    schema_field_not_found = "SCHEMA_FIELD_NOT_FOUND"
+
+
+class NqeSource(ForwardModel):
+    """
+    The NQE query and column that produced the value, when Forward can trace it.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    column_name: Annotated[str, Field(alias="columnName")]
+    query_id: Annotated[str, Field(alias="queryId")]
+    query_name: Annotated[str, Field(alias="queryName")]
+
+
+class ServiceNowCmdbErrorFieldContext(ForwardModel):
+    """
+    Where a CMDB error happened. Empty fields are omitted (source ServiceNowCmdbError.FieldContext).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    actual_value: Annotated[str | None, Field(alias="actualValue")] = None
+    ci_table_name: Annotated[str | None, Field(alias="ciTableName")] = None
+    expected_type: Annotated[str | None, Field(alias="expectedType")] = None
+    field_name: Annotated[str | None, Field(alias="fieldName")] = None
+    matching_attributes_tried: Annotated[
+        list[str] | None, Field(alias="matchingAttributesTried")
+    ] = None
+    nqe_source: Annotated[NqeSource | None, Field(alias="nqeSource")] = None
+    """
+    The NQE query and column that produced the value, when Forward can trace it.
+    """
+    reference_target_table: Annotated[str | None, Field(alias="referenceTargetTable")] = None
+    """
+    The table a reference field looks up into.
+    """
+
+
+class ServiceNowIncidentLevel(OpenEnum):
+    """
+    A ServiceNow incident impact or urgency level, sent as ServiceNow's numeric level in a string: "1" high, "2" medium, "3" low. Forward reads any other non-negative number from a customized instance as low (source: ServiceNowIncidentLevel.java).
+    """
+
+    high = "1"
+    medium = "2"
+    low = "3"
+
+
+class ServiceNowIncidentState(OpenEnum):
+    """
+    A ServiceNow incident state label (source ServiceNowIncidentState.java). Resolved, Closed and Canceled are terminal.
+    """
+
+    new = "New"
+    in_progress = "In Progress"
+    on_hold = "On Hold"
+    resolved = "Resolved"
+    closed = "Closed"
+    canceled = "Canceled"
+
+
+class ServiceNowIncidentUpdate(ForwardModel):
+    """
+    One update Forward made to an incident's work notes (source ServiceNowIncidentUpdate.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    snapshot_creation_time: Annotated[int, Field(alias="snapshotCreationTime")]
+    """
+    Epoch milliseconds.
+    """
+    total_failures: Annotated[int, Field(alias="totalFailures")]
 
 
 class Impact(OpenEnum):
@@ -9499,6 +9838,22 @@ class SrcCmdbConfigurationItemSchema(ForwardModel):
     name: str
 
 
+class SrcConfigurationItemFieldRelation(ForwardModel):
+    """
+    Maps one CMDB field to an NQE column (source ConfigurationItemFieldRelation.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cmdb_field: Annotated[SrcCmdbConfigurationItemField, Field(alias="cmdbField")]
+    query_column_name: Annotated[str | None, Field(alias="queryColumnName")] = None
+    """
+    The NQE column that fills the field; absent leaves it unmapped.
+    """
+
+
 class SrcControllerAndManagedDeviceSelection(ForwardModel):
     """
     Selects devices for a test or bulk delete. Exactly one of names or setupNames must be non-empty (Java Requests.validate, 400 otherwise).
@@ -9573,7 +9928,7 @@ class CollectionSourceType(OpenEnum):
     controller_managed = "CONTROLLER_MANAGED"
 
 
-class Status11(OpenEnum):
+class Status12(OpenEnum):
     production = "PRODUCTION"
     tech_preview = "TECH_PREVIEW"
     internal = "INTERNAL"
@@ -9597,7 +9952,7 @@ class SrcDeviceConnTypeInfo(ForwardModel):
     secondary_cli_credential_types: Annotated[
         list[str] | None, Field(alias="secondaryCliCredentialTypes")
     ] = None
-    status: Status11
+    status: Status12
     vendor: str
 
 
@@ -10041,77 +10396,43 @@ class SrcSeededDiscoveryParams(ForwardModel):
 
 class SyncConfig(ForwardModel):
     """
-    Java CmdbSyncConfig.
+    The networks to sync (Java CmdbSyncConfig). At least one.
     """
 
     model_config = ConfigDict(
         extra="allow",
         populate_by_name=True,
     )
-    network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
+    network_ids: Annotated[list[str], Field(alias="networkIds", min_length=1)]
 
 
-class SrcServiceNowCmdbConfiguration(ForwardModel):
+class SrcServiceNowCmdbProxyConfig(ForwardModel):
     """
-    Body of POST integrations/servicenow-cmdb/configuration (Java ServiceNowCmdbConfiguration). Nested mapping objects are not modeled.
-    """
-
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    enabled: bool | None = None
-    mappings: list[dict[str, Any]] | None = None
-    """
-    Configuration item mappings (Java CmdbConfigurationItemMapping; not modeled).
-    """
-    settings: dict[str, Any] | None = None
-    """
-    Connection name, connection details, source name (Java ServiceNowCmdbSettings; nested shape not modeled).
-    """
-    sync_config: Annotated[SyncConfig | None, Field(alias="syncConfig")] = None
-    """
-    Java CmdbSyncConfig.
-    """
-
-
-class SrcServiceNowCmdbConnectionDetails(ForwardModel):
-    """
-    ServiceNow connection details (Java ServiceNowCmdbConnectionDetails). Credentials are sent in the body.
+    HTTP proxy for reaching ServiceNow (source ServiceNowCmdbProxyConfig.java). username is required when password or realm is given.
     """
 
     model_config = ConfigDict(
         extra="allow",
         populate_by_name=True,
     )
-    certificate: str | None = None
-    client_id: Annotated[str | None, Field(alias="clientId")] = None
-    client_secret: Annotated[str | None, Field(alias="clientSecret")] = None
-    instance_url: Annotated[AnyUrl, Field(alias="instanceUrl")]
-    password: str
-    proxy_config: Annotated[dict[str, Any] | None, Field(alias="proxyConfig")] = None
-    username: str
-
-
-class SrcServiceNowCmdbSchemaRequest(ForwardModel):
+    host: AnyUrl
+    password: str | None = None
     """
-    Body of POST integrations/servicenow-cmdb?view=schema (Java CmdbConnectionDetailsAndClassNames).
+    Reads back as "" when set. On save an empty or absent password with a username keeps the stored one, if host, port and username are unchanged.
     """
-
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    class_names: Annotated[list[str], Field(alias="classNames")]
-    connection_details: Annotated[
-        SrcServiceNowCmdbConnectionDetails, Field(alias="connectionDetails")
-    ]
+    port: int
+    realm: str | None = None
+    username: str | None = None
 
 
 class AutoCreateImpact(OpenEnum):
-    high = "HIGH"
-    medium = "MEDIUM"
-    low = "LOW"
+    """
+    ServiceNow's numeric level as a string ("1" high, "2" medium, "3" low), not the level name (source ServiceNowIncidentLevel.toJson). Defaults to "3".
+    """
+
+    high = "1"
+    medium = "2"
+    low = "3"
 
 
 class SrcServiceNowSettings(ForwardModel):
@@ -10124,8 +10445,14 @@ class SrcServiceNowSettings(ForwardModel):
         populate_by_name=True,
     )
     auto_create: Annotated[bool, Field(alias="autoCreate")]
-    auto_create_impact: Annotated[AutoCreateImpact | None, Field(alias="autoCreateImpact")] = None
-    auto_create_urgency: Annotated[AutoCreateImpact | None, Field(alias="autoCreateUrgency")] = None
+    auto_create_impact: Annotated[AutoCreateImpact, Field(alias="autoCreateImpact")]
+    """
+    ServiceNow's numeric level as a string ("1" high, "2" medium, "3" low), not the level name (source ServiceNowIncidentLevel.toJson). Defaults to "3".
+    """
+    auto_create_urgency: Annotated[AutoCreateImpact, Field(alias="autoCreateUrgency")]
+    """
+    ServiceNow's numeric level as a string ("1" high, "2" medium, "3" low), not the level name (source ServiceNowIncidentLevel.toJson). Defaults to "3".
+    """
     auto_update: Annotated[bool, Field(alias="autoUpdate")]
     certificate: str | None = None
     """
@@ -10135,11 +10462,11 @@ class SrcServiceNowSettings(ForwardModel):
     instance_url: Annotated[AnyUrl, Field(alias="instanceUrl")]
     password: str | None = None
     """
-    Java serializes the stored password on GET (source-only; the live account has no ServiceNow settings, so GET returned 404).
+    Forward never returns the stored password: it reads "" when one is set and is absent when a token is used (source ServiceNowSettings.getPasswordJson).
     """
     token: str | None = None
     """
-    Alternative to username and password. Java serializes the stored token on GET (source-only).
+    Alternative to username and password. Reads "" when set, never the token itself (source ServiceNowSettings.getTokenJson).
     """
     username: str | None = None
 
@@ -10228,7 +10555,7 @@ class SrcUnsupportedCustomCommand(ForwardModel):
 
 class SrcUpdateServiceNowSettings(ForwardModel):
     """
-    Partial update of ServiceNow settings (Java UpdateServiceNowSettings). Give either token or username and password, never both (Java Preconditions). certificate is accepted on-premises only.
+    Partial update of ServiceNow settings (Java UpdateServiceNowSettings). Give either token or username and password, never both (400 otherwise); a token replaces stored username and password and vice versa. certificate is accepted on premises only; an empty certificate clears it. instanceUrl can be set only when no settings exist yet (source UpdateServiceNowSettings.applyTo).
     """
 
     model_config = ConfigDict(
@@ -10237,7 +10564,13 @@ class SrcUpdateServiceNowSettings(ForwardModel):
     )
     auto_create: Annotated[bool | None, Field(alias="autoCreate")] = None
     auto_create_impact: Annotated[AutoCreateImpact | None, Field(alias="autoCreateImpact")] = None
+    """
+    ServiceNow's numeric level as a string ("1" high, "2" medium, "3" low), not the level name (source ServiceNowIncidentLevel.toJson). Defaults to "3".
+    """
     auto_create_urgency: Annotated[AutoCreateImpact | None, Field(alias="autoCreateUrgency")] = None
+    """
+    ServiceNow's numeric level as a string ("1" high, "2" medium, "3" low), not the level name (source ServiceNowIncidentLevel.toJson). Defaults to "3".
+    """
     auto_update: Annotated[bool | None, Field(alias="autoUpdate")] = None
     certificate: str | None = None
     enabled: bool | None = None
@@ -10960,7 +11293,7 @@ class SysCustomBannerList(ForwardModel):
     banners: list[SysCustomBanner]
 
 
-class Status12(OpenEnum):
+class Status13(OpenEnum):
     valid = "VALID"
     invalid_license = "INVALID_LICENSE"
     invalid_signature = "INVALID_SIGNATURE"
@@ -11130,7 +11463,7 @@ class SysLicenseDetails(ForwardModel):
     """
 
 
-class Status13(OpenEnum):
+class Status14(OpenEnum):
     not_active_yet = "NOT_ACTIVE_YET"
     active = "ACTIVE"
     expired = "EXPIRED"
@@ -11142,7 +11475,7 @@ class SysLicenseDetailsWithStatus(SysLicenseDetails):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status13 | None = None
+    status: Status14 | None = None
 
 
 class LicenseStatus(OpenEnum):
@@ -11706,7 +12039,7 @@ class ThreatTablePagingOptions(ForwardModel):
     offset: Annotated[int | None, Field(ge=0)] = None
 
 
-class Status14(OpenEnum):
+class Status15(OpenEnum):
     neutral = "NEUTRAL"
     ok = "OK"
     warning = "WARNING"
@@ -11718,7 +12051,7 @@ class ThresholdRule(ForwardModel):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status14 | None = None
+    status: Status15 | None = None
     value: float | None = None
     """
     Null marks the default rule.
@@ -11824,6 +12157,328 @@ class TotalHits(ForwardModel):
     *LOWER_BOUND*: There may be additional hits that were not included in the results either because the
     requested number of hits were found, or the request timed out.
     *EXACT*: There are exactly this many hits.
+    """
+    value: int | None = None
+
+
+class TraceAction(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    field: str | None = None
+    """
+    SET_FIELD/POP: the header field.
+    """
+    type: str | None = None
+    """
+    SET_FIELD, POP, PERMIT, DENY, RECEIVE, DROP, ... (open).
+    """
+    value: Any | None = None
+    """
+    SET_FIELD: the new value (a string live).
+    """
+
+
+class TraceActionBucket(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    actions: list[TraceAction] | None = None
+    attributes: dict[str, Any] | None = None
+
+
+class Link1(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    source: str | None = None
+    source_port: Annotated[str | None, Field(alias="sourcePort")] = None
+    target: str | None = None
+    target_port: Annotated[str | None, Field(alias="targetPort")] = None
+
+
+class TraceCoveredTopology(ForwardModel):
+    """
+    The devices and links the results cover. Live links carry only sourcePort and targetPort ('<device>,<port>'); the source comment also shows source and target.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    hosts: list[dict[str, Any]] | None = None
+    links: list[Link1] | None = None
+    nodes: list[Node] | None = None
+
+
+class TraceDeviceInfo(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_type: Annotated[str | None, Field(alias="deviceType")] = None
+    location_id: Annotated[str | None, Field(alias="locationId")] = None
+    requested_device_name: Annotated[str | None, Field(alias="requestedDeviceName")] = None
+    """
+    Present on virtual devices (contexts, vsys).
+    """
+
+
+class TraceDiffsRequest(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    details: str
+    """
+    The traceDiffReq of a getTrace response on the before snapshot, unchanged (base64).
+    """
+    max_duration_seconds: Annotated[int | None, Field(alias="maxDurationSeconds")] = None
+    """
+    Default 30, at most 600.
+    """
+    max_results: Annotated[int | None, Field(alias="maxResults")] = None
+    """
+    1..10000, default 5000.
+    """
+
+
+class TraceFlowBehavior(ForwardModel):
+    """
+    A behavioural signature: the processing stages per hop (INPUT, L2, IPV4, IN_ACL, OUT_ACL, IN_POLICY_ACL, OUT_POLICY_ACL, DNAT, SNAT, IN_EXTERNAL_VRF, OUT_EXTERNAL_VRF, OUTPUT, ...) and the hops where an ACL dropped the packet. Send a facets behaviorSample back unchanged; do not rebuild it.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    acl_drop_hops: Annotated[list[int] | None, Field(alias="aclDropHops")] = None
+    processing_stages: Annotated[list[list[str]] | None, Field(alias="processingStages")] = None
+
+
+class Flow(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    covered_topo: Annotated[TraceCoveredTopology | None, Field(alias="coveredTopo")] = None
+    flow_type: Annotated[str | None, Field(alias="flowType")] = None
+    hops: list[dict[str, Any]] | None = None
+    """
+    Internal forwarding-rule hops (rule, table, parent, actionBucketIndex, actionIndex, in_hs, out_hs, in_ports, out_ports); not modelled.
+    """
+
+
+class TraceHopDiff(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    a: int | None = None
+    """
+    Hop index in the before trace.
+    """
+    b: int | None = None
+    """
+    Hop index in the after trace.
+    """
+    diff_type: Annotated[str | None, Field(alias="diffType")] = None
+    """
+    ADDED, DELETED, MODIFIED (source) or UNCHANGED (live).
+    """
+
+
+class TraceLineRange(Line):
+    pass
+
+
+class TraceLocationFilter(ForwardModel):
+    """
+    Where the flow starts. {type: SubnetLocationFilter, value: <ip or prefix>, device?: <device to resolve it on>} or {type: DeviceFilter, values: [<device>]}. Other filter types exist in the GUI and are not traced.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device: str | None = None
+    """
+    SubnetLocationFilter: resolve the address on this device.
+    """
+    type: str | None = None
+    """
+    SubnetLocationFilter or DeviceFilter (others not traced).
+    """
+    value: str | None = None
+    """
+    SubnetLocationFilter: the source address or prefix.
+    """
+    values: list[str] | None = None
+    """
+    DeviceFilter: the device names.
+    """
+
+
+class TraceNetworkFunction(ForwardModel):
+    """
+    One thing a device did to the packet.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    action_buckets: Annotated[list[TraceActionBucket] | None, Field(alias="actionBuckets")] = None
+    attributes: dict[str, Any] | None = None
+    """
+    Name (NAME, VRF, ROUTE_TYPE, ACL_CONTEXT, APPLIED_ACLS, ...) to values; live values were string lists.
+    """
+    file_lines: Annotated[dict[str, list[TraceLineRange]] | None, Field(alias="fileLines")] = None
+    """
+    '<device>,<file>' to 0-based inclusive line ranges in the collected file.
+    """
+    matches: dict[str, Any] | None = None
+    """
+    Header field to matched values; live values were string lists.
+    """
+    processing_stage_type: Annotated[str | None, Field(alias="processingStageType")] = None
+    tags: list[str] | None = None
+    type: str | None = None
+    """
+    L2_INPUT, L3_INPUT, MAC_FORWARDING, ARP, IP_ROUTE, ACCESS_CONTROL, INGRESS_ZONE, EGRESS_ZONE, DNAT, SNAT, L2_OUTPUT, L3_OUTPUT, ... (open).
+    """
+
+
+class TracePacketFilter(ForwardModel):
+    """
+    One header filter, e.g. {type: PacketFilter, values: {ip_proto: ["6"]}}. Known fields: ip_proto, tp_src, tp_dst, ipv4_dst (ipv6_dst for IPv6, not verified).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    type: str | None = None
+    """
+    PacketFilter.
+    """
+    values: dict[str, list[str]] | None = None
+
+
+class TracePathFacet(ForwardModel):
+    """
+    One distinct device path. Parallel links and different behaviours on one device path collapse into one entry.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    behavior_sample: Annotated[TraceFlowBehavior | None, Field(alias="behaviorSample")] = None
+    group_signature_hops: Annotated[list[int] | None, Field(alias="groupSignatureHops")] = None
+    out_to_overlay_link_hops: Annotated[list[int] | None, Field(alias="outToOverlayLinkHops")] = (
+        None
+    )
+    overlay_signature: Annotated[list[int] | None, Field(alias="overlaySignature")] = None
+    path: list[str] | None = None
+
+
+class TracePathGroup(ForwardModel):
+    """
+    Paths sharing one trace type. Several groups can carry the same traceType.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    paths: list[TracePathFacet] | None = None
+    trace_type: Annotated[str | None, Field(alias="traceType")] = None
+    """
+    VALID, DROPPED, BLACKHOLE, LOOP, INADMISSIBLE, UNREACHABLE, ... (open).
+    """
+
+
+class Location1(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device: str | None = None
+    subnet: str | None = None
+
+
+class TracePossibleIpLocationGroup(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    locations: list[Location1] | None = None
+    type: str | None = None
+    """
+    INTERFACE or HOST (source: IpLocationOrigin).
+    """
+
+
+class TracePossibleIpLocations(ForwardModel):
+    """
+    Present only when the source (from) or destination (to) address is at more than one place; pick one and query again with its device.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    from_: Annotated[TracePossibleIpLocationGroup | None, Field(alias="from")] = None
+    to: TracePossibleIpLocationGroup | None = None
+
+
+class TraceRespTracesRequest(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    details: str
+    """
+    The respTraceReq of a getTrace response, unchanged (base64).
+    """
+    max_duration_seconds: Annotated[int | None, Field(alias="maxDurationSeconds")] = None
+    """
+    Default 30, at most 600.
+    """
+    max_results: Annotated[int | None, Field(alias="maxResults")] = None
+    """
+    1..10000, default 5000.
+    """
+
+
+class TraceSelectedPath(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    behavior: TraceFlowBehavior | None = None
+    path: list[str] | None = None
+    """
+    The device path, from a facets path group.
+    """
+    trace_type: Annotated[str | None, Field(alias="traceType")] = None
+    """
+    The trace type of that path group.
+    """
+
+
+class TraceTotalHits(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    type: str | None = None
+    """
+    EXACT or LOWER_BOUND.
     """
     value: int | None = None
 
@@ -12035,7 +12690,7 @@ class UserAccountApiTokenAndSecret(ForwardModel):
     token: UserAccountApiToken
 
 
-class Status15(OpenEnum):
+class Status16(OpenEnum):
     active = "ACTIVE"
     expired = "EXPIRED"
 
@@ -12049,7 +12704,7 @@ class UserAccountApiTokenView(UserAccountApiToken):
         extra="allow",
         populate_by_name=True,
     )
-    status: Status15 | None = None
+    status: Status16 | None = None
 
 
 class UserAccountBulkEdit(ForwardModel):
@@ -12652,7 +13307,7 @@ class VulnerabilityDevice(ForwardModel):
     """
 
 
-class Status16(OpenEnum):
+class Status17(OpenEnum):
     """
     The device’s vulnerability status for the CVE.
     """
@@ -12684,7 +13339,7 @@ class VulnerabilityDeviceWithResult(VulnerabilityDevice):
     The device’s [detection result](https://docs.fwd.app/latest/application/security/vulnerability/#detection-results)
     for the CVE.
     """
-    status: Annotated[Status16 | None, Field(examples=["VULNERABLE"])] = None
+    status: Annotated[Status17 | None, Field(examples=["VULNERABLE"])] = None
     """
     The device’s vulnerability status for the CVE.
     """
@@ -14506,6 +15161,19 @@ class CloudObjectDiffStats(ForwardModel):
     cloud_objects: Annotated[list[CloudObjectDiffStat] | None, Field(alias="cloudObjects")] = None
 
 
+class CmdbPayloadPreview(ForwardModel):
+    """
+    What a CMDB push would write. Exactly one of error and tables is present (source CmdbPayloadPreview.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    error: str | None = None
+    tables: list[CmdbTablePayload] | None = None
+
+
 class CollectionScheduleDefinition(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -14892,7 +15560,7 @@ class DashboardPatch(ForwardModel):
     name: str | None = None
 
 
-class Status3(ForwardModel):
+class Status4(ForwardModel):
     """
     How the most recent collection from this connector went. Absent unless `?with=status` is used, and absent then
     too if the network has no processed Snapshot or that Snapshot didn’t collect this connector.
@@ -14995,6 +15663,18 @@ class DataFileInfo(Attribution):
     uploaded_at: Annotated[str | None, Field(alias="uploadedAt")] = None
     uploaded_by: Annotated[str | None, Field(alias="uploadedBy")] = None
     uploaded_by_id: Annotated[str | None, Field(alias="uploadedById")] = None
+
+
+class DecoDecorationsResponse(ForwardModel):
+    """
+    Result of decorateEntities (source: SnapshotDecorationsResponse.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    entity_decorations: Annotated[list[DecoEntityDecoration], Field(alias="entityDecorations")]
 
 
 class DevRoutingInstalledPrefixes(ForwardModel):
@@ -15411,7 +16091,7 @@ class Disp2CollectorTaskWithSubTasks(ForwardModel):
     """
     Omitted until the task starts (source: NON_NULL).
     """
-    status: Status5
+    status: Status6
     """
     The task's state (source: TaskStatus).
     """
@@ -16702,6 +17382,24 @@ class NewSecurityMatrixFilter(ForwardModel):
     """
 
 
+class NewServiceNowIncident(ForwardModel):
+    """
+    An incident to raise in ServiceNow (source NewServiceNowIncident.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    details: str | None = None
+    """
+    Optional. Forward trims it and appends a link back to the check.
+    """
+    impact: ServiceNowIncidentLevel
+    summary: Annotated[str, Field(min_length=1)]
+    urgency: ServiceNowIncidentLevel
+
+
 class NewSnmpCredential(ForwardModel):
     """
     communityString applies to V2C, authSettings to V3.
@@ -17508,7 +18206,7 @@ class PredictIEntryCheckResult(ForwardModel):
     entry: PredictIEntry
     entry_type: Annotated[str, Field(alias="entryType")]
     name: str
-    status: Status8
+    status: Status9
 
 
 class PredictSnapshotPredictInfo(ForwardModel):
@@ -17885,6 +18583,90 @@ class ServiceNowChangeRequest(ForwardModel):
     """
 
 
+class ServiceNowCmdbError(ForwardModel):
+    """
+    A classified ServiceNow CMDB error (source ServiceNowCmdbError.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    count: Annotated[int, Field(ge=1)]
+    """
+    How many times this error occurred. Always at least 1.
+    """
+    error_type: Annotated[ErrorType1, Field(alias="errorType")]
+    field_context: Annotated[
+        ServiceNowCmdbErrorFieldContext | None, Field(alias="fieldContext")
+    ] = None
+    remediation_steps: Annotated[str | None, Field(alias="remediationSteps")] = None
+    technical_details: Annotated[str | None, Field(alias="technicalDetails")] = None
+    user_message: Annotated[str, Field(alias="userMessage")]
+
+
+class ServiceNowCmdbTestResult(ForwardModel):
+    """
+    Both fields are absent when the connection works (source ServiceNowCmdbTestResult.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    error: ServiceNowCmdbError | None = None
+    error_message: Annotated[str | None, Field(alias="errorMessage")] = None
+
+
+class ServiceNowIncident(ForwardModel):
+    """
+    An incident as ServiceNow reports it (source ServiceNowIncident.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    details: str | None = None
+    impact: ServiceNowIncidentLevel
+    number: str
+    state: ServiceNowIncidentState
+    summary: str | None = None
+    """
+    Absent for incidents created in ServiceNow without one.
+    """
+    sys_id: Annotated[str, Field(alias="sysId")]
+    urgency: ServiceNowIncidentLevel
+    url: AnyUrl
+    """
+    The incident's page in ServiceNow.
+    """
+
+
+class ServiceNowIncidentLink(ForwardModel):
+    """
+    A ServiceNow incident linked to a check, as Forward stores it. Only these four fields are serialized (source ServiceNowIncidentBasicInfo.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    check_id: Annotated[str, Field(alias="checkId")]
+    """
+    The check the incident is linked to.
+    """
+    number: str
+    """
+    The ServiceNow incident number.
+    """
+    state: ServiceNowIncidentState
+    state_last_updated: Annotated[int, Field(alias="stateLastUpdated")]
+    """
+    Epoch milliseconds when Forward last read the state from ServiceNow.
+    """
+
+
 class ServiceObjectCollection(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -18200,6 +18982,28 @@ class SnmpEndpointProfile(SnmpEndpointProfileDef):
     """
 
 
+class SrcCmdbConfigurationItemMapping(ForwardModel):
+    """
+    Maps one CMDB class to an NQE query (source CmdbConfigurationItemMapping.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    field_relations: Annotated[
+        list[SrcConfigurationItemFieldRelation], Field(alias="fieldRelations", min_length=1)
+    ]
+    name: str
+    """
+    The CMDB class name.
+    """
+    query_id: Annotated[str, Field(alias="queryId")]
+    """
+    The NQE query whose rows fill the class.
+    """
+
+
 class SrcCustomCommandGroup(ForwardModel):
     """
     A stored custom command group. A group holds commands (CLI) or oids (SNMP), never both. Live sample keys: name, deviceConnTypes, commands, type, disabled. Java omits empty fields (NON_EMPTY).
@@ -18286,6 +19090,70 @@ class SrcDiscoveryParams(
     """
 
 
+class SrcServiceNowCmdbConnectionDetails(ForwardModel):
+    """
+    ServiceNow connection details (Java ServiceNowCmdbConnectionDetails). Credentials are sent in the body. Forward writes stored secrets as "" so a read configuration can be saved back unchanged (source withStoredSecrets).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    certificate: str | None = None
+    """
+    X.509 certificate to trust.
+    """
+    client_id: Annotated[str | None, Field(alias="clientId")] = None
+    """
+    OAuth client id.
+    """
+    client_secret: Annotated[str | None, Field(alias="clientSecret")] = None
+    """
+    Required with clientId. Reads back as "" when set; on save an empty one keeps the stored secret while instanceUrl and clientId are unchanged.
+    """
+    instance_url: Annotated[AnyUrl, Field(alias="instanceUrl")]
+    password: str | None = None
+    """
+    Reads back as "" when set. On save an empty or absent password keeps the stored one while instanceUrl and username are unchanged (400 otherwise).
+    """
+    proxy_config: Annotated[SrcServiceNowCmdbProxyConfig | None, Field(alias="proxyConfig")] = None
+    username: str
+
+
+class SrcServiceNowCmdbSchemaRequest(ForwardModel):
+    """
+    Body of POST integrations/servicenow-cmdb?view=schema (Java CmdbConnectionDetailsAndClassNames).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    class_names: Annotated[list[str], Field(alias="classNames")]
+    connection_details: Annotated[
+        SrcServiceNowCmdbConnectionDetails, Field(alias="connectionDetails")
+    ]
+
+
+class SrcServiceNowCmdbSettings(ForwardModel):
+    """
+    The CMDB connection (source ServiceNowCmdbSettings.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    connection_details: Annotated[
+        SrcServiceNowCmdbConnectionDetails, Field(alias="connectionDetails")
+    ]
+    connection_name: Annotated[str, Field(alias="connectionName")]
+    source_name: Annotated[str, Field(alias="sourceName")]
+    """
+    A discovery source name from listServiceNowCmdbDiscoverySources.
+    """
+
+
 class SrcSetupDevice(ForwardModel):
     """
     A controller or guest device in a controller-managed setup. Live sample keys: name, type, host, httpCredentialId, cliCredentialId, collect, attribution fields, testResult. Java DeviceSetup has more optional fields (port, credential2/3, terminalWidth, bgpAdvertisementCollectionOptions, snmpCollectionConfig...) that are not modeled here.
@@ -18359,7 +19227,7 @@ class SysDecodedLicenseKey(ForwardModel):
     """
     Whether the license has started by now.
     """
-    status: Status12
+    status: Status13
 
 
 class SysDeploymentArtifact(ForwardModel):
@@ -18694,6 +19562,217 @@ class TopologyDiff(ForwardModel):
     deleted: Annotated[list[TopologyLink] | None, Field(alias="DELETED")] = None
 
 
+class TraceBehaviorsResponse(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    behaviors: list[TraceFlowBehavior] | None = None
+    timed_out: Annotated[bool | None, Field(alias="timedOut")] = None
+
+
+class TraceDeviceHop(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device: str | None = None
+    drop_tables: Annotated[Any | None, Field(alias="dropTables")] = None
+    """
+    Not traced (Go SDK keeps it raw).
+    """
+    headers: dict[str, dict[str, Any]] | None = None
+    in_ports: Annotated[list[str] | None, Field(alias="inPorts")] = None
+    """
+    '<device>,<port>'.
+    """
+    network_functions: Annotated[
+        dict[str, list[TraceNetworkFunction]] | None, Field(alias="networkFunctions")
+    ] = None
+    """
+    Layer (INPUT, L2, L3, ACCESS_CONTROL, NAT, OUTPUT) to the functions applied.
+    """
+    out_ports: Annotated[list[str] | None, Field(alias="outPorts")] = None
+    """
+    Absent on the hop that dropped or ended the packet.
+    """
+    out_to_overlay_link: Annotated[bool | None, Field(alias="outToOverlayLink")] = None
+
+
+class TraceEndpointFilter(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    headers: list[TracePacketFilter] | None = None
+    location: TraceLocationFilter | None = None
+
+
+class TraceFacets(ForwardModel):
+    """
+    The flow facets (source: FlowFacetSerializer, not traced field by field). Live: pathGroups, outcomes, devices, traceTypes, forwardingTypes, firstHopIngressFacets, lastHopEgressFacets.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    devices: list[str] | None = None
+    first_hop_ingress_facets: Annotated[
+        dict[str, Any] | None, Field(alias="firstHopIngressFacets")
+    ] = None
+    """
+    inPorts and headerFacets (field to values) at the first hop.
+    """
+    forwarding_types: Annotated[dict[str, list[str]] | None, Field(alias="forwardingTypes")] = None
+    """
+    Forwarding type (L2, L3, ...) to device names.
+    """
+    last_hop_egress_facets: Annotated[dict[str, Any] | None, Field(alias="lastHopEgressFacets")] = (
+        None
+    )
+    """
+    outPorts and headerFacets (field to values) at the last hop.
+    """
+    outcomes: dict[str, list[str]] | None = None
+    """
+    Trace type to device names.
+    """
+    path_groups: Annotated[list[TracePathGroup] | None, Field(alias="pathGroups")] = None
+    trace_types: Annotated[list[str] | None, Field(alias="traceTypes")] = None
+
+
+class TraceFacetsResponse(ForwardModel):
+    """
+    getTraceFacets response (source: TraceFacetRespSerializer). totalResults is omitted when timedOut. The Go SDK also reads pathGroups and outcomes at the top level for safety; Forward nests them in facets.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    covered_topo: Annotated[TraceCoveredTopology | None, Field(alias="coveredTopo")] = None
+    devices: dict[str, TraceDeviceInfo] | None = None
+    facets: TraceFacets | None = None
+    logical_networks: Annotated[dict[str, list[str]] | None, Field(alias="logicalNetworks")] = None
+    """
+    Logical network name to its device names (when any).
+    """
+    paged_results: Annotated[int | None, Field(alias="pagedResults")] = None
+    """
+    Flows the facets were computed over.
+    """
+    possible_ip_locations: Annotated[
+        TracePossibleIpLocations | None, Field(alias="possibleIpLocations")
+    ] = None
+    timed_out: Annotated[bool | None, Field(alias="timedOut")] = None
+    total_results: Annotated[TraceTotalHits | None, Field(alias="totalResults")] = None
+
+
+class TraceFlowsResponse(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    flows: list[Flow] | None = None
+    paged_flows: Annotated[int | None, Field(alias="pagedFlows")] = None
+    total_flows: Annotated[TraceTotalHits | None, Field(alias="totalFlows")] = None
+
+
+class TracePathQuery(ForwardModel):
+    """
+    The GUI's PathQuery. Put the source in from.location and EVERY header filter (including ipv4_dst) in from.headers: a destination under to returned zero paths live (Go SDK), because to constrains where the packet leaves the network.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    from_: Annotated[TraceEndpointFilter | None, Field(alias="from")] = None
+    to: TraceEndpointFilter | None = None
+
+
+class TraceResult(ForwardModel):
+    """
+    One sample flow's trace (source: TraceResponseSerializer). When no flow matched, only timedOut is present.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    behavior: TraceFlowBehavior | None = None
+    covered_topo: Annotated[TraceCoveredTopology | None, Field(alias="coveredTopo")] = None
+    device_hops: Annotated[list[TraceDeviceHop] | None, Field(alias="deviceHops")] = None
+    egress_host_sample: Annotated[list[dict[str, Any]] | None, Field(alias="egressHostSample")] = (
+        None
+    )
+    """
+    Not traced.
+    """
+    group_signature_hops: Annotated[list[int] | None, Field(alias="groupSignatureHops")] = None
+    ingress_headers: Annotated[dict[str, dict[str, Any]] | None, Field(alias="ingressHeaders")] = (
+        None
+    )
+    ingress_host_sample: Annotated[
+        list[dict[str, Any]] | None, Field(alias="ingressHostSample")
+    ] = None
+    """
+    Not traced.
+    """
+    missing_devices: Annotated[Any | None, Field(alias="missingDevices")] = None
+    """
+    Devices on the path missing from the snapshot (shape not traced).
+    """
+    num_egress_hosts: Annotated[int | None, Field(alias="numEgressHosts")] = None
+    num_ingress_hosts: Annotated[int | None, Field(alias="numIngressHosts")] = None
+    path_descriptor: Annotated[str | None, Field(alias="pathDescriptor")] = None
+    """
+    Opaque encoded path (NQE path descriptor).
+    """
+    resp_trace_req: Annotated[str | None, Field(alias="respTraceReq")] = None
+    """
+    Base64 RespFlowSpecPB; the details of getTraceResponses. Absent when no response trace applies (e.g. a drop).
+    """
+    statefulness: str | None = None
+    """
+    REQUEST or RESPONSE (open).
+    """
+    timed_out: Annotated[bool | None, Field(alias="timedOut")] = None
+    """
+    Only written on an empty result.
+    """
+    trace_diff_req: Annotated[str | None, Field(alias="traceDiffReq")] = None
+    """
+    Base64 compressed TraceDiffsFlowSpecPB; the details of getTraceDiffs.
+    """
+    trace_type: Annotated[str | None, Field(alias="traceType")] = None
+
+
+class TraceResultWithDiffs(TraceResult):
+    """
+    A trace in the after snapshot plus hopDiffs. It has no respTraceReq or traceDiffReq.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    hop_diffs: Annotated[list[TraceHopDiff] | None, Field(alias="hopDiffs")] = None
+
+
+class TraceSelectedFacets(ForwardModel):
+    """
+    The facets the user selected. getTrace needs exactly one path with its behavior; getTraceBehaviors one path without; getTraceFlows any number.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    paths: list[TraceSelectedPath] | None = None
+
+
 class UserAccountApiTokenList(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -18982,6 +20061,32 @@ class CliEndpointProfile(CliEndpointProfileDef):
     id: Annotated[str, Field(examples=["CLI-7"])]
     """
     System-assigned identifier of this endpoint profile. Always begins with "CLI-".
+    """
+
+
+class CmdbSynchronizationInfo(ForwardModel):
+    """
+    One push for one network (source CmdbSynchronizationInfo.java with ServiceNowCmdbPushStatus unwrapped).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    entities_inserted: Annotated[int | None, Field(alias="entitiesInserted")] = None
+    entities_updated: Annotated[int | None, Field(alias="entitiesUpdated")] = None
+    error: str | None = None
+    """
+    Present when the push failed; then the counts are absent.
+    """
+    errors: list[ServiceNowCmdbError] | None = None
+    """
+    Structured errors, at most 100 kept. Omitted when empty.
+    """
+    network_name: Annotated[str, Field(alias="networkName")]
+    sync_instant: Annotated[int, Field(alias="syncInstant")]
+    """
+    Epoch milliseconds.
     """
 
 
@@ -19509,7 +20614,7 @@ class NqeExecutionStatus(ForwardModel):
     The number of rows produced by the query so far. This count may increase as execution progresses. Absent when
     `status` is `SUBMITTED`.
     """
-    status: Status7
+    status: Status8
     """
     The current state of the query execution:
     - `SUBMITTED`: the query has been accepted and is queued, but execution has not yet begun.
@@ -20046,6 +21151,119 @@ class SrcScheduledDiscoveryDefinition(ForwardModel):
     """
 
 
+class SrcServiceNowCmdbConfiguration(ForwardModel):
+    """
+    The CMDB configuration (Java ServiceNowCmdbConfiguration), the body of POST and the answer of GET integrations/servicenow-cmdb/configuration.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    enabled: bool | None = None
+    """
+    Absent on save means false.
+    """
+    mappings: Annotated[list[SrcCmdbConfigurationItemMapping], Field(min_length=1)]
+    """
+    CMDB class to NQE query mappings. At least one.
+    """
+    settings: SrcServiceNowCmdbSettings
+    sync_config: Annotated[SyncConfig, Field(alias="syncConfig")]
+    """
+    The networks to sync (Java CmdbSyncConfig). At least one.
+    """
+
+
+class TraceDiffsResponse(ForwardModel):
+    """
+    Fields at their default are omitted (timedOut false, no error).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    devices: dict[str, TraceDeviceInfo] | None = None
+    error: str | None = None
+    """
+    FIRST_HOP_INTERFACE_MISSING (open).
+    """
+    timed_out: Annotated[bool | None, Field(alias="timedOut")] = None
+    total_results: Annotated[TraceTotalHits | None, Field(alias="totalResults")] = None
+    trace_groups: Annotated[list[list[TraceResultWithDiffs]] | None, Field(alias="traceGroups")] = (
+        None
+    )
+
+
+class TraceRequest(ForwardModel):
+    """
+    The GUI's trace request (source: FrontendTraceRequest), shared by getTraceFacets, getTrace, getTraceBehaviors and getTraceFlows. filters is required. Unknown fields are ignored by Forward.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    compute_cov_topo: Annotated[bool | None, Field(alias="computeCovTopo")] = None
+    """
+    Compute the covered topology (default true).
+    """
+    filters: TracePathQuery | None = None
+    header_fields_with_defaults: Annotated[
+        list[str] | None, Field(alias="headerFieldsWithDefaults")
+    ] = None
+    """
+    Header fields given default values at search time (source: SearchUtils; values not traced).
+    """
+    limit: int | None = None
+    """
+    Flows per page for getTraceFlows, 0..10000 (default 100). The Go SDK and GUI send 100 on getTrace.
+    """
+    max_duration_seconds: Annotated[int | None, Field(alias="maxDurationSeconds")] = None
+    """
+    Time budget, 1..300 (default 30). Past it the response is partial and timedOut is true.
+    """
+    max_results: Annotated[int | None, Field(alias="maxResults")] = None
+    """
+    The most flows the facets (or flows) are computed over, 1..10000 (default 5000; not used by getTrace).
+    """
+    noise_types: Annotated[list[str] | None, Field(alias="noiseTypes")] = None
+    """
+    Noise to include (source: NoiseType enum; values not traced). Omitted means none.
+    """
+    normalize_loops: Annotated[bool | None, Field(alias="normalizeLoops")] = None
+    """
+    Sample one flow per unique loop (default false).
+    """
+    null_agg_chain_logging_fraction: Annotated[
+        float | None, Field(alias="nullAggChainLoggingFraction")
+    ] = None
+    """
+    Internal logging fraction, 0..1. Leave unset.
+    """
+    security_view: Annotated[bool | None, Field(alias="securityView")] = None
+    """
+    Adds security hop indexes and saves a SECURITY_VIEW_PATH_SEARCH feature-usage event. Do not send (the Go SDK never does).
+    """
+    selected_facets: Annotated[TraceSelectedFacets | None, Field(alias="selectedFacets")] = None
+    start: int | None = None
+    """
+    First flow index for getTraceFlows paging (default 0).
+    """
+
+
+class TraceRespTracesResponse(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    devices: dict[str, TraceDeviceInfo] | None = None
+    timed_out: Annotated[bool | None, Field(alias="timedOut")] = None
+    total_results: Annotated[TraceTotalHits | None, Field(alias="totalResults")] = None
+    trace_groups: Annotated[list[list[TraceResult]] | None, Field(alias="traceGroups")] = None
+
+
 class AclDiffEntry(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -20082,6 +21300,18 @@ class CheckDiagnosis(ForwardModel):
     details: list[DiagnosisDetail] | None = None
     details_incomplete: Annotated[bool | None, Field(alias="detailsIncomplete")] = None
     summary: str | None = None
+
+
+class CmdbSynchronizationHistory(ForwardModel):
+    """
+    Past CMDB pushes (source CmdbSynchronizationHistory.java).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    infos: list[CmdbSynchronizationInfo]
 
 
 class ConnectivityDetailsValue(ForwardModel):
@@ -20162,7 +21392,7 @@ class DataConnector(Attribution):
     The `id` of a proxy server to route requests through. Absent if the Collector reaches the service
     directly.
     """
-    status: Status3 | None = None
+    status: Status4 | None = None
     """
     How the most recent collection from this connector went. Absent unless `?with=status` is used, and absent then
     too if the network has no processed Snapshot or that Snapshot didn’t collect this connector.

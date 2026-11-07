@@ -31,6 +31,10 @@ info:
 servers:
   - url: /api
 tags:
+  - name: Entity Decorators
+    description: NQE entity decorators and decorations; unpublished. See docs/services.md.
+  - name: Flow Trace
+    description: The Forward GUI's own flow-trace routes; unpublished, no stability promise.
   - name: SASE
     description: Zscaler SASE collection setups, their App Connectors and connectivity tests; unpublished.
   - name: Predict Reference
@@ -241,6 +245,17 @@ x-extend-schemas:
           examples: ["C3"]
   ClassicDevice:
     properties:
+        bmpStationHost:
+          type: string
+          description: >-
+            Host name or IP address of the BMP station the device sends BGP
+            monitoring to. Returned on a read because the stored device
+            serialises every DeviceSetup field (source: StoredClassicDevice,
+            DeviceSetup); Forward publishes it on the create and patch bodies
+            but not on the read. A batch write (putClassicDevices) rebuilds
+            each stored device from its item alone, so leaving it out clears
+            it.
+          examples: ["bmp.example.com"]
         collectorId:
           type: string
           description: >-
@@ -5553,7 +5568,7 @@ paths:
                 - id: "1"
                   name: Example group
                   externalGroupNames: [netops]
-                  networkRoles: { "228210": READ_ONLY }
+                  networkRoles: { "102": READ_ONLY }
                   deviceAccessLabelIds: []
     post:
       operationId: createAccessControlGroup
@@ -5577,7 +5592,7 @@ paths:
                 id: "2"
                 name: Example group
                 externalGroupNames: [netops]
-                networkRoles: { "228210": READ_ONLY }
+                networkRoles: { "102": READ_ONLY }
                 deviceAccessLabelIds: []
                 createdById: "2"
                 createdAt: "2026-10-17T00:00:00Z"
@@ -5649,7 +5664,7 @@ paths:
                 id: "2"
                 name: Example group
                 externalGroupNames: [netops, secops]
-                networkRoles: { "228210": OPERATOR }
+                networkRoles: { "102": OPERATOR }
                 deviceAccessLabelIds: ["1"]
                 createdById: "2"
                 createdAt: "2026-10-17T00:00:00Z"
@@ -5692,7 +5707,7 @@ paths:
                 id: "2"
                 name: Example group
                 externalGroupNames: [netops]
-                networkRoles: { "228210": OPERATOR }
+                networkRoles: { "102": OPERATOR }
                 deviceAccessLabelIds: []
   /device-access-labels:
     get:
@@ -5813,7 +5828,7 @@ paths:
               schema: { $ref: "#/components/schemas/Organization" }
               example:
                 # live: read-only test account, 2026-10-17
-                id: "1628"
+                id: "1"
                 name: Example Org
     patch:
       operationId: updateCurrentOrganization
@@ -5845,7 +5860,7 @@ paths:
                 items: { $ref: "#/components/schemas/OrganizationWithAdditionalInfo" }
               example:
                 # from source: web/.../OrgController.java and OrgWithAdditionalInfo.java (test account is 403 on this route)
-                - id: "1628"
+                - id: "1"
                   name: Example Org
                   softwareCentral: false
                   lastActiveAt: "2026-10-17T18:35:33Z"
@@ -6279,7 +6294,7 @@ paths:
                 # live: read-only test account (own user id), network ids kept, first two shown
                 org: [ADMIN]
                 network:
-                  "228210": ADMIN
+                  "102": ADMIN
                   "239213": ADMIN
   /users/{userId}/roles/network/{networkId}:
     post:
@@ -6455,9 +6470,9 @@ paths:
                 items: { $ref: "#/components/schemas/AdminNetwork" }
               example:
                 # from source: AdminController.getAccessibleNetworks (test account is 403 on this route)
-                - id: "228210"
+                - id: "102"
                   name: example-network
-                  orgId: "1628"
+                  orgId: "1"
                   orgName: Example Org
                   creatorId: "2"
                   creator: admin
@@ -6480,7 +6495,7 @@ paths:
               example:
                 # from source: UserController.getAccessibleUsers (test account is 403 on this route)
                 - id: "10206"
-                  orgId: "1628"
+                  orgId: "1"
                   username: example-user
                   email: user@example.invalid
                   enabled: true
@@ -6504,7 +6519,7 @@ paths:
               example:
                 # from source: UserController.lookUpUser (test account is 403 on this route)
                 id: "10206"
-                orgId: "1628"
+                orgId: "1"
                 username: example-user
                 email: user@example.invalid
                 enabled: true
@@ -9553,7 +9568,7 @@ paths:
     get:
       operationId: getServiceNowSettings
       summary: Read the ServiceNow connection
-      description: Returns the organization's ServiceNow settings. Gated by RequiresUser (any signed-in user). Forward answers 404 'ServiceNow settings not found for org' when none is configured (live-verified on this account). With settings present the body includes secret fields (see schema; source-only).
+      description: Returns the organization's ServiceNow settings. Gated by RequiresUser (any signed-in user). Forward answers 404 'ServiceNow settings not found for org' when none is configured (live-verified on this account). With settings present, password and token read "" when set (source ServiceNowSettings.getPasswordJson and getTokenJson).
       x-forward-stability: unpublished
       tags:
       - Integrations
@@ -9564,16 +9579,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SrcServiceNowSettings'
-              # from source: web/src/main/java/com/forwardnetworks/cv/servicenow/ServiceNowSettings.java; placeholder values, password shown as the Java field would hold it, redacted
+              # from source: web/src/main/java/com/forwardnetworks/cv/servicenow/ServiceNowSettings.java; placeholder values, password as Forward writes it (empty)
               example:
                 instanceUrl: https://example.service-now.invalid
                 username: api-user
-                password: <redacted>
+                password: ''
                 enabled: true
                 autoCreate: false
                 autoUpdate: true
-                autoCreateImpact: HIGH
-                autoCreateUrgency: MEDIUM
+                autoCreateImpact: '1'
+                autoCreateUrgency: '2'
         '404':
           description: No ServiceNow settings for the organization.
           content:
@@ -9608,16 +9623,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SrcServiceNowSettings'
-              # from source: web/src/main/java/com/forwardnetworks/cv/servicenow/ServiceNowSettings.java; placeholder values, password redacted
+              # from source: web/src/main/java/com/forwardnetworks/cv/servicenow/ServiceNowSettings.java; placeholder values, password as Forward writes it (empty)
               example:
                 instanceUrl: https://example.service-now.invalid
                 username: api-user
-                password: <redacted>
+                password: ''
                 enabled: true
                 autoCreate: false
                 autoUpdate: true
-                autoCreateImpact: HIGH
-                autoCreateUrgency: MEDIUM
+                autoCreateImpact: '1'
+                autoCreateUrgency: '2'
     delete:
       operationId: deleteServiceNowSettings
       summary: Remove the ServiceNow connection
@@ -9635,6 +9650,52 @@ paths:
                 maxProperties: 0
               # from source: web/src/main/java/com/forwardnetworks/cv/web/controller/ServiceNowController.java (EmptyObject); example is the empty object
               example: {}
+  /integrations/servicenow/incidents/{incidentNumber}:
+    get:
+      operationId: getServiceNowIncident
+      summary: Read a ServiceNow incident
+      description: "Reads the incident live from the organization's ServiceNow instance. impact and urgency are ServiceNow's numeric levels as strings (\"1\" high, \"2\" medium, \"3\" low); summary is absent for incidents created in ServiceNow without one. Requires only the deployment's OUTBOUND_CONNECTIONS and the ServiceNow integration settings (source: ServiceNowController.getIncidentDetailsFromServiceNow). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      parameters:
+        - { name: incidentNumber, in: path, required: true, description: "The ServiceNow incident number, such as INC0010001.", schema: { type: string } }
+      responses:
+        "200":
+          description: The incident.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceNowIncident" }
+              # synthetic fixture shaped like ServiceNowIncident.java
+              example: { number: INC0010001, sysId: "0123456789abcdef0123456789abcdef", summary: "Isolation check failed", impact: "2", urgency: "3", state: New, url: "https://example.service-now.invalid/nav_to.do?uri=/incident.do?sys_id=0123456789abcdef0123456789abcdef" }
+
+  /integrations/servicenow/incidents/{incidentNumber}?action=close:
+    post:
+      operationId: closeServiceNowIncident
+      summary: Close a ServiceNow incident
+      description: "Closes the incident in ServiceNow (skipped if ServiceNow already has it closed) and marks Forward's stored copy closed. Forward refuses with 400 'Cannot close incident <number>. Incident is still active.' while the incident still applies to a check, that is, while its check keeps failing and nobody resolved it; unlinkCheckServiceNowIncident is the way to detach it from a check. An incident Forward has no record of is closed in ServiceNow only. Answers 200 with no body. Changes state in ServiceNow. Requires OPERATE_CHECK_INTEGRATIONS and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowController.closeIncident). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      parameters:
+        - { name: incidentNumber, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Closed. No body. }
+
+  /integrations/servicenow/incidents?action=close:
+    post:
+      operationId: closeServiceNowIncidents
+      summary: Close several ServiceNow incidents
+      description: "Closes each numbered incident as closeServiceNowIncident does, with the same 400 if any of them is still active (checked for all before any is closed). The body is a JSON array of incident numbers (a set: duplicates collapse). Answers 204. Requires OPERATE_CHECK_INTEGRATIONS and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowController.closeIncidents). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: array, items: { type: string }, uniqueItems: true }
+            example: [INC0010001, INC0010002]
+      responses:
+        "204": { description: Closed. }
+
   /networks/{networkId}/end-host-scanners:
     get:
       operationId: listEndHostScanners
@@ -9827,7 +9888,7 @@ paths:
     post:
       operationId: saveServiceNowCmdbConfiguration
       summary: Save the CMDB configuration
-      description: 'Saves the CMDB configuration. Gated by MANAGE_SERVICENOW_CMDB and OUTBOUND_CONNECTIONS; the query ids in mappings are checked against the organization''s NQE license tier (Java). Returns 200 with no body. Live: not exercised.'
+      description: 'Saves the CMDB configuration. Gated by MANAGE_SERVICENOW_CMDB and OUTBOUND_CONNECTIONS; the query ids in mappings are checked against the organization''s NQE license tier (Java). Empty or absent secrets keep the stored ones while the instance and user are unchanged, so a configuration read with getServiceNowCmdbConfiguration can be saved back. Returns 200 with no body. Live: not exercised.'
       x-forward-stability: unpublished
       tags:
       - Integrations
@@ -9841,6 +9902,186 @@ paths:
       responses:
         '200':
           description: Saved. No body.
+    get:
+      operationId: getServiceNowCmdbConfiguration
+      summary: Read the CMDB configuration
+      description: "Returns the saved CMDB configuration. Stored secrets come back as empty strings: connectionDetails.password, connectionDetails.clientSecret and proxyConfig.password read \"\" when set and are absent when not (source: ServiceNowCmdbConnectionDetails and ServiceNowCmdbProxyConfig). 404 'No configuration found' when none is saved (seen live). Requires MANAGE_SERVICENOW_CMDB (source: ServiceNowCmdbController.getConfiguration). Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      responses:
+        "200":
+          description: The configuration.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SrcServiceNowCmdbConfiguration" }
+              # synthetic fixture shaped like ServiceNowCmdbConfiguration.java; secrets as Forward writes them (empty)
+              example: { settings: { connectionName: prod, connectionDetails: { instanceUrl: "https://example.service-now.invalid", username: api-user, password: "" }, sourceName: ForwardNetworks }, mappings: [{ name: cmdb_ci_ip_router, queryId: Q_0123456789abcdef, fieldRelations: [{ cmdbField: { label: Name, element: name, dataType: string, mandatory: true, maxLength: 255 }, queryColumnName: name }] }], syncConfig: { networkIds: ["101"] }, enabled: true }
+        "404": { description: No configuration saved. }
+    delete:
+      operationId: deleteServiceNowCmdbConfiguration
+      summary: Delete the CMDB configuration
+      description: "Removes the organization's CMDB configuration. Answers 200 with no body. Requires MANAGE_SERVICENOW_CMDB (source: ServiceNowCmdbController.deleteConfiguration). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      responses:
+        "200": { description: Deleted. No body. }
+  /integrations/servicenow-cmdb?action=disable:
+    post:
+      operationId: disableServiceNowCmdb
+      summary: Disable the ServiceNow CMDB sync
+      description: "Turns the configured CMDB sync off and keeps the configuration. Answers 204. Requires MANAGE_SERVICENOW_CMDB (source: ServiceNowCmdbController.disableConfiguration). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      responses:
+        "204": { description: Disabled. }
+
+  /integrations/servicenow-cmdb?action=push:
+    post:
+      operationId: pushServiceNowCmdb
+      summary: Push to the ServiceNow CMDB now
+      description: "Runs the configured mappings and writes the results to the CMDB at once instead of waiting for the next snapshot. Answers 204; read synchronization-history for the outcome. Changes state in ServiceNow. Requires MANAGE_SERVICENOW_CMDB and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowCmdbController.pushToServiceNowCmdb). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      responses:
+        "204": { description: Pushed. }
+
+  /integrations/servicenow-cmdb?view=configuration-items:
+    post:
+      operationId: listServiceNowCmdbConfigurationItems
+      summary: List the CMDB classes on a ServiceNow instance
+      description: "Returns the names of the configuration item classes the given ServiceNow instance offers. A POST because the credentials go in the body; nothing is saved. Requires MANAGE_SERVICENOW_CMDB and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowCmdbController.getConfigurationItems). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SrcServiceNowCmdbConnectionDetails" }
+      responses:
+        "200":
+          description: Class names.
+          content:
+            application/json:
+              schema: { type: array, items: { type: string }, uniqueItems: true }
+              example: [cmdb_ci_netgear, cmdb_ci_ip_router]
+
+  /integrations/servicenow-cmdb?view=discovery-sources:
+    post:
+      operationId: listServiceNowCmdbDiscoverySources
+      summary: List the discovery sources on a ServiceNow instance
+      description: "Returns the discovery source names the given ServiceNow instance accepts, for the sourceName of the CMDB settings. A POST because the credentials go in the body; nothing is saved. Requires MANAGE_SERVICENOW_CMDB and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowCmdbController.getDiscoverySources). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SrcServiceNowCmdbConnectionDetails" }
+      responses:
+        "200":
+          description: Discovery source names.
+          content:
+            application/json:
+              schema: { type: array, items: { type: string }, uniqueItems: true }
+              example: [ServiceNow, ForwardNetworks]
+
+  /integrations/servicenow-cmdb?view=payload&disposition=attachment:
+    get:
+      operationId: downloadServiceNowCmdbPayload
+      summary: Download a preview of what a CMDB push would send
+      description: "A zip of the rows the saved mappings would write, across the configured networks. Nothing is sent to ServiceNow. Requires MANAGE_SERVICENOW_CMDB and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowCmdbController.downloadPayload). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      responses:
+        "200":
+          description: The preview archive.
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+
+  /integrations/servicenow-cmdb?view=payload&networkId:
+    get:
+      operationId: getServiceNowCmdbPayload
+      summary: Preview what a CMDB push would send for one network
+      description: "The rows the saved mappings would write for the network, table by table. Exactly one of error and tables is present. Nothing is sent to ServiceNow. Requires MANAGE_SERVICENOW_CMDB and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowCmdbController.getPayload). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      parameters:
+        - { name: networkId, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The preview.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CmdbPayloadPreview" }
+              example: { tables: [{ tableName: cmdb_ci_ip_router, rows: [{ name: router-1, ip_address: 192.0.2.1 }] }] }
+
+  /integrations/servicenow-cmdb/status:
+    get:
+      operationId: getServiceNowCmdbStatus
+      summary: Check the CMDB configuration against the instance
+      description: "Connects to ServiceNow and reports whether the saved mappings still match its classes. Empty sets are omitted. 404 'No ServiceNow CMDB configuration setup' when none is saved (seen live). Requires MANAGE_SERVICENOW_CMDB and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowCmdbController.getStatus). Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      responses:
+        "200":
+          description: The status.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CmdbConfigurationStatus" }
+              example: { status: INCORRECT_MAPPINGS, incorrectMappingClassNames: [cmdb_ci_ip_router] }
+        "404": { description: No configuration saved. }
+
+  /integrations/servicenow-cmdb/synchronization-history:
+    get:
+      operationId: getServiceNowCmdbSynchronizationHistory
+      summary: Past CMDB pushes and their outcomes
+      description: "One entry per push and network. Each carries either error or entitiesInserted and entitiesUpdated, plus structured errors when there were any. An organization that never pushed gets infos: [] (not 404; seen live). Requires MANAGE_SERVICENOW_CMDB (source: ServiceNowCmdbController.getSnycHistory). Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      responses:
+        "200":
+          description: The history.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CmdbSynchronizationHistory" }
+              example: { infos: [{ syncInstant: 1767225600000, networkName: example-network, entitiesInserted: 4, entitiesUpdated: 10 }] }
+
+  /integrations/servicenow-cmdb/synchronization-report:
+    get:
+      operationId: getServiceNowCmdbSynchronizationReport
+      summary: Download the CMDB sync report as an Excel workbook
+      description: "Requires MANAGE_SERVICENOW_CMDB (source: ServiceNowCmdbController.getSyncReportXlsx). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      responses:
+        "200":
+          description: The workbook.
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+
+  /integrations/servicenow-cmdb/test:
+    post:
+      operationId: testServiceNowCmdbConnection
+      summary: Test a ServiceNow CMDB connection
+      description: "Tries the given connection details. Both fields are absent on success; on failure errorMessage and a structured error say why. Nothing is saved. Requires MANAGE_SERVICENOW_CMDB and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowCmdbController.testConnection). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Integrations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SrcServiceNowCmdbConnectionDetails" }
+            example: { instanceUrl: "https://example.service-now.invalid", username: api-user, password: "<password>" }
+      responses:
+        "200":
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceNowCmdbTestResult" }
+              example: {}
+
   /networks/{networkId}/device-statuses:
     get:
       operationId: listDeviceStatuses
@@ -11606,6 +11847,157 @@ paths:
               example:
                 queries: []
 
+  /snapshots/{snapshotId}/checks?view=serviceNowIncidents&type:
+    get:
+      operationId: listCheckServiceNowIncidents
+      summary: ServiceNow incidents linked to a snapshot's active checks
+      description: "Lists the ServiceNow incidents linked to the snapshot's active checks of the given types, from Forward's own records (ServiceNow is not called). Each entry carries only checkId, number, state and stateLastUpdated. type takes Forward's check type spellings (Isolation, Reachability, Existential, QueryStringBased, Predefined, NQE; the legacy spellings Exists, ExistentialCheck, IsolationCheck, ReachabilityCheck and NetworkQuery are also accepted), not the enum names; repeat it for several types. At least one is required: an empty type answers 400 'At least one 'type' is required' and an unknown one 400 'Invalid check type' (both seen live). Live on 26.10.5 the enum name ISOLATION was also accepted (200 []), which the source does not explain, so do not rely on it. Without view the same path lists the checks themselves. Requires VIEW_CHECK_INTEGRATIONS and VIEW_CHECKS on the network (source: CheckController.getIncidentsInView). Live: [] for four types on a network without ServiceNow. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Checks]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+        - name: type
+          in: query
+          required: true
+          description: Check types to include.
+          style: form
+          explode: true
+          schema:
+            type: array
+            minItems: 1
+            items: { $ref: "#/components/schemas/ServiceNowCheckType" }
+      responses:
+        "200":
+          description: Linked incidents.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ServiceNowIncidentLink" }
+              # synthetic fixture shaped like ServiceNowIncidentBasicInfo.java
+              example: [{ checkId: "101", number: INC0010001, state: New, stateLastUpdated: 1767225600000 }]
+
+  /snapshots/{snapshotId}/checks?action=addServiceNowIncidents:
+    post:
+      operationId: addCheckServiceNowIncidents
+      summary: Raise ServiceNow incidents for several failing checks
+      description: "Creates one ServiceNow incident per check and links each to its check. The body maps check id (numeric, as a string) to the new incident and must not be empty. Every check must be enabled and failing in this snapshot and every later one (400 otherwise). Forward appends a link back to the check to details. Changes state in ServiceNow and in Forward. Requires OPERATE_CHECK_INTEGRATIONS, VIEW_CHECKS on the network and the deployment's OUTBOUND_CONNECTIONS; on a Predict fork, also the PREDICT_UNSANDBOXED organization property (source: CheckController.bulkAddIncidents). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Checks]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              additionalProperties: { $ref: "#/components/schemas/NewServiceNowIncident" }
+            example: { "101": { summary: "Isolation check failed", impact: "2", urgency: "3" } }
+      responses:
+        "200":
+          description: The incidents created.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ServiceNowIncidentLink" }
+              # synthetic fixture shaped like ServiceNowIncidentBasicInfo.java
+              example: [{ checkId: "101", number: INC0010001, state: New, stateLastUpdated: 1767225600000 }]
+
+  /snapshots/{snapshotId}/checks?action=refreshServiceNowIncidents:
+    post:
+      operationId: refreshCheckServiceNowIncidents
+      summary: Refresh the state of a snapshot's linked ServiceNow incidents
+      description: "Fetches each linked incident's state from ServiceNow and stores it; an incident ServiceNow reports resolved or closed stops applying from this snapshot. Answers 204. Requires VIEW_CHECK_INTEGRATIONS, VIEW_CHECKS on the network and the deployment's OUTBOUND_CONNECTIONS; on a Predict fork, also PREDICT_UNSANDBOXED (source: CheckController.refreshIncidents). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Checks]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Refreshed. }
+
+  /snapshots/{snapshotId}/checks/{checkId}?action=addServiceNowIncident:
+    post:
+      operationId: addCheckServiceNowIncident
+      summary: Raise a ServiceNow incident for a failing check
+      description: "Creates an incident in ServiceNow and links it to the check. The check must be enabled and failing in this snapshot and every later one (400 otherwise). summary, impact and urgency are required; Forward appends a link back to the check to details. Changes state in ServiceNow and in Forward. Requires OPERATE_CHECK_INTEGRATIONS, VIEW_CHECKS on the network and the deployment's OUTBOUND_CONNECTIONS; on a Predict fork, also PREDICT_UNSANDBOXED (source: CheckController.addIncident). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Checks]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+        - { name: checkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewServiceNowIncident" }
+            example: { summary: "Isolation check failed", details: "Seen after the core change", impact: "2", urgency: "3" }
+      responses:
+        "200":
+          description: The incident created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceNowIncidentLink" }
+              # synthetic fixture shaped like ServiceNowIncidentBasicInfo.java
+              example: { checkId: "101", number: INC0010001, state: New, stateLastUpdated: 1767225600000 }
+
+  /snapshots/{snapshotId}/checks/{checkId}?action=linkServiceNowIncident&incident:
+    post:
+      operationId: linkCheckServiceNowIncident
+      summary: Link an existing ServiceNow incident to a check
+      description: "Links the numbered incident, which must already exist in ServiceNow, to the check. incident must not be empty. Changes state in Forward. Requires OPERATE_CHECK_INTEGRATIONS, VIEW_CHECKS on the network and the deployment's OUTBOUND_CONNECTIONS; on a Predict fork, also PREDICT_UNSANDBOXED (source: CheckController.linkIncident). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Checks]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+        - { name: checkId, in: path, required: true, schema: { type: string } }
+        - { name: incident, in: query, required: true, description: The ServiceNow incident number., schema: { type: string, minLength: 1 } }
+      responses:
+        "200":
+          description: The link.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceNowIncidentLink" }
+              # synthetic fixture shaped like ServiceNowIncidentBasicInfo.java
+              example: { checkId: "101", number: INC0010001, state: New, stateLastUpdated: 1767225600000 }
+
+  /snapshots/{snapshotId}/checks/{checkId}?action=unlinkServiceNowIncident&incident:
+    post:
+      operationId: unlinkCheckServiceNowIncident
+      summary: Unlink a ServiceNow incident from a check
+      description: "Removes the link at this snapshot and across the link's active span in Forward; the incident in ServiceNow is left as it is. 400 'Incident <number> is not linked to Check <id> at Snapshot <id>' when there is no such link. Answers 200 with no body. Requires OPERATE_CHECK_INTEGRATIONS and VIEW_CHECKS on the network; on a Predict fork, also PREDICT_UNSANDBOXED (source: CheckController.unlinkIncident). Never called live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Checks]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+        - { name: checkId, in: path, required: true, schema: { type: string } }
+        - { name: incident, in: query, required: true, description: The ServiceNow incident number., schema: { type: string } }
+      responses:
+        "200": { description: Unlinked. No body. }
+
+  /snapshots/{snapshotId}/checks/{checkId}?view=serviceNowIncidentUpdateHistory&incident:
+    get:
+      operationId: getCheckServiceNowIncidentUpdateHistory
+      summary: When Forward updated a linked incident's work notes
+      description: "Lists each update Forward made to the incident's work notes while the check kept failing (with ServiceNow autoUpdate on): the snapshot's creation time and the number of failures. From Forward's own records. Requires VIEW_CHECK_INTEGRATIONS and VIEW_CHECKS on the network (source: CheckController.getIncidentUpdateHistory). Live: an incident not linked to the check answers 400 'Incident <number> is not linked to Check <id> at Snapshot <id>'. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Checks]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+        - { name: checkId, in: path, required: true, schema: { type: string } }
+        - { name: incident, in: query, required: true, description: The ServiceNow incident number., schema: { type: string } }
+      responses:
+        "200":
+          description: Updates, oldest first as stored.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ServiceNowIncidentUpdate" }
+              example: [{ snapshotCreationTime: 1767225600000, totalFailures: 3 }]
+
   /snapshots/{snapshotId}/checks-report:
     get:
       operationId: getCheckCategoryReport
@@ -11683,8 +12075,8 @@ paths:
               schema: { $ref: "#/components/schemas/AnalysisSnapshotProgress" }
               # from live response: GET /snapshots/{snapshotId}/progress (trimmed to the fields Forward sent)
               example:
-                networkId: "155541"
-                snapshotId: "1437911"
+                networkId: "101"
+                snapshotId: "900"
                 stages:
                   - { stage: CREATION, operationState: SUCCEEDED }
                   - { stage: TEXT_SEARCH_INDEX, operationState: SUCCEEDED }
@@ -11764,7 +12156,7 @@ paths:
               schema: { $ref: "#/components/schemas/AnalysisCollectionMetrics" }
               # from live response: GET /networks/{networkId}/collection-metrics (one device kept; device name redacted)
               example:
-                snapshotId: "1437911"
+                snapshotId: "900"
                 snapshotTime: 1792214587109
                 collectionStartTime: 1792206004796
                 collectionEndTime: 1792214570408
@@ -11962,10 +12354,10 @@ paths:
                 items: { $ref: "#/components/schemas/AnalysisNqeRunMetric" }
               # from live response: GET /nqe-run-metrics (first item only; network name redacted)
               example:
-                - taskId: "261014245"
-                  networkId: "155541"
+                - taskId: "5001"
+                  networkId: "101"
                   networkName: "<redacted>"
-                  snapshotId: "1435033"
+                  snapshotId: "901"
                   snapshotCreationInstant: 1791961149684
                   executedAt: 1792002026164
                   runDuration: 1200001
@@ -16626,9 +17018,728 @@ paths:
       responses:
         "204": { description: Deleted. No body. }
         "404": { description: Network has no SASE setup of that name. }
+  /decorators:
+    get:
+      operationId: listDecorators
+      summary: List the org's entity decorators
+      description: "Returns every entity decorator of the org as a bare JSON array: Forward's four system-managed decorators first (names starting fwd-, with this org's enabled flag; no createdAt/createdBy/updatedAt/updatedBy), then the org's own. A decorator is a saved NQE query whose rows are attached to devices, interfaces, hosts or paths; it is an org object, not per network. Only the join columns for the decorator's type are present; an empty metadataColNames means every non-join column. There is no single-decorator route: to get one, list and match the name case-insensitively (Forward compares names case-insensitively). Requires the VIEW_DECORATORS org operation, NETWORK licence facet (source: EntityDecoratorController.getDecorators). Not part of Forward's documented API; the GUI uses it. Live: 200, a bare array of 124 decorators of all six types; system-managed rows and the timestamp format (ISO-8601 with milliseconds, Z) match source; user query ids are Q_ ids, system-managed ones FQ_ ids."
+      x-forward-stability: unpublished
+      tags: [Entity Decorators]
+      responses:
+        "200":
+          description: The org's decorators, system-managed first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DecoEntityDecorator" }
+              # synthetic fixture shaped like a live response (2026-11-05); the system-managed row is Forward's built-in definition, user rows and names are invented
+              example: [{"name": "fwd-Impacting CVEs", "queryId": "FQ_8d901787e61bb742d4b385054e6837f2535a03f6", "metadataColNames": ["Number affecting config", "CVEs affecting config", "Number affecting product", "CVEs affecting product"], "deviceColName": "Device", "type": "DEVICE", "enabled": false, "systemManaged": true}, {"name": "fwd-Path MTU", "queryId": "FQ_a65a49d6276421c8d081042a99cf9f1af52372df", "metadataColNames": [], "type": "PATH", "enabled": false, "systemManaged": true}, {"name": "Device owner", "description": "Owning team per device", "queryId": "Q_0000000000000000000000000000000000000001", "metadataColNames": ["owner"], "deviceColName": "device", "type": "DEVICE", "enabled": true, "systemManaged": false, "createdAt": "2026-01-02T03:04:05.123Z", "createdBy": "me@example.com", "updatedAt": "2026-01-03T03:04:05.123Z", "updatedBy": "me@example.com"}, {"name": "Host site", "queryId": "Q_0000000000000000000000000000000000000002", "metadataColNames": [], "ipAddressColName": "ip", "hostColName": "host", "type": "HOST", "enabled": false, "systemManaged": false, "createdAt": "2026-01-02T03:04:05.123Z", "createdBy": "me@example.com", "updatedAt": "2026-01-02T03:04:05.123Z", "updatedBy": "me@example.com"}]
+  /decorators/{name}:
+    patch:
+      operationId: upsertDecorator
+      summary: Create or update a user entity decorator
+      description: "WRITES org state. Finds the org's user decorator whose name matches the path name (case-insensitively) and merges the body onto it; when none matches it creates a new decorator under the BODY name (Forward does not fall back to the path name, so a create without a body name is 400; the Go SDK fills it from the path name). Absent fields are left as they are; description, and on HOST hostColName/deviceColName/macAddressColName, accept null to clear. type is required (it selects the body shape) and must equal an existing decorator's type, or 400 'Update to entity type not allowed'. Creating needs queryId, metadataColNames (an empty array means all columns) and the join columns for the type: DEVICE deviceColName; INTERFACE deviceColName and interfaceColName; HOST ipAddressColName (hostColName, deviceColName, macAddressColName optional); PATH none; PATH_DEVICE hopIndexColName; PATH_INTERFACE hopIndexColName and directionColName; missing ones are 400. A new decorator is disabled unless enabled is true. queryId must be in the head of the org's NQE library (400 'Query ... does not exist'). A name starting fwd- (system-managed, any case) is refused with 400; system-managed decorators cannot be edited (use setSystemManagedDecoratorEnabled). Renaming to a name already taken is refused (status not traced); a create whose body name equals another existing decorator is not checked for uniqueness in source. When the result is enabled, the org's NQE licence tier must permit the query (access denied otherwise; Go reports 403). Columns are NOT checked against the query's output here: a mismatch is saved and reported by decorateEntities as INVALID_DECORATOR (DEVICE, INTERFACE, HOST only). Returns the saved decorator. Requires the MANAGE_DECORATORS org operation, NETWORK licence facet (source: EntityDecoratorController.addOrReplaceDecorator, EntityDecoratorRepo.addOrReplaceEntityDecorator, web/json/decorator/*Patch.java). Not part of Forward's documented API; the GUI uses it. Source-only: never exercised live."
+      x-forward-stability: unpublished
+      tags: [Entity Decorators]
+      parameters:
+        - { name: name, in: path, required: true, description: "The decorator to update, matched case-insensitively. When no decorator has this name a new one is created under the body name.", schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DecoEntityDecoratorPatch" }
+            example: {"type": "DEVICE", "name": "Device owner", "description": "Owning team per device", "queryId": "Q_0000000000000000000000000000000000000001", "metadataColNames": ["owner"], "deviceColName": "device", "enabled": true}
+      responses:
+        "200":
+          description: The decorator as saved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DecoEntityDecorator" }
+              # synthetic fixture shaped like EntityDecorator.java and the live list rows; names and ids are invented
+              example: {"name": "Device owner", "description": "Owning team per device", "queryId": "Q_0000000000000000000000000000000000000001", "metadataColNames": ["owner"], "deviceColName": "device", "type": "DEVICE", "enabled": true, "systemManaged": false, "createdAt": "2026-01-02T03:04:05.123Z", "createdBy": "me@example.com", "updatedAt": "2026-01-03T03:04:05.123Z", "updatedBy": "me@example.com"}
+    delete:
+      operationId: deleteDecorator
+      summary: Delete a user entity decorator
+      description: "DESTRUCTIVE: permanently removes the org's user decorator with this name (matched case-insensitively) for every network; there is no undo. A system-managed name (starting fwd-) is refused with 400 'System-managed decorator cannot be deleted' (disable it with setSystemManagedDecoratorEnabled instead). An unknown name is 404 'No decorator found with name ...' (the Go SDK treats that 404 as success). Returns 204 with no body. Forward also deletes decorators itself when their NQE query is deleted from the library (source: EntityDecoratorService commit listener). Requires the MANAGE_DECORATORS org operation, NETWORK licence facet (source: EntityDecoratorController.deleteDecorator, EntityDecoratorRepo.deleteDecorator). Not part of Forward's documented API; the GUI uses it. Source-only: never exercised live."
+      x-forward-stability: unpublished
+      tags: [Entity Decorators]
+      parameters:
+        - { name: name, in: path, required: true, description: "The user decorator to delete, matched case-insensitively.", schema: { type: string } }
+      responses:
+        "204": { description: The decorator was deleted. }
+  /system-managed-decorators/{name}:
+    patch:
+      operationId: setSystemManagedDecoratorEnabled
+      summary: Enable or disable a system-managed decorator
+      description: "WRITES org state. Turns one of Forward's built-in decorators (fwd-Impacting CVEs, fwd-Path MTU, fwd-Path Interface Link Speed, fwd-Path Interface MTU; names matched case-insensitively) on or off for the whole org. No request body. Enabling an unknown name is 404 'Unknown system-managed decorator ...' and needs the org's NQE licence tier to permit the decorator's query (access denied otherwise; Go reports 403). Disabling an unknown name is accepted and does nothing. Returns 204 with no body. Requires the MANAGE_DECORATORS org operation, NETWORK licence facet (source: EntityDecoratorController.enableOrDisableManagedDecorator). Not part of Forward's documented API; the GUI uses it. Source-only: never exercised live."
+      x-forward-stability: unpublished
+      tags: [Entity Decorators]
+      parameters:
+        - { name: name, in: path, required: true, description: "The system-managed decorator's name, for example fwd-Path MTU.", schema: { type: string } }
+        - { name: enabled, in: query, required: true, description: "true to enable the decorator for the org, false to disable it.", schema: { type: boolean } }
+      responses:
+        "204": { description: The decorator's enabled state was set. }
+  /networks/{networkId}/decorations:
+    post:
+      operationId: decorateEntities
+      summary: Run decorators against entities of a snapshot
+      description: "Returns what the named decorators attach to the given entities in one snapshot; this is how to see a decorator's output. type is the entity type of entityIds; entityIds are device names (DEVICE), '<device> <interface>' (INTERFACE), host ids as decimal numbers (HOST) or path descriptors (PATH, PATH_DEVICE, PATH_INTERFACE; an invalid one is 400 'Invalid path descriptor: ...'). Both lists must be non-empty (400). Name only decorators of the given type: Forward does not check they match. A user decorator runs whether or not it is enabled; a system-managed one only when enabled for the org; an unknown name, or one whose query the licence tier denies, is silently absent. The result lists an entity under a decorator only when the decorator has rows for it (SUCCESS, rows non-empty) or when it failed (another status, no rows); an entity the query has nothing for is absent. INVALID_DECORATOR (a metadata or join column missing from the query output, or a join column of the wrong type) is reported only for DEVICE, INTERFACE and HOST decorators; PATH types list every row the query returns under the path and silently drop missing metadata columns. Rows are filtered by the caller's device access labels. Each decorator's query runs once per snapshot with empty parameters and its index is kept as a compute job (source: NqeEntityIndexComputeJob, NqeQueryParameters.EMPTY), so later calls are cheaper; Forward gives each decorator query up to 5 minutes, so use a client timeout above that (the Go SDK uses 6 minutes). snapshotId defaults to the network's latest processed snapshot; the snapshot must be processed (source: RequiresSnapshot CREATION). Requires the VIEW_DECORATORS org operation, NETWORK licence facet (source: EntityDecoratorController.decorateEntities, EntityDecoratorService.getEntityDecorations). Not part of Forward's documented API; the GUI uses it. Source-only: not exercised live because it launches NQE compute jobs and stores their results."
+      x-forward-stability: unpublished
+      tags: [Entity Decorators]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: type, in: query, required: true, description: "The entity type of entityIds. One of DEVICE, INTERFACE, HOST, PATH, PATH_DEVICE, PATH_INTERFACE.", schema: { type: string, enum: ["DEVICE", "INTERFACE", "HOST", "PATH", "PATH_DEVICE", "PATH_INTERFACE"] } }
+        - { name: snapshotId, in: query, required: false, description: "The snapshot to decorate. Uses the network's latest processed snapshot when omitted.", schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DecoDecorationsRequest" }
+            example: {"entityIds": ["branch-a-sw1", "branch-a-rtr1"], "decoratorNames": ["Device owner", "fwd-Impacting CVEs"]}
+      responses:
+        "200":
+          description: One entry per entity and decorator that had rows or failed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DecoDecorationsResponse" }
+              # synthetic fixture shaped like SnapshotDecorationsResponse/EntityDecoration.java and gui/src/api/models/entity-decorator.ts; names are invented, the exact NQE value encoding in rows is not traced
+              example: {"entityDecorations": [{"entityId": "branch-a-sw1", "decoratorName": "Device owner", "status": "SUCCESS", "rowType": {"type": "Record", "fields": [{"name": "device", "isNullable": false, "type": {"type": "String"}}, {"name": "owner", "isNullable": true, "type": {"type": "String"}}]}, "rows": [{"device": {"value": "branch-a-sw1"}, "owner": {"value": "netops"}}]}, {"entityId": "branch-a-rtr1", "decoratorName": "fwd-Impacting CVEs", "status": "QUERY_ERROR"}]}
+
+  # ------------------------------------------------------------------ Flow Trace ---
+  # The GUI's own flow-trace routes (TraceController, master fe0daf63c899; Go SDK v0.8.17 TraceService covers
+  # trace-facets and trace). Undocumented, no stability promise: the GUI ships with the server and the shapes change
+  # between builds. All six are search computations (TraceAppService -> search RPC); @Audited(false), no DB write in
+  # the handler path. @Engagement(PATH_SEARCHES) only tags the request-log usage metric. securityView=true also saves a
+  # SECURITY_VIEW_PATH_SEARCH feature-usage event, so leave it out.
+  /networks/{networkId}/trace-facets:
+    post:
+      operationId: getTraceFacets
+      summary: List the distinct paths a flow takes, grouped by trace type
+      description: "PREVIEW / UNDOCUMENTED: the GUI's own flow-trace facets call. Not part of Forward's documented API and Forward makes NO stability promise; request and response shapes can change between builds, so decode defensively (use Path Search for anything durable). Returns facets.pathGroups (each a traceType such as VALID, DROPPED, BLACKHOLE, LOOP and its distinct device paths; several groups can share one traceType), facets.outcomes, the header facets seen at the first and last hop, the covered topology and a devices map. Each path's behaviorSample is opaque: send it back unchanged as selectedFacets.paths[].behavior to getTrace. BODY (Go SDK route authority): filters.from.location is {type: SubnetLocationFilter, value: <src ip or prefix>, device?} or {type: DeviceFilter, values: [<device>]} and EVERY header filter goes under filters.from.headers as {type: PacketFilter, values: {<field>: [<value>]}} (ip_proto, tp_src, tp_dst, ipv4_dst); a destination under filters.to returned zero paths live (Go), because to constrains where the packet leaves the network. maxResults caps the flows the facets are computed over (default 5000, 1..10000). Do not send securityView. No flow found gives empty pathGroups (live); a source address at several places returns possibleIpLocations {from|to: {type: INTERFACE|HOST, locations: [{device, subnet}]}} (source and Go; not seen live), so name the device with DeviceFilter or location.device and ask again. timedOut true means partial results and no totalResults. snapshotId may be omitted for the network's latest processed snapshot (live). Errors: 400 No filters specified, 400 maxFacetValues outside 1..1000 (live). Requires VIEW_PATHS on the network and a snapshot processed to REACHABILITY (source: TraceController.getTraceFacets). The GUI adds a cancelable query flag for request cancellation (not modelled). Live: 200 on 2026-11-05 (pure search computation, nothing persisted)."
+      x-forward-stability: unpublished
+      tags: [Flow Trace]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: false, description: "The snapshot to trace. Omitted, Forward uses the network's latest processed snapshot (live).", schema: { type: string } }
+        - { name: maxFacetValues, in: query, required: false, description: "The most values listed per facet, 1..1000 (server default 50; the GUI sends its own cap).", schema: { type: integer, minimum: 1, maximum: 1000, default: 50 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TraceRequest" }
+            example: {"filters": {"from": {"location": {"type": "DeviceFilter", "values": ["branch-a-rtr1"]}, "headers": [{"type": "PacketFilter", "values": {"ip_proto": ["6"]}}, {"type": "PacketFilter", "values": {"tp_dst": ["22"]}}, {"type": "PacketFilter", "values": {"ipv4_dst": ["192.0.2.10"]}}]}}, "maxResults": 100}
+      responses:
+        "200":
+          description: The distinct paths grouped by trace type, with facets, covered topology and device info.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TraceFacetsResponse" }
+              # synthetic fixture shaped like a live response (2026-11-05); names, ports and addresses are invented
+              example: {"coveredTopo": {"nodes": [{"id": "branch-a-rtr1"}, {"id": "branch-a-sw1"}], "links": [{"sourcePort": "branch-a-rtr1,ge-0/0/1", "targetPort": "branch-a-sw1,ge-0/0/1"}], "hosts": []}, "facets": {"pathGroups": [{"traceType": "VALID", "paths": [{"path": ["branch-a-rtr1", "branch-a-sw1"], "groupSignatureHops": [0, 1], "outToOverlayLinkHops": [], "overlaySignature": [], "behaviorSample": {"processingStages": [["INPUT", "IPV4", "OUTPUT"], ["INPUT", "L2", "OUTPUT"]]}}]}, {"traceType": "DROPPED", "paths": [{"path": ["branch-a-rtr1", "branch-a-fw1"], "groupSignatureHops": [0, 1], "behaviorSample": {"processingStages": [["INPUT", "IPV4", "OUTPUT"], ["INPUT", "IN_ACL"]], "aclDropHops": [1]}}]}], "outcomes": {"VALID": ["branch-a-sw1"], "DROPPED": ["branch-a-fw1"]}, "devices": ["branch-a-rtr1", "branch-a-sw1", "branch-a-fw1"], "traceTypes": ["VALID", "DROPPED"], "forwardingTypes": {"L3": ["branch-a-rtr1"]}, "firstHopIngressFacets": {"inPorts": ["branch-a-rtr1,ge-0/0/0"], "headerFacets": {"ipv4_src": ["192.0.2.0/24"], "ipv4_dst": ["192.0.2.10"], "ip_proto": ["6"], "tp_dst": ["22"]}}, "lastHopEgressFacets": {"outPorts": ["branch-a-sw1,ge-0/0/2"], "headerFacets": {"ipv4_dst": ["192.0.2.10"]}}}, "devices": {"branch-a-rtr1": {"deviceType": "ROUTER", "locationId": "1"}, "branch-a-sw1": {"deviceType": "SWITCH", "locationId": "1"}, "branch-a-fw1": {"deviceType": "FIREWALL", "locationId": "1"}}, "pagedResults": 100, "timedOut": false, "totalResults": {"value": 100, "type": "LOWER_BOUND"}}
+        "400":
+          description: "No filters specified, or maxFacetValues, maxResults, limit or maxDurationSeconds out of range (live for the first two)."
+        "403":
+          description: The account lacks VIEW_PATHS on the network.
+        "409":
+          description: The snapshot is not yet processed to the reachability stage.
+  /networks/{networkId}/trace:
+    post:
+      operationId: getTrace
+      summary: Per-hop detail of one path chosen from getTraceFacets
+      description: "PREVIEW / UNDOCUMENTED: the GUI's own single-path trace. Not part of Forward's documented API and Forward makes NO stability promise; shapes change between builds, decode defensively. Send the SAME filters as getTraceFacets plus selectedFacets {paths: [{path, traceType, behavior}]} with exactly one path, where path and traceType come from one facets path group and behavior is that path's behaviorSample sent back unchanged, and limit 100 (as the Go SDK and GUI do). Do not send securityView. Returns one sample flow's trace: deviceHops (per hop: device, inPorts, outPorts which is ABSENT on the hop that dropped or ended the packet, headers grouped by protocol ETHERNET/IPV4/TCP/L7 holding the values AFTER the hop, networkFunctions by layer INPUT, L2, L3, ACCESS_CONTROL, NAT, OUTPUT, each with type, fileLines keyed '<device>,<file>' with 0-based inclusive line ranges, attributes, matches, actionBuckets of SET_FIELD/POP/PERMIT/DENY/RECEIVE/DROP actions, processingStageType and tags), ingressHeaders (the packet entering the first hop), behavior.processingStages per hop and behavior.aclDropHops, traceType, statefulness, groupSignatureHops, pathDescriptor (an opaque encoded path), coveredTopo, ingress/egress host samples, and respTraceReq (base64; feed it to getTraceResponses, present when a response trace applies) and traceDiffReq (base64; feed it to getTraceDiffs). A body of only {timedOut} means no flow was found for the selection (live) and the Go SDK returns ErrTraceEmpty. Requires VIEW_PATHS on the network and a snapshot processed to REACHABILITY (source: TraceController.getTrace). Live: 200 on 2026-11-05 for VALID and DROPPED paths (pure search computation, nothing persisted)."
+      x-forward-stability: unpublished
+      tags: [Flow Trace]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: false, description: "The snapshot to trace; use the one the facets came from. Omitted, the network's latest processed snapshot.", schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TraceRequest" }
+            example: {"filters": {"from": {"location": {"type": "DeviceFilter", "values": ["branch-a-rtr1"]}, "headers": [{"type": "PacketFilter", "values": {"ip_proto": ["6"]}}, {"type": "PacketFilter", "values": {"ipv4_dst": ["192.0.2.10"]}}]}}, "selectedFacets": {"paths": [{"path": ["branch-a-rtr1", "branch-a-fw1"], "traceType": "DROPPED", "behavior": {"processingStages": [["INPUT", "IPV4", "OUTPUT"], ["INPUT", "IN_ACL"]], "aclDropHops": [1]}}]}, "limit": 100}
+      responses:
+        "200":
+          description: "The trace of one sample flow along the selected path, or only {timedOut} when no flow matched."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TraceResult" }
+              # synthetic fixture shaped like a live DROPPED response (2026-11-05); names, ports, files and addresses are invented
+              example: {"statefulness": "REQUEST", "behavior": {"processingStages": [["INPUT", "IPV4", "OUTPUT"], ["INPUT", "IN_ACL"]], "aclDropHops": [1]}, "coveredTopo": {"nodes": [{"id": "branch-a-rtr1"}, {"id": "branch-a-fw1"}], "links": [{"sourcePort": "branch-a-rtr1,ge-0/0/1", "targetPort": "branch-a-fw1,ethernet1/1"}], "hosts": []}, "traceType": "DROPPED", "ingressHeaders": {"ETHERNET": {"mac_dst": "host_mac"}, "IPV4": {"ip_version": "4", "ipv4_src": "192.0.2.0/24", "ipv4_dst": "192.0.2.10", "ip_proto": "6"}, "TCP": {"tp_dst": "22"}}, "numIngressHosts": 0, "ingressHostSample": [], "deviceHops": [{"device": "branch-a-rtr1", "inPorts": ["branch-a-rtr1,ge-0/0/0"], "outPorts": ["branch-a-rtr1,ge-0/0/1"], "headers": {"ETHERNET": {"mac_dst": "00:00:5e:00:53:01"}, "IPV4": {"ipv4_dst": "192.0.2.10", "ip_proto": "6"}}, "networkFunctions": {"INPUT": [{"type": "L3_INPUT", "fileLines": {"branch-a-rtr1,configuration.txt": [{"start": 10, "end": 12}]}, "attributes": {"NAME": ["ge-0/0/0"]}, "actionBuckets": [], "processingStageType": "INPUT"}], "L3": [{"type": "IP_ROUTE", "attributes": {"VRF": ["default"], "ROUTE_TYPE": ["STATIC"]}, "matches": {"ipv4_dst": ["192.0.2.0/24"]}, "actionBuckets": [{"attributes": {"IP_ROUTE": "192.0.2.0/24"}, "actions": [{"type": "SET_FIELD", "field": "ipv4_next_hop", "value": "192.0.2.1"}, {"type": "SET_FIELD", "field": "out_port", "value": "ge-0/0/1"}]}], "processingStageType": "IPV4"}], "OUTPUT": [{"type": "L3_OUTPUT", "attributes": {"NAME": ["ge-0/0/1"]}, "actionBuckets": [], "processingStageType": "OUTPUT"}]}, "outToOverlayLink": false}, {"device": "branch-a-fw1", "inPorts": ["branch-a-fw1,ethernet1/1"], "headers": {"IPV4": {"ipv4_dst": "192.0.2.10", "ip_proto": "6"}}, "networkFunctions": {"INPUT": [{"type": "L3_INPUT", "attributes": {"NAME": ["ethernet1/1"]}, "actionBuckets": [], "processingStageType": "INPUT"}], "ACCESS_CONTROL": [{"type": "ACCESS_CONTROL", "attributes": {"NAME": ["example-acl"], "ACL_CONTEXT": ["INGRESS"]}, "matches": {"ipv4_dst": ["192.0.2.0/24"]}, "actionBuckets": [{"actions": [{"type": "DENY"}]}], "processingStageType": "IN_ACL"}]}, "outToOverlayLink": false}], "groupSignatureHops": [0, 1], "numEgressHosts": 0, "egressHostSample": [], "pathDescriptor": "0200000000000000ab", "traceDiffReq": "H4sIAAAAAAAA/wMAAAAAAAAAAAA="}
+        "400":
+          description: "No filters specified, a parameter out of range, or a selection that does not name exactly one path (source comment, not called live)."
+        "403":
+          description: The account lacks VIEW_PATHS on the network.
+        "409":
+          description: The snapshot is not yet processed to the reachability stage.
+  /networks/{networkId}/trace-responses:
+    post:
+      operationId: getTraceResponses
+      summary: Return-traffic traces for one request trace
+      description: "PREVIEW / UNDOCUMENTED: the GUI's own response-trace call. Not part of Forward's documented API and Forward makes NO stability promise. details is the respTraceReq string of a getTrace response (base64 of a protobuf RespFlowSpecPB), sent back unchanged; anything else is 400 'The details string would not be parsed'. maxResults 1..10000 (default 5000) caps the response flows traced; maxDurationSeconds defaults to 30, at most 600. Returns traceGroups (a list of groups, each a list of traces in the getTrace shape), timedOut, totalResults and a devices map. Not in the Go SDK v0.8.17. Requires VIEW_PATHS on the network and a snapshot processed to REACHABILITY (source: TraceController.getRespTraces). Live: 200 on 2026-11-05 (pure search computation, nothing persisted); responses can be large (about 1 MB for maxResults 50)."
+      x-forward-stability: unpublished
+      tags: [Flow Trace]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: false, description: "The snapshot of the request trace. Omitted, the network's latest processed snapshot.", schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TraceRespTracesRequest" }
+            example: {"details": "CgQIARAB", "maxResults": 50}
+      responses:
+        "200":
+          description: The response traces, grouped.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TraceRespTracesResponse" }
+              # synthetic fixture shaped like a live response (2026-11-05); names and addresses are invented, hops trimmed
+              example: {"traceGroups": [[{"statefulness": "RESPONSE", "behavior": {"processingStages": [["INPUT", "IPV4", "OUTPUT"]]}, "traceType": "VALID", "ingressHeaders": {"IPV4": {"ipv4_src": "192.0.2.10", "ipv4_dst": "192.0.2.0/24"}}, "numIngressHosts": 0, "ingressHostSample": [], "deviceHops": [{"device": "branch-a-sw1", "inPorts": ["branch-a-sw1,ge-0/0/2"], "outPorts": ["branch-a-sw1,ge-0/0/1"], "headers": {"IPV4": {"ipv4_dst": "192.0.2.0/24"}}, "networkFunctions": {}, "outToOverlayLink": false}], "groupSignatureHops": [0], "numEgressHosts": 0, "egressHostSample": [], "pathDescriptor": "0200000000000000cd", "traceDiffReq": "H4sIAAAAAAAA/wMAAAAAAAAAAAA="}]], "timedOut": false, "totalResults": {"value": 1, "type": "EXACT"}, "devices": {"branch-a-sw1": {"deviceType": "SWITCH", "locationId": "1"}}}
+        "400":
+          description: details does not parse, or maxResults or maxDurationSeconds out of range.
+        "403":
+          description: The account lacks VIEW_PATHS on the network.
+        "409":
+          description: The snapshot is not yet processed to the reachability stage.
+  /networks/{networkId}/trace-behaviors:
+    post:
+      operationId: getTraceBehaviors
+      summary: Distinct flow behaviours along one path
+      description: "PREVIEW / UNDOCUMENTED: the GUI's own call. Not part of Forward's documented API and Forward makes NO stability promise. Takes the getTraceFacets body plus selectedFacets {paths: [{path, traceType}]} naming ONE path (behavior not needed) and returns behaviors, each {processingStages per hop, aclDropHops?} in the facets behaviorSample shape, plus timedOut. Any one of them can be sent as selectedFacets.paths[].behavior to getTrace to trace that behaviour. Not in the Go SDK v0.8.17. The handler skips the filters/limit validation that getTraceFacets and getTrace apply (source). Requires VIEW_PATHS on the network and a snapshot processed to REACHABILITY (source: TraceController.getTraceBehaviors). Live: 200 on 2026-11-05 (pure search computation, nothing persisted)."
+      x-forward-stability: unpublished
+      tags: [Flow Trace]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: false, description: "The snapshot to trace. Omitted, the network's latest processed snapshot.", schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TraceRequest" }
+            example: {"filters": {"from": {"location": {"type": "DeviceFilter", "values": ["branch-a-rtr1"]}, "headers": [{"type": "PacketFilter", "values": {"ipv4_dst": ["192.0.2.10"]}}]}}, "selectedFacets": {"paths": [{"path": ["branch-a-rtr1", "branch-a-sw1"], "traceType": "VALID"}]}, "maxResults": 100}
+      responses:
+        "200":
+          description: The distinct behaviours on the path.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TraceBehaviorsResponse" }
+              # synthetic fixture shaped like a live response (2026-11-05)
+              example: {"behaviors": [{"processingStages": [["INPUT", "IPV4", "OUTPUT"], ["INPUT", "L2", "OUTPUT"]]}], "timedOut": false}
+        "403":
+          description: The account lacks VIEW_PATHS on the network.
+        "409":
+          description: The snapshot is not yet processed to the reachability stage.
+  /networks/{networkId}/flows:
+    post:
+      operationId: getTraceFlows
+      summary: Raw flows matching a trace query and selected facets
+      description: "PREVIEW / UNDOCUMENTED: the GUI's own detailed-flows call. Not part of Forward's documented API and Forward makes NO stability promise. Takes the getTraceFacets body; selectedFacets narrows the flows (optional, any number of paths). start (default 0) and limit (default 100, 0..10000) page the flows; maxResults caps the search (default 5000); computeCovTopo (default true, honoured only when start is 0), noiseTypes, normalizeLoops (sample one flow per loop) and maxDurationSeconds (1..300, default 30) also apply. Returns pagedFlows, totalFlows {value, type} and flows, each {flowType, hops, coveredTopo} where hops are Forward's low-level forwarding-rule hops (rule, table, parent, actionBucketIndex, actionIndex, in_hs/out_hs header spaces, in_ports/out_ports); the hop shape is internal and not modelled field by field. Responses are large (about 110 KB per flow live). Not in the Go SDK v0.8.17. Requires VIEW_PATHS on the network and a snapshot processed to REACHABILITY (source: TraceController.getFlows). Live: 200 on 2026-11-05 with limit 2 (pure search computation, nothing persisted)."
+      x-forward-stability: unpublished
+      tags: [Flow Trace]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: snapshotId, in: query, required: false, description: "The snapshot to search. Omitted, the network's latest processed snapshot.", schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TraceRequest" }
+            example: {"filters": {"from": {"location": {"type": "DeviceFilter", "values": ["branch-a-rtr1"]}, "headers": [{"type": "PacketFilter", "values": {"ipv4_dst": ["192.0.2.10"]}}]}}, "selectedFacets": {"paths": [{"path": ["branch-a-rtr1", "branch-a-sw1"], "traceType": "VALID"}]}, "start": 0, "limit": 2, "maxResults": 100, "computeCovTopo": false}
+      responses:
+        "200":
+          description: A page of flows.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TraceFlowsResponse" }
+              # synthetic fixture shaped like a live response (2026-11-05); names are invented, hops trimmed to one
+              example: {"pagedFlows": 1, "totalFlows": {"value": 1, "type": "EXACT"}, "flows": [{"flowType": "VALID", "hops": [{"rule": {"id": 1, "deviceName": "branch-a-rtr1", "tableName": "input", "match": {"vlan_vid": "10"}, "actionBuckets": [], "table": "input", "parent": "branch-a-rtr1", "in_ports": ["ge-0/0/0"]}, "actionBucketIndex": 0, "actionIndex": 0, "table": "input", "parent": "branch-a-rtr1", "in_hs": {"minuend": {"ipv4_dst": "192.0.2.10"}, "subtrahend": []}, "in_ports": ["ge-0/0/0"], "out_hs": {"minuend": {"ipv4_dst": "192.0.2.10"}, "subtrahend": []}, "out_ports": ["ge-0/0/1"]}], "coveredTopo": {"nodes": [{"id": "branch-a-rtr1"}], "links": [], "hosts": []}}]}
+        "400":
+          description: No filters specified, or limit or maxDurationSeconds out of range.
+        "403":
+          description: The account lacks VIEW_PATHS on the network.
+        "409":
+          description: The snapshot is not yet processed to the reachability stage.
+  /diffs/{beforeSnapshotId}/{afterSnapshotId}/trace:
+    post:
+      operationId: getTraceDiffs
+      summary: How one trace changed between two snapshots
+      description: "PREVIEW / UNDOCUMENTED: the GUI's own trace-diff call. Not part of Forward's documented API and Forward makes NO stability promise. details is the traceDiffReq string of a getTrace response taken on the before snapshot (base64 of compressed TraceDiffsFlowSpecPB), sent back unchanged; maxResults 1..10000 (default 5000), maxDurationSeconds default 30, at most 600. Returns traceGroups (lists of traces in the after snapshot, each in the getTrace shape plus hopDiffs [{diffType, a, b}] mapping hop indexes of the before trace (a) to the after trace (b); diffType ADDED, DELETED, MODIFIED (source) or UNCHANGED (live)), totalResults, a devices map, and when set timedOut and error (FIRST_HOP_INTERFACE_MISSING: the first hop's ingress port is gone in the after snapshot). Fields at their default (timedOut false, no error) are omitted. Not in the Go SDK v0.8.17. Requires VIEW_PATH_DIFFS on the network and snapshots processed to REACHABILITY (source: TraceController.getTraceDiffs). Live: 200 on 2026-11-05 (pure search computation, nothing persisted); responses are large (about 1 MB for maxResults 50)."
+      x-forward-stability: unpublished
+      tags: [Flow Trace]
+      parameters:
+        - { name: beforeSnapshotId, in: path, required: true, description: "The base snapshot, the one the trace (and its traceDiffReq) came from.", schema: { type: string } }
+        - { name: afterSnapshotId, in: path, required: true, description: "The snapshot to compare against.", schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TraceDiffsRequest" }
+            example: {"details": "H4sIAAAAAAAA/wMAAAAAAAAAAAA=", "maxResults": 50}
+      responses:
+        "200":
+          description: The matching traces in the after snapshot with per-hop diffs.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TraceDiffsResponse" }
+              # synthetic fixture shaped like a live response (2026-11-05); names are invented, hops trimmed
+              example: {"traceGroups": [[{"statefulness": "REQUEST", "behavior": {"processingStages": [["INPUT", "IPV4", "OUTPUT"]]}, "traceType": "VALID", "ingressHeaders": {"IPV4": {"ipv4_dst": "192.0.2.10"}}, "numIngressHosts": 0, "ingressHostSample": [], "deviceHops": [{"device": "branch-a-rtr1", "inPorts": ["branch-a-rtr1,ge-0/0/0"], "outPorts": ["branch-a-rtr1,ge-0/0/1"], "headers": {"IPV4": {"ipv4_dst": "192.0.2.10"}}, "networkFunctions": {}, "outToOverlayLink": false}], "groupSignatureHops": [0], "numEgressHosts": 0, "egressHostSample": [], "pathDescriptor": "0200000000000000ab", "hopDiffs": [{"diffType": "UNCHANGED", "a": 0, "b": 0}]}]], "totalResults": {"value": 1, "type": "EXACT"}, "devices": {"branch-a-rtr1": {"deviceType": "ROUTER", "locationId": "1"}}}
+        "400":
+          description: maxResults or maxDurationSeconds out of range, or details does not parse.
+        "403":
+          description: The account lacks VIEW_PATH_DIFFS on the network.
+        "409":
+          description: A snapshot is not yet processed to the reachability stage.
+
 
 components:
   schemas:
+    DecoEntityDecorator:
+      type: object
+      description: "An entity decorator as Forward returns it (source: EntityDecorator.java with DecoratorDefinition unwrapped). Only the join columns for type are present; createdAt/createdBy/updatedAt/updatedBy are absent on system-managed decorators."
+      required: [name, queryId, metadataColNames, type, enabled, systemManaged]
+      properties:
+        name: { type: string, description: "Unique per org, compared case-insensitively. Names starting fwd- are system-managed." }
+        description: { type: string, description: "Present only when set." }
+        type: { type: string, description: "The entity type decorated. Known values: DEVICE, INTERFACE, HOST, PATH, PATH_DEVICE, PATH_INTERFACE." }
+        queryId: { type: string, description: "The NQE query whose rows are attached: a Q_ id for an org query, an FQ_ id for a Forward library query." }
+        metadataColNames:
+          type: array
+          items: { type: string }
+          description: "The query columns attached to the entity. Empty means every column that is not a join column."
+        deviceColName: { type: string, description: "DEVICE and INTERFACE (required), HOST (optional): the device-name column." }
+        interfaceColName: { type: string, description: "INTERFACE: the interface-name column." }
+        ipAddressColName: { type: string, description: "HOST: the IP address column (IpAddress)." }
+        hostColName: { type: string, description: "HOST, optional: the host-name column." }
+        macAddressColName: { type: string, description: "HOST, optional: the MAC address column (MacAddress)." }
+        hopIndexColName: { type: string, description: "PATH_DEVICE and PATH_INTERFACE: the hop index column." }
+        directionColName: { type: string, description: "PATH_INTERFACE: the direction column." }
+        enabled: { type: boolean, description: "Whether Forward shows this decorator on entities." }
+        systemManaged: { type: boolean, description: "True for Forward's built-in fwd- decorators, which can be enabled or disabled but not edited or deleted." }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string, description: "Username of the creator." }
+        updatedAt: { type: string, format: date-time }
+        updatedBy: { type: string, description: "Username of the last editor." }
+    DecoEntityDecoratorPatch:
+      type: object
+      description: "Body of upsertDecorator (source: web/json/decorator/EntityDecoratorPatch.java and its six subtypes, dispatched on type). Absent fields are left unchanged. A create needs name, queryId, metadataColNames and the join columns for type. Join columns that do not belong to type are ignored (source: each subtype only reads its own)."
+      required: [type]
+      properties:
+        type: { type: string, description: "Selects the body shape and must match an existing decorator's type. Known values: DEVICE, INTERFACE, HOST, PATH, PATH_DEVICE, PATH_INTERFACE." }
+        name: { type: string, description: "The decorator's name; required to create one (Forward does not default it to the path name). On an update, a different value renames the decorator. Must not start with fwd-." }
+        description: { type: string, nullable: true, description: "null clears it." }
+        queryId: { type: string, description: "Must name a query in the head of the org's NQE library." }
+        metadataColNames:
+          type: array
+          items: { type: string }
+          description: "Columns to attach; an empty array means all non-join columns."
+        enabled: { type: boolean, description: "A new decorator is disabled unless this is true." }
+        deviceColName: { type: string, nullable: true, description: "DEVICE, INTERFACE; optional on HOST, where null clears it." }
+        interfaceColName: { type: string, description: "INTERFACE." }
+        ipAddressColName: { type: string, description: "HOST." }
+        hostColName: { type: string, nullable: true, description: "HOST, optional; null clears it." }
+        macAddressColName: { type: string, nullable: true, description: "HOST, optional; null clears it." }
+        hopIndexColName: { type: string, description: "PATH_DEVICE, PATH_INTERFACE." }
+        directionColName: { type: string, description: "PATH_INTERFACE." }
+    DecoDecorationsRequest:
+      type: object
+      description: "Body of decorateEntities (source: SnapshotDecorationsRequest.java). Both lists must be non-empty."
+      required: [entityIds, decoratorNames]
+      properties:
+        entityIds:
+          type: array
+          items: { type: string }
+          description: "Device names (DEVICE), '<device> <interface>' (INTERFACE), decimal host ids (HOST) or path descriptors (PATH types)."
+        decoratorNames:
+          type: array
+          items: { type: string }
+          description: "Decorators to run, matched case-insensitively."
+    DecoDecorationsResponse:
+      type: object
+      description: "Result of decorateEntities (source: SnapshotDecorationsResponse.java)."
+      required: [entityDecorations]
+      properties:
+        entityDecorations:
+          type: array
+          items: { $ref: "#/components/schemas/DecoEntityDecoration" }
+    DecoEntityDecoration:
+      type: object
+      description: "One decorator's result for one entity (source: EntityDecoration.java). rowType and rows are present only on SUCCESS."
+      required: [entityId, decoratorName, status]
+      properties:
+        entityId: { type: string, description: "Forward's spelling of the entity (catalogue device name, an interface's main name), which may differ in case from what was sent." }
+        decoratorName: { type: string }
+        status: { type: string, description: "Known values: SUCCESS, INVALID_DECORATOR (columns do not fit the query output; DEVICE, INTERFACE and HOST only), INVALID_QUERY (does not compile or type-check), QUERY_ERROR (the query reported errors), SERVER_ERROR, TIMEOUT, CANCELED." }
+        rowType:
+          type: object
+          additionalProperties: true
+          description: "The NQE record type of the rows (GUI RecordType: type, name, fields of name/isNullable/type)."
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: "One object per row, keyed by column name, in Forward's internal NQE value JSON (NqeRow/QValue); exact value encoding not traced."
+    # ------------------------------------------------------------------ Flow Trace ---
+    # Shapes of the GUI's undocumented trace routes (TraceController, master fe0daf63c899; live 2026-11-05).
+    # No stability promise from Forward: every object is open (additionalProperties: true).
+    TraceRequest:
+      type: object
+      additionalProperties: true
+      description: "The GUI's trace request (source: FrontendTraceRequest), shared by getTraceFacets, getTrace, getTraceBehaviors and getTraceFlows. filters is required. Unknown fields are ignored by Forward."
+      properties:
+        filters: { $ref: "#/components/schemas/TracePathQuery" }
+        selectedFacets: { $ref: "#/components/schemas/TraceSelectedFacets" }
+        start: { type: integer, description: "First flow index for getTraceFlows paging (default 0)." }
+        limit: { type: integer, description: "Flows per page for getTraceFlows, 0..10000 (default 100). The Go SDK and GUI send 100 on getTrace." }
+        maxResults: { type: integer, description: "The most flows the facets (or flows) are computed over, 1..10000 (default 5000; not used by getTrace)." }
+        computeCovTopo: { type: boolean, description: "Compute the covered topology (default true)." }
+        maxDurationSeconds: { type: integer, description: "Time budget, 1..300 (default 30). Past it the response is partial and timedOut is true." }
+        noiseTypes: { type: array, items: { type: string }, description: "Noise to include (source: NoiseType enum; values not traced). Omitted means none." }
+        normalizeLoops: { type: boolean, description: "Sample one flow per unique loop (default false)." }
+        nullAggChainLoggingFraction: { type: number, description: "Internal logging fraction, 0..1. Leave unset." }
+        headerFieldsWithDefaults: { type: array, items: { type: string }, description: "Header fields given default values at search time (source: SearchUtils; values not traced)." }
+        securityView: { type: boolean, description: "Adds security hop indexes and saves a SECURITY_VIEW_PATH_SEARCH feature-usage event. Do not send (the Go SDK never does)." }
+    TracePathQuery:
+      type: object
+      additionalProperties: true
+      description: "The GUI's PathQuery. Put the source in from.location and EVERY header filter (including ipv4_dst) in from.headers: a destination under to returned zero paths live (Go SDK), because to constrains where the packet leaves the network."
+      properties:
+        from: { $ref: "#/components/schemas/TraceEndpointFilter" }
+        to: { $ref: "#/components/schemas/TraceEndpointFilter" }
+    TraceEndpointFilter:
+      type: object
+      additionalProperties: true
+      properties:
+        location: { $ref: "#/components/schemas/TraceLocationFilter" }
+        headers:
+          type: array
+          items: { $ref: "#/components/schemas/TracePacketFilter" }
+    TraceLocationFilter:
+      type: object
+      additionalProperties: true
+      description: "Where the flow starts. {type: SubnetLocationFilter, value: <ip or prefix>, device?: <device to resolve it on>} or {type: DeviceFilter, values: [<device>]}. Other filter types exist in the GUI and are not traced."
+      properties:
+        type: { type: string, description: "SubnetLocationFilter or DeviceFilter (others not traced)." }
+        value: { type: string, description: "SubnetLocationFilter: the source address or prefix." }
+        values: { type: array, items: { type: string }, description: "DeviceFilter: the device names." }
+        device: { type: string, description: "SubnetLocationFilter: resolve the address on this device." }
+    TracePacketFilter:
+      type: object
+      additionalProperties: true
+      description: "One header filter, e.g. {type: PacketFilter, values: {ip_proto: [\"6\"]}}. Known fields: ip_proto, tp_src, tp_dst, ipv4_dst (ipv6_dst for IPv6, not verified)."
+      properties:
+        type: { type: string, description: "PacketFilter." }
+        values:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+    TraceSelectedFacets:
+      type: object
+      additionalProperties: true
+      description: "The facets the user selected. getTrace needs exactly one path with its behavior; getTraceBehaviors one path without; getTraceFlows any number."
+      properties:
+        paths:
+          type: array
+          items: { $ref: "#/components/schemas/TraceSelectedPath" }
+    TraceSelectedPath:
+      type: object
+      additionalProperties: true
+      properties:
+        path: { type: array, items: { type: string }, description: "The device path, from a facets path group." }
+        traceType: { type: string, description: "The trace type of that path group." }
+        behavior: { $ref: "#/components/schemas/TraceFlowBehavior" }
+    TraceFlowBehavior:
+      type: object
+      additionalProperties: true
+      description: "A behavioural signature: the processing stages per hop (INPUT, L2, IPV4, IN_ACL, OUT_ACL, IN_POLICY_ACL, OUT_POLICY_ACL, DNAT, SNAT, IN_EXTERNAL_VRF, OUT_EXTERNAL_VRF, OUTPUT, ...) and the hops where an ACL dropped the packet. Send a facets behaviorSample back unchanged; do not rebuild it."
+      properties:
+        processingStages:
+          type: array
+          items: { type: array, items: { type: string } }
+        aclDropHops: { type: array, items: { type: integer } }
+    TraceTotalHits:
+      type: object
+      additionalProperties: true
+      properties:
+        value: { type: integer }
+        type: { type: string, description: "EXACT or LOWER_BOUND." }
+    TraceCoveredTopology:
+      type: object
+      additionalProperties: true
+      description: "The devices and links the results cover. Live links carry only sourcePort and targetPort ('<device>,<port>'); the source comment also shows source and target."
+      properties:
+        nodes:
+          type: array
+          items: { type: object, additionalProperties: true, properties: { id: { type: string } } }
+        links:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            properties:
+              source: { type: string }
+              sourcePort: { type: string }
+              target: { type: string }
+              targetPort: { type: string }
+        hosts: { type: array, items: { type: object, additionalProperties: true } }
+    TraceDeviceInfo:
+      type: object
+      additionalProperties: true
+      properties:
+        deviceType: { type: string }
+        locationId: { type: string }
+        requestedDeviceName: { type: string, description: "Present on virtual devices (contexts, vsys)." }
+    TraceDeviceInfoMap:
+      type: object
+      description: "Device name to its type and location."
+      additionalProperties: { $ref: "#/components/schemas/TraceDeviceInfo" }
+    TraceFacetsResponse:
+      type: object
+      additionalProperties: true
+      description: "getTraceFacets response (source: TraceFacetRespSerializer). totalResults is omitted when timedOut. The Go SDK also reads pathGroups and outcomes at the top level for safety; Forward nests them in facets."
+      properties:
+        coveredTopo: { $ref: "#/components/schemas/TraceCoveredTopology" }
+        facets: { $ref: "#/components/schemas/TraceFacets" }
+        devices: { $ref: "#/components/schemas/TraceDeviceInfoMap" }
+        pagedResults: { type: integer, description: "Flows the facets were computed over." }
+        timedOut: { type: boolean }
+        totalResults: { $ref: "#/components/schemas/TraceTotalHits" }
+        logicalNetworks:
+          type: object
+          description: "Logical network name to its device names (when any)."
+          additionalProperties: { type: array, items: { type: string } }
+        possibleIpLocations: { $ref: "#/components/schemas/TracePossibleIpLocations" }
+    TraceFacets:
+      type: object
+      additionalProperties: true
+      description: "The flow facets (source: FlowFacetSerializer, not traced field by field). Live: pathGroups, outcomes, devices, traceTypes, forwardingTypes, firstHopIngressFacets, lastHopEgressFacets."
+      properties:
+        pathGroups:
+          type: array
+          items: { $ref: "#/components/schemas/TracePathGroup" }
+        outcomes:
+          type: object
+          description: "Trace type to device names."
+          additionalProperties: { type: array, items: { type: string } }
+        devices: { type: array, items: { type: string } }
+        traceTypes: { type: array, items: { type: string } }
+        forwardingTypes:
+          type: object
+          description: "Forwarding type (L2, L3, ...) to device names."
+          additionalProperties: { type: array, items: { type: string } }
+        firstHopIngressFacets: { type: object, additionalProperties: true, description: "inPorts and headerFacets (field to values) at the first hop." }
+        lastHopEgressFacets: { type: object, additionalProperties: true, description: "outPorts and headerFacets (field to values) at the last hop." }
+    TracePathGroup:
+      type: object
+      additionalProperties: true
+      description: "Paths sharing one trace type. Several groups can carry the same traceType."
+      properties:
+        traceType: { type: string, description: "VALID, DROPPED, BLACKHOLE, LOOP, INADMISSIBLE, UNREACHABLE, ... (open)." }
+        paths:
+          type: array
+          items: { $ref: "#/components/schemas/TracePathFacet" }
+    TracePathFacet:
+      type: object
+      additionalProperties: true
+      description: "One distinct device path. Parallel links and different behaviours on one device path collapse into one entry."
+      properties:
+        path: { type: array, items: { type: string } }
+        groupSignatureHops: { type: array, items: { type: integer } }
+        outToOverlayLinkHops: { type: array, items: { type: integer } }
+        overlaySignature: { type: array, items: { type: integer } }
+        behaviorSample: { $ref: "#/components/schemas/TraceFlowBehavior" }
+    TracePossibleIpLocations:
+      type: object
+      additionalProperties: true
+      description: "Present only when the source (from) or destination (to) address is at more than one place; pick one and query again with its device."
+      properties:
+        from: { $ref: "#/components/schemas/TracePossibleIpLocationGroup" }
+        to: { $ref: "#/components/schemas/TracePossibleIpLocationGroup" }
+    TracePossibleIpLocationGroup:
+      type: object
+      additionalProperties: true
+      properties:
+        type: { type: string, description: "INTERFACE or HOST (source: IpLocationOrigin)." }
+        locations:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            properties:
+              device: { type: string }
+              subnet: { type: string }
+    TraceResult:
+      type: object
+      additionalProperties: true
+      description: "One sample flow's trace (source: TraceResponseSerializer). When no flow matched, only timedOut is present."
+      properties:
+        statefulness: { type: string, description: "REQUEST or RESPONSE (open)." }
+        behavior: { $ref: "#/components/schemas/TraceFlowBehavior" }
+        coveredTopo: { $ref: "#/components/schemas/TraceCoveredTopology" }
+        traceType: { type: string }
+        ingressHeaders: { $ref: "#/components/schemas/TraceHeaders" }
+        numIngressHosts: { type: integer }
+        ingressHostSample: { type: array, items: { type: object, additionalProperties: true }, description: "Not traced." }
+        deviceHops:
+          type: array
+          items: { $ref: "#/components/schemas/TraceDeviceHop" }
+        groupSignatureHops: { type: array, items: { type: integer } }
+        numEgressHosts: { type: integer }
+        egressHostSample: { type: array, items: { type: object, additionalProperties: true }, description: "Not traced." }
+        missingDevices: { description: "Devices on the path missing from the snapshot (shape not traced)." }
+        pathDescriptor: { type: string, description: "Opaque encoded path (NQE path descriptor)." }
+        respTraceReq: { type: string, description: "Base64 RespFlowSpecPB; the details of getTraceResponses. Absent when no response trace applies (e.g. a drop)." }
+        traceDiffReq: { type: string, description: "Base64 compressed TraceDiffsFlowSpecPB; the details of getTraceDiffs." }
+        timedOut: { type: boolean, description: "Only written on an empty result." }
+    TraceHeaders:
+      type: object
+      description: "Protocol (ETHERNET, IPV4, IPV6, TCP, UDP, L7, ...) to field to value. Values are strings and can be symbolic (host_mac, Egress Interface IP)."
+      additionalProperties:
+        type: object
+        additionalProperties: true
+    TraceDeviceHop:
+      type: object
+      additionalProperties: true
+      properties:
+        device: { type: string }
+        inPorts: { type: array, items: { type: string }, description: "'<device>,<port>'." }
+        outPorts: { type: array, items: { type: string }, description: "Absent on the hop that dropped or ended the packet." }
+        headers: { $ref: "#/components/schemas/TraceHeaders" }
+        networkFunctions:
+          type: object
+          description: "Layer (INPUT, L2, L3, ACCESS_CONTROL, NAT, OUTPUT) to the functions applied."
+          additionalProperties:
+            type: array
+            items: { $ref: "#/components/schemas/TraceNetworkFunction" }
+        outToOverlayLink: { type: boolean }
+        dropTables: { description: "Not traced (Go SDK keeps it raw)." }
+    TraceNetworkFunction:
+      type: object
+      additionalProperties: true
+      description: "One thing a device did to the packet."
+      properties:
+        type: { type: string, description: "L2_INPUT, L3_INPUT, MAC_FORWARDING, ARP, IP_ROUTE, ACCESS_CONTROL, INGRESS_ZONE, EGRESS_ZONE, DNAT, SNAT, L2_OUTPUT, L3_OUTPUT, ... (open)." }
+        fileLines:
+          type: object
+          description: "'<device>,<file>' to 0-based inclusive line ranges in the collected file."
+          additionalProperties:
+            type: array
+            items: { $ref: "#/components/schemas/TraceLineRange" }
+        attributes:
+          type: object
+          description: "Name (NAME, VRF, ROUTE_TYPE, ACL_CONTEXT, APPLIED_ACLS, ...) to values; live values were string lists."
+          additionalProperties: true
+        matches:
+          type: object
+          description: "Header field to matched values; live values were string lists."
+          additionalProperties: true
+        actionBuckets:
+          type: array
+          items: { $ref: "#/components/schemas/TraceActionBucket" }
+        processingStageType: { type: string }
+        tags: { type: array, items: { type: string } }
+    TraceLineRange:
+      type: object
+      additionalProperties: true
+      properties:
+        start: { type: integer }
+        end: { type: integer }
+    TraceActionBucket:
+      type: object
+      additionalProperties: true
+      properties:
+        attributes: { type: object, additionalProperties: true }
+        actions:
+          type: array
+          items: { $ref: "#/components/schemas/TraceAction" }
+    TraceAction:
+      type: object
+      additionalProperties: true
+      properties:
+        type: { type: string, description: "SET_FIELD, POP, PERMIT, DENY, RECEIVE, DROP, ... (open)." }
+        field: { type: string, description: "SET_FIELD/POP: the header field." }
+        value: { description: "SET_FIELD: the new value (a string live)." }
+    TraceRespTracesRequest:
+      type: object
+      additionalProperties: true
+      required: [details]
+      properties:
+        details: { type: string, description: "The respTraceReq of a getTrace response, unchanged (base64)." }
+        maxResults: { type: integer, description: "1..10000, default 5000." }
+        maxDurationSeconds: { type: integer, description: "Default 30, at most 600." }
+    TraceRespTracesResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        traceGroups:
+          type: array
+          items: { type: array, items: { $ref: "#/components/schemas/TraceResult" } }
+        timedOut: { type: boolean }
+        totalResults: { $ref: "#/components/schemas/TraceTotalHits" }
+        devices: { $ref: "#/components/schemas/TraceDeviceInfoMap" }
+    TraceBehaviorsResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        behaviors:
+          type: array
+          items: { $ref: "#/components/schemas/TraceFlowBehavior" }
+        timedOut: { type: boolean }
+    TraceFlowsResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        pagedFlows: { type: integer }
+        totalFlows: { $ref: "#/components/schemas/TraceTotalHits" }
+        flows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            properties:
+              flowType: { type: string }
+              hops: { type: array, items: { type: object, additionalProperties: true }, description: "Internal forwarding-rule hops (rule, table, parent, actionBucketIndex, actionIndex, in_hs, out_hs, in_ports, out_ports); not modelled." }
+              coveredTopo: { $ref: "#/components/schemas/TraceCoveredTopology" }
+    TraceDiffsRequest:
+      type: object
+      additionalProperties: true
+      required: [details]
+      properties:
+        details: { type: string, description: "The traceDiffReq of a getTrace response on the before snapshot, unchanged (base64)." }
+        maxResults: { type: integer, description: "1..10000, default 5000." }
+        maxDurationSeconds: { type: integer, description: "Default 30, at most 600." }
+    TraceDiffsResponse:
+      type: object
+      additionalProperties: true
+      description: "Fields at their default are omitted (timedOut false, no error)."
+      properties:
+        traceGroups:
+          type: array
+          items: { type: array, items: { $ref: "#/components/schemas/TraceResultWithDiffs" } }
+        timedOut: { type: boolean }
+        error: { type: string, description: "FIRST_HOP_INTERFACE_MISSING (open)." }
+        totalResults: { $ref: "#/components/schemas/TraceTotalHits" }
+        devices: { $ref: "#/components/schemas/TraceDeviceInfoMap" }
+    TraceResultWithDiffs:
+      description: "A trace in the after snapshot plus hopDiffs. It has no respTraceReq or traceDiffReq."
+      allOf:
+        - { $ref: "#/components/schemas/TraceResult" }
+        - type: object
+          additionalProperties: true
+          properties:
+            hopDiffs:
+              type: array
+              items: { $ref: "#/components/schemas/TraceHopDiff" }
+    TraceHopDiff:
+      type: object
+      additionalProperties: true
+      properties:
+        diffType: { type: string, description: "ADDED, DELETED, MODIFIED (source) or UNCHANGED (live)." }
+        a: { type: integer, description: "Hop index in the before trace." }
+        b: { type: integer, description: "Hop index in the after trace." }
     SnapStoredFileInfo:
       type: object
       properties:
@@ -22109,10 +23220,10 @@ components:
           type: string
         password:
           type: string
-          description: Java serializes the stored password on GET (source-only; the live account has no ServiceNow settings, so GET returned 404).
+          description: 'Forward never returns the stored password: it reads "" when one is set and is absent when a token is used (source ServiceNowSettings.getPasswordJson).'
         token:
           type: string
-          description: Alternative to username and password. Java serializes the stored token on GET (source-only).
+          description: 'Alternative to username and password. Reads "" when set, never the token itself (source ServiceNowSettings.getTokenJson).'
         enabled:
           type: boolean
         autoCreate:
@@ -22122,20 +23233,32 @@ components:
         autoCreateImpact:
           type: string
           enum:
+          - '1'
+          - '2'
+          - '3'
+          x-enum-varnames:
           - HIGH
           - MEDIUM
           - LOW
+          description: ServiceNow's numeric level as a string ("1" high, "2" medium, "3" low), not the level name (source ServiceNowIncidentLevel.toJson). Defaults to "3".
         autoCreateUrgency:
           type: string
           enum:
+          - '1'
+          - '2'
+          - '3'
+          x-enum-varnames:
           - HIGH
           - MEDIUM
           - LOW
+          description: ServiceNow's numeric level as a string ("1" high, "2" medium, "3" low), not the level name (source ServiceNowIncidentLevel.toJson). Defaults to "3".
       required:
       - instanceUrl
       - enabled
       - autoCreate
       - autoUpdate
+      - autoCreateImpact
+      - autoCreateUrgency
       description: The organization's ServiceNow connection (Java ServiceNowSettings). Source-only shape apart from the 404 when none is configured (live-verified).
     SrcUpdateServiceNowSettings:
       type: object
@@ -22160,16 +23283,26 @@ components:
         autoCreateImpact:
           type: string
           enum:
+          - '1'
+          - '2'
+          - '3'
+          x-enum-varnames:
           - HIGH
           - MEDIUM
           - LOW
+          description: ServiceNow's numeric level as a string ("1" high, "2" medium, "3" low), not the level name (source ServiceNowIncidentLevel.toJson). Defaults to "3".
         autoCreateUrgency:
           type: string
           enum:
+          - '1'
+          - '2'
+          - '3'
+          x-enum-varnames:
           - HIGH
           - MEDIUM
           - LOW
-      description: Partial update of ServiceNow settings (Java UpdateServiceNowSettings). Give either token or username and password, never both (Java Preconditions). certificate is accepted on-premises only.
+          description: ServiceNow's numeric level as a string ("1" high, "2" medium, "3" low), not the level name (source ServiceNowIncidentLevel.toJson). Defaults to "3".
+      description: Partial update of ServiceNow settings (Java UpdateServiceNowSettings). Give either token or username and password, never both (400 otherwise); a token replaces stored username and password and vice versa. certificate is accepted on premises only; an empty certificate clears it. instanceUrl can be set only when no settings exist yet (source UpdateServiceNowSettings.applyTo).
     SrcEndHostScanner:
       type: object
       properties:
@@ -22262,21 +23395,24 @@ components:
           format: uri
         certificate:
           type: string
+          description: X.509 certificate to trust.
         username:
           type: string
         password:
           type: string
+          description: 'Reads back as "" when set. On save an empty or absent password keeps the stored one while instanceUrl and username are unchanged (400 otherwise).'
         clientId:
           type: string
+          description: OAuth client id.
         clientSecret:
           type: string
+          description: 'Required with clientId. Reads back as "" when set; on save an empty one keeps the stored secret while instanceUrl and clientId are unchanged.'
         proxyConfig:
-          type: object
+          $ref: '#/components/schemas/SrcServiceNowCmdbProxyConfig'
       required:
       - instanceUrl
       - username
-      - password
-      description: ServiceNow connection details (Java ServiceNowCmdbConnectionDetails). Credentials are sent in the body.
+      description: ServiceNow connection details (Java ServiceNowCmdbConnectionDetails). Credentials are sent in the body. Forward writes stored secrets as "" so a read configuration can be saved back unchanged (source withStoredSecrets).
     SrcServiceNowCmdbSchemaRequest:
       type: object
       properties:
@@ -22325,28 +23461,207 @@ components:
       - name
       - fields
       description: One CMDB class and its fields (Java CmdbConfigurationItemSchema).
+    ServiceNowIncidentLevel:
+      type: string
+      enum: ["1", "2", "3"]
+      x-enum-varnames: [HIGH, MEDIUM, LOW]
+      description: "A ServiceNow incident impact or urgency level, sent as ServiceNow's numeric level in a string: \"1\" high, \"2\" medium, \"3\" low. Forward reads any other non-negative number from a customized instance as low (source: ServiceNowIncidentLevel.java)."
+    ServiceNowIncidentState:
+      type: string
+      enum: [New, In Progress, On Hold, Resolved, Closed, Canceled]
+      x-enum-varnames: [NEW, IN_PROGRESS, ON_HOLD, RESOLVED, CLOSED, CANCELED]
+      description: A ServiceNow incident state label (source ServiceNowIncidentState.java). Resolved, Closed and Canceled are terminal.
+    ServiceNowCheckType:
+      type: string
+      enum: [Isolation, Reachability, Existential, QueryStringBased, Predefined, NQE, Exists, ExistentialCheck, IsolationCheck, ReachabilityCheck, NetworkQuery]
+      description: "A check type as Forward spells it in a query parameter (source: CheckType.fromJson). The last five are legacy spellings of the first ones."
+    NewServiceNowIncident:
+      type: object
+      properties:
+        summary: { type: string, minLength: 1 }
+        details: { type: string, description: "Optional. Forward trims it and appends a link back to the check." }
+        impact: { $ref: "#/components/schemas/ServiceNowIncidentLevel" }
+        urgency: { $ref: "#/components/schemas/ServiceNowIncidentLevel" }
+      required: [summary, impact, urgency]
+      description: An incident to raise in ServiceNow (source NewServiceNowIncident.java).
+    ServiceNowIncidentLink:
+      type: object
+      properties:
+        checkId: { type: string, description: The check the incident is linked to. }
+        number: { type: string, description: The ServiceNow incident number. }
+        state: { $ref: "#/components/schemas/ServiceNowIncidentState" }
+        stateLastUpdated: { type: integer, format: int64, description: Epoch milliseconds when Forward last read the state from ServiceNow. }
+      required: [checkId, number, state, stateLastUpdated]
+      description: A ServiceNow incident linked to a check, as Forward stores it. Only these four fields are serialized (source ServiceNowIncidentBasicInfo.java).
+    ServiceNowIncidentUpdate:
+      type: object
+      properties:
+        snapshotCreationTime: { type: integer, format: int64, description: Epoch milliseconds. }
+        totalFailures: { type: integer, format: int64 }
+      required: [snapshotCreationTime, totalFailures]
+      description: One update Forward made to an incident's work notes (source ServiceNowIncidentUpdate.java).
+    ServiceNowIncident:
+      type: object
+      properties:
+        number: { type: string }
+        sysId: { type: string }
+        summary: { type: string, description: Absent for incidents created in ServiceNow without one. }
+        details: { type: string }
+        impact: { $ref: "#/components/schemas/ServiceNowIncidentLevel" }
+        urgency: { $ref: "#/components/schemas/ServiceNowIncidentLevel" }
+        state: { $ref: "#/components/schemas/ServiceNowIncidentState" }
+        url: { type: string, format: uri, description: The incident's page in ServiceNow. }
+      required: [number, sysId, impact, urgency, state, url]
+      description: An incident as ServiceNow reports it (source ServiceNowIncident.java).
+    SrcServiceNowCmdbProxyConfig:
+      type: object
+      properties:
+        host: { type: string, format: uri }
+        port: { type: integer }
+        username: { type: string }
+        password: { type: string, description: "Reads back as \"\" when set. On save an empty or absent password with a username keeps the stored one, if host, port and username are unchanged." }
+        realm: { type: string }
+      required: [host, port]
+      description: HTTP proxy for reaching ServiceNow (source ServiceNowCmdbProxyConfig.java). username is required when password or realm is given.
+    SrcServiceNowCmdbSettings:
+      type: object
+      properties:
+        connectionName: { type: string }
+        connectionDetails: { $ref: "#/components/schemas/SrcServiceNowCmdbConnectionDetails" }
+        sourceName: { type: string, description: A discovery source name from listServiceNowCmdbDiscoverySources. }
+      required: [connectionName, connectionDetails, sourceName]
+      description: The CMDB connection (source ServiceNowCmdbSettings.java).
+    SrcConfigurationItemFieldRelation:
+      type: object
+      properties:
+        cmdbField: { $ref: "#/components/schemas/SrcCmdbConfigurationItemField" }
+        queryColumnName: { type: string, description: The NQE column that fills the field; absent leaves it unmapped. }
+      required: [cmdbField]
+      description: Maps one CMDB field to an NQE column (source ConfigurationItemFieldRelation.java).
+    SrcCmdbConfigurationItemMapping:
+      type: object
+      properties:
+        name: { type: string, description: The CMDB class name. }
+        queryId: { type: string, description: The NQE query whose rows fill the class. }
+        fieldRelations:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/SrcConfigurationItemFieldRelation" }
+      required: [name, queryId, fieldRelations]
+      description: Maps one CMDB class to an NQE query (source CmdbConfigurationItemMapping.java).
+    CmdbTablePayload:
+      type: object
+      properties:
+        tableName: { type: string }
+        rows:
+          type: array
+          items: { type: object, additionalProperties: true, description: CMDB field name to value. }
+      required: [tableName, rows]
+    CmdbPayloadPreview:
+      type: object
+      properties:
+        error: { type: string }
+        tables:
+          type: array
+          items: { $ref: "#/components/schemas/CmdbTablePayload" }
+      description: What a CMDB push would write. Exactly one of error and tables is present (source CmdbPayloadPreview.java).
+    CmdbConfigurationStatus:
+      type: object
+      properties:
+        status: { type: string, enum: [SUCCESSFUL, CONNECTION_FAILED, INCORRECT_MAPPINGS] }
+        missingClassNames: { type: array, items: { type: string }, uniqueItems: true }
+        incorrectMappingClassNames: { type: array, items: { type: string }, uniqueItems: true }
+      required: [status]
+      description: Whether the saved mappings still match the instance. Empty sets are omitted (source CmdbConfigurationStatus.java).
+    ServiceNowCmdbErrorFieldContext:
+      type: object
+      properties:
+        matchingAttributesTried: { type: array, items: { type: string } }
+        ciTableName: { type: string }
+        fieldName: { type: string }
+        expectedType: { type: string }
+        actualValue: { type: string }
+        nqeSource:
+          type: object
+          properties:
+            queryId: { type: string }
+            queryName: { type: string }
+            columnName: { type: string }
+          required: [queryId, queryName, columnName]
+          description: The NQE query and column that produced the value, when Forward can trace it.
+        referenceTargetTable: { type: string, description: The table a reference field looks up into. }
+      description: Where a CMDB error happened. Empty fields are omitted (source ServiceNowCmdbError.FieldContext).
+    ServiceNowCmdbError:
+      type: object
+      properties:
+        errorType:
+          type: string
+          enum: [UNKNOWN_ERROR, SERVICENOW_SERVER_ERROR, CONNECTION_DNS_FAILURE, CONNECTION_TIMEOUT, CONNECTION_REFUSED, CONNECTION_SSL_ERROR, AUTH_INVALID_CREDENTIALS, INSTANCE_HIBERNATING, INSTANCE_SUSPENDED, INSTANCE_RATE_LIMITED, PERMISSION_ACL_RESTRICTION, API_ENDPOINT_NOT_FOUND, AUTH_ACCOUNT_LOCKED, AUTH_MISSING_ROLE, VALIDATION_REQUIRED_FIELD_MISSING, VALIDATION_TYPE_MISMATCH, VALIDATION_CHOICE_INVALID, VALIDATION_READONLY_FIELD, REFERENCE_NOT_FOUND, SCHEMA_CI_NOT_FOUND, SCHEMA_FIELD_NOT_FOUND]
+        userMessage: { type: string }
+        technicalDetails: { type: string }
+        fieldContext: { $ref: "#/components/schemas/ServiceNowCmdbErrorFieldContext" }
+        remediationSteps: { type: string }
+        count: { type: integer, minimum: 1, description: How many times this error occurred. Always at least 1. }
+      required: [errorType, userMessage, count]
+      description: A classified ServiceNow CMDB error (source ServiceNowCmdbError.java).
+    ServiceNowCmdbTestResult:
+      type: object
+      properties:
+        errorMessage: { type: string }
+        error: { $ref: "#/components/schemas/ServiceNowCmdbError" }
+      description: Both fields are absent when the connection works (source ServiceNowCmdbTestResult.java).
+    CmdbSynchronizationInfo:
+      type: object
+      properties:
+        syncInstant: { type: integer, format: int64, description: Epoch milliseconds. }
+        networkName: { type: string }
+        error: { type: string, description: Present when the push failed; then the counts are absent. }
+        entitiesInserted: { type: integer, format: int64 }
+        entitiesUpdated: { type: integer, format: int64 }
+        errors:
+          type: array
+          items: { $ref: "#/components/schemas/ServiceNowCmdbError" }
+          description: Structured errors, at most 100 kept. Omitted when empty.
+      required: [syncInstant, networkName]
+      description: One push for one network (source CmdbSynchronizationInfo.java with ServiceNowCmdbPushStatus unwrapped).
+    CmdbSynchronizationHistory:
+      type: object
+      properties:
+        infos:
+          type: array
+          items: { $ref: "#/components/schemas/CmdbSynchronizationInfo" }
+      required: [infos]
+      description: Past CMDB pushes (source CmdbSynchronizationHistory.java).
     SrcServiceNowCmdbConfiguration:
       type: object
       properties:
         settings:
-          type: object
-          description: Connection name, connection details, source name (Java ServiceNowCmdbSettings; nested shape not modeled).
+          $ref: '#/components/schemas/SrcServiceNowCmdbSettings'
         mappings:
           type: array
+          minItems: 1
           items:
-            type: object
-          description: Configuration item mappings (Java CmdbConfigurationItemMapping; not modeled).
+            $ref: '#/components/schemas/SrcCmdbConfigurationItemMapping'
+          description: CMDB class to NQE query mappings. At least one.
         syncConfig:
           type: object
           properties:
             networkIds:
               type: array
+              minItems: 1
               items:
                 type: string
-          description: Java CmdbSyncConfig.
+          required:
+          - networkIds
+          description: The networks to sync (Java CmdbSyncConfig). At least one.
         enabled:
           type: boolean
-      description: Body of POST integrations/servicenow-cmdb/configuration (Java ServiceNowCmdbConfiguration). Nested mapping objects are not modeled.
+          description: Absent on save means false.
+      required:
+      - settings
+      - mappings
+      - syncConfig
+      description: The CMDB configuration (Java ServiceNowCmdbConfiguration), the body of POST and the answer of GET integrations/servicenow-cmdb/configuration.
     SrcDeviceStatus:
       type: object
       properties:

@@ -49,7 +49,9 @@ from forward_sdk._async.services._generated.device_interfaces import AsyncDevice
 from forward_sdk._async.services._generated.edge_assets import AsyncEdgeAssetsService
 from forward_sdk._async.services._generated.encryptors import AsyncEncryptorsService
 from forward_sdk._async.services._generated.endpoint_profiles import AsyncEndpointProfilesService
+from forward_sdk._async.services._generated.entity_decorators import AsyncEntityDecoratorsService
 from forward_sdk._async.services._generated.firewall_predict import AsyncFirewallPredictService
+from forward_sdk._async.services._generated.flow_trace import AsyncFlowTraceService
 from forward_sdk._async.services._generated.integrations import AsyncIntegrationsService
 from forward_sdk._async.services._generated.internet_exposure import AsyncInternetExposureService
 from forward_sdk._async.services._generated.internet_node import AsyncInternetNodeService
@@ -147,7 +149,9 @@ __all__ = [
     "AsyncEdgeAssetsService",
     "AsyncEncryptorsService",
     "AsyncEndpointProfilesService",
+    "AsyncEntityDecoratorsService",
     "AsyncFirewallPredictService",
+    "AsyncFlowTraceService",
     "AsyncGeneratedServices",
     "AsyncIntegrationsService",
     "AsyncInternetExposureService",
@@ -235,7 +239,9 @@ class AsyncGeneratedServices:
     edge_assets: AsyncEdgeAssetsService
     encryptors: AsyncEncryptorsService
     endpoint_profiles: AsyncEndpointProfilesService
+    entity_decorators: AsyncEntityDecoratorsService
     firewall_predict: AsyncFirewallPredictService
+    flow_trace: AsyncFlowTraceService
     integrations: AsyncIntegrationsService
     internet_exposure: AsyncInternetExposureService
     internet_node: AsyncInternetNodeService
@@ -314,7 +320,9 @@ class AsyncGeneratedServices:
         self.edge_assets = AsyncEdgeAssetsService(transport)
         self.encryptors = AsyncEncryptorsService(transport)
         self.endpoint_profiles = AsyncEndpointProfilesService(transport)
+        self.entity_decorators = AsyncEntityDecoratorsService(transport)
         self.firewall_predict = AsyncFirewallPredictService(transport)
+        self.flow_trace = AsyncFlowTraceService(transport)
         self.integrations = AsyncIntegrationsService(transport)
         self.internet_exposure = AsyncInternetExposureService(transport)
         self.internet_node = AsyncInternetNodeService(transport)
@@ -395,7 +403,9 @@ SERVICE_TAGS: dict[str, str] = {
     "Edge Assets": "edge_assets",
     "Encryptors": "encryptors",
     "Endpoint Profiles": "endpoint_profiles",
+    "Entity Decorators": "entity_decorators",
     "Firewall Predict": "firewall_predict",
+    "Flow Trace": "flow_trace",
     "Integrations": "integrations",
     "Internet Exposure": "internet_exposure",
     "Internet Node": "internet_node",

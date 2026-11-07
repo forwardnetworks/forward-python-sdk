@@ -2801,6 +2801,13 @@
           }
         ],
         "properties": {
+          "bmpStationHost": {
+            "description": "Host name or IP address of the BMP station the device sends BGP monitoring to. Returned on a read because the stored device serialises every DeviceSetup field (source: StoredClassicDevice, DeviceSetup); Forward publishes it on the create and patch bodies but not on the read. A batch write (putClassicDevices) rebuilds each stored device from its item alone, so leaving it out clears it.",
+            "examples": [
+              "bmp.example.com"
+            ],
+            "type": "string"
+          },
           "collectorId": {
             "description": "The collector serving this source when one was set for it, in Forward's \"C3\" form. Absent when the source uses the network's default. Preview: Forward returns it but leaves it out of its API description.",
             "examples": [
@@ -4547,6 +4554,124 @@
             "type": "integer"
           }
         },
+        "type": "object"
+      },
+      "CmdbConfigurationStatus": {
+        "description": "Whether the saved mappings still match the instance. Empty sets are omitted (source CmdbConfigurationStatus.java).",
+        "properties": {
+          "incorrectMappingClassNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "missingClassNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "status": {
+            "enum": [
+              "SUCCESSFUL",
+              "CONNECTION_FAILED",
+              "INCORRECT_MAPPINGS"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "CmdbPayloadPreview": {
+        "description": "What a CMDB push would write. Exactly one of error and tables is present (source CmdbPayloadPreview.java).",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "tables": {
+            "items": {
+              "$ref": "#/components/schemas/CmdbTablePayload"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CmdbSynchronizationHistory": {
+        "description": "Past CMDB pushes (source CmdbSynchronizationHistory.java).",
+        "properties": {
+          "infos": {
+            "items": {
+              "$ref": "#/components/schemas/CmdbSynchronizationInfo"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "infos"
+        ],
+        "type": "object"
+      },
+      "CmdbSynchronizationInfo": {
+        "description": "One push for one network (source CmdbSynchronizationInfo.java with ServiceNowCmdbPushStatus unwrapped).",
+        "properties": {
+          "entitiesInserted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "entitiesUpdated": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "error": {
+            "description": "Present when the push failed; then the counts are absent.",
+            "type": "string"
+          },
+          "errors": {
+            "description": "Structured errors, at most 100 kept. Omitted when empty.",
+            "items": {
+              "$ref": "#/components/schemas/ServiceNowCmdbError"
+            },
+            "type": "array"
+          },
+          "networkName": {
+            "type": "string"
+          },
+          "syncInstant": {
+            "description": "Epoch milliseconds.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "syncInstant",
+          "networkName"
+        ],
+        "type": "object"
+      },
+      "CmdbTablePayload": {
+        "properties": {
+          "rows": {
+            "items": {
+              "additionalProperties": true,
+              "description": "CMDB field name to value.",
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "tableName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tableName",
+          "rows"
+        ],
         "type": "object"
       },
       "CollectedFilesDiff": {
@@ -6559,6 +6684,237 @@
           "STIG"
         ],
         "type": "string"
+      },
+      "DecoDecorationsRequest": {
+        "description": "Body of decorateEntities (source: SnapshotDecorationsRequest.java). Both lists must be non-empty.",
+        "properties": {
+          "decoratorNames": {
+            "description": "Decorators to run, matched case-insensitively.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "entityIds": {
+            "description": "Device names (DEVICE), '<device> <interface>' (INTERFACE), decimal host ids (HOST) or path descriptors (PATH types).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "entityIds",
+          "decoratorNames"
+        ],
+        "type": "object"
+      },
+      "DecoDecorationsResponse": {
+        "description": "Result of decorateEntities (source: SnapshotDecorationsResponse.java).",
+        "properties": {
+          "entityDecorations": {
+            "items": {
+              "$ref": "#/components/schemas/DecoEntityDecoration"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "entityDecorations"
+        ],
+        "type": "object"
+      },
+      "DecoEntityDecoration": {
+        "description": "One decorator's result for one entity (source: EntityDecoration.java). rowType and rows are present only on SUCCESS.",
+        "properties": {
+          "decoratorName": {
+            "type": "string"
+          },
+          "entityId": {
+            "description": "Forward's spelling of the entity (catalogue device name, an interface's main name), which may differ in case from what was sent.",
+            "type": "string"
+          },
+          "rowType": {
+            "additionalProperties": true,
+            "description": "The NQE record type of the rows (GUI RecordType: type, name, fields of name/isNullable/type).",
+            "type": "object"
+          },
+          "rows": {
+            "description": "One object per row, keyed by column name, in Forward's internal NQE value JSON (NqeRow/QValue); exact value encoding not traced.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "status": {
+            "description": "Known values: SUCCESS, INVALID_DECORATOR (columns do not fit the query output; DEVICE, INTERFACE and HOST only), INVALID_QUERY (does not compile or type-check), QUERY_ERROR (the query reported errors), SERVER_ERROR, TIMEOUT, CANCELED.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entityId",
+          "decoratorName",
+          "status"
+        ],
+        "type": "object"
+      },
+      "DecoEntityDecorator": {
+        "description": "An entity decorator as Forward returns it (source: EntityDecorator.java with DecoratorDefinition unwrapped). Only the join columns for type are present; createdAt/createdBy/updatedAt/updatedBy are absent on system-managed decorators.",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "Username of the creator.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Present only when set.",
+            "type": "string"
+          },
+          "deviceColName": {
+            "description": "DEVICE and INTERFACE (required), HOST (optional): the device-name column.",
+            "type": "string"
+          },
+          "directionColName": {
+            "description": "PATH_INTERFACE: the direction column.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether Forward shows this decorator on entities.",
+            "type": "boolean"
+          },
+          "hopIndexColName": {
+            "description": "PATH_DEVICE and PATH_INTERFACE: the hop index column.",
+            "type": "string"
+          },
+          "hostColName": {
+            "description": "HOST, optional: the host-name column.",
+            "type": "string"
+          },
+          "interfaceColName": {
+            "description": "INTERFACE: the interface-name column.",
+            "type": "string"
+          },
+          "ipAddressColName": {
+            "description": "HOST: the IP address column (IpAddress).",
+            "type": "string"
+          },
+          "macAddressColName": {
+            "description": "HOST, optional: the MAC address column (MacAddress).",
+            "type": "string"
+          },
+          "metadataColNames": {
+            "description": "The query columns attached to the entity. Empty means every column that is not a join column.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "Unique per org, compared case-insensitively. Names starting fwd- are system-managed.",
+            "type": "string"
+          },
+          "queryId": {
+            "description": "The NQE query whose rows are attached: a Q_ id for an org query, an FQ_ id for a Forward library query.",
+            "type": "string"
+          },
+          "systemManaged": {
+            "description": "True for Forward's built-in fwd- decorators, which can be enabled or disabled but not edited or deleted.",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "The entity type decorated. Known values: DEVICE, INTERFACE, HOST, PATH, PATH_DEVICE, PATH_INTERFACE.",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "description": "Username of the last editor.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "queryId",
+          "metadataColNames",
+          "type",
+          "enabled",
+          "systemManaged"
+        ],
+        "type": "object"
+      },
+      "DecoEntityDecoratorPatch": {
+        "description": "Body of upsertDecorator (source: web/json/decorator/EntityDecoratorPatch.java and its six subtypes, dispatched on type). Absent fields are left unchanged. A create needs name, queryId, metadataColNames and the join columns for type. Join columns that do not belong to type are ignored (source: each subtype only reads its own).",
+        "properties": {
+          "description": {
+            "description": "null clears it.",
+            "nullable": true,
+            "type": "string"
+          },
+          "deviceColName": {
+            "description": "DEVICE, INTERFACE; optional on HOST, where null clears it.",
+            "nullable": true,
+            "type": "string"
+          },
+          "directionColName": {
+            "description": "PATH_INTERFACE.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "A new decorator is disabled unless this is true.",
+            "type": "boolean"
+          },
+          "hopIndexColName": {
+            "description": "PATH_DEVICE, PATH_INTERFACE.",
+            "type": "string"
+          },
+          "hostColName": {
+            "description": "HOST, optional; null clears it.",
+            "nullable": true,
+            "type": "string"
+          },
+          "interfaceColName": {
+            "description": "INTERFACE.",
+            "type": "string"
+          },
+          "ipAddressColName": {
+            "description": "HOST.",
+            "type": "string"
+          },
+          "macAddressColName": {
+            "description": "HOST, optional; null clears it.",
+            "nullable": true,
+            "type": "string"
+          },
+          "metadataColNames": {
+            "description": "Columns to attach; an empty array means all non-join columns.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "The decorator's name; required to create one (Forward does not default it to the path name). On an update, a different value renames the decorator. Must not start with fwd-.",
+            "type": "string"
+          },
+          "queryId": {
+            "description": "Must name a query in the head of the org's NQE library.",
+            "type": "string"
+          },
+          "type": {
+            "description": "Selects the body shape and must match an existing decorator's type. Known values: DEVICE, INTERFACE, HOST, PATH, PATH_DEVICE, PATH_INTERFACE.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
       },
       "DefaultColumnFilter": {
         "properties": {
@@ -15034,6 +15390,31 @@
         ],
         "type": "object"
       },
+      "NewServiceNowIncident": {
+        "description": "An incident to raise in ServiceNow (source NewServiceNowIncident.java).",
+        "properties": {
+          "details": {
+            "description": "Optional. Forward trims it and appends a link back to the check.",
+            "type": "string"
+          },
+          "impact": {
+            "$ref": "#/components/schemas/ServiceNowIncidentLevel"
+          },
+          "summary": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "urgency": {
+            "$ref": "#/components/schemas/ServiceNowIncidentLevel"
+          }
+        },
+        "required": [
+          "summary",
+          "impact",
+          "urgency"
+        ],
+        "type": "object"
+      },
       "NewSnmpCredential": {
         "description": "communityString applies to V2C, authSettings to V3.",
         "properties": {
@@ -20298,6 +20679,259 @@
         },
         "type": "object"
       },
+      "ServiceNowCheckType": {
+        "description": "A check type as Forward spells it in a query parameter (source: CheckType.fromJson). The last five are legacy spellings of the first ones.",
+        "enum": [
+          "Isolation",
+          "Reachability",
+          "Existential",
+          "QueryStringBased",
+          "Predefined",
+          "NQE",
+          "Exists",
+          "ExistentialCheck",
+          "IsolationCheck",
+          "ReachabilityCheck",
+          "NetworkQuery"
+        ],
+        "type": "string"
+      },
+      "ServiceNowCmdbError": {
+        "description": "A classified ServiceNow CMDB error (source ServiceNowCmdbError.java).",
+        "properties": {
+          "count": {
+            "description": "How many times this error occurred. Always at least 1.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "errorType": {
+            "enum": [
+              "UNKNOWN_ERROR",
+              "SERVICENOW_SERVER_ERROR",
+              "CONNECTION_DNS_FAILURE",
+              "CONNECTION_TIMEOUT",
+              "CONNECTION_REFUSED",
+              "CONNECTION_SSL_ERROR",
+              "AUTH_INVALID_CREDENTIALS",
+              "INSTANCE_HIBERNATING",
+              "INSTANCE_SUSPENDED",
+              "INSTANCE_RATE_LIMITED",
+              "PERMISSION_ACL_RESTRICTION",
+              "API_ENDPOINT_NOT_FOUND",
+              "AUTH_ACCOUNT_LOCKED",
+              "AUTH_MISSING_ROLE",
+              "VALIDATION_REQUIRED_FIELD_MISSING",
+              "VALIDATION_TYPE_MISMATCH",
+              "VALIDATION_CHOICE_INVALID",
+              "VALIDATION_READONLY_FIELD",
+              "REFERENCE_NOT_FOUND",
+              "SCHEMA_CI_NOT_FOUND",
+              "SCHEMA_FIELD_NOT_FOUND"
+            ],
+            "type": "string"
+          },
+          "fieldContext": {
+            "$ref": "#/components/schemas/ServiceNowCmdbErrorFieldContext"
+          },
+          "remediationSteps": {
+            "type": "string"
+          },
+          "technicalDetails": {
+            "type": "string"
+          },
+          "userMessage": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "errorType",
+          "userMessage",
+          "count"
+        ],
+        "type": "object"
+      },
+      "ServiceNowCmdbErrorFieldContext": {
+        "description": "Where a CMDB error happened. Empty fields are omitted (source ServiceNowCmdbError.FieldContext).",
+        "properties": {
+          "actualValue": {
+            "type": "string"
+          },
+          "ciTableName": {
+            "type": "string"
+          },
+          "expectedType": {
+            "type": "string"
+          },
+          "fieldName": {
+            "type": "string"
+          },
+          "matchingAttributesTried": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "nqeSource": {
+            "description": "The NQE query and column that produced the value, when Forward can trace it.",
+            "properties": {
+              "columnName": {
+                "type": "string"
+              },
+              "queryId": {
+                "type": "string"
+              },
+              "queryName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "queryId",
+              "queryName",
+              "columnName"
+            ],
+            "type": "object"
+          },
+          "referenceTargetTable": {
+            "description": "The table a reference field looks up into.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ServiceNowCmdbTestResult": {
+        "description": "Both fields are absent when the connection works (source ServiceNowCmdbTestResult.java).",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ServiceNowCmdbError"
+          },
+          "errorMessage": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ServiceNowIncident": {
+        "description": "An incident as ServiceNow reports it (source ServiceNowIncident.java).",
+        "properties": {
+          "details": {
+            "type": "string"
+          },
+          "impact": {
+            "$ref": "#/components/schemas/ServiceNowIncidentLevel"
+          },
+          "number": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ServiceNowIncidentState"
+          },
+          "summary": {
+            "description": "Absent for incidents created in ServiceNow without one.",
+            "type": "string"
+          },
+          "sysId": {
+            "type": "string"
+          },
+          "urgency": {
+            "$ref": "#/components/schemas/ServiceNowIncidentLevel"
+          },
+          "url": {
+            "description": "The incident's page in ServiceNow.",
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "sysId",
+          "impact",
+          "urgency",
+          "state",
+          "url"
+        ],
+        "type": "object"
+      },
+      "ServiceNowIncidentLevel": {
+        "description": "A ServiceNow incident impact or urgency level, sent as ServiceNow's numeric level in a string: \"1\" high, \"2\" medium, \"3\" low. Forward reads any other non-negative number from a customized instance as low (source: ServiceNowIncidentLevel.java).",
+        "enum": [
+          "1",
+          "2",
+          "3"
+        ],
+        "type": "string",
+        "x-enum-varnames": [
+          "HIGH",
+          "MEDIUM",
+          "LOW"
+        ]
+      },
+      "ServiceNowIncidentLink": {
+        "description": "A ServiceNow incident linked to a check, as Forward stores it. Only these four fields are serialized (source ServiceNowIncidentBasicInfo.java).",
+        "properties": {
+          "checkId": {
+            "description": "The check the incident is linked to.",
+            "type": "string"
+          },
+          "number": {
+            "description": "The ServiceNow incident number.",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ServiceNowIncidentState"
+          },
+          "stateLastUpdated": {
+            "description": "Epoch milliseconds when Forward last read the state from ServiceNow.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "checkId",
+          "number",
+          "state",
+          "stateLastUpdated"
+        ],
+        "type": "object"
+      },
+      "ServiceNowIncidentState": {
+        "description": "A ServiceNow incident state label (source ServiceNowIncidentState.java). Resolved, Closed and Canceled are terminal.",
+        "enum": [
+          "New",
+          "In Progress",
+          "On Hold",
+          "Resolved",
+          "Closed",
+          "Canceled"
+        ],
+        "type": "string",
+        "x-enum-varnames": [
+          "NEW",
+          "IN_PROGRESS",
+          "ON_HOLD",
+          "RESOLVED",
+          "CLOSED",
+          "CANCELED"
+        ]
+      },
+      "ServiceNowIncidentUpdate": {
+        "description": "One update Forward made to an incident's work notes (source ServiceNowIncidentUpdate.java).",
+        "properties": {
+          "snapshotCreationTime": {
+            "description": "Epoch milliseconds.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "totalFailures": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "snapshotCreationTime",
+          "totalFailures"
+        ],
+        "type": "object"
+      },
       "ServiceNowNewChangeRequest": {
         "description": "The body of createChangeSetChangeRequest (source: NewServiceNowChangeRequest). Text is trimmed; blank text counts as absent.",
         "properties": {
@@ -21798,6 +22432,32 @@
         ],
         "type": "object"
       },
+      "SrcCmdbConfigurationItemMapping": {
+        "description": "Maps one CMDB class to an NQE query (source CmdbConfigurationItemMapping.java).",
+        "properties": {
+          "fieldRelations": {
+            "items": {
+              "$ref": "#/components/schemas/SrcConfigurationItemFieldRelation"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "name": {
+            "description": "The CMDB class name.",
+            "type": "string"
+          },
+          "queryId": {
+            "description": "The NQE query whose rows fill the class.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "queryId",
+          "fieldRelations"
+        ],
+        "type": "object"
+      },
       "SrcCmdbConfigurationItemSchema": {
         "description": "One CMDB class and its fields (Java CmdbConfigurationItemSchema).",
         "properties": {
@@ -21814,6 +22474,22 @@
         "required": [
           "name",
           "fields"
+        ],
+        "type": "object"
+      },
+      "SrcConfigurationItemFieldRelation": {
+        "description": "Maps one CMDB field to an NQE column (source ConfigurationItemFieldRelation.java).",
+        "properties": {
+          "cmdbField": {
+            "$ref": "#/components/schemas/SrcCmdbConfigurationItemField"
+          },
+          "queryColumnName": {
+            "description": "The NQE column that fills the field; absent leaves it unmapped.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cmdbField"
         ],
         "type": "object"
       },
@@ -22954,47 +23630,60 @@
         "type": "object"
       },
       "SrcServiceNowCmdbConfiguration": {
-        "description": "Body of POST integrations/servicenow-cmdb/configuration (Java ServiceNowCmdbConfiguration). Nested mapping objects are not modeled.",
+        "description": "The CMDB configuration (Java ServiceNowCmdbConfiguration), the body of POST and the answer of GET integrations/servicenow-cmdb/configuration.",
         "properties": {
           "enabled": {
+            "description": "Absent on save means false.",
             "type": "boolean"
           },
           "mappings": {
-            "description": "Configuration item mappings (Java CmdbConfigurationItemMapping; not modeled).",
+            "description": "CMDB class to NQE query mappings. At least one.",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/SrcCmdbConfigurationItemMapping"
             },
+            "minItems": 1,
             "type": "array"
           },
           "settings": {
-            "description": "Connection name, connection details, source name (Java ServiceNowCmdbSettings; nested shape not modeled).",
-            "type": "object"
+            "$ref": "#/components/schemas/SrcServiceNowCmdbSettings"
           },
           "syncConfig": {
-            "description": "Java CmdbSyncConfig.",
+            "description": "The networks to sync (Java CmdbSyncConfig). At least one.",
             "properties": {
               "networkIds": {
                 "items": {
                   "type": "string"
                 },
+                "minItems": 1,
                 "type": "array"
               }
             },
+            "required": [
+              "networkIds"
+            ],
             "type": "object"
           }
         },
+        "required": [
+          "settings",
+          "mappings",
+          "syncConfig"
+        ],
         "type": "object"
       },
       "SrcServiceNowCmdbConnectionDetails": {
-        "description": "ServiceNow connection details (Java ServiceNowCmdbConnectionDetails). Credentials are sent in the body.",
+        "description": "ServiceNow connection details (Java ServiceNowCmdbConnectionDetails). Credentials are sent in the body. Forward writes stored secrets as \"\" so a read configuration can be saved back unchanged (source withStoredSecrets).",
         "properties": {
           "certificate": {
+            "description": "X.509 certificate to trust.",
             "type": "string"
           },
           "clientId": {
+            "description": "OAuth client id.",
             "type": "string"
           },
           "clientSecret": {
+            "description": "Required with clientId. Reads back as \"\" when set; on save an empty one keeps the stored secret while instanceUrl and clientId are unchanged.",
             "type": "string"
           },
           "instanceUrl": {
@@ -23002,10 +23691,11 @@
             "type": "string"
           },
           "password": {
+            "description": "Reads back as \"\" when set. On save an empty or absent password keeps the stored one while instanceUrl and username are unchanged (400 otherwise).",
             "type": "string"
           },
           "proxyConfig": {
-            "type": "object"
+            "$ref": "#/components/schemas/SrcServiceNowCmdbProxyConfig"
           },
           "username": {
             "type": "string"
@@ -23013,8 +23703,34 @@
         },
         "required": [
           "instanceUrl",
-          "username",
-          "password"
+          "username"
+        ],
+        "type": "object"
+      },
+      "SrcServiceNowCmdbProxyConfig": {
+        "description": "HTTP proxy for reaching ServiceNow (source ServiceNowCmdbProxyConfig.java). username is required when password or realm is given.",
+        "properties": {
+          "host": {
+            "format": "uri",
+            "type": "string"
+          },
+          "password": {
+            "description": "Reads back as \"\" when set. On save an empty or absent password with a username keeps the stored one, if host, port and username are unchanged.",
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "realm": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "host",
+          "port"
         ],
         "type": "object"
       },
@@ -23037,6 +23753,27 @@
         ],
         "type": "object"
       },
+      "SrcServiceNowCmdbSettings": {
+        "description": "The CMDB connection (source ServiceNowCmdbSettings.java).",
+        "properties": {
+          "connectionDetails": {
+            "$ref": "#/components/schemas/SrcServiceNowCmdbConnectionDetails"
+          },
+          "connectionName": {
+            "type": "string"
+          },
+          "sourceName": {
+            "description": "A discovery source name from listServiceNowCmdbDiscoverySources.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionName",
+          "connectionDetails",
+          "sourceName"
+        ],
+        "type": "object"
+      },
       "SrcServiceNowSettings": {
         "description": "The organization's ServiceNow connection (Java ServiceNowSettings). Source-only shape apart from the 404 when none is configured (live-verified).",
         "properties": {
@@ -23044,20 +23781,32 @@
             "type": "boolean"
           },
           "autoCreateImpact": {
+            "description": "ServiceNow's numeric level as a string (\"1\" high, \"2\" medium, \"3\" low), not the level name (source ServiceNowIncidentLevel.toJson). Defaults to \"3\".",
             "enum": [
+              "1",
+              "2",
+              "3"
+            ],
+            "type": "string",
+            "x-enum-varnames": [
               "HIGH",
               "MEDIUM",
               "LOW"
-            ],
-            "type": "string"
+            ]
           },
           "autoCreateUrgency": {
+            "description": "ServiceNow's numeric level as a string (\"1\" high, \"2\" medium, \"3\" low), not the level name (source ServiceNowIncidentLevel.toJson). Defaults to \"3\".",
             "enum": [
+              "1",
+              "2",
+              "3"
+            ],
+            "type": "string",
+            "x-enum-varnames": [
               "HIGH",
               "MEDIUM",
               "LOW"
-            ],
-            "type": "string"
+            ]
           },
           "autoUpdate": {
             "type": "boolean"
@@ -23074,11 +23823,11 @@
             "type": "string"
           },
           "password": {
-            "description": "Java serializes the stored password on GET (source-only; the live account has no ServiceNow settings, so GET returned 404).",
+            "description": "Forward never returns the stored password: it reads \"\" when one is set and is absent when a token is used (source ServiceNowSettings.getPasswordJson).",
             "type": "string"
           },
           "token": {
-            "description": "Alternative to username and password. Java serializes the stored token on GET (source-only).",
+            "description": "Alternative to username and password. Reads \"\" when set, never the token itself (source ServiceNowSettings.getTokenJson).",
             "type": "string"
           },
           "username": {
@@ -23089,7 +23838,9 @@
           "instanceUrl",
           "enabled",
           "autoCreate",
-          "autoUpdate"
+          "autoUpdate",
+          "autoCreateImpact",
+          "autoCreateUrgency"
         ],
         "type": "object"
       },
@@ -23301,26 +24052,38 @@
         "type": "object"
       },
       "SrcUpdateServiceNowSettings": {
-        "description": "Partial update of ServiceNow settings (Java UpdateServiceNowSettings). Give either token or username and password, never both (Java Preconditions). certificate is accepted on-premises only.",
+        "description": "Partial update of ServiceNow settings (Java UpdateServiceNowSettings). Give either token or username and password, never both (400 otherwise); a token replaces stored username and password and vice versa. certificate is accepted on premises only; an empty certificate clears it. instanceUrl can be set only when no settings exist yet (source UpdateServiceNowSettings.applyTo).",
         "properties": {
           "autoCreate": {
             "type": "boolean"
           },
           "autoCreateImpact": {
+            "description": "ServiceNow's numeric level as a string (\"1\" high, \"2\" medium, \"3\" low), not the level name (source ServiceNowIncidentLevel.toJson). Defaults to \"3\".",
             "enum": [
+              "1",
+              "2",
+              "3"
+            ],
+            "type": "string",
+            "x-enum-varnames": [
               "HIGH",
               "MEDIUM",
               "LOW"
-            ],
-            "type": "string"
+            ]
           },
           "autoCreateUrgency": {
+            "description": "ServiceNow's numeric level as a string (\"1\" high, \"2\" medium, \"3\" low), not the level name (source ServiceNowIncidentLevel.toJson). Defaults to \"3\".",
             "enum": [
+              "1",
+              "2",
+              "3"
+            ],
+            "type": "string",
+            "x-enum-varnames": [
               "HIGH",
               "MEDIUM",
               "LOW"
-            ],
-            "type": "string"
+            ]
           },
           "autoUpdate": {
             "type": "boolean"
@@ -25846,6 +26609,860 @@
         },
         "type": "object"
       },
+      "TraceAction": {
+        "additionalProperties": true,
+        "properties": {
+          "field": {
+            "description": "SET_FIELD/POP: the header field.",
+            "type": "string"
+          },
+          "type": {
+            "description": "SET_FIELD, POP, PERMIT, DENY, RECEIVE, DROP, ... (open).",
+            "type": "string"
+          },
+          "value": {
+            "description": "SET_FIELD: the new value (a string live)."
+          }
+        },
+        "type": "object"
+      },
+      "TraceActionBucket": {
+        "additionalProperties": true,
+        "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/TraceAction"
+            },
+            "type": "array"
+          },
+          "attributes": {
+            "additionalProperties": true,
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "TraceBehaviorsResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "behaviors": {
+            "items": {
+              "$ref": "#/components/schemas/TraceFlowBehavior"
+            },
+            "type": "array"
+          },
+          "timedOut": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "TraceCoveredTopology": {
+        "additionalProperties": true,
+        "description": "The devices and links the results cover. Live links carry only sourcePort and targetPort ('<device>,<port>'); the source comment also shows source and target.",
+        "properties": {
+          "hosts": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "links": {
+            "items": {
+              "additionalProperties": true,
+              "properties": {
+                "source": {
+                  "type": "string"
+                },
+                "sourcePort": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string"
+                },
+                "targetPort": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "additionalProperties": true,
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TraceDeviceHop": {
+        "additionalProperties": true,
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "dropTables": {
+            "description": "Not traced (Go SDK keeps it raw)."
+          },
+          "headers": {
+            "$ref": "#/components/schemas/TraceHeaders"
+          },
+          "inPorts": {
+            "description": "'<device>,<port>'.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "networkFunctions": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/TraceNetworkFunction"
+              },
+              "type": "array"
+            },
+            "description": "Layer (INPUT, L2, L3, ACCESS_CONTROL, NAT, OUTPUT) to the functions applied.",
+            "type": "object"
+          },
+          "outPorts": {
+            "description": "Absent on the hop that dropped or ended the packet.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "outToOverlayLink": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "TraceDeviceInfo": {
+        "additionalProperties": true,
+        "properties": {
+          "deviceType": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "requestedDeviceName": {
+            "description": "Present on virtual devices (contexts, vsys).",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TraceDeviceInfoMap": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/TraceDeviceInfo"
+        },
+        "description": "Device name to its type and location.",
+        "type": "object"
+      },
+      "TraceDiffsRequest": {
+        "additionalProperties": true,
+        "properties": {
+          "details": {
+            "description": "The traceDiffReq of a getTrace response on the before snapshot, unchanged (base64).",
+            "type": "string"
+          },
+          "maxDurationSeconds": {
+            "description": "Default 30, at most 600.",
+            "type": "integer"
+          },
+          "maxResults": {
+            "description": "1..10000, default 5000.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "details"
+        ],
+        "type": "object"
+      },
+      "TraceDiffsResponse": {
+        "additionalProperties": true,
+        "description": "Fields at their default are omitted (timedOut false, no error).",
+        "properties": {
+          "devices": {
+            "$ref": "#/components/schemas/TraceDeviceInfoMap"
+          },
+          "error": {
+            "description": "FIRST_HOP_INTERFACE_MISSING (open).",
+            "type": "string"
+          },
+          "timedOut": {
+            "type": "boolean"
+          },
+          "totalResults": {
+            "$ref": "#/components/schemas/TraceTotalHits"
+          },
+          "traceGroups": {
+            "items": {
+              "items": {
+                "$ref": "#/components/schemas/TraceResultWithDiffs"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TraceEndpointFilter": {
+        "additionalProperties": true,
+        "properties": {
+          "headers": {
+            "items": {
+              "$ref": "#/components/schemas/TracePacketFilter"
+            },
+            "type": "array"
+          },
+          "location": {
+            "$ref": "#/components/schemas/TraceLocationFilter"
+          }
+        },
+        "type": "object"
+      },
+      "TraceFacets": {
+        "additionalProperties": true,
+        "description": "The flow facets (source: FlowFacetSerializer, not traced field by field). Live: pathGroups, outcomes, devices, traceTypes, forwardingTypes, firstHopIngressFacets, lastHopEgressFacets.",
+        "properties": {
+          "devices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "firstHopIngressFacets": {
+            "additionalProperties": true,
+            "description": "inPorts and headerFacets (field to values) at the first hop.",
+            "type": "object"
+          },
+          "forwardingTypes": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Forwarding type (L2, L3, ...) to device names.",
+            "type": "object"
+          },
+          "lastHopEgressFacets": {
+            "additionalProperties": true,
+            "description": "outPorts and headerFacets (field to values) at the last hop.",
+            "type": "object"
+          },
+          "outcomes": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Trace type to device names.",
+            "type": "object"
+          },
+          "pathGroups": {
+            "items": {
+              "$ref": "#/components/schemas/TracePathGroup"
+            },
+            "type": "array"
+          },
+          "traceTypes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TraceFacetsResponse": {
+        "additionalProperties": true,
+        "description": "getTraceFacets response (source: TraceFacetRespSerializer). totalResults is omitted when timedOut. The Go SDK also reads pathGroups and outcomes at the top level for safety; Forward nests them in facets.",
+        "properties": {
+          "coveredTopo": {
+            "$ref": "#/components/schemas/TraceCoveredTopology"
+          },
+          "devices": {
+            "$ref": "#/components/schemas/TraceDeviceInfoMap"
+          },
+          "facets": {
+            "$ref": "#/components/schemas/TraceFacets"
+          },
+          "logicalNetworks": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Logical network name to its device names (when any).",
+            "type": "object"
+          },
+          "pagedResults": {
+            "description": "Flows the facets were computed over.",
+            "type": "integer"
+          },
+          "possibleIpLocations": {
+            "$ref": "#/components/schemas/TracePossibleIpLocations"
+          },
+          "timedOut": {
+            "type": "boolean"
+          },
+          "totalResults": {
+            "$ref": "#/components/schemas/TraceTotalHits"
+          }
+        },
+        "type": "object"
+      },
+      "TraceFlowBehavior": {
+        "additionalProperties": true,
+        "description": "A behavioural signature: the processing stages per hop (INPUT, L2, IPV4, IN_ACL, OUT_ACL, IN_POLICY_ACL, OUT_POLICY_ACL, DNAT, SNAT, IN_EXTERNAL_VRF, OUT_EXTERNAL_VRF, OUTPUT, ...) and the hops where an ACL dropped the packet. Send a facets behaviorSample back unchanged; do not rebuild it.",
+        "properties": {
+          "aclDropHops": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "processingStages": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TraceFlowsResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "flows": {
+            "items": {
+              "additionalProperties": true,
+              "properties": {
+                "coveredTopo": {
+                  "$ref": "#/components/schemas/TraceCoveredTopology"
+                },
+                "flowType": {
+                  "type": "string"
+                },
+                "hops": {
+                  "description": "Internal forwarding-rule hops (rule, table, parent, actionBucketIndex, actionIndex, in_hs, out_hs, in_ports, out_ports); not modelled.",
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "pagedFlows": {
+            "type": "integer"
+          },
+          "totalFlows": {
+            "$ref": "#/components/schemas/TraceTotalHits"
+          }
+        },
+        "type": "object"
+      },
+      "TraceHeaders": {
+        "additionalProperties": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "description": "Protocol (ETHERNET, IPV4, IPV6, TCP, UDP, L7, ...) to field to value. Values are strings and can be symbolic (host_mac, Egress Interface IP).",
+        "type": "object"
+      },
+      "TraceHopDiff": {
+        "additionalProperties": true,
+        "properties": {
+          "a": {
+            "description": "Hop index in the before trace.",
+            "type": "integer"
+          },
+          "b": {
+            "description": "Hop index in the after trace.",
+            "type": "integer"
+          },
+          "diffType": {
+            "description": "ADDED, DELETED, MODIFIED (source) or UNCHANGED (live).",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TraceLineRange": {
+        "additionalProperties": true,
+        "properties": {
+          "end": {
+            "type": "integer"
+          },
+          "start": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "TraceLocationFilter": {
+        "additionalProperties": true,
+        "description": "Where the flow starts. {type: SubnetLocationFilter, value: <ip or prefix>, device?: <device to resolve it on>} or {type: DeviceFilter, values: [<device>]}. Other filter types exist in the GUI and are not traced.",
+        "properties": {
+          "device": {
+            "description": "SubnetLocationFilter: resolve the address on this device.",
+            "type": "string"
+          },
+          "type": {
+            "description": "SubnetLocationFilter or DeviceFilter (others not traced).",
+            "type": "string"
+          },
+          "value": {
+            "description": "SubnetLocationFilter: the source address or prefix.",
+            "type": "string"
+          },
+          "values": {
+            "description": "DeviceFilter: the device names.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TraceNetworkFunction": {
+        "additionalProperties": true,
+        "description": "One thing a device did to the packet.",
+        "properties": {
+          "actionBuckets": {
+            "items": {
+              "$ref": "#/components/schemas/TraceActionBucket"
+            },
+            "type": "array"
+          },
+          "attributes": {
+            "additionalProperties": true,
+            "description": "Name (NAME, VRF, ROUTE_TYPE, ACL_CONTEXT, APPLIED_ACLS, ...) to values; live values were string lists.",
+            "type": "object"
+          },
+          "fileLines": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/TraceLineRange"
+              },
+              "type": "array"
+            },
+            "description": "'<device>,<file>' to 0-based inclusive line ranges in the collected file.",
+            "type": "object"
+          },
+          "matches": {
+            "additionalProperties": true,
+            "description": "Header field to matched values; live values were string lists.",
+            "type": "object"
+          },
+          "processingStageType": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "L2_INPUT, L3_INPUT, MAC_FORWARDING, ARP, IP_ROUTE, ACCESS_CONTROL, INGRESS_ZONE, EGRESS_ZONE, DNAT, SNAT, L2_OUTPUT, L3_OUTPUT, ... (open).",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TracePacketFilter": {
+        "additionalProperties": true,
+        "description": "One header filter, e.g. {type: PacketFilter, values: {ip_proto: [\"6\"]}}. Known fields: ip_proto, tp_src, tp_dst, ipv4_dst (ipv6_dst for IPv6, not verified).",
+        "properties": {
+          "type": {
+            "description": "PacketFilter.",
+            "type": "string"
+          },
+          "values": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "TracePathFacet": {
+        "additionalProperties": true,
+        "description": "One distinct device path. Parallel links and different behaviours on one device path collapse into one entry.",
+        "properties": {
+          "behaviorSample": {
+            "$ref": "#/components/schemas/TraceFlowBehavior"
+          },
+          "groupSignatureHops": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "outToOverlayLinkHops": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "overlaySignature": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "path": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TracePathGroup": {
+        "additionalProperties": true,
+        "description": "Paths sharing one trace type. Several groups can carry the same traceType.",
+        "properties": {
+          "paths": {
+            "items": {
+              "$ref": "#/components/schemas/TracePathFacet"
+            },
+            "type": "array"
+          },
+          "traceType": {
+            "description": "VALID, DROPPED, BLACKHOLE, LOOP, INADMISSIBLE, UNREACHABLE, ... (open).",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TracePathQuery": {
+        "additionalProperties": true,
+        "description": "The GUI's PathQuery. Put the source in from.location and EVERY header filter (including ipv4_dst) in from.headers: a destination under to returned zero paths live (Go SDK), because to constrains where the packet leaves the network.",
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/TraceEndpointFilter"
+          },
+          "to": {
+            "$ref": "#/components/schemas/TraceEndpointFilter"
+          }
+        },
+        "type": "object"
+      },
+      "TracePossibleIpLocationGroup": {
+        "additionalProperties": true,
+        "properties": {
+          "locations": {
+            "items": {
+              "additionalProperties": true,
+              "properties": {
+                "device": {
+                  "type": "string"
+                },
+                "subnet": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "INTERFACE or HOST (source: IpLocationOrigin).",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TracePossibleIpLocations": {
+        "additionalProperties": true,
+        "description": "Present only when the source (from) or destination (to) address is at more than one place; pick one and query again with its device.",
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/TracePossibleIpLocationGroup"
+          },
+          "to": {
+            "$ref": "#/components/schemas/TracePossibleIpLocationGroup"
+          }
+        },
+        "type": "object"
+      },
+      "TraceRequest": {
+        "additionalProperties": true,
+        "description": "The GUI's trace request (source: FrontendTraceRequest), shared by getTraceFacets, getTrace, getTraceBehaviors and getTraceFlows. filters is required. Unknown fields are ignored by Forward.",
+        "properties": {
+          "computeCovTopo": {
+            "description": "Compute the covered topology (default true).",
+            "type": "boolean"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/TracePathQuery"
+          },
+          "headerFieldsWithDefaults": {
+            "description": "Header fields given default values at search time (source: SearchUtils; values not traced).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "description": "Flows per page for getTraceFlows, 0..10000 (default 100). The Go SDK and GUI send 100 on getTrace.",
+            "type": "integer"
+          },
+          "maxDurationSeconds": {
+            "description": "Time budget, 1..300 (default 30). Past it the response is partial and timedOut is true.",
+            "type": "integer"
+          },
+          "maxResults": {
+            "description": "The most flows the facets (or flows) are computed over, 1..10000 (default 5000; not used by getTrace).",
+            "type": "integer"
+          },
+          "noiseTypes": {
+            "description": "Noise to include (source: NoiseType enum; values not traced). Omitted means none.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "normalizeLoops": {
+            "description": "Sample one flow per unique loop (default false).",
+            "type": "boolean"
+          },
+          "nullAggChainLoggingFraction": {
+            "description": "Internal logging fraction, 0..1. Leave unset.",
+            "type": "number"
+          },
+          "securityView": {
+            "description": "Adds security hop indexes and saves a SECURITY_VIEW_PATH_SEARCH feature-usage event. Do not send (the Go SDK never does).",
+            "type": "boolean"
+          },
+          "selectedFacets": {
+            "$ref": "#/components/schemas/TraceSelectedFacets"
+          },
+          "start": {
+            "description": "First flow index for getTraceFlows paging (default 0).",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "TraceRespTracesRequest": {
+        "additionalProperties": true,
+        "properties": {
+          "details": {
+            "description": "The respTraceReq of a getTrace response, unchanged (base64).",
+            "type": "string"
+          },
+          "maxDurationSeconds": {
+            "description": "Default 30, at most 600.",
+            "type": "integer"
+          },
+          "maxResults": {
+            "description": "1..10000, default 5000.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "details"
+        ],
+        "type": "object"
+      },
+      "TraceRespTracesResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "devices": {
+            "$ref": "#/components/schemas/TraceDeviceInfoMap"
+          },
+          "timedOut": {
+            "type": "boolean"
+          },
+          "totalResults": {
+            "$ref": "#/components/schemas/TraceTotalHits"
+          },
+          "traceGroups": {
+            "items": {
+              "items": {
+                "$ref": "#/components/schemas/TraceResult"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TraceResult": {
+        "additionalProperties": true,
+        "description": "One sample flow's trace (source: TraceResponseSerializer). When no flow matched, only timedOut is present.",
+        "properties": {
+          "behavior": {
+            "$ref": "#/components/schemas/TraceFlowBehavior"
+          },
+          "coveredTopo": {
+            "$ref": "#/components/schemas/TraceCoveredTopology"
+          },
+          "deviceHops": {
+            "items": {
+              "$ref": "#/components/schemas/TraceDeviceHop"
+            },
+            "type": "array"
+          },
+          "egressHostSample": {
+            "description": "Not traced.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "groupSignatureHops": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "ingressHeaders": {
+            "$ref": "#/components/schemas/TraceHeaders"
+          },
+          "ingressHostSample": {
+            "description": "Not traced.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "missingDevices": {
+            "description": "Devices on the path missing from the snapshot (shape not traced)."
+          },
+          "numEgressHosts": {
+            "type": "integer"
+          },
+          "numIngressHosts": {
+            "type": "integer"
+          },
+          "pathDescriptor": {
+            "description": "Opaque encoded path (NQE path descriptor).",
+            "type": "string"
+          },
+          "respTraceReq": {
+            "description": "Base64 RespFlowSpecPB; the details of getTraceResponses. Absent when no response trace applies (e.g. a drop).",
+            "type": "string"
+          },
+          "statefulness": {
+            "description": "REQUEST or RESPONSE (open).",
+            "type": "string"
+          },
+          "timedOut": {
+            "description": "Only written on an empty result.",
+            "type": "boolean"
+          },
+          "traceDiffReq": {
+            "description": "Base64 compressed TraceDiffsFlowSpecPB; the details of getTraceDiffs.",
+            "type": "string"
+          },
+          "traceType": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TraceResultWithDiffs": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TraceResult"
+          },
+          {
+            "additionalProperties": true,
+            "properties": {
+              "hopDiffs": {
+                "items": {
+                  "$ref": "#/components/schemas/TraceHopDiff"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "A trace in the after snapshot plus hopDiffs. It has no respTraceReq or traceDiffReq."
+      },
+      "TraceSelectedFacets": {
+        "additionalProperties": true,
+        "description": "The facets the user selected. getTrace needs exactly one path with its behavior; getTraceBehaviors one path without; getTraceFlows any number.",
+        "properties": {
+          "paths": {
+            "items": {
+              "$ref": "#/components/schemas/TraceSelectedPath"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TraceSelectedPath": {
+        "additionalProperties": true,
+        "properties": {
+          "behavior": {
+            "$ref": "#/components/schemas/TraceFlowBehavior"
+          },
+          "path": {
+            "description": "The device path, from a facets path group.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "traceType": {
+            "description": "The trace type of that path group.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TraceTotalHits": {
+        "additionalProperties": true,
+        "properties": {
+          "type": {
+            "description": "EXACT or LOWER_BOUND.",
+            "type": "string"
+          },
+          "value": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "TrafficAliasBuilder": {
         "properties": {
           "name": {
@@ -27518,7 +29135,7 @@
                     "id": "1",
                     "name": "Example group",
                     "networkRoles": {
-                      "228210": "READ_ONLY"
+                      "102": "READ_ONLY"
                     }
                   }
                 ],
@@ -27621,7 +29238,7 @@
                   "id": "2",
                   "name": "Example group",
                   "networkRoles": {
-                    "228210": "READ_ONLY"
+                    "102": "READ_ONLY"
                   }
                 },
                 "schema": {
@@ -27704,7 +29321,7 @@
                   "id": "2",
                   "name": "Example group",
                   "networkRoles": {
-                    "228210": "OPERATOR"
+                    "102": "OPERATOR"
                   },
                   "updatedAt": "2026-10-17T12:00:00Z",
                   "updatedBy": "admin",
@@ -27775,7 +29392,7 @@
                   "id": "2",
                   "name": "Example group",
                   "networkRoles": {
-                    "228210": "OPERATOR"
+                    "102": "OPERATOR"
                   }
                 },
                 "schema": {
@@ -27855,9 +29472,9 @@
                     "createdAt": "2026-01-15T10:00:00Z",
                     "creator": "admin",
                     "creatorId": "2",
-                    "id": "228210",
+                    "id": "102",
                     "name": "example-network",
-                    "orgId": "1628",
+                    "orgId": "1",
                     "orgName": "Example Org"
                   }
                 ],
@@ -27889,7 +29506,7 @@
               "application/json": {
                 "example": [
                   {
-                    "id": "1628",
+                    "id": "1",
                     "lastActiveAt": "2026-10-17T18:35:33Z",
                     "name": "Example Org",
                     "softwareCentral": false
@@ -28152,7 +29769,7 @@
                     "enabled": true,
                     "externalGroups": [],
                     "id": "10206",
-                    "orgId": "1628",
+                    "orgId": "1",
                     "username": "example-user"
                   }
                 ],
@@ -28197,7 +29814,7 @@
                   "email": "user@example.invalid",
                   "enabled": true,
                   "id": "10206",
-                  "orgId": "1628",
+                  "orgId": "1",
                   "username": "example-user"
                 },
                 "schema": {
@@ -31280,6 +32897,182 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/decorators": {
+      "get": {
+        "description": "Returns every entity decorator of the org as a bare JSON array: Forward's four system-managed decorators first (names starting fwd-, with this org's enabled flag; no createdAt/createdBy/updatedAt/updatedBy), then the org's own. A decorator is a saved NQE query whose rows are attached to devices, interfaces, hosts or paths; it is an org object, not per network. Only the join columns for the decorator's type are present; an empty metadataColNames means every non-join column. There is no single-decorator route: to get one, list and match the name case-insensitively (Forward compares names case-insensitively). Requires the VIEW_DECORATORS org operation, NETWORK licence facet (source: EntityDecoratorController.getDecorators). Not part of Forward's documented API; the GUI uses it. Live: 200, a bare array of 124 decorators of all six types; system-managed rows and the timestamp format (ISO-8601 with milliseconds, Z) match source; user query ids are Q_ ids, system-managed ones FQ_ ids.",
+        "operationId": "listDecorators",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "deviceColName": "Device",
+                    "enabled": false,
+                    "metadataColNames": [
+                      "Number affecting config",
+                      "CVEs affecting config",
+                      "Number affecting product",
+                      "CVEs affecting product"
+                    ],
+                    "name": "fwd-Impacting CVEs",
+                    "queryId": "FQ_8d901787e61bb742d4b385054e6837f2535a03f6",
+                    "systemManaged": true,
+                    "type": "DEVICE"
+                  },
+                  {
+                    "enabled": false,
+                    "metadataColNames": [],
+                    "name": "fwd-Path MTU",
+                    "queryId": "FQ_a65a49d6276421c8d081042a99cf9f1af52372df",
+                    "systemManaged": true,
+                    "type": "PATH"
+                  },
+                  {
+                    "createdAt": "2026-01-02T03:04:05.123Z",
+                    "createdBy": "me@example.com",
+                    "description": "Owning team per device",
+                    "deviceColName": "device",
+                    "enabled": true,
+                    "metadataColNames": [
+                      "owner"
+                    ],
+                    "name": "Device owner",
+                    "queryId": "Q_0000000000000000000000000000000000000001",
+                    "systemManaged": false,
+                    "type": "DEVICE",
+                    "updatedAt": "2026-01-03T03:04:05.123Z",
+                    "updatedBy": "me@example.com"
+                  },
+                  {
+                    "createdAt": "2026-01-02T03:04:05.123Z",
+                    "createdBy": "me@example.com",
+                    "enabled": false,
+                    "hostColName": "host",
+                    "ipAddressColName": "ip",
+                    "metadataColNames": [],
+                    "name": "Host site",
+                    "queryId": "Q_0000000000000000000000000000000000000002",
+                    "systemManaged": false,
+                    "type": "HOST",
+                    "updatedAt": "2026-01-02T03:04:05.123Z",
+                    "updatedBy": "me@example.com"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DecoEntityDecorator"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The org's decorators, system-managed first."
+          }
+        },
+        "summary": "List the org's entity decorators",
+        "tags": [
+          "Entity Decorators"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/decorators/{name}": {
+      "delete": {
+        "description": "DESTRUCTIVE: permanently removes the org's user decorator with this name (matched case-insensitively) for every network; there is no undo. A system-managed name (starting fwd-) is refused with 400 'System-managed decorator cannot be deleted' (disable it with setSystemManagedDecoratorEnabled instead). An unknown name is 404 'No decorator found with name ...' (the Go SDK treats that 404 as success). Returns 204 with no body. Forward also deletes decorators itself when their NQE query is deleted from the library (source: EntityDecoratorService commit listener). Requires the MANAGE_DECORATORS org operation, NETWORK licence facet (source: EntityDecoratorController.deleteDecorator, EntityDecoratorRepo.deleteDecorator). Not part of Forward's documented API; the GUI uses it. Source-only: never exercised live.",
+        "operationId": "deleteDecorator",
+        "parameters": [
+          {
+            "description": "The user decorator to delete, matched case-insensitively.",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The decorator was deleted."
+          }
+        },
+        "summary": "Delete a user entity decorator",
+        "tags": [
+          "Entity Decorators"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "WRITES org state. Finds the org's user decorator whose name matches the path name (case-insensitively) and merges the body onto it; when none matches it creates a new decorator under the BODY name (Forward does not fall back to the path name, so a create without a body name is 400; the Go SDK fills it from the path name). Absent fields are left as they are; description, and on HOST hostColName/deviceColName/macAddressColName, accept null to clear. type is required (it selects the body shape) and must equal an existing decorator's type, or 400 'Update to entity type not allowed'. Creating needs queryId, metadataColNames (an empty array means all columns) and the join columns for the type: DEVICE deviceColName; INTERFACE deviceColName and interfaceColName; HOST ipAddressColName (hostColName, deviceColName, macAddressColName optional); PATH none; PATH_DEVICE hopIndexColName; PATH_INTERFACE hopIndexColName and directionColName; missing ones are 400. A new decorator is disabled unless enabled is true. queryId must be in the head of the org's NQE library (400 'Query ... does not exist'). A name starting fwd- (system-managed, any case) is refused with 400; system-managed decorators cannot be edited (use setSystemManagedDecoratorEnabled). Renaming to a name already taken is refused (status not traced); a create whose body name equals another existing decorator is not checked for uniqueness in source. When the result is enabled, the org's NQE licence tier must permit the query (access denied otherwise; Go reports 403). Columns are NOT checked against the query's output here: a mismatch is saved and reported by decorateEntities as INVALID_DECORATOR (DEVICE, INTERFACE, HOST only). Returns the saved decorator. Requires the MANAGE_DECORATORS org operation, NETWORK licence facet (source: EntityDecoratorController.addOrReplaceDecorator, EntityDecoratorRepo.addOrReplaceEntityDecorator, web/json/decorator/*Patch.java). Not part of Forward's documented API; the GUI uses it. Source-only: never exercised live.",
+        "operationId": "upsertDecorator",
+        "parameters": [
+          {
+            "description": "The decorator to update, matched case-insensitively. When no decorator has this name a new one is created under the body name.",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "description": "Owning team per device",
+                "deviceColName": "device",
+                "enabled": true,
+                "metadataColNames": [
+                  "owner"
+                ],
+                "name": "Device owner",
+                "queryId": "Q_0000000000000000000000000000000000000001",
+                "type": "DEVICE"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/DecoEntityDecoratorPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-01-02T03:04:05.123Z",
+                  "createdBy": "me@example.com",
+                  "description": "Owning team per device",
+                  "deviceColName": "device",
+                  "enabled": true,
+                  "metadataColNames": [
+                    "owner"
+                  ],
+                  "name": "Device owner",
+                  "queryId": "Q_0000000000000000000000000000000000000001",
+                  "systemManaged": false,
+                  "type": "DEVICE",
+                  "updatedAt": "2026-01-03T03:04:05.123Z",
+                  "updatedBy": "me@example.com"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DecoEntityDecorator"
+                }
+              }
+            },
+            "description": "The decorator as saved."
+          }
+        },
+        "summary": "Create or update a user entity decorator",
+        "tags": [
+          "Entity Decorators"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/default-performance-thresholds": {
       "get": {
         "description": "Returns the default CPU, memory and utilization thresholds that a device's own thresholds fall back to, as fractions of 1 (source: PerformanceController.getDefaultPerformanceThresholds). Gated by @RequiresUser, so any signed-in login may read it. The four medium* values are null when Forward states none. Not part of Forward's documented API. Live: 200 on the read-only account.",
@@ -33567,6 +35360,139 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/diffs/{beforeSnapshotId}/{afterSnapshotId}/trace": {
+      "post": {
+        "description": "PREVIEW / UNDOCUMENTED: the GUI's own trace-diff call. Not part of Forward's documented API and Forward makes NO stability promise. details is the traceDiffReq string of a getTrace response taken on the before snapshot (base64 of compressed TraceDiffsFlowSpecPB), sent back unchanged; maxResults 1..10000 (default 5000), maxDurationSeconds default 30, at most 600. Returns traceGroups (lists of traces in the after snapshot, each in the getTrace shape plus hopDiffs [{diffType, a, b}] mapping hop indexes of the before trace (a) to the after trace (b); diffType ADDED, DELETED, MODIFIED (source) or UNCHANGED (live)), totalResults, a devices map, and when set timedOut and error (FIRST_HOP_INTERFACE_MISSING: the first hop's ingress port is gone in the after snapshot). Fields at their default (timedOut false, no error) are omitted. Not in the Go SDK v0.8.17. Requires VIEW_PATH_DIFFS on the network and snapshots processed to REACHABILITY (source: TraceController.getTraceDiffs). Live: 200 on 2026-11-05 (pure search computation, nothing persisted); responses are large (about 1 MB for maxResults 50).",
+        "operationId": "getTraceDiffs",
+        "parameters": [
+          {
+            "description": "The base snapshot, the one the trace (and its traceDiffReq) came from.",
+            "in": "path",
+            "name": "beforeSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to compare against.",
+            "in": "path",
+            "name": "afterSnapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "details": "H4sIAAAAAAAA/wMAAAAAAAAAAAA=",
+                "maxResults": 50
+              },
+              "schema": {
+                "$ref": "#/components/schemas/TraceDiffsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "devices": {
+                    "branch-a-rtr1": {
+                      "deviceType": "ROUTER",
+                      "locationId": "1"
+                    }
+                  },
+                  "totalResults": {
+                    "type": "EXACT",
+                    "value": 1
+                  },
+                  "traceGroups": [
+                    [
+                      {
+                        "behavior": {
+                          "processingStages": [
+                            [
+                              "INPUT",
+                              "IPV4",
+                              "OUTPUT"
+                            ]
+                          ]
+                        },
+                        "deviceHops": [
+                          {
+                            "device": "branch-a-rtr1",
+                            "headers": {
+                              "IPV4": {
+                                "ipv4_dst": "192.0.2.10"
+                              }
+                            },
+                            "inPorts": [
+                              "branch-a-rtr1,ge-0/0/0"
+                            ],
+                            "networkFunctions": {},
+                            "outPorts": [
+                              "branch-a-rtr1,ge-0/0/1"
+                            ],
+                            "outToOverlayLink": false
+                          }
+                        ],
+                        "egressHostSample": [],
+                        "groupSignatureHops": [
+                          0
+                        ],
+                        "hopDiffs": [
+                          {
+                            "a": 0,
+                            "b": 0,
+                            "diffType": "UNCHANGED"
+                          }
+                        ],
+                        "ingressHeaders": {
+                          "IPV4": {
+                            "ipv4_dst": "192.0.2.10"
+                          }
+                        },
+                        "ingressHostSample": [],
+                        "numEgressHosts": 0,
+                        "numIngressHosts": 0,
+                        "pathDescriptor": "0200000000000000ab",
+                        "statefulness": "REQUEST",
+                        "traceType": "VALID"
+                      }
+                    ]
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TraceDiffsResponse"
+                }
+              }
+            },
+            "description": "The matching traces in the after snapshot with per-hop diffs."
+          },
+          "400": {
+            "description": "maxResults or maxDurationSeconds out of range, or details does not parse."
+          },
+          "403": {
+            "description": "The account lacks VIEW_PATH_DIFFS on the network."
+          },
+          "409": {
+            "description": "A snapshot is not yet processed to the reachability stage."
+          }
+        },
+        "summary": "How one trace changed between two snapshots",
+        "tags": [
+          "Flow Trace"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/diffs/{beforeSnapshotId}/{afterSnapshotId}/vulnerabilities/counts": {
       "get": {
         "operationId": "getVulnerabilityDiffCounts",
@@ -34262,7 +36188,7 @@
         "x-forward-stability": "unpublished"
       },
       "get": {
-        "description": "Returns the organization's ServiceNow settings. Gated by RequiresUser (any signed-in user). Forward answers 404 'ServiceNow settings not found for org' when none is configured (live-verified on this account). With settings present the body includes secret fields (see schema; source-only).",
+        "description": "Returns the organization's ServiceNow settings. Gated by RequiresUser (any signed-in user). Forward answers 404 'ServiceNow settings not found for org' when none is configured (live-verified on this account). With settings present, password and token read \"\" when set (source ServiceNowSettings.getPasswordJson and getTokenJson).",
         "operationId": "getServiceNowSettings",
         "responses": {
           "200": {
@@ -34270,12 +36196,12 @@
               "application/json": {
                 "example": {
                   "autoCreate": false,
-                  "autoCreateImpact": "HIGH",
-                  "autoCreateUrgency": "MEDIUM",
+                  "autoCreateImpact": "1",
+                  "autoCreateUrgency": "2",
                   "autoUpdate": true,
                   "enabled": true,
                   "instanceUrl": "https://example.service-now.invalid",
-                  "password": "<redacted>",
+                  "password": "",
                   "username": "api-user"
                 },
                 "schema": {
@@ -34329,12 +36255,12 @@
               "application/json": {
                 "example": {
                   "autoCreate": false,
-                  "autoCreateImpact": "HIGH",
-                  "autoCreateUrgency": "MEDIUM",
+                  "autoCreateImpact": "1",
+                  "autoCreateUrgency": "2",
                   "autoUpdate": true,
                   "enabled": true,
                   "instanceUrl": "https://example.service-now.invalid",
-                  "password": "<redacted>",
+                  "password": "",
                   "username": "api-user"
                 },
                 "schema": {
@@ -34353,6 +36279,54 @@
       }
     },
     "/integrations/servicenow-cmdb": {
+      "get": {
+        "description": "A zip of the rows the saved mappings would write, across the configured networks. Nothing is sent to ServiceNow. Requires MANAGE_SERVICENOW_CMDB and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowCmdbController.downloadPayload). Never called live. Not part of Forward's documented API.",
+        "operationId": "downloadServiceNowCmdbPayload",
+        "responses": {
+          "200": {
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The preview archive."
+          }
+        },
+        "summary": "Download a preview of what a CMDB push would send",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "payload"
+          ],
+          [
+            "disposition",
+            "attachment"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getServiceNowCmdbPayload",
+            "summary": "Preview what a CMDB push would send for one network",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "payload"
+              ],
+              [
+                "networkId",
+                ""
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
+      },
       "post": {
         "description": "Enables the configured CMDB sync. Gated by MANAGE_SERVICENOW_CMDB. Returns 204. Live: a GET of the CMDB status returns 404 'No ServiceNow CMDB configuration setup' on this account, so the enable path was not exercised.",
         "operationId": "enableServiceNowCmdb",
@@ -34381,14 +36355,127 @@
                 "schema"
               ]
             ]
+          },
+          {
+            "operationId": "disableServiceNowCmdb",
+            "summary": "Disable the ServiceNow CMDB sync",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "disable"
+              ]
+            ]
+          },
+          {
+            "operationId": "pushServiceNowCmdb",
+            "summary": "Push to the ServiceNow CMDB now",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "push"
+              ]
+            ]
+          },
+          {
+            "operationId": "listServiceNowCmdbConfigurationItems",
+            "summary": "List the CMDB classes on a ServiceNow instance",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "configuration-items"
+              ]
+            ]
+          },
+          {
+            "operationId": "listServiceNowCmdbDiscoverySources",
+            "summary": "List the discovery sources on a ServiceNow instance",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "discovery-sources"
+              ]
+            ]
           }
         ],
         "x-forward-stability": "unpublished"
       }
     },
     "/integrations/servicenow-cmdb/configuration": {
+      "delete": {
+        "description": "Removes the organization's CMDB configuration. Answers 200 with no body. Requires MANAGE_SERVICENOW_CMDB (source: ServiceNowCmdbController.deleteConfiguration). Never called live. Not part of Forward's documented API.",
+        "operationId": "deleteServiceNowCmdbConfiguration",
+        "responses": {
+          "200": {
+            "description": "Deleted. No body."
+          }
+        },
+        "summary": "Delete the CMDB configuration",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "Returns the saved CMDB configuration. Stored secrets come back as empty strings: connectionDetails.password, connectionDetails.clientSecret and proxyConfig.password read \"\" when set and are absent when not (source: ServiceNowCmdbConnectionDetails and ServiceNowCmdbProxyConfig). 404 'No configuration found' when none is saved (seen live). Requires MANAGE_SERVICENOW_CMDB (source: ServiceNowCmdbController.getConfiguration). Not part of Forward's documented API.",
+        "operationId": "getServiceNowCmdbConfiguration",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "enabled": true,
+                  "mappings": [
+                    {
+                      "fieldRelations": [
+                        {
+                          "cmdbField": {
+                            "dataType": "string",
+                            "element": "name",
+                            "label": "Name",
+                            "mandatory": true,
+                            "maxLength": 255
+                          },
+                          "queryColumnName": "name"
+                        }
+                      ],
+                      "name": "cmdb_ci_ip_router",
+                      "queryId": "Q_0123456789abcdef"
+                    }
+                  ],
+                  "settings": {
+                    "connectionDetails": {
+                      "instanceUrl": "https://example.service-now.invalid",
+                      "password": "",
+                      "username": "api-user"
+                    },
+                    "connectionName": "prod",
+                    "sourceName": "ForwardNetworks"
+                  },
+                  "syncConfig": {
+                    "networkIds": [
+                      "101"
+                    ]
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SrcServiceNowCmdbConfiguration"
+                }
+              }
+            },
+            "description": "The configuration."
+          },
+          "404": {
+            "description": "No configuration saved."
+          }
+        },
+        "summary": "Read the CMDB configuration",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
       "post": {
-        "description": "Saves the CMDB configuration. Gated by MANAGE_SERVICENOW_CMDB and OUTBOUND_CONNECTIONS; the query ids in mappings are checked against the organization's NQE license tier (Java). Returns 200 with no body. Live: not exercised.",
+        "description": "Saves the CMDB configuration. Gated by MANAGE_SERVICENOW_CMDB and OUTBOUND_CONNECTIONS; the query ids in mappings are checked against the organization's NQE license tier (Java). Empty or absent secrets keep the stored ones while the instance and user are unchanged, so a configuration read with getServiceNowCmdbConfiguration can be saved back. Returns 200 with no body. Live: not exercised.",
         "operationId": "saveServiceNowCmdbConfiguration",
         "requestBody": {
           "content": {
@@ -34408,6 +36495,247 @@
         "summary": "Save the CMDB configuration",
         "tags": [
           "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/integrations/servicenow-cmdb/status": {
+      "get": {
+        "description": "Connects to ServiceNow and reports whether the saved mappings still match its classes. Empty sets are omitted. 404 'No ServiceNow CMDB configuration setup' when none is saved (seen live). Requires MANAGE_SERVICENOW_CMDB and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowCmdbController.getStatus). Not part of Forward's documented API.",
+        "operationId": "getServiceNowCmdbStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "incorrectMappingClassNames": [
+                    "cmdb_ci_ip_router"
+                  ],
+                  "status": "INCORRECT_MAPPINGS"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CmdbConfigurationStatus"
+                }
+              }
+            },
+            "description": "The status."
+          },
+          "404": {
+            "description": "No configuration saved."
+          }
+        },
+        "summary": "Check the CMDB configuration against the instance",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/integrations/servicenow-cmdb/synchronization-history": {
+      "get": {
+        "description": "One entry per push and network. Each carries either error or entitiesInserted and entitiesUpdated, plus structured errors when there were any. An organization that never pushed gets infos: [] (not 404; seen live). Requires MANAGE_SERVICENOW_CMDB (source: ServiceNowCmdbController.getSnycHistory). Not part of Forward's documented API.",
+        "operationId": "getServiceNowCmdbSynchronizationHistory",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "infos": [
+                    {
+                      "entitiesInserted": 4,
+                      "entitiesUpdated": 10,
+                      "networkName": "example-network",
+                      "syncInstant": 1767225600000
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CmdbSynchronizationHistory"
+                }
+              }
+            },
+            "description": "The history."
+          }
+        },
+        "summary": "Past CMDB pushes and their outcomes",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/integrations/servicenow-cmdb/synchronization-report": {
+      "get": {
+        "description": "Requires MANAGE_SERVICENOW_CMDB (source: ServiceNowCmdbController.getSyncReportXlsx). Never called live. Not part of Forward's documented API.",
+        "operationId": "getServiceNowCmdbSynchronizationReport",
+        "responses": {
+          "200": {
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The workbook."
+          }
+        },
+        "summary": "Download the CMDB sync report as an Excel workbook",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/integrations/servicenow-cmdb/test": {
+      "post": {
+        "description": "Tries the given connection details. Both fields are absent on success; on failure errorMessage and a structured error say why. Nothing is saved. Requires MANAGE_SERVICENOW_CMDB and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowCmdbController.testConnection). Never called live. Not part of Forward's documented API.",
+        "operationId": "testServiceNowCmdbConnection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "instanceUrl": "https://example.service-now.invalid",
+                "password": "<password>",
+                "username": "api-user"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/SrcServiceNowCmdbConnectionDetails"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {},
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceNowCmdbTestResult"
+                }
+              }
+            },
+            "description": "The result."
+          }
+        },
+        "summary": "Test a ServiceNow CMDB connection",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/integrations/servicenow/incidents": {
+      "post": {
+        "description": "Closes each numbered incident as closeServiceNowIncident does, with the same 400 if any of them is still active (checked for all before any is closed). The body is a JSON array of incident numbers (a set: duplicates collapse). Answers 204. Requires OPERATE_CHECK_INTEGRATIONS and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowController.closeIncidents). Never called live. Not part of Forward's documented API.",
+        "operationId": "closeServiceNowIncidents",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": [
+                "INC0010001",
+                "INC0010002"
+              ],
+              "schema": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Closed."
+          }
+        },
+        "summary": "Close several ServiceNow incidents",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "close"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/integrations/servicenow/incidents/{incidentNumber}": {
+      "get": {
+        "description": "Reads the incident live from the organization's ServiceNow instance. impact and urgency are ServiceNow's numeric levels as strings (\"1\" high, \"2\" medium, \"3\" low); summary is absent for incidents created in ServiceNow without one. Requires only the deployment's OUTBOUND_CONNECTIONS and the ServiceNow integration settings (source: ServiceNowController.getIncidentDetailsFromServiceNow). Never called live. Not part of Forward's documented API.",
+        "operationId": "getServiceNowIncident",
+        "parameters": [
+          {
+            "description": "The ServiceNow incident number, such as INC0010001.",
+            "in": "path",
+            "name": "incidentNumber",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "impact": "2",
+                  "number": "INC0010001",
+                  "state": "New",
+                  "summary": "Isolation check failed",
+                  "sysId": "0123456789abcdef0123456789abcdef",
+                  "urgency": "3",
+                  "url": "https://example.service-now.invalid/nav_to.do?uri=/incident.do?sys_id=0123456789abcdef0123456789abcdef"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceNowIncident"
+                }
+              }
+            },
+            "description": "The incident."
+          }
+        },
+        "summary": "Read a ServiceNow incident",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Closes the incident in ServiceNow (skipped if ServiceNow already has it closed) and marks Forward's stored copy closed. Forward refuses with 400 'Cannot close incident <number>. Incident is still active.' while the incident still applies to a check, that is, while its check keeps failing and nobody resolved it; unlinkCheckServiceNowIncident is the way to detach it from a check. An incident Forward has no record of is closed in ServiceNow only. Answers 200 with no body. Changes state in ServiceNow. Requires OPERATE_CHECK_INTEGRATIONS and the deployment's OUTBOUND_CONNECTIONS (source: ServiceNowController.closeIncident). Never called live. Not part of Forward's documented API.",
+        "operationId": "closeServiceNowIncident",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "incidentNumber",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Closed. No body."
+          }
+        },
+        "summary": "Close a ServiceNow incident",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "close"
+          ]
         ],
         "x-forward-stability": "unpublished"
       }
@@ -41869,7 +44197,7 @@
                       "slowestCommandDuration": 63000
                     }
                   ],
-                  "snapshotId": "1437911",
+                  "snapshotId": "900",
                   "snapshotTime": 1792214587109
                 },
                 "schema": {
@@ -46111,6 +48439,128 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/decorations": {
+      "post": {
+        "description": "Returns what the named decorators attach to the given entities in one snapshot; this is how to see a decorator's output. type is the entity type of entityIds; entityIds are device names (DEVICE), '<device> <interface>' (INTERFACE), host ids as decimal numbers (HOST) or path descriptors (PATH, PATH_DEVICE, PATH_INTERFACE; an invalid one is 400 'Invalid path descriptor: ...'). Both lists must be non-empty (400). Name only decorators of the given type: Forward does not check they match. A user decorator runs whether or not it is enabled; a system-managed one only when enabled for the org; an unknown name, or one whose query the licence tier denies, is silently absent. The result lists an entity under a decorator only when the decorator has rows for it (SUCCESS, rows non-empty) or when it failed (another status, no rows); an entity the query has nothing for is absent. INVALID_DECORATOR (a metadata or join column missing from the query output, or a join column of the wrong type) is reported only for DEVICE, INTERFACE and HOST decorators; PATH types list every row the query returns under the path and silently drop missing metadata columns. Rows are filtered by the caller's device access labels. Each decorator's query runs once per snapshot with empty parameters and its index is kept as a compute job (source: NqeEntityIndexComputeJob, NqeQueryParameters.EMPTY), so later calls are cheaper; Forward gives each decorator query up to 5 minutes, so use a client timeout above that (the Go SDK uses 6 minutes). snapshotId defaults to the network's latest processed snapshot; the snapshot must be processed (source: RequiresSnapshot CREATION). Requires the VIEW_DECORATORS org operation, NETWORK licence facet (source: EntityDecoratorController.decorateEntities, EntityDecoratorService.getEntityDecorations). Not part of Forward's documented API; the GUI uses it. Source-only: not exercised live because it launches NQE compute jobs and stores their results.",
+        "operationId": "decorateEntities",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The entity type of entityIds. One of DEVICE, INTERFACE, HOST, PATH, PATH_DEVICE, PATH_INTERFACE.",
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "DEVICE",
+                "INTERFACE",
+                "HOST",
+                "PATH",
+                "PATH_DEVICE",
+                "PATH_INTERFACE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to decorate. Uses the network's latest processed snapshot when omitted.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "decoratorNames": [
+                  "Device owner",
+                  "fwd-Impacting CVEs"
+                ],
+                "entityIds": [
+                  "branch-a-sw1",
+                  "branch-a-rtr1"
+                ]
+              },
+              "schema": {
+                "$ref": "#/components/schemas/DecoDecorationsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "entityDecorations": [
+                    {
+                      "decoratorName": "Device owner",
+                      "entityId": "branch-a-sw1",
+                      "rowType": {
+                        "fields": [
+                          {
+                            "isNullable": false,
+                            "name": "device",
+                            "type": {
+                              "type": "String"
+                            }
+                          },
+                          {
+                            "isNullable": true,
+                            "name": "owner",
+                            "type": {
+                              "type": "String"
+                            }
+                          }
+                        ],
+                        "type": "Record"
+                      },
+                      "rows": [
+                        {
+                          "device": {
+                            "value": "branch-a-sw1"
+                          },
+                          "owner": {
+                            "value": "netops"
+                          }
+                        }
+                      ],
+                      "status": "SUCCESS"
+                    },
+                    {
+                      "decoratorName": "fwd-Impacting CVEs",
+                      "entityId": "branch-a-rtr1",
+                      "status": "QUERY_ERROR"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DecoDecorationsResponse"
+                }
+              }
+            },
+            "description": "One entry per entity and decorator that had rows or failed."
+          }
+        },
+        "summary": "Run decorators against entities of a snapshot",
+        "tags": [
+          "Entity Decorators"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/device-diffs/{beforeSnapshotId}/{afterSnapshotId}": {
       "get": {
         "description": "Lists each device that was added, removed or modified between two snapshots of one network, with the Device properties before and after and, for MODIFIED, the property names that differ. Unchanged devices are omitted. Devices match by name ignoring case. Filters: name is a case-insensitive glob on the device name; changeType takes ADDED, REMOVED and MODIFIED; with adds tags and/or locationId to before and after (and so can add MODIFIED entries); limit caps the entries, while totalDiffs still counts every match. Negative limit is 400. 409 while either snapshot is processing. Requires VIEW_INVENTORY_DIFFS on the network and a snapshot at CREATION stage (source: DeviceController.getDeviceDiffs). Source marks it experimental. Not part of Forward's documented API in this repo's pinned spec; it is a different route from getDeviceDiffs, which lists added and removed devices under /diffs. Live: 200 for MODIFIED with with=tags, REMOVED and ADDED with limit, and 400 for limit=-1. name was not exercised live.",
@@ -49022,6 +51472,165 @@
         "summary": "Which devices' collected files the caller may read",
         "tags": [
           "Network Snapshots"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/flows": {
+      "post": {
+        "description": "PREVIEW / UNDOCUMENTED: the GUI's own detailed-flows call. Not part of Forward's documented API and Forward makes NO stability promise. Takes the getTraceFacets body; selectedFacets narrows the flows (optional, any number of paths). start (default 0) and limit (default 100, 0..10000) page the flows; maxResults caps the search (default 5000); computeCovTopo (default true, honoured only when start is 0), noiseTypes, normalizeLoops (sample one flow per loop) and maxDurationSeconds (1..300, default 30) also apply. Returns pagedFlows, totalFlows {value, type} and flows, each {flowType, hops, coveredTopo} where hops are Forward's low-level forwarding-rule hops (rule, table, parent, actionBucketIndex, actionIndex, in_hs/out_hs header spaces, in_ports/out_ports); the hop shape is internal and not modelled field by field. Responses are large (about 110 KB per flow live). Not in the Go SDK v0.8.17. Requires VIEW_PATHS on the network and a snapshot processed to REACHABILITY (source: TraceController.getFlows). Live: 200 on 2026-11-05 with limit 2 (pure search computation, nothing persisted).",
+        "operationId": "getTraceFlows",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to search. Omitted, the network's latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "computeCovTopo": false,
+                "filters": {
+                  "from": {
+                    "headers": [
+                      {
+                        "type": "PacketFilter",
+                        "values": {
+                          "ipv4_dst": [
+                            "192.0.2.10"
+                          ]
+                        }
+                      }
+                    ],
+                    "location": {
+                      "type": "DeviceFilter",
+                      "values": [
+                        "branch-a-rtr1"
+                      ]
+                    }
+                  }
+                },
+                "limit": 2,
+                "maxResults": 100,
+                "selectedFacets": {
+                  "paths": [
+                    {
+                      "path": [
+                        "branch-a-rtr1",
+                        "branch-a-sw1"
+                      ],
+                      "traceType": "VALID"
+                    }
+                  ]
+                },
+                "start": 0
+              },
+              "schema": {
+                "$ref": "#/components/schemas/TraceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "flows": [
+                    {
+                      "coveredTopo": {
+                        "hosts": [],
+                        "links": [],
+                        "nodes": [
+                          {
+                            "id": "branch-a-rtr1"
+                          }
+                        ]
+                      },
+                      "flowType": "VALID",
+                      "hops": [
+                        {
+                          "actionBucketIndex": 0,
+                          "actionIndex": 0,
+                          "in_hs": {
+                            "minuend": {
+                              "ipv4_dst": "192.0.2.10"
+                            },
+                            "subtrahend": []
+                          },
+                          "in_ports": [
+                            "ge-0/0/0"
+                          ],
+                          "out_hs": {
+                            "minuend": {
+                              "ipv4_dst": "192.0.2.10"
+                            },
+                            "subtrahend": []
+                          },
+                          "out_ports": [
+                            "ge-0/0/1"
+                          ],
+                          "parent": "branch-a-rtr1",
+                          "rule": {
+                            "actionBuckets": [],
+                            "deviceName": "branch-a-rtr1",
+                            "id": 1,
+                            "in_ports": [
+                              "ge-0/0/0"
+                            ],
+                            "match": {
+                              "vlan_vid": "10"
+                            },
+                            "parent": "branch-a-rtr1",
+                            "table": "input",
+                            "tableName": "input"
+                          },
+                          "table": "input"
+                        }
+                      ]
+                    }
+                  ],
+                  "pagedFlows": 1,
+                  "totalFlows": {
+                    "type": "EXACT",
+                    "value": 1
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TraceFlowsResponse"
+                }
+              }
+            },
+            "description": "A page of flows."
+          },
+          "400": {
+            "description": "No filters specified, or limit or maxDurationSeconds out of range."
+          },
+          "403": {
+            "description": "The account lacks VIEW_PATHS on the network."
+          },
+          "409": {
+            "description": "The snapshot is not yet processed to the reachability stage."
+          }
+        },
+        "summary": "Raw flows matching a trace query and selected facets",
+        "tags": [
+          "Flow Trace"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -57665,6 +60274,841 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/networks/{networkId}/trace": {
+      "post": {
+        "description": "PREVIEW / UNDOCUMENTED: the GUI's own single-path trace. Not part of Forward's documented API and Forward makes NO stability promise; shapes change between builds, decode defensively. Send the SAME filters as getTraceFacets plus selectedFacets {paths: [{path, traceType, behavior}]} with exactly one path, where path and traceType come from one facets path group and behavior is that path's behaviorSample sent back unchanged, and limit 100 (as the Go SDK and GUI do). Do not send securityView. Returns one sample flow's trace: deviceHops (per hop: device, inPorts, outPorts which is ABSENT on the hop that dropped or ended the packet, headers grouped by protocol ETHERNET/IPV4/TCP/L7 holding the values AFTER the hop, networkFunctions by layer INPUT, L2, L3, ACCESS_CONTROL, NAT, OUTPUT, each with type, fileLines keyed '<device>,<file>' with 0-based inclusive line ranges, attributes, matches, actionBuckets of SET_FIELD/POP/PERMIT/DENY/RECEIVE/DROP actions, processingStageType and tags), ingressHeaders (the packet entering the first hop), behavior.processingStages per hop and behavior.aclDropHops, traceType, statefulness, groupSignatureHops, pathDescriptor (an opaque encoded path), coveredTopo, ingress/egress host samples, and respTraceReq (base64; feed it to getTraceResponses, present when a response trace applies) and traceDiffReq (base64; feed it to getTraceDiffs). A body of only {timedOut} means no flow was found for the selection (live) and the Go SDK returns ErrTraceEmpty. Requires VIEW_PATHS on the network and a snapshot processed to REACHABILITY (source: TraceController.getTrace). Live: 200 on 2026-11-05 for VALID and DROPPED paths (pure search computation, nothing persisted).",
+        "operationId": "getTrace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to trace; use the one the facets came from. Omitted, the network's latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "filters": {
+                  "from": {
+                    "headers": [
+                      {
+                        "type": "PacketFilter",
+                        "values": {
+                          "ip_proto": [
+                            "6"
+                          ]
+                        }
+                      },
+                      {
+                        "type": "PacketFilter",
+                        "values": {
+                          "ipv4_dst": [
+                            "192.0.2.10"
+                          ]
+                        }
+                      }
+                    ],
+                    "location": {
+                      "type": "DeviceFilter",
+                      "values": [
+                        "branch-a-rtr1"
+                      ]
+                    }
+                  }
+                },
+                "limit": 100,
+                "selectedFacets": {
+                  "paths": [
+                    {
+                      "behavior": {
+                        "aclDropHops": [
+                          1
+                        ],
+                        "processingStages": [
+                          [
+                            "INPUT",
+                            "IPV4",
+                            "OUTPUT"
+                          ],
+                          [
+                            "INPUT",
+                            "IN_ACL"
+                          ]
+                        ]
+                      },
+                      "path": [
+                        "branch-a-rtr1",
+                        "branch-a-fw1"
+                      ],
+                      "traceType": "DROPPED"
+                    }
+                  ]
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/TraceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "behavior": {
+                    "aclDropHops": [
+                      1
+                    ],
+                    "processingStages": [
+                      [
+                        "INPUT",
+                        "IPV4",
+                        "OUTPUT"
+                      ],
+                      [
+                        "INPUT",
+                        "IN_ACL"
+                      ]
+                    ]
+                  },
+                  "coveredTopo": {
+                    "hosts": [],
+                    "links": [
+                      {
+                        "sourcePort": "branch-a-rtr1,ge-0/0/1",
+                        "targetPort": "branch-a-fw1,ethernet1/1"
+                      }
+                    ],
+                    "nodes": [
+                      {
+                        "id": "branch-a-rtr1"
+                      },
+                      {
+                        "id": "branch-a-fw1"
+                      }
+                    ]
+                  },
+                  "deviceHops": [
+                    {
+                      "device": "branch-a-rtr1",
+                      "headers": {
+                        "ETHERNET": {
+                          "mac_dst": "00:00:5e:00:53:01"
+                        },
+                        "IPV4": {
+                          "ip_proto": "6",
+                          "ipv4_dst": "192.0.2.10"
+                        }
+                      },
+                      "inPorts": [
+                        "branch-a-rtr1,ge-0/0/0"
+                      ],
+                      "networkFunctions": {
+                        "INPUT": [
+                          {
+                            "actionBuckets": [],
+                            "attributes": {
+                              "NAME": [
+                                "ge-0/0/0"
+                              ]
+                            },
+                            "fileLines": {
+                              "branch-a-rtr1,configuration.txt": [
+                                {
+                                  "end": 12,
+                                  "start": 10
+                                }
+                              ]
+                            },
+                            "processingStageType": "INPUT",
+                            "type": "L3_INPUT"
+                          }
+                        ],
+                        "L3": [
+                          {
+                            "actionBuckets": [
+                              {
+                                "actions": [
+                                  {
+                                    "field": "ipv4_next_hop",
+                                    "type": "SET_FIELD",
+                                    "value": "192.0.2.1"
+                                  },
+                                  {
+                                    "field": "out_port",
+                                    "type": "SET_FIELD",
+                                    "value": "ge-0/0/1"
+                                  }
+                                ],
+                                "attributes": {
+                                  "IP_ROUTE": "192.0.2.0/24"
+                                }
+                              }
+                            ],
+                            "attributes": {
+                              "ROUTE_TYPE": [
+                                "STATIC"
+                              ],
+                              "VRF": [
+                                "default"
+                              ]
+                            },
+                            "matches": {
+                              "ipv4_dst": [
+                                "192.0.2.0/24"
+                              ]
+                            },
+                            "processingStageType": "IPV4",
+                            "type": "IP_ROUTE"
+                          }
+                        ],
+                        "OUTPUT": [
+                          {
+                            "actionBuckets": [],
+                            "attributes": {
+                              "NAME": [
+                                "ge-0/0/1"
+                              ]
+                            },
+                            "processingStageType": "OUTPUT",
+                            "type": "L3_OUTPUT"
+                          }
+                        ]
+                      },
+                      "outPorts": [
+                        "branch-a-rtr1,ge-0/0/1"
+                      ],
+                      "outToOverlayLink": false
+                    },
+                    {
+                      "device": "branch-a-fw1",
+                      "headers": {
+                        "IPV4": {
+                          "ip_proto": "6",
+                          "ipv4_dst": "192.0.2.10"
+                        }
+                      },
+                      "inPorts": [
+                        "branch-a-fw1,ethernet1/1"
+                      ],
+                      "networkFunctions": {
+                        "ACCESS_CONTROL": [
+                          {
+                            "actionBuckets": [
+                              {
+                                "actions": [
+                                  {
+                                    "type": "DENY"
+                                  }
+                                ]
+                              }
+                            ],
+                            "attributes": {
+                              "ACL_CONTEXT": [
+                                "INGRESS"
+                              ],
+                              "NAME": [
+                                "example-acl"
+                              ]
+                            },
+                            "matches": {
+                              "ipv4_dst": [
+                                "192.0.2.0/24"
+                              ]
+                            },
+                            "processingStageType": "IN_ACL",
+                            "type": "ACCESS_CONTROL"
+                          }
+                        ],
+                        "INPUT": [
+                          {
+                            "actionBuckets": [],
+                            "attributes": {
+                              "NAME": [
+                                "ethernet1/1"
+                              ]
+                            },
+                            "processingStageType": "INPUT",
+                            "type": "L3_INPUT"
+                          }
+                        ]
+                      },
+                      "outToOverlayLink": false
+                    }
+                  ],
+                  "egressHostSample": [],
+                  "groupSignatureHops": [
+                    0,
+                    1
+                  ],
+                  "ingressHeaders": {
+                    "ETHERNET": {
+                      "mac_dst": "host_mac"
+                    },
+                    "IPV4": {
+                      "ip_proto": "6",
+                      "ip_version": "4",
+                      "ipv4_dst": "192.0.2.10",
+                      "ipv4_src": "192.0.2.0/24"
+                    },
+                    "TCP": {
+                      "tp_dst": "22"
+                    }
+                  },
+                  "ingressHostSample": [],
+                  "numEgressHosts": 0,
+                  "numIngressHosts": 0,
+                  "pathDescriptor": "0200000000000000ab",
+                  "statefulness": "REQUEST",
+                  "traceDiffReq": "H4sIAAAAAAAA/wMAAAAAAAAAAAA=",
+                  "traceType": "DROPPED"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TraceResult"
+                }
+              }
+            },
+            "description": "The trace of one sample flow along the selected path, or only {timedOut} when no flow matched."
+          },
+          "400": {
+            "description": "No filters specified, a parameter out of range, or a selection that does not name exactly one path (source comment, not called live)."
+          },
+          "403": {
+            "description": "The account lacks VIEW_PATHS on the network."
+          },
+          "409": {
+            "description": "The snapshot is not yet processed to the reachability stage."
+          }
+        },
+        "summary": "Per-hop detail of one path chosen from getTraceFacets",
+        "tags": [
+          "Flow Trace"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/trace-behaviors": {
+      "post": {
+        "description": "PREVIEW / UNDOCUMENTED: the GUI's own call. Not part of Forward's documented API and Forward makes NO stability promise. Takes the getTraceFacets body plus selectedFacets {paths: [{path, traceType}]} naming ONE path (behavior not needed) and returns behaviors, each {processingStages per hop, aclDropHops?} in the facets behaviorSample shape, plus timedOut. Any one of them can be sent as selectedFacets.paths[].behavior to getTrace to trace that behaviour. Not in the Go SDK v0.8.17. The handler skips the filters/limit validation that getTraceFacets and getTrace apply (source). Requires VIEW_PATHS on the network and a snapshot processed to REACHABILITY (source: TraceController.getTraceBehaviors). Live: 200 on 2026-11-05 (pure search computation, nothing persisted).",
+        "operationId": "getTraceBehaviors",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to trace. Omitted, the network's latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "filters": {
+                  "from": {
+                    "headers": [
+                      {
+                        "type": "PacketFilter",
+                        "values": {
+                          "ipv4_dst": [
+                            "192.0.2.10"
+                          ]
+                        }
+                      }
+                    ],
+                    "location": {
+                      "type": "DeviceFilter",
+                      "values": [
+                        "branch-a-rtr1"
+                      ]
+                    }
+                  }
+                },
+                "maxResults": 100,
+                "selectedFacets": {
+                  "paths": [
+                    {
+                      "path": [
+                        "branch-a-rtr1",
+                        "branch-a-sw1"
+                      ],
+                      "traceType": "VALID"
+                    }
+                  ]
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/TraceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "behaviors": [
+                    {
+                      "processingStages": [
+                        [
+                          "INPUT",
+                          "IPV4",
+                          "OUTPUT"
+                        ],
+                        [
+                          "INPUT",
+                          "L2",
+                          "OUTPUT"
+                        ]
+                      ]
+                    }
+                  ],
+                  "timedOut": false
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TraceBehaviorsResponse"
+                }
+              }
+            },
+            "description": "The distinct behaviours on the path."
+          },
+          "403": {
+            "description": "The account lacks VIEW_PATHS on the network."
+          },
+          "409": {
+            "description": "The snapshot is not yet processed to the reachability stage."
+          }
+        },
+        "summary": "Distinct flow behaviours along one path",
+        "tags": [
+          "Flow Trace"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/trace-facets": {
+      "post": {
+        "description": "PREVIEW / UNDOCUMENTED: the GUI's own flow-trace facets call. Not part of Forward's documented API and Forward makes NO stability promise; request and response shapes can change between builds, so decode defensively (use Path Search for anything durable). Returns facets.pathGroups (each a traceType such as VALID, DROPPED, BLACKHOLE, LOOP and its distinct device paths; several groups can share one traceType), facets.outcomes, the header facets seen at the first and last hop, the covered topology and a devices map. Each path's behaviorSample is opaque: send it back unchanged as selectedFacets.paths[].behavior to getTrace. BODY (Go SDK route authority): filters.from.location is {type: SubnetLocationFilter, value: <src ip or prefix>, device?} or {type: DeviceFilter, values: [<device>]} and EVERY header filter goes under filters.from.headers as {type: PacketFilter, values: {<field>: [<value>]}} (ip_proto, tp_src, tp_dst, ipv4_dst); a destination under filters.to returned zero paths live (Go), because to constrains where the packet leaves the network. maxResults caps the flows the facets are computed over (default 5000, 1..10000). Do not send securityView. No flow found gives empty pathGroups (live); a source address at several places returns possibleIpLocations {from|to: {type: INTERFACE|HOST, locations: [{device, subnet}]}} (source and Go; not seen live), so name the device with DeviceFilter or location.device and ask again. timedOut true means partial results and no totalResults. snapshotId may be omitted for the network's latest processed snapshot (live). Errors: 400 No filters specified, 400 maxFacetValues outside 1..1000 (live). Requires VIEW_PATHS on the network and a snapshot processed to REACHABILITY (source: TraceController.getTraceFacets). The GUI adds a cancelable query flag for request cancellation (not modelled). Live: 200 on 2026-11-05 (pure search computation, nothing persisted).",
+        "operationId": "getTraceFacets",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot to trace. Omitted, Forward uses the network's latest processed snapshot (live).",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The most values listed per facet, 1..1000 (server default 50; the GUI sends its own cap).",
+            "in": "query",
+            "name": "maxFacetValues",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "filters": {
+                  "from": {
+                    "headers": [
+                      {
+                        "type": "PacketFilter",
+                        "values": {
+                          "ip_proto": [
+                            "6"
+                          ]
+                        }
+                      },
+                      {
+                        "type": "PacketFilter",
+                        "values": {
+                          "tp_dst": [
+                            "22"
+                          ]
+                        }
+                      },
+                      {
+                        "type": "PacketFilter",
+                        "values": {
+                          "ipv4_dst": [
+                            "192.0.2.10"
+                          ]
+                        }
+                      }
+                    ],
+                    "location": {
+                      "type": "DeviceFilter",
+                      "values": [
+                        "branch-a-rtr1"
+                      ]
+                    }
+                  }
+                },
+                "maxResults": 100
+              },
+              "schema": {
+                "$ref": "#/components/schemas/TraceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "coveredTopo": {
+                    "hosts": [],
+                    "links": [
+                      {
+                        "sourcePort": "branch-a-rtr1,ge-0/0/1",
+                        "targetPort": "branch-a-sw1,ge-0/0/1"
+                      }
+                    ],
+                    "nodes": [
+                      {
+                        "id": "branch-a-rtr1"
+                      },
+                      {
+                        "id": "branch-a-sw1"
+                      }
+                    ]
+                  },
+                  "devices": {
+                    "branch-a-fw1": {
+                      "deviceType": "FIREWALL",
+                      "locationId": "1"
+                    },
+                    "branch-a-rtr1": {
+                      "deviceType": "ROUTER",
+                      "locationId": "1"
+                    },
+                    "branch-a-sw1": {
+                      "deviceType": "SWITCH",
+                      "locationId": "1"
+                    }
+                  },
+                  "facets": {
+                    "devices": [
+                      "branch-a-rtr1",
+                      "branch-a-sw1",
+                      "branch-a-fw1"
+                    ],
+                    "firstHopIngressFacets": {
+                      "headerFacets": {
+                        "ip_proto": [
+                          "6"
+                        ],
+                        "ipv4_dst": [
+                          "192.0.2.10"
+                        ],
+                        "ipv4_src": [
+                          "192.0.2.0/24"
+                        ],
+                        "tp_dst": [
+                          "22"
+                        ]
+                      },
+                      "inPorts": [
+                        "branch-a-rtr1,ge-0/0/0"
+                      ]
+                    },
+                    "forwardingTypes": {
+                      "L3": [
+                        "branch-a-rtr1"
+                      ]
+                    },
+                    "lastHopEgressFacets": {
+                      "headerFacets": {
+                        "ipv4_dst": [
+                          "192.0.2.10"
+                        ]
+                      },
+                      "outPorts": [
+                        "branch-a-sw1,ge-0/0/2"
+                      ]
+                    },
+                    "outcomes": {
+                      "DROPPED": [
+                        "branch-a-fw1"
+                      ],
+                      "VALID": [
+                        "branch-a-sw1"
+                      ]
+                    },
+                    "pathGroups": [
+                      {
+                        "paths": [
+                          {
+                            "behaviorSample": {
+                              "processingStages": [
+                                [
+                                  "INPUT",
+                                  "IPV4",
+                                  "OUTPUT"
+                                ],
+                                [
+                                  "INPUT",
+                                  "L2",
+                                  "OUTPUT"
+                                ]
+                              ]
+                            },
+                            "groupSignatureHops": [
+                              0,
+                              1
+                            ],
+                            "outToOverlayLinkHops": [],
+                            "overlaySignature": [],
+                            "path": [
+                              "branch-a-rtr1",
+                              "branch-a-sw1"
+                            ]
+                          }
+                        ],
+                        "traceType": "VALID"
+                      },
+                      {
+                        "paths": [
+                          {
+                            "behaviorSample": {
+                              "aclDropHops": [
+                                1
+                              ],
+                              "processingStages": [
+                                [
+                                  "INPUT",
+                                  "IPV4",
+                                  "OUTPUT"
+                                ],
+                                [
+                                  "INPUT",
+                                  "IN_ACL"
+                                ]
+                              ]
+                            },
+                            "groupSignatureHops": [
+                              0,
+                              1
+                            ],
+                            "path": [
+                              "branch-a-rtr1",
+                              "branch-a-fw1"
+                            ]
+                          }
+                        ],
+                        "traceType": "DROPPED"
+                      }
+                    ],
+                    "traceTypes": [
+                      "VALID",
+                      "DROPPED"
+                    ]
+                  },
+                  "pagedResults": 100,
+                  "timedOut": false,
+                  "totalResults": {
+                    "type": "LOWER_BOUND",
+                    "value": 100
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TraceFacetsResponse"
+                }
+              }
+            },
+            "description": "The distinct paths grouped by trace type, with facets, covered topology and device info."
+          },
+          "400": {
+            "description": "No filters specified, or maxFacetValues, maxResults, limit or maxDurationSeconds out of range (live for the first two)."
+          },
+          "403": {
+            "description": "The account lacks VIEW_PATHS on the network."
+          },
+          "409": {
+            "description": "The snapshot is not yet processed to the reachability stage."
+          }
+        },
+        "summary": "List the distinct paths a flow takes, grouped by trace type",
+        "tags": [
+          "Flow Trace"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/trace-responses": {
+      "post": {
+        "description": "PREVIEW / UNDOCUMENTED: the GUI's own response-trace call. Not part of Forward's documented API and Forward makes NO stability promise. details is the respTraceReq string of a getTrace response (base64 of a protobuf RespFlowSpecPB), sent back unchanged; anything else is 400 'The details string would not be parsed'. maxResults 1..10000 (default 5000) caps the response flows traced; maxDurationSeconds defaults to 30, at most 600. Returns traceGroups (a list of groups, each a list of traces in the getTrace shape), timedOut, totalResults and a devices map. Not in the Go SDK v0.8.17. Requires VIEW_PATHS on the network and a snapshot processed to REACHABILITY (source: TraceController.getRespTraces). Live: 200 on 2026-11-05 (pure search computation, nothing persisted); responses can be large (about 1 MB for maxResults 50).",
+        "operationId": "getTraceResponses",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The snapshot of the request trace. Omitted, the network's latest processed snapshot.",
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "details": "CgQIARAB",
+                "maxResults": 50
+              },
+              "schema": {
+                "$ref": "#/components/schemas/TraceRespTracesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "devices": {
+                    "branch-a-sw1": {
+                      "deviceType": "SWITCH",
+                      "locationId": "1"
+                    }
+                  },
+                  "timedOut": false,
+                  "totalResults": {
+                    "type": "EXACT",
+                    "value": 1
+                  },
+                  "traceGroups": [
+                    [
+                      {
+                        "behavior": {
+                          "processingStages": [
+                            [
+                              "INPUT",
+                              "IPV4",
+                              "OUTPUT"
+                            ]
+                          ]
+                        },
+                        "deviceHops": [
+                          {
+                            "device": "branch-a-sw1",
+                            "headers": {
+                              "IPV4": {
+                                "ipv4_dst": "192.0.2.0/24"
+                              }
+                            },
+                            "inPorts": [
+                              "branch-a-sw1,ge-0/0/2"
+                            ],
+                            "networkFunctions": {},
+                            "outPorts": [
+                              "branch-a-sw1,ge-0/0/1"
+                            ],
+                            "outToOverlayLink": false
+                          }
+                        ],
+                        "egressHostSample": [],
+                        "groupSignatureHops": [
+                          0
+                        ],
+                        "ingressHeaders": {
+                          "IPV4": {
+                            "ipv4_dst": "192.0.2.0/24",
+                            "ipv4_src": "192.0.2.10"
+                          }
+                        },
+                        "ingressHostSample": [],
+                        "numEgressHosts": 0,
+                        "numIngressHosts": 0,
+                        "pathDescriptor": "0200000000000000cd",
+                        "statefulness": "RESPONSE",
+                        "traceDiffReq": "H4sIAAAAAAAA/wMAAAAAAAAAAAA=",
+                        "traceType": "VALID"
+                      }
+                    ]
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TraceRespTracesResponse"
+                }
+              }
+            },
+            "description": "The response traces, grouped."
+          },
+          "400": {
+            "description": "details does not parse, or maxResults or maxDurationSeconds out of range."
+          },
+          "403": {
+            "description": "The account lacks VIEW_PATHS on the network."
+          },
+          "409": {
+            "description": "The snapshot is not yet processed to the reachability stage."
+          }
+        },
+        "summary": "Return-traffic traces for one request trace",
+        "tags": [
+          "Flow Trace"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/networks/{networkId}/unhealthy-devices": {
       "get": {
         "description": "Returns the devices whose CPU, memory or interface usage breached a threshold in the HEALTH_ISSUE_LIFETIME window ending at endTime (source). Omit endTime for the default. Gated by VIEW_PERFORMANCE_DATA; the snapshot must have reached START.",
@@ -58946,13 +62390,13 @@
                 "example": [
                   {
                     "executedAt": 1792002026164,
-                    "networkId": "155541",
+                    "networkId": "101",
                     "networkName": "<redacted>",
                     "runDuration": 1200001,
                     "snapshotCreationInstant": 1791961149684,
-                    "snapshotId": "1435033",
+                    "snapshotId": "901",
                     "sourceSetId": "NqeSourceSetId_02000000000000004228b52ffd2042bd010022c40c11b0256d4952a5c2436e9b48b7940f615601c63be65856c4b71d897c0c3959c6c9d16aaf628e0072fb90d0de5e364aa06d812000",
-                    "taskId": "261014245",
+                    "taskId": "5001",
                     "trackingId": "69fee9c77a3d66cdac25cf4a374fe5f3"
                   }
                 ],
@@ -59568,7 +63012,7 @@
             "content": {
               "application/json": {
                 "example": {
-                  "id": "1628",
+                  "id": "1",
                   "name": "Example Org"
                 },
                 "schema": {
@@ -61026,6 +64470,22 @@
         "summary": "Get checks (with status)",
         "tags": [
           "Checks"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "listCheckServiceNowIncidents",
+            "summary": "ServiceNow incidents linked to a snapshot's active checks",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "serviceNowIncidents"
+              ],
+              [
+                "type",
+                ""
+              ]
+            ]
+          }
         ]
       },
       "post": {
@@ -61090,6 +64550,28 @@
         "summary": "Add a check",
         "tags": [
           "Checks"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "addCheckServiceNowIncidents",
+            "summary": "Raise ServiceNow incidents for several failing checks",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "addServiceNowIncidents"
+              ]
+            ]
+          },
+          {
+            "operationId": "refreshCheckServiceNowIncidents",
+            "summary": "Refresh the state of a snapshot's linked ServiceNow incidents",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "refreshServiceNowIncidents"
+              ]
+            ]
+          }
         ]
       }
     },
@@ -61245,7 +64727,120 @@
         "summary": "Get a check (with status)",
         "tags": [
           "Checks"
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "getCheckServiceNowIncidentUpdateHistory",
+            "summary": "When Forward updated a linked incident's work notes",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "serviceNowIncidentUpdateHistory"
+              ],
+              [
+                "incident",
+                ""
+              ]
+            ]
+          }
         ]
+      },
+      "post": {
+        "description": "Creates an incident in ServiceNow and links it to the check. The check must be enabled and failing in this snapshot and every later one (400 otherwise). summary, impact and urgency are required; Forward appends a link back to the check to details. Changes state in ServiceNow and in Forward. Requires OPERATE_CHECK_INTEGRATIONS, VIEW_CHECKS on the network and the deployment's OUTBOUND_CONNECTIONS; on a Predict fork, also PREDICT_UNSANDBOXED (source: CheckController.addIncident). Never called live. Not part of Forward's documented API.",
+        "operationId": "addCheckServiceNowIncident",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "checkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "details": "Seen after the core change",
+                "impact": "2",
+                "summary": "Isolation check failed",
+                "urgency": "3"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NewServiceNowIncident"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "checkId": "101",
+                  "number": "INC0010001",
+                  "state": "New",
+                  "stateLastUpdated": 1767225600000
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceNowIncidentLink"
+                }
+              }
+            },
+            "description": "The incident created."
+          }
+        },
+        "summary": "Raise a ServiceNow incident for a failing check",
+        "tags": [
+          "Checks"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "addServiceNowIncident"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "linkCheckServiceNowIncident",
+            "summary": "Link an existing ServiceNow incident to a check",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "linkServiceNowIncident"
+              ],
+              [
+                "incident",
+                ""
+              ]
+            ]
+          },
+          {
+            "operationId": "unlinkCheckServiceNowIncident",
+            "summary": "Unlink a ServiceNow incident from a check",
+            "x-forward-fixed-query": [
+              [
+                "action",
+                "unlinkServiceNowIncident"
+              ],
+              [
+                "incident",
+                ""
+              ]
+            ]
+          }
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/snapshots/{snapshotId}/checksReport": {
@@ -61940,8 +65535,8 @@
               "application/json": {
                 "example": {
                   "done": true,
-                  "networkId": "155541",
-                  "snapshotId": "1437911",
+                  "networkId": "101",
+                  "snapshotId": "900",
                   "stages": [
                     {
                       "operationState": "SUCCEEDED",
@@ -62306,6 +65901,42 @@
         "summary": "The current system announcement",
         "tags": [
           "Banners"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/system-managed-decorators/{name}": {
+      "patch": {
+        "description": "WRITES org state. Turns one of Forward's built-in decorators (fwd-Impacting CVEs, fwd-Path MTU, fwd-Path Interface Link Speed, fwd-Path Interface MTU; names matched case-insensitively) on or off for the whole org. No request body. Enabling an unknown name is 404 'Unknown system-managed decorator ...' and needs the org's NQE licence tier to permit the decorator's query (access denied otherwise; Go reports 403). Disabling an unknown name is accepted and does nothing. Returns 204 with no body. Requires the MANAGE_DECORATORS org operation, NETWORK licence facet (source: EntityDecoratorController.enableOrDisableManagedDecorator). Not part of Forward's documented API; the GUI uses it. Source-only: never exercised live.",
+        "operationId": "setSystemManagedDecoratorEnabled",
+        "parameters": [
+          {
+            "description": "The system-managed decorator's name, for example fwd-Path MTU.",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "true to enable the decorator for the org, false to disable it.",
+            "in": "query",
+            "name": "enabled",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The decorator's enabled state was set."
+          }
+        },
+        "summary": "Enable or disable a system-managed decorator",
+        "tags": [
+          "Entity Decorators"
         ],
         "x-forward-stability": "unpublished"
       }
@@ -63148,7 +66779,7 @@
               "application/json": {
                 "example": {
                   "network": {
-                    "228210": "ADMIN",
+                    "102": "ADMIN",
                     "239213": "ADMIN"
                   },
                   "org": [
@@ -64081,6 +67712,14 @@
       "name": "System Administration",
       "x-parent": "Platform Management",
       "x-summary": "System Administration"
+    },
+    {
+      "description": "NQE entity decorators and decorations; unpublished. See docs/services.md.",
+      "name": "Entity Decorators"
+    },
+    {
+      "description": "The Forward GUI's own flow-trace routes; unpublished, no stability promise.",
+      "name": "Flow Trace"
     },
     {
       "description": "Zscaler SASE collection setups, their App Connectors and connectivity tests; unpublished.",

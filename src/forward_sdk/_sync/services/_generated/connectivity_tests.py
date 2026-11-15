@@ -32,6 +32,7 @@ class ConnectivityTestsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``DeviceSet`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["bulkStartConnectivityTests"](
@@ -50,6 +51,7 @@ class ConnectivityTestsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``DeviceSet`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["bulkStartNetworkEndpointConnectivityTests"](
@@ -68,6 +70,7 @@ class ConnectivityTestsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``DeviceSet`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["bulkStopConnectivityTests"](

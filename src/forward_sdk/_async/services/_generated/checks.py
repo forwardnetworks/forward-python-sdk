@@ -27,7 +27,10 @@ class AsyncChecksService(AsyncService):
         body: Any,
         persistent: bool | None = None,
     ) -> models.NetworkCheckResult:
-        """Add a check."""
+        """Add a check.
+
+        ``body`` is a ``NewNetworkCheck`` (a model, or its ``.to_api()`` dict).
+        """
         payload = await self._send_json(
             ops.BUILDERS["addCheck"](snapshot_id=snapshot_id, body=body, persistent=persistent)
         )
@@ -43,6 +46,7 @@ class AsyncChecksService(AsyncService):
         """Raise a ServiceNow incident for a failing check.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``NewServiceNowIncident`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["addCheckServiceNowIncident"](
@@ -116,6 +120,7 @@ class AsyncChecksService(AsyncService):
         """Download one category of a snapshot's checks as an Excel workbook.
 
         Unpublished: not part of Forward's documented API.
+        ``type`` takes ``NQE``, ``PREDEFINED``, ``INTENT`` or ``ADVANCED``.
         """
         async with self._transport.stream(
             ops.BUILDERS["getCheckCategoryReport"](snapshot_id=snapshot_id, type=type, dir=dir)
@@ -236,3 +241,20 @@ class AsyncChecksService(AsyncService):
             )
         )
         return payload
+
+    async def update_check(
+        self,
+        *,
+        snapshot_id: str,
+        check_id: str,
+        body: Any,
+    ) -> models.NetworkCheckResult:
+        """Edit a check in place, keeping its id.
+
+        Unpublished: not part of Forward's documented API.
+        ``body`` is a ``CheckUpdate`` (a model, or its ``.to_api()`` dict).
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["updateCheck"](snapshot_id=snapshot_id, check_id=check_id, body=body)
+        )
+        return models.NetworkCheckResult.model_validate(payload or {})

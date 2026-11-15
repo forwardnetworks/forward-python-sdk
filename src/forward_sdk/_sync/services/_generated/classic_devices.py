@@ -32,6 +32,7 @@ class ClassicDevicesService(Service):
         """Add a new classic device.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NewClassicDevice`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["addClassicDevice"](network_id=self._network(network_id), body=body)
@@ -47,6 +48,7 @@ class ClassicDevicesService(Service):
         """Add new classic devices.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a list of ``NewClassicDevice`` (each a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["addClassicDevices"](network_id=self._network(network_id), body=body)
@@ -93,6 +95,7 @@ class ClassicDevicesService(Service):
         """Delete specific classic devices.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``DeviceCriteria`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["deleteClassicDevices"](network_id=self._network(network_id), body=body)
@@ -142,6 +145,7 @@ class ClassicDevicesService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a list of ``ClassicDeviceType``.
         """
         payload = self._send_json(
             ops.BUILDERS["getClassicDevicesTagsAndConnType"](
@@ -160,6 +164,7 @@ class ClassicDevicesService(Service):
         """Get specific classic devices.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``DeviceNames`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["getSpecificClassicDevices"](
@@ -190,6 +195,7 @@ class ClassicDevicesService(Service):
         """Update a classic device.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``ClassicDevicePatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["patchClassicDevice"](
@@ -207,6 +213,7 @@ class ClassicDevicesService(Service):
         """Update specific classic devices.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``ClassicDevicesPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["patchClassicDevices"](network_id=self._network(network_id), body=body)
@@ -223,6 +230,7 @@ class ClassicDevicesService(Service):
         """Add or update a classic device.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NewClassicDevice`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["putClassicDevice"](
@@ -240,6 +248,7 @@ class ClassicDevicesService(Service):
         """Add or update classic devices.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a list of ``NewClassicDevice`` (each a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["putClassicDevices"](network_id=self._network(network_id), body=body)
@@ -257,6 +266,7 @@ class ClassicDevicesService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``VariantsResolveGlobsRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["resolveClassicDeviceGlobs"](

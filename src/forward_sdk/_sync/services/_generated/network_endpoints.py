@@ -30,6 +30,7 @@ class NetworkEndpointsService(Service):
         """Add a CLI network endpoint.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NewCliNetworkEndpoint`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["createCliNetworkEndpoint"](
@@ -47,6 +48,7 @@ class NetworkEndpointsService(Service):
         """Add CLI network endpoints.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a list of ``NewCliNetworkEndpoint`` (each a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["createCliNetworkEndpoints"](
@@ -64,6 +66,7 @@ class NetworkEndpointsService(Service):
         """Add an HTTP network endpoint.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NewHttpNetworkEndpoint`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["createHttpNetworkEndpoint"](
@@ -81,6 +84,8 @@ class NetworkEndpointsService(Service):
         """Add HTTP network endpoints.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a list of ``NewHttpNetworkEndpoint`` (each a model, or its ``.to_api()``
+        dict).
         """
         payload = self._send_json(
             ops.BUILDERS["createHttpNetworkEndpoints"](
@@ -98,6 +103,7 @@ class NetworkEndpointsService(Service):
         """Add an SNMP network endpoint.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NewSnmpNetworkEndpoint`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["createSnmpNetworkEndpoint"](
@@ -115,6 +121,8 @@ class NetworkEndpointsService(Service):
         """Add SNMP network endpoints.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a list of ``NewSnmpNetworkEndpoint`` (each a model, or its ``.to_api()``
+        dict).
         """
         payload = self._send_json(
             ops.BUILDERS["createSnmpNetworkEndpoints"](
@@ -149,6 +157,7 @@ class NetworkEndpointsService(Service):
         """Delete specific network endpoints.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``DeviceNames`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["deleteNetworkEndpoints"](network_id=self._network(network_id), body=body)
@@ -197,6 +206,7 @@ class NetworkEndpointsService(Service):
         """Update specific network endpoints.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NetworkEndpointsPatchRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["patchNetworkEndpoints"](network_id=self._network(network_id), body=body)
@@ -213,6 +223,7 @@ class NetworkEndpointsService(Service):
         """Update a CLI network endpoint.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``CliNetworkEndpointPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateCliNetworkEndpoint"](
@@ -231,6 +242,7 @@ class NetworkEndpointsService(Service):
         """Update an HTTP network endpoint.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``HttpNetworkEndpointPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateHttpNetworkEndpoint"](
@@ -249,6 +261,7 @@ class NetworkEndpointsService(Service):
         """Update an SNMP network endpoint.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SnmpNetworkEndpointPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateSnmpNetworkEndpoint"](

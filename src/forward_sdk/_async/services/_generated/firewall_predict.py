@@ -33,6 +33,7 @@ class AsyncFirewallPredictService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NewSecurityRule`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["addSecurityRule"](
@@ -325,6 +326,7 @@ class AsyncFirewallPredictService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SecurityRulePatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["updateSecurityRule"](

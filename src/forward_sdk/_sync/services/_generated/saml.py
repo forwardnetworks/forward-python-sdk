@@ -45,6 +45,7 @@ class SAMLService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``SamlSettings`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(ops.BUILDERS["putSamlSettings"](body=body))
         return payload

@@ -147,6 +147,85 @@ added between the snapshots has no `before`, a removed one has no `after`.
 Only a committed query can be diffed, since Forward cannot diff source it has
 never seen. Passing inline source raises `ForwardConfigurationError`.
 
+For inline source, or a query with parameters, diff on the client instead,
+keyed on columns you name:
+
+```python
+changes = client.nqe.diff_source(
+    "foreach d in network.devices select {name: d.name, os: d.platform.os}",
+    before="100",
+    after="101",
+    key_columns=["name"],
+)
+```
+
+It runs the query on both snapshots, reading every row, and returns entries in
+the shape Forward's diff does (`ADDED`, `DELETED`, `MODIFIED`, in key order). A
+key column missing from a row, or a key that repeats within one snapshot,
+raises `ValueError`. `forward_sdk.nqe.diff_rows(before_rows, after_rows,
+["name"])` does the same on rows you already have.
+
+## Typed rows
+
+`forward_sdk.nqe.decode_rows(rows, Model)` validates each row into a pydantic
+model, dataclass or TypedDict. With `normalize_enums=True`, enum values such as
+`Vendor.CISCO` become `CISCO` first, so the model can use plain literals. It
+goes by shape, so ordinary text like a device named `NYC.CORE1` is rewritten
+too.
+
+## State reads for change checks
+
+Typed reads of the state a change check compares before and after, each run
+on one snapshot and read whole:
+
+```python
+before = {s.key: s for s in client.nqe.bgp_sessions(snapshot_id=base_id)}
+after = {s.key: s for s in client.nqe.bgp_sessions(snapshot_id=predicted_id)}
+dropped = [
+    k for k, s in before.items() if s.established and not (k in after and after[k].established)
+]
+```
+
+`lldp_adjacencies(devices=[...], skip_interfaces=["ma0"])`, `interface_admin()`
+(use `.up`: Forward writes `AdminStatus.UP`, not `UP`), `acl_entries()` and
+`acl_counts()` work the same way. The queries are in `forward_sdk.nqe.state`.
+
+The default ACL query identifies no entry: an ACL's entries share its device
+and name. To compare entries one by one, give a query that selects an
+identifying column and name it:
+
+```python
+entries = client.nqe.acl_entries_with(
+    query=my_acl_query,  # selects Device, AclName, Action and UUID
+    key_columns=["Device", "UUID"],
+    snapshot_id=base_id,
+)
+by_key = {e.identity: e for e in entries}  # e.row holds every column selected
+```
+
+A repeated key raises `ValueError`, since it would hide one entry behind
+another.
+
+## An NQE check's rows
+
+Each NQE check result in the checks list carries `nqe_result_key`.
+`client.nqe.check_result(snapshot_id, key, limit=100)` reads the rows behind it.
+Forward answers in its internal run-result form, not the result page `run()`
+returns: use `result.rows()` for the rows with their typed cells unwrapped.
+`result.truncated` says only that this page is not all the rows, so page on the
+total:
+
+```python
+rows, offset = [], 0
+while True:
+    page = client.nqe.check_result(snapshot_id, key, offset=offset, limit=1000)
+    values = page.result.values or []
+    rows += page.rows()
+    offset += len(values)
+    if not values or offset >= (page.result.total_num_values or 0):
+        break
+```
+
 ## Pinning a query version
 
 `commit_id` pins a query to one committed version. Two values are treated

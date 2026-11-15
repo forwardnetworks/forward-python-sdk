@@ -13,10 +13,24 @@ import pytest
 from pydantic import ValidationError
 
 from forward_sdk._async.client import AsyncForwardClient
-from forward_sdk.errors import ForwardConfigurationError, ForwardServerError, ForwardTransportError
+from forward_sdk.errors import (
+    ForwardBadRequestError,
+    ForwardBgpKeyMatchedNothingError,
+    ForwardConfigurationError,
+    ForwardNotFoundError,
+    ForwardServerError,
+    ForwardTimeoutError,
+    ForwardTransportError,
+)
 from forward_sdk.models import (
     AutoCreateImpact,
+    BgpAdvertisement,
+    BgpAdvertisementKey,
+    Change,
+    CheckUpdate,
     IntervalSchedule,
+    LocationBulkPatch,
+    NewLocation,
     NewTenableVmScanner,
     SrcUpdateServiceNowSettings,
     TenableVmScannerPatch,
@@ -1053,3 +1067,929 @@ class TestTracePathQuery:
         }
         assert recorder.query_for() == {"snapshotId": ["s1"]}
         assert facets.total_results is not None and facets.total_results.value == 0
+
+
+RECEIVED = {
+    "vrf": "default",
+    "externalPeer": "198.51.100.2",
+    "prefix": "192.0.2.0/24",
+    "type": "EBGP",
+    "nextHop": "198.51.100.2",
+    "origin": "IGP",
+    "asPath": [65001],
+    "localPref": 100,
+    "med": 0,
+    "communities": ["65001:100"],
+}
+
+
+class TestReceivedBgpAdvertisements:
+    async def test_reads_one_vrf_and_prefix_of_a_device(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/networks/101/devices/edge-1/bgp-advertisements",
+            json_response([RECEIVED, {**RECEIVED, "type": "IBGP", "asPath": []}]),
+        )
+        async with make_client(recorder) as client:
+            rows = await client.bgp_advertisements.get_device_bgp_advertisements(
+                device_name="edge-1", vrf="default", prefix="192.0.2.0/24", snapshot_id="s9"
+            )
+
+        assert recorder.query_for() == {
+            "vrf": ["default"],
+            "prefix": ["192.0.2.0/24"],
+            "snapshotId": ["s9"],
+        }
+        assert [row.type for row in rows] == ["EBGP", "IBGP"]
+        assert rows[0].external_peer == "198.51.100.2" and rows[0].as_path == [65001]
+
+    async def test_padding_is_trimmed_before_sending(self, recorder: Recorder) -> None:
+        # Forward compares the VRF exactly, so " default" would match nothing.
+        recorder.add(
+            "GET", "/api/networks/101/devices/edge-1/bgp-advertisements", json_response([])
+        )
+        async with make_client(recorder) as client:
+            await client.bgp_advertisements.get_device_bgp_advertisements(
+                device_name="edge-1", vrf=" default ", prefix="192.0.2.0/24 ", snapshot_id="s9"
+            )
+
+        assert recorder.query_for()["vrf"] == ["default"]
+        assert recorder.query_for()["prefix"] == ["192.0.2.0/24"]
+
+    async def test_a_received_route_without_next_hop_or_origin_is_read(
+        self, recorder: Recorder
+    ) -> None:
+        # Forward leaves null fields out of rows it builds without its creator checks.
+        bare = {
+            "vrf": "default",
+            "externalPeer": "198.51.100.2",
+            "prefix": "192.0.2.0/24",
+            "type": "IBGP",
+        }
+        recorder.add(
+            "GET",
+            "/api/networks/101/devices/edge-1/bgp-advertisements",
+            json_response([RECEIVED, bare]),
+        )
+        async with make_client(recorder) as client:
+            rows = await client.bgp_advertisements.get_device_bgp_advertisements(
+                device_name="edge-1", vrf="default", prefix="192.0.2.0/24", snapshot_id="s9"
+            )
+
+        assert rows[1].next_hop is None and rows[1].origin is None
+
+    async def test_no_advertisements_is_an_empty_list(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET", "/api/networks/101/devices/edge-1/bgp-advertisements", json_response([])
+        )
+        async with make_client(recorder) as client:
+            rows = await client.bgp_advertisements.get_device_bgp_advertisements(
+                device_name="edge-1", vrf="default", prefix="192.0.2.0/24", snapshot_id="s9"
+            )
+
+        assert rows == []
+
+    @pytest.mark.parametrize(("vrf", "prefix"), [("", "192.0.2.0/24"), ("default", "  ")])
+    async def test_a_blank_vrf_or_prefix_is_refused_before_sending(
+        self, recorder: Recorder, vrf: str, prefix: str
+    ) -> None:
+        async with make_client(recorder) as client:
+            with pytest.raises(ValueError, match="must not be blank"):
+                await client.bgp_advertisements.get_device_bgp_advertisements(
+                    device_name="edge-1", vrf=vrf, prefix=prefix, snapshot_id="s9"
+                )
+
+        assert recorder.requests == []
+
+
+DIFFS_PATH = "/api/networks/101/change-sets/cs1/draft/devices/edge-1/bgp-advertisements"
+
+
+class TestVerifyBgpStaging:
+    async def test_every_key_with_a_row_passes_and_reports_its_change(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add(
+            "GET",
+            DIFFS_PATH,
+            json_response(
+                [
+                    {
+                        "change": "MODIFIED",
+                        "original": RECEIVED,
+                        "updateAdded": {**RECEIVED, "med": 50},
+                    },
+                    {
+                        "change": "WITHDRAWN",
+                        "original": {**RECEIVED, "prefix": "203.0.113.0/24"},
+                        "updateRemoved": {
+                            "vrf": "default",
+                            "externalPeer": "198.51.100.2",
+                            "prefix": "203.0.113.0/24",
+                        },
+                    },
+                ]
+            ),
+        )
+        staged = BgpAdvertisement.model_validate({**RECEIVED, "med": 50})
+        withdrawn = BgpAdvertisementKey(
+            vrf="default", external_peer="198.51.100.2", prefix="203.0.113.0/24"
+        )
+        async with make_client(recorder) as client:
+            report = await client.change_sets.handle("cs1").verify_bgp_staging(
+                "edge-1", staged=[staged], withdrawn=[withdrawn]
+            )
+
+        assert recorder.query_for() == {"view": ["diffs"]}
+        assert [o.change for o in report.staged] == [Change.modified]
+        assert [o.change for o in report.withdrawn] == [Change.withdrawn]
+        assert report.unmatched == []
+
+    async def test_a_withdrawal_that_reads_absent_is_raised_with_the_report(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add(
+            "GET",
+            DIFFS_PATH,
+            json_response(
+                [
+                    {
+                        "change": "ABSENT",
+                        "updateRemoved": {
+                            "vrf": "default",
+                            "externalPeer": "198.51.100.2",
+                            "prefix": "203.0.113.0/24",
+                        },
+                    }
+                ]
+            ),
+        )
+        withdrawn = BgpAdvertisementKey(
+            vrf="default", external_peer="198.51.100.2", prefix="203.0.113.0/24"
+        )
+        async with make_client(recorder) as client:
+            with pytest.raises(
+                ForwardBgpKeyMatchedNothingError, match=r"withdraw 203\.0\.113\.0/24"
+            ) as caught:
+                await client.change_sets.handle("cs1").verify_bgp_staging(
+                    "edge-1", withdrawn=[withdrawn]
+                )
+
+        outcome = caught.value.report.withdrawn[0]
+        assert outcome.found and outcome.change == Change.absent
+
+    async def test_a_staged_key_with_no_row_is_raised(self, recorder: Recorder) -> None:
+        recorder.add("GET", DIFFS_PATH, json_response([]))
+        staged = BgpAdvertisement.model_validate(RECEIVED)
+        async with make_client(recorder) as client:
+            with pytest.raises(
+                ForwardBgpKeyMatchedNothingError, match=r"stage 192\.0\.2\.0/24"
+            ) as caught:
+                await client.change_sets.handle("cs1").verify_bgp_staging("edge-1", staged=[staged])
+
+        assert caught.value.report.staged[0].found is False
+
+    async def test_a_bare_address_matches_the_host_route_forward_writes_back(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add(
+            "GET",
+            DIFFS_PATH,
+            json_response(
+                [{"change": "INJECTED", "updateAdded": {**RECEIVED, "prefix": "192.0.2.7/32"}}]
+            ),
+        )
+        staged = BgpAdvertisement.model_validate({**RECEIVED, "prefix": "192.0.2.7"})
+        async with make_client(recorder) as client:
+            report = await client.change_sets.handle("cs1").verify_bgp_staging(
+                "edge-1", staged=[staged]
+            )
+
+        assert report.staged[0].change == Change.injected
+
+    async def test_injected_where_a_replace_was_meant_is_reported_not_raised(
+        self, recorder: Recorder
+    ) -> None:
+        # An EBGP/IBGP mismatch: the received route stays and the staged one is added beside it.
+        recorder.add(
+            "GET",
+            DIFFS_PATH,
+            json_response([{"change": "INJECTED", "updateAdded": {**RECEIVED, "type": "IBGP"}}]),
+        )
+        staged = BgpAdvertisement.model_validate({**RECEIVED, "type": "IBGP"})
+        async with make_client(recorder) as client:
+            report = await client.change_sets.handle("cs1").verify_bgp_staging(
+                "edge-1", staged=[staged]
+            )
+
+        assert report.staged[0].change == Change.injected
+        assert report.unmatched == []
+
+
+class TestActionNotSupported:
+    async def test_an_unmapped_action_is_flagged(self, recorder: Recorder) -> None:
+        message = (
+            'Parameter conditions "action=bulkAdd" not met for actual request parameters: '
+            "action={bulkAdd}"
+        )
+        recorder.add("POST", DIFFS_PATH, json_response({"message": message}, status=400))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardBadRequestError) as caught:
+                await client.bgp_advertisements.add_bgp_advertisements(
+                    change_set_id="cs1", device_name="edge-1", body=[RECEIVED]
+                )
+
+        assert caught.value.action_not_supported
+
+    async def test_a_plain_text_body_is_flagged_too(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            DIFFS_PATH,
+            httpx.Response(
+                400,
+                text='Parameter conditions "action=bulkAdd" not met for actual request parameters',
+                headers={"content-type": "text/plain"},
+            ),
+        )
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardBadRequestError) as caught:
+                await client.bgp_advertisements.add_bgp_advertisements(
+                    change_set_id="cs1", device_name="edge-1", body=[RECEIVED]
+                )
+
+        assert caught.value.action_not_supported
+
+    async def test_an_ordinary_bad_request_is_not(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            DIFFS_PATH,
+            json_response({"message": "asPath must be non-empty for EBGP"}, status=400),
+        )
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardBadRequestError) as caught:
+                await client.bgp_advertisements.add_bgp_advertisements(
+                    change_set_id="cs1", device_name="edge-1", body=[RECEIVED]
+                )
+
+        assert not caught.value.action_not_supported
+
+    async def test_the_same_words_on_a_404_are_not(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            DIFFS_PATH,
+            json_response({"message": 'Parameter conditions "x" not met'}, status=404),
+        )
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError) as caught:
+                await client.bgp_advertisements.add_bgp_advertisements(
+                    change_set_id="cs1", device_name="edge-1", body=[RECEIVED]
+                )
+
+        assert not caught.value.action_not_supported
+
+
+class TestUpdateCheck:
+    async def test_only_the_fields_set_are_sent_and_an_empty_tag_list_clears(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add(
+            "PATCH",
+            "/api/snapshots/s1/checks/C-1",
+            json_response({"id": "C-1", "name": "renamed", "enabled": False, "tags": []}),
+        )
+        patch = CheckUpdate(name="renamed", enabled=False, tags=[])
+        async with make_client(recorder) as client:
+            check = await client.checks.update_check(
+                snapshot_id="s1", check_id="C-1", body=patch.to_api()
+            )
+
+        assert recorder.body_for() == {"name": "renamed", "enabled": False, "tags": []}
+        assert check.id == "C-1" and check.tags == []
+
+    async def test_tags_left_unset_are_not_sent(self) -> None:
+        assert CheckUpdate(priority="HIGH").to_api() == {"priority": "HIGH"}
+
+
+class TestBgpCollectionRequirements:
+    async def test_reads_the_requirement_groups(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/networks/101/bgp-collection-requirements",
+            json_response({"requirements": [{"devices": ["edge-1", "edge-2"]}]}),
+        )
+        async with make_client(recorder) as client:
+            result = await client.bgp_advertisements.get_bgp_collection_requirements()
+
+        assert result.requirements is not None
+        assert result.requirements[0].devices == ["edge-1", "edge-2"]
+
+
+CHECK_DIFFS = "/api/diffs/s1/s2/checks"
+
+
+def check_row(diff_type: str, status: str = "PASS") -> dict[str, object]:
+    return {
+        "diffType": diff_type,
+        "a": {"id": "C-1", "status": "PASS"},
+        "b": {"id": "C-1", "status": status},
+    }
+
+
+class TestWaitForCheckDiffs:
+    async def test_reads_again_while_a_row_is_processing(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add(
+            "GET",
+            CHECK_DIFFS,
+            json_response({"checks": [check_row("PROCESSING")]}),
+            json_response({"checks": [check_row("MODIFIED", "FAIL")]}),
+        )
+        async with make_client(recorder) as client:
+            result = await client.snapshot_diffs.wait_for_check_diffs("s1", "s2", ["NQE"])
+
+        assert len(recorder.requests) == 2
+        assert recorder.query_for() == {"type": ["NQE"]}
+        assert result.checks is not None and result.checks[0].diff_type == "MODIFIED"
+
+    async def test_a_side_still_processing_counts_too(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add(
+            "GET",
+            CHECK_DIFFS,
+            json_response({"checks": [check_row("MODIFIED", "PROCESSING")]}),
+            json_response({"checks": [check_row("MODIFIED", "FAIL")]}),
+        )
+        async with make_client(recorder) as client:
+            await client.snapshot_diffs.wait_for_check_diffs("s1", "s2", ["NQE"])
+
+        assert len(recorder.requests) == 2
+
+    async def test_a_finished_answer_returns_on_the_first_read(self, recorder: Recorder) -> None:
+        recorder.add("GET", CHECK_DIFFS, json_response({"checks": [check_row("UNCHANGED")]}))
+        async with make_client(recorder) as client:
+            await client.snapshot_diffs.wait_for_check_diffs("s1", "s2", ["Isolation"])
+
+        assert len(recorder.requests) == 1
+
+    async def test_the_wait_backs_off_to_the_ceiling(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        processing = json_response({"checks": [check_row("PROCESSING")]})
+        done = json_response({"checks": []})
+        recorder.add("GET", CHECK_DIFFS, processing, processing, processing, processing, done)
+        async with make_client(recorder) as client:
+            await client.snapshot_diffs.wait_for_check_diffs(
+                "s1", "s2", ["NQE"], poll_interval=1.0, max_poll_interval=3.0
+            )
+
+        assert no_sleep == [1.0, 2.0, 3.0, 3.0]
+
+    async def test_still_processing_at_the_deadline_raises_with_the_last_answer(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add("GET", CHECK_DIFFS, json_response({"checks": [check_row("PROCESSING")]}))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardTimeoutError) as caught:
+                await client.snapshot_diffs.wait_for_check_diffs(
+                    "s1", "s2", ["NQE"], timeout=10.0, poll_interval=2.0
+                )
+
+        assert caught.value.partial.checks[0].diff_type == "PROCESSING"  # type: ignore[attr-defined]
+
+
+class TestWaitForCheckDiffsArguments:
+    async def test_a_single_type_given_as_a_string_is_one_type(self, recorder: Recorder) -> None:
+        recorder.add("GET", CHECK_DIFFS, json_response({"checks": []}))
+        async with make_client(recorder) as client:
+            await client.snapshot_diffs.wait_for_check_diffs("s1", "s2", "NQE")
+
+        assert recorder.query_for() == {"type": ["NQE"]}
+
+    async def test_no_types_is_refused_before_sending(self, recorder: Recorder) -> None:
+        async with make_client(recorder) as client:
+            with pytest.raises(ValueError, match="at least one check type"):
+                await client.snapshot_diffs.wait_for_check_diffs("s1", "s2", [])
+
+        assert recorder.requests == []
+
+    async def test_a_zero_interval_still_pauses(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add(
+            "GET",
+            CHECK_DIFFS,
+            json_response({"checks": [check_row("PROCESSING")]}),
+            json_response({"checks": []}),
+        )
+        async with make_client(recorder) as client:
+            await client.snapshot_diffs.wait_for_check_diffs("s1", "s2", ["NQE"], poll_interval=0)
+
+        assert no_sleep and all(delay > 0 for delay in no_sleep)
+
+    async def test_the_last_sleep_is_cut_to_the_deadline(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add("GET", CHECK_DIFFS, json_response({"checks": [check_row("PROCESSING")]}))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardTimeoutError):
+                await client.snapshot_diffs.wait_for_check_diffs(
+                    "s1", "s2", ["NQE"], timeout=5.0, poll_interval=4.0
+                )
+
+        assert sum(no_sleep) <= 5.0 + 1e-6
+
+
+def classic(name: str, **fields: object) -> dict[str, object]:
+    return {"name": name, "type": "CISCO_IOS_SSH", "host": "192.0.2.10", **fields}
+
+
+class TestBgpAdvertisementReadiness:
+    def script(
+        self,
+        recorder: Recorder,
+        *,
+        config: httpx.Response | None = None,
+        devices: list[dict[str, object]] | None = None,
+        groups: list[dict[str, object]] | None = None,
+    ) -> None:
+        recorder.add(
+            "GET",
+            "/api/config",
+            # Forward keys the properties in lowercase (seen live on 26.11).
+            config
+            or json_response(
+                {"predict_modeling": True, "predict_model_ext_adv": True, "predict_model_bgp": True}
+            ),
+        )
+        recorder.add(
+            "GET",
+            "/api/networks/101/classic-devices",
+            json_response({"devices": devices if devices is not None else []}),
+        )
+        recorder.add(
+            "GET",
+            "/api/networks/101/bgp-collection-requirements",
+            json_response({"requirements": groups or []}),
+        )
+
+    async def test_a_device_collecting_received_routes_is_ready(self, recorder: Recorder) -> None:
+        self.script(
+            recorder,
+            devices=[classic("Edge-1", collectBgpAdvertisements=True)],
+            groups=[{"devices": ["EDGE-1"]}],
+        )
+        async with make_client(recorder) as client:
+            report = await client.change_sets.bgp_advertisement_readiness(" edge-1 ")
+
+        assert report.ready, report.problems
+        assert report.predict_modeling is True and report.predict_model_ext_adv is True
+        assert report.device == "edge-1" and report.device_found
+        # Forward leaves both out when they are BOTH.
+        assert (report.bgp_table_type, report.bgp_peer_type) == ("BOTH", "BOTH")
+        assert report.required_by_network
+        assert recorder.query_for(0) == {"filter": ["OFF"]}
+
+    async def test_each_silent_failure_is_a_problem(self, recorder: Recorder) -> None:
+        self.script(
+            recorder,
+            config=json_response(
+                {
+                    "predict_modeling": False,
+                    "predict_model_ext_adv": False,
+                    "predict_model_bgp": False,
+                }
+            ),
+            devices=[classic("edge-1", collectBgpAdvertisements=True, bgpTableType="ADJ_RIB_OUT")],
+        )
+        async with make_client(recorder) as client:
+            report = await client.change_sets.bgp_advertisement_readiness("edge-1")
+
+        assert not report.ready
+        assert [p.split(" ")[0] for p in report.problems] == [
+            "PREDICT_MODELING",
+            "PREDICT_MODEL_BGP",
+            "PREDICT_MODEL_EXT_ADV",
+            "bgpTableType",
+        ]
+        assert report.blocked
+        assert not report.required_by_network
+
+    async def test_collection_off_is_a_problem_and_no_classic_source_is_unknown(
+        self, recorder: Recorder
+    ) -> None:
+        self.script(recorder, devices=[classic("edge-1")])
+        async with make_client(recorder) as client:
+            off = await client.change_sets.bgp_advertisement_readiness("edge-1")
+            missing = await client.change_sets.bgp_advertisement_readiness("edge-9")
+
+        assert off.problems == [
+            "collectBgpAdvertisements is not on for the device, so there are no received routes "
+            "to override or withdraw"
+        ]
+        assert off.blocked
+        # A controller-managed device has no classic source: not checkable, not a problem.
+        assert not missing.device_found and missing.problems == []
+        assert missing.unknown == ["collection-source:edge-9"]
+        assert "no classic collection source" in missing.unknown_reasons["collection-source:edge-9"]
+        assert not missing.ready and not missing.blocked
+
+    async def test_many_devices_share_three_reads(self, recorder: Recorder) -> None:
+        self.script(
+            recorder,
+            devices=[
+                classic("edge-1", collectBgpAdvertisements=True),
+                classic("edge-2", collectBgpAdvertisements=False),
+            ],
+            groups=[{"devices": ["edge-2"]}],
+        )
+        async with make_client(recorder) as client:
+            reports = await client.change_sets.bgp_advertisement_readiness_for(
+                ["edge-2", "edge-1", "edge-9"]
+            )
+
+        assert len(recorder.requests) == 3
+        assert [r.device for r in reports] == ["edge-2", "edge-1", "edge-9"]
+        assert [r.ready for r in reports] == [False, True, False]
+        assert [r.blocked for r in reports] == [True, False, False]
+        assert [r.required_by_network for r in reports] == [True, False, False]
+        # The shared lists are copied, not aliased between devices.
+        assert reports[1].problems == [] and reports[1].unknown == []
+        assert reports[1].unknown_reasons == {}
+
+    async def test_no_devices_or_a_bare_string_is_refused_before_sending(
+        self, recorder: Recorder
+    ) -> None:
+        async with make_client(recorder) as client:
+            with pytest.raises(ValueError, match="at least one device"):
+                await client.change_sets.bgp_advertisement_readiness_for([])
+            with pytest.raises(ValueError, match="list of names"):
+                await client.change_sets.bgp_advertisement_readiness_for("edge-1")
+
+        assert recorder.requests == []
+
+    async def test_no_access_to_org_config_is_unknown_not_ready_and_not_blocked(
+        self, recorder: Recorder
+    ) -> None:
+        self.script(
+            recorder,
+            config=json_response({"message": "Access denied"}, status=403),
+            devices=[classic("edge-1", collectBgpAdvertisements=True)],
+        )
+        async with make_client(recorder) as client:
+            report = await client.change_sets.bgp_advertisement_readiness("edge-1")
+
+        assert report.predict_modeling is None and report.predict_model_ext_adv is None
+        assert report.unknown == ["organization-properties"]
+        assert report.unknown_reasons["organization-properties"].startswith(
+            "organization properties could not be read"
+        )
+        assert report.notes[0].startswith("organization properties could not be read")
+        assert not report.ready and not report.blocked
+
+    async def test_properties_the_api_does_not_return_are_unknown(self, recorder: Recorder) -> None:
+        self.script(
+            recorder,
+            config=json_response({"predict_modeling": True}),
+            devices=[classic("edge-1", collectBgpAdvertisements=True)],
+        )
+        async with make_client(recorder) as client:
+            report = await client.change_sets.bgp_advertisement_readiness("edge-1")
+
+        assert report.unknown == ["PREDICT_MODEL_BGP", "PREDICT_MODEL_EXT_ADV"]
+        assert set(report.unknown_reasons) == {"PREDICT_MODEL_BGP", "PREDICT_MODEL_EXT_ADV"}
+        assert "not returned by the organization properties API" in report.notes[0]
+        assert not report.ready and not report.blocked
+
+    async def test_refused_device_and_unserved_requirement_reads_are_unknown(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add(
+            "GET",
+            "/api/config",
+            json_response(
+                {"predict_modeling": True, "predict_model_ext_adv": True, "predict_model_bgp": True}
+            ),
+        )
+        recorder.add(
+            "GET",
+            "/api/networks/101/classic-devices",
+            json_response({"message": "Access denied"}, status=403),
+        )
+        recorder.add(
+            "GET",
+            "/api/networks/101/bgp-collection-requirements",
+            json_response(
+                {"message": "No endpoint GET /api/networks/101/bgp-collection-requirements."},
+                status=404,
+            ),
+        )
+        async with make_client(recorder) as client:
+            report = await client.change_sets.bgp_advertisement_readiness("edge-1")
+
+        assert report.unknown == ["classic-devices", "bgp-collection-requirements"]
+        assert report.problems == []
+        assert not report.ready and not report.blocked
+
+    async def test_a_plain_not_found_is_raised(self, recorder: Recorder) -> None:
+        self.script(recorder)
+        recorder.routes[("GET", "/api/networks/101/classic-devices")] = [
+            json_response({"message": "Network 101 not found"}, status=404)
+        ]
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError):
+                await client.change_sets.bgp_advertisement_readiness("edge-1")
+
+    async def test_a_server_error_is_raised(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        self.script(recorder, config=json_response({"message": "boom"}, status=500))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardServerError):
+                await client.change_sets.bgp_advertisement_readiness("edge-1")
+
+    async def test_a_blank_device_is_refused_before_sending(self, recorder: Recorder) -> None:
+        async with make_client(recorder) as client:
+            with pytest.raises(ValueError, match="device name"):
+                await client.change_sets.bgp_advertisement_readiness("  ")
+
+        assert recorder.requests == []
+
+
+# Shaped like a live answer (26.11, 2026-11-15); values are invented.
+CHECK_RESULT = {
+    "type": {"type": "Bag"},
+    "diagnostics": [],
+    "executionInfo": {"computeDurationMillis": 12},
+    "cklbExportable": False,
+    "result": {
+        "values": [
+            {
+                "violation": {"value": True},
+                "Device": {"value": "edge-1", "metadata": {"type": "DEVICE"}},
+                "OS": {"type": "OS", "alternative": {"value": "IOS_XE"}},
+                "Management IPs": [{"value": "192.0.2.10"}],
+                "Tags": [],
+            }
+        ],
+        "totalNumValues": 3,
+        "totalNumValuesIsExact": True,
+        "columnSummaries": {},
+    },
+}
+
+
+class TestNqeCheckResult:
+    async def test_reads_a_check_s_rows_by_its_result_key(self, recorder: Recorder) -> None:
+        recorder.add("POST", "/api/nqe/queryResults", json_response(CHECK_RESULT))
+        async with make_client(recorder) as client:
+            result = await client.nqe.check_result("9", "abc123")
+
+        assert recorder.query_for() == {"snapshotId": ["9"], "resultKey": ["abc123"]}
+        assert recorder.body_for() == {}
+        assert result.truncated
+        assert result.rows() == [
+            {
+                "violation": True,
+                "Device": "edge-1",
+                "OS": "IOS_XE",
+                "Management IPs": ["192.0.2.10"],
+                "Tags": [],
+            }
+        ]
+
+    async def test_paging_goes_in_the_body_and_item_format_is_dropped(
+        self, recorder: Recorder
+    ) -> None:
+        # Forward refuses itemFormat here (400 Unrecognized field, seen live).
+        recorder.add("POST", "/api/nqe/queryResults", json_response(CHECK_RESULT))
+        async with make_client(recorder) as client:
+            await client.nqe.check_result(
+                "9",
+                "abc123",
+                offset=4,
+                limit=2,
+                options={"itemFormat": "JSON", "sortBy": {"columnName": "Device"}},
+            )
+
+        assert recorder.body_for() == {"offset": 4, "limit": 2, "sortBy": {"columnName": "Device"}}
+
+    async def test_a_page_holding_every_row_is_not_truncated(self, recorder: Recorder) -> None:
+        whole = {**CHECK_RESULT, "result": {**CHECK_RESULT["result"], "totalNumValues": 1}}  # type: ignore[dict-item]
+        recorder.add("POST", "/api/nqe/queryResults", json_response(whole))
+        async with make_client(recorder) as client:
+            result = await client.nqe.check_result("9", "abc123")
+
+        assert not result.truncated
+
+    async def test_a_blank_key_is_refused_before_sending(self, recorder: Recorder) -> None:
+        async with make_client(recorder) as client:
+            with pytest.raises(ValueError, match="resultKey"):
+                await client.nqe.check_result("9", " ")
+
+        assert recorder.requests == []
+
+    async def test_a_negative_offset_is_refused_before_sending(self, recorder: Recorder) -> None:
+        async with make_client(recorder) as client:
+            with pytest.raises(ValueError, match="offset"):
+                await client.nqe.check_result("9", "abc123", offset=-1)
+
+        assert recorder.requests == []
+
+
+LOCATIONS = "/api/networks/101/locations"
+
+
+class TestRequestModels:
+    async def test_a_request_model_goes_out_as_its_api_json(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            LOCATIONS,
+            json_response({"id": "L1", "name": "Dayton DC", "lat": 39.8, "lng": -84.2}),
+        )
+        async with make_client(recorder) as client:
+            await client.network_locations.add_location(
+                body=NewLocation(name="Dayton DC", lat=39.8, lng=-84.2, admin_division="Ohio")
+            )
+
+        assert recorder.body_for() == {
+            "name": "Dayton DC",
+            "lat": 39.8,
+            "lng": -84.2,
+            "adminDivision": "Ohio",
+        }
+
+    async def test_a_list_of_models_goes_out_as_a_list(self, recorder: Recorder) -> None:
+        recorder.add("PATCH", LOCATIONS, json_response(None, status=204))
+        async with make_client(recorder) as client:
+            await client.network_locations.patch_locations(
+                body=[LocationBulkPatch(id="L1", lat=1.0), LocationBulkPatch(id="L2", name="b")]
+            )
+
+        assert recorder.body_for() == [{"id": "L1", "lat": 1.0}, {"id": "L2", "name": "b"}]
+
+
+class TestEnsureLocations:
+    async def test_creates_the_missing_patches_the_changed_and_leaves_the_rest(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add(
+            "GET",
+            LOCATIONS,
+            json_response(
+                [
+                    {"id": "L1", "name": "Same", "lat": 1.0, "lng": 2.0},
+                    {"id": "L2", "name": "Moved", "lat": 1.0, "lng": 2.0},
+                ]
+            ),
+        )
+        recorder.add(
+            "POST", LOCATIONS, json_response({"id": "L3", "name": "New", "lat": 5.0, "lng": 6.0})
+        )
+        recorder.add(
+            "PATCH",
+            f"{LOCATIONS}/L2",
+            json_response({"id": "L2", "name": "Moved", "lat": 3.0, "lng": 2.0}),
+        )
+        async with make_client(recorder) as client:
+            held = await client.networks.ensure_locations(
+                {
+                    "Same": {"lat": 1.0, "lng": 2.0},
+                    "Moved": {"lat": 3.0, "lng": 2.0},
+                    "New": NewLocation(name="ignored", lat=5.0, lng=6.0),
+                }
+            )
+
+        assert [(r.method, r.url.path) for r in recorder.requests] == [
+            ("GET", LOCATIONS),
+            ("PATCH", f"{LOCATIONS}/L2"),
+            ("POST", LOCATIONS),
+        ]
+        assert recorder.body_for(1) == {"lat": 3.0}
+        # The mapping's key is the name, whatever the model said.
+        assert recorder.body_for(2) == {"name": "New", "lat": 5.0, "lng": 6.0}
+        assert {name: loc.id for name, loc in held.items()} == {
+            "Same": "L1",
+            "Moved": "L2",
+            "New": "L3",
+        }
+
+    async def test_a_second_run_sends_nothing_but_the_read(self, recorder: Recorder) -> None:
+        held = {"id": "L1", "name": "A", "lat": 1.0, "lng": 2.0, "adminDivision": "Ohio"}
+        recorder.add("GET", LOCATIONS, json_response([held]))
+        async with make_client(recorder) as client:
+            located = await client.networks.ensure_locations(
+                # Python field names, a padded value, and the name in another case.
+                {"a ": {"lat": 1, "lng": 2.0, "admin_division": " Ohio"}}
+            )
+
+        assert [r.method for r in recorder.requests] == ["GET"]
+        assert located["a "].id == "L1" and located["a "].admin_division == "Ohio"
+
+    async def test_bad_input_is_refused_before_anything_is_sent(self, recorder: Recorder) -> None:
+        async with make_client(recorder) as client:
+            with pytest.raises(ValueError, match="'Broken'"):
+                await client.networks.ensure_locations(
+                    {"Fine": {"lat": 1.0, "lng": 2.0}, "Broken": {"lat": 1.0}}
+                )
+
+        assert recorder.requests == []
+
+    async def test_a_location_without_coordinates_does_not_fail_the_read(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add(
+            "GET",
+            LOCATIONS,
+            json_response(
+                [
+                    {"id": "default", "name": "Default"},
+                    {"id": "L1", "name": "A", "lat": 1.0, "lng": 2.0},
+                ]
+            ),
+        )
+        async with make_client(recorder) as client:
+            await client.networks.ensure_locations({"A": {"lat": 1.0, "lng": 2.0}})
+
+        assert [r.method for r in recorder.requests] == ["GET"]
+
+
+class TestSetDeviceLocations:
+    async def test_places_devices_by_location_name(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            LOCATIONS,
+            json_response(
+                [
+                    {"id": "L1", "name": "Dayton DC", "lat": 1.0, "lng": 2.0},
+                    {"id": "L2", "name": "Ohio Edge", "lat": 1.0, "lng": 2.0},
+                ]
+            ),
+        )
+        recorder.add("PATCH", "/api/networks/101/atlas", json_response(None, status=204))
+        async with make_client(recorder) as client:
+            await client.networks.set_device_locations(
+                {"edge-1": "Dayton DC", "edge-2": "Ohio Edge"}
+            )
+
+        assert recorder.body_for() == {"edge-1": "L1", "edge-2": "L2"}
+
+    async def test_an_unknown_location_name_is_refused_before_the_update(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add("GET", LOCATIONS, json_response([]))
+        async with make_client(recorder) as client:
+            with pytest.raises(ValueError, match="no location named 'Nowhere'"):
+                await client.networks.set_device_locations({"edge-1": "Nowhere"})
+
+        assert [r.method for r in recorder.requests] == ["GET"]
+
+
+PAIRS = "/api/diffs/s1/s2/subnet-connectivity"
+
+
+class TestWaitForLocationPairs:
+    async def test_waits_for_the_comparison_then_reads_the_pairs(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        partial = {"isPartialResult": True, "totalSubnetPairs": 10, "evaluatedSubnetPairs": 3}
+        settled = {"isPartialResult": False, "totalSubnetPairs": 10, "evaluatedSubnetPairs": 10}
+        pairs = {"counts": [{"src": "1", "dst": "3", "count": 14}]}
+
+        def answer(request: httpx.Request) -> httpx.Response:
+            if request.url.params.get("view") == "locationPairs":
+                return json_response(pairs)
+            return json_response(partial if len(recorder.requests) == 1 else settled)
+
+        recorder.default = answer
+        async with make_client(recorder) as client:
+            result = await client.snapshot_diffs.wait_for_location_pairs("s1", "s2", "ADDED")
+
+        assert [r.url.params.get("view") for r in recorder.requests][-1] == "locationPairs"
+        assert recorder.query_for()["type"] == ["ADDED"]
+        assert len(recorder.requests) == 3
+        assert result.pairs.counts is not None and result.pairs.counts[0].count == 14
+        assert not result.nothing_compared
+
+    async def test_no_subnet_pairs_at_all_is_flagged_and_type_case_is_forgiven(
+        self, recorder: Recorder
+    ) -> None:
+        def answer(request: httpx.Request) -> httpx.Response:
+            if request.url.params.get("view") == "locationPairs":
+                return json_response({"counts": []})
+            return json_response({"isPartialResult": False, "totalSubnetPairs": 0})
+
+        recorder.default = answer
+        async with make_client(recorder) as client:
+            result = await client.snapshot_diffs.wait_for_location_pairs("s1", "s2", "added")
+
+        assert result.nothing_compared and result.pairs.counts == []
+        assert recorder.query_for()["type"] == ["ADDED"]
+
+    async def test_all_is_refused_before_sending(self, recorder: Recorder) -> None:
+        async with make_client(recorder) as client:
+            with pytest.raises(ValueError, match="ADDED, DELETED or MODIFIED"):
+                await client.snapshot_diffs.wait_for_location_pairs("s1", "s2", "ALL")
+
+        assert recorder.requests == []

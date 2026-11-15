@@ -96,6 +96,7 @@ class AsyncWANCircuitsService(AsyncService):
         """Update a WAN circuit.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``WanCircuitPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["patchWanCircuit"](
@@ -114,6 +115,7 @@ class AsyncWANCircuitsService(AsyncService):
         """Add or replace a WAN circuit.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``WanCircuit`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["putWanCircuit"](
@@ -131,6 +133,7 @@ class AsyncWANCircuitsService(AsyncService):
         """Replace all of a network's WAN circuits.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``WanCircuitList`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["putWanCircuits"](network_id=self._network(network_id), body=body)

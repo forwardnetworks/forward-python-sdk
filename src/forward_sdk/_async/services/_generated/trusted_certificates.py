@@ -27,6 +27,7 @@ class AsyncTrustedCertificatesService(AsyncService):
         """Add a trusted certificate.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``TrustedCertificateRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["addTrustedCertificate"](body=body))
         return models.TrustedCertificate.model_validate(payload or {})

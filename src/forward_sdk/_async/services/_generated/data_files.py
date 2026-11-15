@@ -159,6 +159,7 @@ class AsyncDataFilesService(AsyncService):
         """Change a data file's name, NQE name or description.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``DataFilePatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["patchDataFile"](data_file_name=data_file_name, body=body)

@@ -29,6 +29,7 @@ class AsyncDeviceDiscoveryService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SrcScheduledDiscoveryDefinition`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createScheduledDiscovery"](
@@ -115,6 +116,7 @@ class AsyncDeviceDiscoveryService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SrcDiscoveryParams``.
         """
         payload = await self._send_json(
             ops.BUILDERS["startDeviceDiscovery"](

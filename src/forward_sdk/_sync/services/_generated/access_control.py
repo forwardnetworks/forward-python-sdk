@@ -34,6 +34,7 @@ class AccessControlService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``AccessControlGroupBulkEdit`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(ops.BUILDERS["addDeviceAccessLabelsToGroups"](body=body))
         return payload
@@ -47,6 +48,7 @@ class AccessControlService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``AccessControlGroupRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(ops.BUILDERS["createAccessControlGroup"](body=body))
         return models.AccessControlGroup.model_validate(payload or {})
@@ -60,6 +62,7 @@ class AccessControlService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``DeviceAccessLabelRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(ops.BUILDERS["createDeviceAccessLabel"](body=body))
         return models.DeviceAccessLabel.model_validate(payload or {})
@@ -143,6 +146,7 @@ class AccessControlService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``AccessControlGroupBulkEdit`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(ops.BUILDERS["removeDeviceAccessLabelsFromGroups"](body=body))
         return payload
@@ -159,6 +163,8 @@ class AccessControlService(Service):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         May be unavailable (admin); see docs/gating.md.
+        ``role`` takes ``LIMITED_READ_ONLY``, ``READ_ONLY``, ``OPERATOR``, ``WORKSPACE_OPERATOR``
+        or ``ADMIN``.
         """
         payload = self._send_json(
             ops.BUILDERS["setAccessControlGroupNetworkRole"](
@@ -177,6 +183,7 @@ class AccessControlService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``AccessControlGroupRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateAccessControlGroup"](group_id=group_id, body=body)
@@ -193,6 +200,7 @@ class AccessControlService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``DeviceAccessLabelPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateDeviceAccessLabel"](label_id=label_id, body=body)

@@ -32,6 +32,7 @@ class AsyncCredentialsService(AsyncService):
 
         Uses the client's network when ``network_id`` is omitted.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``NewCliCredential`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createCliCredential"](network_id=self._network(network_id), body=body)
@@ -48,6 +49,7 @@ class AsyncCredentialsService(AsyncService):
 
         Uses the client's network when ``network_id`` is omitted.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a list of ``NewCliCredential`` (each a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createCliCredentials"](network_id=self._network(network_id), body=body)
@@ -64,6 +66,7 @@ class AsyncCredentialsService(AsyncService):
 
         Uses the client's network when ``network_id`` is omitted.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``NewHttpCredential`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createHttpCredential"](network_id=self._network(network_id), body=body)
@@ -80,6 +83,7 @@ class AsyncCredentialsService(AsyncService):
 
         Uses the client's network when ``network_id`` is omitted.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a list of ``NewHttpCredential`` (each a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createHttpCredentials"](network_id=self._network(network_id), body=body)
@@ -95,6 +99,7 @@ class AsyncCredentialsService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``NewHttpCredential`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["createOrgHttpCredential"](body=body))
         return models.StoredHttpCredential.model_validate(payload or {})
@@ -253,6 +258,7 @@ class AsyncCredentialsService(AsyncService):
 
         Uses the client's network when ``network_id`` is omitted.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``CliCredentialUpdate`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["patchCliCredential"](
@@ -272,6 +278,7 @@ class AsyncCredentialsService(AsyncService):
 
         Uses the client's network when ``network_id`` is omitted.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``HttpCredentialUpdate`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["patchHttpCredential"](
@@ -290,6 +297,7 @@ class AsyncCredentialsService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``HttpCredentialUpdate`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["updateOrgHttpCredential"](credential_id=credential_id, body=body)

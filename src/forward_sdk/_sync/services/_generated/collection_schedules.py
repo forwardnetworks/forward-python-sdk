@@ -29,6 +29,7 @@ class CollectionSchedulesService(Service):
         """Add a network collection schedule.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``CollectionScheduleDefinition`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["addCollectionSchedule"](network_id=self._network(network_id), body=body)
@@ -93,6 +94,7 @@ class CollectionSchedulesService(Service):
         """Replace a network collection schedule.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``CollectionSchedule`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["replaceCollectionSchedule"](

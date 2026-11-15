@@ -67,6 +67,8 @@ class AsyncCollectionSettingsService(AsyncService):
         """Change the collection settings of one collector.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``SysCollectorCollectionSettingsPatch`` (a model, or its ``.to_api()``
+        dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["patchCollectorCollectionSettings"](collector_id=collector_id, body=body)
@@ -81,6 +83,7 @@ class AsyncCollectionSettingsService(AsyncService):
         """Change the organization-wide collection settings.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``SysOrgCollectionSettingsPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["patchOrganizationCollectionSettings"](body=body)
@@ -97,6 +100,7 @@ class AsyncCollectionSettingsService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SysPerformanceSettingsPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["patchPerformanceSettings"](

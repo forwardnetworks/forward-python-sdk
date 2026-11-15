@@ -30,6 +30,7 @@ class BannersService(Service):
         """Create a custom banner.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``SysNewCustomBanner`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(ops.BUILDERS["createCustomBanner"](body=body))
         return models.SysCustomBanner.model_validate(payload or {})
@@ -85,6 +86,7 @@ class BannersService(Service):
         """Replace a custom banner.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``SysCustomBanner`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["replaceCustomBanner"](banner_id=banner_id, body=body)

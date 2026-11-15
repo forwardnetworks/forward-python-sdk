@@ -29,6 +29,7 @@ class AsyncNetworkCollectionService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SysNewProxyServer`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createNetworkProxy"](network_id=self._network(network_id), body=body)
@@ -95,6 +96,7 @@ class AsyncNetworkCollectionService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SysProxyServerConfigPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["updateNetworkProxy"](

@@ -13,19 +13,40 @@ reachable, whether a routing loop appeared.
 from __future__ import annotations
 
 import time
+from collections.abc import Sequence
+from dataclasses import dataclass
 
 from forward_sdk._generated.models import (
     BidirectionalDiffCount,
     BidirectionalVulnerabilityDiff,
+    ChecksDiff,
     DiffCount,
     FileDiffSummary,
+    LocationConnChangeCounts,
     RoutingLoopDiffCount,
     SubnetConnectivityDiff,
     VulnerabilityDiffCounts,
 )
 from forward_sdk._ops import diffs as ops
+from forward_sdk._ops import rest
 from forward_sdk._sync.services._base import Service
 from forward_sdk.errors import ForwardTimeoutError
+
+
+@dataclass(frozen=True)
+class LocationPairs:
+    """:meth:`SnapshotDiffsService.wait_for_location_pairs`' answer."""
+
+    #: The changed subnet pairs counted per location pair.
+    pairs: LocationConnChangeCounts
+    #: The settled subnet-connectivity comparison the pairs come from.
+    comparison: SubnetConnectivityDiff
+
+    @property
+    def nothing_compared(self) -> bool:
+        """No subnet pairs were compared, so empty ``pairs`` says nothing about change."""
+        return not self.comparison.total_subnet_pairs
+
 
 #: How often to re-read a connectivity comparison that is still computing.
 DEFAULT_POLL_INTERVAL = 2.0
@@ -86,6 +107,99 @@ class SnapshotDiffsService(Service):
                 error.partial = result  # type: ignore[attr-defined]
                 raise error
             time.sleep(poll_interval)
+
+    def wait_for_location_pairs(
+        self,
+        before: str,
+        after: str,
+        type: str,
+        *,
+        loc: str | None = None,
+        timeout: float = 300.0,
+        poll_interval: float = DEFAULT_POLL_INTERVAL,
+    ) -> LocationPairs:
+        """Changed subnet pairs per location pair, once Forward has computed them.
+
+        ``get_connectivity_diff_location_pairs`` answers ``{"counts": []}``
+        while the comparison is still partial, which reads exactly like "no
+        change". This waits for the comparison to settle
+        (:meth:`wait_for_subnet_connectivity`) and then reads the pairs, and
+        returns both. Empty ``pairs`` then means no change between located
+        subnets, unless ``nothing_compared`` is true (no subnet pairs at all,
+        typically because the network has no locations). Pairs are grouped by
+        the network's current device locations, so devices with no location
+        are not counted. ``type`` is ``ADDED``, ``DELETED`` or ``MODIFIED``
+        (Forward answers 400 to anything else, ``ALL`` included); ``loc``
+        restricts to one location.
+
+        Raises:
+            ForwardTimeoutError: The comparison was still partial at the deadline.
+        """
+        kind = type.strip().upper()
+        if kind not in ("ADDED", "DELETED", "MODIFIED"):
+            raise ValueError(f"type must be ADDED, DELETED or MODIFIED, not {type!r}")
+        comparison = self.wait_for_subnet_connectivity(
+            before, after, timeout=timeout, poll_interval=poll_interval
+        )
+        payload = self._send_json(
+            rest.BUILDERS["getConnectivityDiffLocationPairs"](
+                before_snapshot_id=before, after_snapshot_id=after, type=kind, loc=loc
+            )
+        )
+        return LocationPairs(
+            pairs=LocationConnChangeCounts.model_validate(payload or {}), comparison=comparison
+        )
+
+    def wait_for_check_diffs(
+        self,
+        before: str,
+        after: str,
+        types: Sequence[str] | str,
+        *,
+        timeout: float = 600.0,
+        poll_interval: float = DEFAULT_POLL_INTERVAL,
+        max_poll_interval: float | None = None,
+    ) -> ChecksDiff:
+        """The check diff once no row is still ``PROCESSING``.
+
+        Forward answers ``type=NQE`` at once with rows whose ``diffType`` (or
+        either side's ``status``) is ``PROCESSING``; the other check types block
+        in Forward until computed, so they return on the first read. With
+        ``max_poll_interval`` above ``poll_interval`` the wait doubles after each
+        read up to that ceiling, so a long wait does not poll fast throughout.
+
+        The ``PROCESSING`` row shape is from Forward's source and the Go SDK
+        v0.8.29, which records it as seen live by a regression sweep.
+
+        Raises:
+            ForwardTimeoutError: If a row is still processing at the deadline.
+                The last result is on ``.partial``.
+        """
+        wanted = [types] if isinstance(types, str) else list(types)
+        if not wanted:
+            raise ValueError("wait_for_check_diffs needs at least one check type")
+        deadline = time.monotonic() + timeout
+        interval = poll_interval if poll_interval > 0 else DEFAULT_POLL_INTERVAL
+        while True:
+            payload = self._send_json(
+                rest.BUILDERS["getCheckDiffs"](
+                    before_snapshot_id=before, after_snapshot_id=after, type=wanted
+                )
+            )
+            result = ChecksDiff.model_validate(payload or {})
+            if not _check_diff_processing(result):
+                return result
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                error = ForwardTimeoutError(
+                    f"check diff of {before} and {after} ({', '.join(wanted)}) was still "
+                    f"processing after {timeout:.0f}s"
+                )
+                error.partial = result  # type: ignore[attr-defined]
+                raise error
+            time.sleep(min(interval, remaining))
+            if max_poll_interval is not None and max_poll_interval > interval:
+                interval = min(interval * 2, max_poll_interval)
 
     def vulnerability_counts(self, before: str, after: str) -> VulnerabilityDiffCounts:
         """Vulnerability exposure the change introduces.
@@ -150,3 +264,17 @@ class SnapshotDiffsService(Service):
         Eight requests. The one-line answer to "what did this change touch".
         """
         return {area: self.count(area, before, after) for area in ops.COUNT_BUILDERS}
+
+
+def _check_diff_processing(result: ChecksDiff) -> bool:
+    """Whether any row, or either side of one, is still being computed."""
+    for row in result.checks or []:
+        if _is_processing(row.diff_type):
+            return True
+        if any(side is not None and _is_processing(side.status) for side in (row.a, row.b)):
+            return True
+    return False
+
+
+def _is_processing(value: object) -> bool:
+    return str(getattr(value, "value", value) or "").upper() == "PROCESSING"

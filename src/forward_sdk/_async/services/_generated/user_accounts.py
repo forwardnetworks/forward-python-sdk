@@ -98,6 +98,7 @@ class AsyncUserAccountsService(AsyncService):
         """Create a user account.
 
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``NewUser`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["createUser"](body=body))
         return models.User.model_validate(payload or {})
@@ -309,6 +310,8 @@ class AsyncUserAccountsService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         May be unavailable (admin); see docs/gating.md.
+        ``role`` takes ``LIMITED_READ_ONLY``, ``READ_ONLY``, ``OPERATOR``, ``WORKSPACE_OPERATOR``
+        or ``ADMIN``.
         """
         payload = await self._send_json(
             ops.BUILDERS["setUserNetworkRole"](
@@ -326,6 +329,7 @@ class AsyncUserAccountsService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``UserAccountBulkEdit`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["setUsersEnabled"](body=body))
         return payload
@@ -339,6 +343,7 @@ class AsyncUserAccountsService(AsyncService):
         """Update a user account.
 
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``UserPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["updateUser"](user_id=user_id, body=body))
         return models.User.model_validate(payload or {})

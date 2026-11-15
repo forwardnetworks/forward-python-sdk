@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Mapping
 from difflib import get_close_matches
 from typing import Any, Literal
 
 import httpx
 
+from forward_sdk._async.services._base import AsyncService
 from forward_sdk._async.services._generated import AsyncGeneratedServices
 from forward_sdk._async.services.ai import AsyncAiService
 from forward_sdk._async.services.change_sets import AsyncChangeSetsService
@@ -16,6 +18,7 @@ from forward_sdk._async.services.device_tags import AsyncDeviceTagsService
 from forward_sdk._async.services.devices import AsyncDevicesService
 from forward_sdk._async.services.diffs import AsyncSnapshotDiffsService
 from forward_sdk._async.services.events import AsyncUserEventsService
+from forward_sdk._async.services.mcp import AsyncMcpService
 from forward_sdk._async.services.networks import AsyncNetworksService
 from forward_sdk._async.services.nqe import AsyncNqeService
 from forward_sdk._async.services.snapshots import AsyncSnapshotsService
@@ -30,6 +33,7 @@ from forward_sdk.access import Access
 from forward_sdk.config import ClientConfig, RetryPolicy, build_config, config_from_env
 from forward_sdk.errors import (
     ForwardConfigurationError,
+    ForwardError,
     ForwardNotFoundError,
     ForwardPermissionError,
 )
@@ -131,6 +135,7 @@ class AsyncForwardClient(AsyncGeneratedServices):
         self.device_tags = AsyncDeviceTagsService(self._transport)
         self.nqe = AsyncNqeService(self._transport)
         self.ai = AsyncAiService(self._transport)
+        self.mcp = AsyncMcpService(AsyncService(self._transport))
         self.snapshot_diffs = AsyncSnapshotDiffsService(self._transport)
         self.change_sets = AsyncChangeSetsService(self._transport, self.snapshots)
         self.user_events = AsyncUserEventsService(self._transport)
@@ -254,6 +259,10 @@ class AsyncForwardClient(AsyncGeneratedServices):
         return self._transport.counters
 
     async def aclose(self) -> None:
+        # End an MCP session first, while the transport is open; a failure to
+        # end it must not stop the client closing.
+        with contextlib.suppress(ForwardError):
+            await self.mcp.close()
         await self._transport.aclose()
 
     async def __aenter__(self) -> AsyncForwardClient:

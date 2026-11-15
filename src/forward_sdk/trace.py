@@ -38,7 +38,14 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:  # pragma: no cover
+    from forward_sdk._generated.models import (
+        TraceFacetsResponse,
+        TracePathFacet,
+        TracePathGroup,
+    )
 
 __all__ = [
     "PERMIT_ALL",
@@ -54,6 +61,8 @@ __all__ = [
     "interface_values",
     "negate",
     "security_zone",
+    "selection",
+    "selections",
     "subnet",
     "subnet_at_device",
     "vrf",
@@ -309,6 +318,27 @@ class PathQuery:
             out["mode"] = self.mode
         return out
 
+    def trace_request(
+        self,
+        group: TracePathGroup,
+        path: TracePathFacet,
+        *,
+        max_results: int | None = None,
+        max_duration_seconds: int | None = None,
+    ) -> dict[str, Any]:
+        """A body for ``client.flow_trace.get_trace``: this query, with one path selected.
+
+        ``group`` and ``path`` come from the facets answer to this same query
+        (see :func:`selections`), so a query with a chain, a ``to`` location,
+        headers or ``PERMIT_ALL`` can be traced hop by hop as well as counted.
+        Mirrors the Go SDK's ``TraceFor`` (v0.8.38).
+        """
+        return self.request(
+            max_results=max_results,
+            max_duration_seconds=max_duration_seconds,
+            **selection(group, path),
+        )
+
     def request(
         self,
         *,
@@ -336,3 +366,40 @@ class PathQuery:
             body["maxDurationSeconds"] = max_duration_seconds
         body.update(extra)
         return body
+
+
+def selection(group: TracePathGroup, path: TracePathFacet) -> dict[str, Any]:
+    """The ``selectedFacets`` and ``limit`` that pick one path of a facets answer for ``get_trace``.
+
+    The path's ``behaviorSample`` goes back as Forward sent it (left out when
+    there is none), and ``limit`` is 100, as the GUI and the Go SDK send. A path
+    with no hops or a group with no trace type is refused, as Go does, rather
+    than left to fail on the server.
+    """
+    if not path.path:
+        raise ValueError("the facets path has no hops to select")
+    if not (group.trace_type or "").strip():
+        raise ValueError("the facets path group has no trace type")
+    chosen: dict[str, Any] = {"path": path.path, "traceType": group.trace_type}
+    if path.behavior_sample is not None:
+        chosen["behavior"] = path.behavior_sample.to_api()
+    return {"selectedFacets": {"paths": [chosen]}, "limit": 100}
+
+
+def selections(
+    facets: TraceFacetsResponse,
+) -> list[tuple[TracePathGroup, TracePathFacet]]:
+    """Every (group, path) pair a facets answer lists, in Forward's order.
+
+    Trace each with ``query.trace_request(group, path)``; that is the Go SDK's
+    ``ExplainQuery`` as a loop, one request per path, so slice the list to cap
+    it as Go's ``ExplainLimit`` does::
+
+        facets = client.flow_trace.get_trace_facets(body=query.request())
+        traces = [
+            client.flow_trace.get_trace(body=query.trace_request(group, path))
+            for group, path in selections(facets)
+        ]
+    """
+    groups = facets.facets.path_groups if facets.facets is not None else None
+    return [(group, path) for group in groups or [] for path in group.paths or []]

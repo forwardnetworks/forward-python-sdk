@@ -33,6 +33,7 @@ class AdjacentNetworksService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``L3SyntheticWanConnection`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["addAdjacentNetworkConnection"](
@@ -198,6 +199,7 @@ class AdjacentNetworksService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``AdjacentNetworkPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["patchAdjacentNetwork"](
@@ -217,6 +219,7 @@ class AdjacentNetworksService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``AdjacentNetwork`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["putAdjacentNetwork"](
@@ -235,6 +238,7 @@ class AdjacentNetworksService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``AdjacentNetworkList`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["putAdjacentNetworks"](network_id=self._network(network_id), body=body)

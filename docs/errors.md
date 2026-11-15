@@ -10,6 +10,8 @@ ForwardError
 ├── ForwardPaginationError      paging could not continue safely
 ├── ForwardExecutionError       background work finished without results
 ├── ForwardResponseError        Forward answered, but not in a shape we can read
+├── ForwardBgpKeyMatchedNothingError  a staged BGP key matched nothing (verify_bgp_staging)
+├── ForwardMcpError             Forward's MCP server answered a JSON-RPC error (client.mcp)
 └── ForwardAPIError             Forward returned an error response
     ├── ForwardBadRequestError       400
     │   └── ForwardNqeQueryError     400 with query diagnostics
@@ -86,11 +88,16 @@ streaming.
 mean several different things, including a missing licence or an
 undeployed feature. See [availability](gating.md).
 
-Two more cases look like the ordinary kind of the same status:
+A few more cases look like the ordinary kind of the same status:
 
 - `error.endpoint_not_served` is true for a 404 that means Forward has no route
   for the request ("No endpoint GET /api/backups."), as opposed to a missing
   resource. A delete through such a route deleted nothing.
+- `error.action_not_supported` is true for a 400 that means this deployment
+  does not map the `?action=` on the route (Spring's `Parameter conditions
+  "action=bulkAdd" not met ...`), which is what an older build looks like for a
+  newer action. Fall back to the older call. Read from Spring's source; not
+  seen live.
 - `error.account_locked` is true for a 401 that means the account is locked, not
   that the credential is wrong. The wording is from Forward's source and has not
   been seen live.

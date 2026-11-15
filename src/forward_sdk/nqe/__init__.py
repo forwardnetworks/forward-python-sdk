@@ -12,14 +12,24 @@ from __future__ import annotations
 from forward_sdk.nqe.bundle import NqeBundle, NqeBundleError, bundle_sources
 from forward_sdk.nqe.pagination import PageGuards, PageTracker
 from forward_sdk.nqe.query_ref import LATEST_PROCESSED, QueryRef, sanitize_commit_id
+from forward_sdk.nqe.rows import decode_rows, diff_rows, flatten_cells, strip_enum_text
+from forward_sdk.nqe.state import AclEntry, BgpSession, InterfaceAdmin, LldpAdjacency
 
 __all__ = [
     "LATEST_PROCESSED",
+    "AclEntry",
+    "BgpSession",
+    "InterfaceAdmin",
+    "LldpAdjacency",
     "NqeBundle",
     "NqeBundleError",
     "PageGuards",
     "PageTracker",
     "QueryRef",
     "bundle_sources",
+    "decode_rows",
+    "diff_rows",
+    "flatten_cells",
     "sanitize_commit_id",
+    "strip_enum_text",
 ]

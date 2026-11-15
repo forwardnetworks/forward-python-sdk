@@ -32,6 +32,7 @@ class CloudAccountsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NewCloudAccount`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["createCloudAccount"](network_id=self._network(network_id), body=body)
@@ -66,6 +67,7 @@ class CloudAccountsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``CloudAccountDiscovery`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["discoverCloudAccounts"](network_id=self._network(network_id), body=body)
@@ -83,6 +85,7 @@ class CloudAccountsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``CloudExistingAccountDiscovery`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["discoverCloudSubAccounts"](
@@ -223,6 +226,7 @@ class CloudAccountsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``CloudAccountCredential`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["setCloudAccountCredential"](
@@ -242,6 +246,7 @@ class CloudAccountsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``CloudAccountConnectivityTest`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["testCloudAccountConnectivity"](
@@ -260,6 +265,7 @@ class CloudAccountsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``CloudConnectivityTest`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["testCloudConnectivity"](network_id=self._network(network_id), body=body)
@@ -277,6 +283,7 @@ class CloudAccountsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``VariantsAwsCapCredentialUpdate`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateAwsCapCredential"](
@@ -296,6 +303,7 @@ class CloudAccountsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``CloudAccountPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateCloudAccount"](

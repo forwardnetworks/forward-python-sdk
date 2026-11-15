@@ -33,6 +33,7 @@ class CollectionSourcesService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SrcNewControllerManagedSetup`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["createControllerManagedSetup"](
@@ -51,6 +52,7 @@ class CollectionSourcesService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SrcNewControllerManagedSetup`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["createControllerManagedSetupMigratingClassic"](
@@ -69,6 +71,7 @@ class CollectionSourcesService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SrcNewMistSetup`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["createMistCloudManagedSetup"](
@@ -160,6 +163,7 @@ class CollectionSourcesService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``type`` takes ``CISCO_ACI`` or ``SD_WAN``.
         """
         payload = self._send_json(
             ops.BUILDERS["listControllerManagedSetups"](
@@ -180,6 +184,7 @@ class CollectionSourcesService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``MiscControllerManagedDevicePatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["patchControllerDevice"](
@@ -199,6 +204,7 @@ class CollectionSourcesService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SrcControllerManagedSetupPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["patchControllerManagedSetup"](
@@ -219,6 +225,7 @@ class CollectionSourcesService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``MiscControllerManagedDevicePatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["patchManagedDevice"](
@@ -238,6 +245,8 @@ class CollectionSourcesService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SrcControllerAndManagedDeviceSelection`` (a model, or its ``.to_api()``
+        dict).
         """
         payload = self._send_json(
             ops.BUILDERS["testControllerManagedSetups"](

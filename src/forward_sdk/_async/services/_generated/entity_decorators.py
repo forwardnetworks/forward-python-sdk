@@ -32,6 +32,9 @@ class AsyncEntityDecoratorsService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``DecoDecorationsRequest`` (a model, or its ``.to_api()`` dict).
+        ``type`` takes ``DEVICE``, ``INTERFACE``, ``HOST``, ``PATH``, ``PATH_DEVICE`` or
+        ``PATH_INTERFACE``.
         """
         payload = await self._send_json(
             ops.BUILDERS["decorateEntities"](
@@ -89,6 +92,7 @@ class AsyncEntityDecoratorsService(AsyncService):
         """Create or update a user entity decorator.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``DecoEntityDecoratorPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["upsertDecorator"](name=name, body=body))
         return models.DecoEntityDecorator.model_validate(payload or {})

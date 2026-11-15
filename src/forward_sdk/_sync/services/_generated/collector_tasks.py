@@ -91,7 +91,10 @@ class CollectorTasksService(Service):
         action: str,
         note: str | None = None,
     ) -> Any:
-        """Stop a collector task."""
+        """Stop a collector task.
+
+        ``action`` takes ``CANCEL`` or ``SKIP``.
+        """
         payload = self._send_json(
             ops.BUILDERS["stopCollectorTask"](task_id=task_id, action=action, note=note)
         )

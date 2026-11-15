@@ -64,6 +64,7 @@ nav:
   - Network maps: network-maps.md
   - Rehearsing a change: predict.md
   - Flow trace queries: flow-trace.md
+  - MCP server: mcp.md
   - Live events: events.md
   - Forward AI: ai.md
   - API groups: services.md

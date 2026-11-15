@@ -92,6 +92,7 @@ class AsyncIntegrationsService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``ServiceNowNewChangeRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createChangeSetChangeRequest"](
@@ -108,6 +109,7 @@ class AsyncIntegrationsService(AsyncService):
         """Add an Infoblox instance.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``SrcNewInfobloxInstance`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["createInfobloxInstance"](body=body))
         return payload
@@ -122,6 +124,7 @@ class AsyncIntegrationsService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SrcRapid7SourceCreate`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createRapid7Source"](network_id=self._network(network_id), body=body)
@@ -138,6 +141,7 @@ class AsyncIntegrationsService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``AdmTenableSourceCreate`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createTenableSource"](network_id=self._network(network_id), body=body)
@@ -152,6 +156,7 @@ class AsyncIntegrationsService(AsyncService):
         """Add a Tenable Vulnerability Management scanner.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``NewTenableVmScanner`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["createVulnerabilityScanner"](body=body))
         return models.StoredVulnerabilityScanner.model_validate(payload or {})
@@ -356,6 +361,7 @@ class AsyncIntegrationsService(AsyncService):
         """Read CMDB class schemas.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``SrcServiceNowCmdbSchemaRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["getServiceNowCmdbSchema"](body=body))
         return [models.SrcCmdbConfigurationItemSchema.model_validate(row) for row in payload or []]
@@ -465,6 +471,7 @@ class AsyncIntegrationsService(AsyncService):
         """List the CMDB classes on a ServiceNow instance.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``SrcServiceNowCmdbConnectionDetails`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["listServiceNowCmdbConfigurationItems"](body=body)
@@ -479,6 +486,7 @@ class AsyncIntegrationsService(AsyncService):
         """List the discovery sources on a ServiceNow instance.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``SrcServiceNowCmdbConnectionDetails`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["listServiceNowCmdbDiscoverySources"](body=body)
@@ -503,6 +511,7 @@ class AsyncIntegrationsService(AsyncService):
         """Change the ServiceNow connection.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``SrcUpdateServiceNowSettings`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["patchServiceNowSettings"](body=body))
         return models.SrcServiceNowSettings.model_validate(payload or {})
@@ -525,6 +534,7 @@ class AsyncIntegrationsService(AsyncService):
         """Save the CMDB configuration.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``SrcServiceNowCmdbConfiguration`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["saveServiceNowCmdbConfiguration"](body=body))
         return payload
@@ -540,6 +550,7 @@ class AsyncIntegrationsService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NetworkVulnerabilityScannerPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["setNetworkVulnerabilityScannerInclude"](
@@ -556,6 +567,7 @@ class AsyncIntegrationsService(AsyncService):
         """Test a ServiceNow CMDB connection.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``SrcServiceNowCmdbConnectionDetails`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["testServiceNowCmdbConnection"](body=body))
         return models.ServiceNowCmdbTestResult.model_validate(payload or {})
@@ -570,6 +582,7 @@ class AsyncIntegrationsService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``AdmTenableSourceTest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["testTenableSource"](network_id=self._network(network_id), body=body)
@@ -584,6 +597,7 @@ class AsyncIntegrationsService(AsyncService):
         """Test a Tenable Vulnerability Management connection.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``TenableVmScannerTestConfig`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["testVulnerabilityScanner"](body=body))
         return models.VulnerabilityScannerTestResult.model_validate(payload or {})
@@ -597,6 +611,7 @@ class AsyncIntegrationsService(AsyncService):
         """Change an Infoblox instance.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``SrcInfobloxInstanceUpdate`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["updateInfobloxInstance"](instance_id=instance_id, body=body)
@@ -614,6 +629,7 @@ class AsyncIntegrationsService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SrcRapid7SourcePatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["updateRapid7Source"](
@@ -633,6 +649,7 @@ class AsyncIntegrationsService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``AdmTenableSourcePatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["updateTenableSource"](
@@ -650,6 +667,7 @@ class AsyncIntegrationsService(AsyncService):
         """Change a Tenable Vulnerability Management scanner.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``TenableVmScannerPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["updateVulnerabilityScanner"](name=name, body=body)

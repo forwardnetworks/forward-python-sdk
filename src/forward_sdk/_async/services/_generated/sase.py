@@ -29,6 +29,7 @@ class AsyncSASEService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SaseZscalerSetup`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createSaseSetup"](network_id=self._network(network_id), body=body)
@@ -110,6 +111,7 @@ class AsyncSASEService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SaseZscalerSetupPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["patchSaseSetup"](
@@ -128,6 +130,7 @@ class AsyncSASEService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SaseConnectivityTestRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["testSaseConnectivity"](network_id=self._network(network_id), body=body)

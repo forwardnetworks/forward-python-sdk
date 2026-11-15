@@ -27,6 +27,7 @@ class AsyncNetworkEndpointsService(AsyncService):
         """Add a CLI network endpoint.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NewCliNetworkEndpoint`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createCliNetworkEndpoint"](
@@ -44,6 +45,7 @@ class AsyncNetworkEndpointsService(AsyncService):
         """Add CLI network endpoints.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a list of ``NewCliNetworkEndpoint`` (each a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createCliNetworkEndpoints"](
@@ -61,6 +63,7 @@ class AsyncNetworkEndpointsService(AsyncService):
         """Add an HTTP network endpoint.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NewHttpNetworkEndpoint`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createHttpNetworkEndpoint"](
@@ -78,6 +81,8 @@ class AsyncNetworkEndpointsService(AsyncService):
         """Add HTTP network endpoints.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a list of ``NewHttpNetworkEndpoint`` (each a model, or its ``.to_api()``
+        dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createHttpNetworkEndpoints"](
@@ -95,6 +100,7 @@ class AsyncNetworkEndpointsService(AsyncService):
         """Add an SNMP network endpoint.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NewSnmpNetworkEndpoint`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createSnmpNetworkEndpoint"](
@@ -112,6 +118,8 @@ class AsyncNetworkEndpointsService(AsyncService):
         """Add SNMP network endpoints.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a list of ``NewSnmpNetworkEndpoint`` (each a model, or its ``.to_api()``
+        dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createSnmpNetworkEndpoints"](
@@ -146,6 +154,7 @@ class AsyncNetworkEndpointsService(AsyncService):
         """Delete specific network endpoints.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``DeviceNames`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["deleteNetworkEndpoints"](network_id=self._network(network_id), body=body)
@@ -194,6 +203,7 @@ class AsyncNetworkEndpointsService(AsyncService):
         """Update specific network endpoints.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NetworkEndpointsPatchRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["patchNetworkEndpoints"](network_id=self._network(network_id), body=body)
@@ -210,6 +220,7 @@ class AsyncNetworkEndpointsService(AsyncService):
         """Update a CLI network endpoint.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``CliNetworkEndpointPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["updateCliNetworkEndpoint"](
@@ -228,6 +239,7 @@ class AsyncNetworkEndpointsService(AsyncService):
         """Update an HTTP network endpoint.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``HttpNetworkEndpointPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["updateHttpNetworkEndpoint"](
@@ -246,6 +258,7 @@ class AsyncNetworkEndpointsService(AsyncService):
         """Update an SNMP network endpoint.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SnmpNetworkEndpointPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["updateSnmpNetworkEndpoint"](

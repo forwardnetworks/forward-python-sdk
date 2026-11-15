@@ -36,6 +36,8 @@ class PathSearchService(Service):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``type`` takes ``LOADBALANCER``, ``FIREWALL``, ``IP_MPLS_BLACKHOLE``, ``IP_MPLS_DROP``,
+        ``L2_STORM``, ``FORWARDING_DOMAIN_BLACKHOLE`` or ``NON_STATIC_L3_LOOP``.
         """
         payload = self._send_json(
             ops.BUILDERS["getInterestingPathQueries"](
@@ -89,6 +91,7 @@ class PathSearchService(Service):
 
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``intent`` takes ``PREFER_VIOLATIONS``, ``PREFER_DELIVERED`` or ``VIOLATIONS_ONLY``.
         """
         payload = self._send_json(
             ops.BUILDERS["getPaths"](
@@ -134,6 +137,7 @@ class PathSearchService(Service):
 
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``PathSearchBulkRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["getPathsBulk"](
@@ -155,6 +159,7 @@ class PathSearchService(Service):
 
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``PathSearchBulkRequest`` (a model, or its ``.to_api()`` dict).
         """
         with self._transport.stream(
             ops.BUILDERS["getPathsBulkSeq"](

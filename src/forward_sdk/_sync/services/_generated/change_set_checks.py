@@ -51,6 +51,7 @@ class ChangeSetChecksService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``PredictChangeSetCheckPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateChangeSetCheck"](

@@ -30,6 +30,7 @@ class AsyncJumpServersService(AsyncService):
 
         Uses the client's network when ``network_id`` is omitted.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``NewJumpServer`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["createJumpServer"](network_id=self._network(network_id), body=body)
@@ -65,6 +66,7 @@ class AsyncJumpServersService(AsyncService):
 
         Uses the client's network when ``network_id`` is omitted.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``JumpServerUpdate`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["editJumpServer"](

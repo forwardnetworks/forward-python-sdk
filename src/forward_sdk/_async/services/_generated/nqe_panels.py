@@ -27,6 +27,7 @@ class AsyncNQEPanelsService(AsyncService):
         """Create an NQE panel.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``NqePanelDef`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["createNqePanel"](body=body))
         return models.NqePanel.model_validate(payload or {})
@@ -51,6 +52,7 @@ class AsyncNQEPanelsService(AsyncService):
         """Delete several panels.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``NqePanelIds`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["deleteNqePanels"](body=body))
         return payload
@@ -66,6 +68,7 @@ class AsyncNQEPanelsService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NqePanelIds`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["getNqePanelMetrics"](
@@ -95,6 +98,7 @@ class AsyncNQEPanelsService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NqeMetricPreview`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["previewNqeMetric"](
@@ -112,6 +116,7 @@ class AsyncNQEPanelsService(AsyncService):
         """Change a panel's name, presentation or configuration.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``NqePanelPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["updateNqePanel"](panel_id=panel_id, body=body)

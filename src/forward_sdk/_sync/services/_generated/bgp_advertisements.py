@@ -34,6 +34,7 @@ class BGPAdvertisementsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``BgpAdvertisement`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["addBgpAdvertisement"](
@@ -57,6 +58,7 @@ class BGPAdvertisementsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``BgpAdvertisementList``.
         """
         payload = self._send_json(
             ops.BUILDERS["addBgpAdvertisements"](
@@ -67,6 +69,21 @@ class BGPAdvertisementsService(Service):
             )
         )
         return models.ChangeSetDraft.model_validate(payload or {})
+
+    def get_bgp_collection_requirements(
+        self,
+        *,
+        network_id: str | None = None,
+    ) -> models.BgpCollectionRequirements:
+        """The devices whose collection must include BGP advertisements.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getBgpCollectionRequirements"](network_id=self._network(network_id))
+        )
+        return models.BgpCollectionRequirements.model_validate(payload or {})
 
     def get_commit_bgp_advertisement_diffs(
         self,
@@ -90,6 +107,32 @@ class BGPAdvertisementsService(Service):
             )
         )
         return [models.BgpAdvertisementDiff.model_validate(row) for row in payload or []]
+
+    def get_device_bgp_advertisements(
+        self,
+        *,
+        device_name: str,
+        vrf: str,
+        prefix: str,
+        network_id: str | None = None,
+        snapshot_id: str | None = None,
+    ) -> list[models.BgpAdvertisement]:
+        """The BGP advertisements a device received for one prefix in one VRF.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getDeviceBgpAdvertisements"](
+                network_id=self._network(network_id),
+                device_name=device_name,
+                vrf=vrf,
+                prefix=prefix,
+                snapshot_id=self._snapshot(snapshot_id),
+            )
+        )
+        return [models.BgpAdvertisement.model_validate(row) for row in payload or []]
 
     def get_draft_bgp_advertisement_diffs(
         self,
@@ -124,6 +167,7 @@ class BGPAdvertisementsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``BgpAdvertisementKey`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["restoreBgpAdvertisement"](
@@ -147,6 +191,7 @@ class BGPAdvertisementsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``BgpAdvertisementKeyList``.
         """
         payload = self._send_json(
             ops.BUILDERS["restoreBgpAdvertisements"](
@@ -170,6 +215,7 @@ class BGPAdvertisementsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``BgpAdvertisementKey`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["withdrawBgpAdvertisement"](
@@ -193,6 +239,7 @@ class BGPAdvertisementsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``BgpAdvertisementKeyList``.
         """
         payload = self._send_json(
             ops.BUILDERS["withdrawBgpAdvertisements"](

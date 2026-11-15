@@ -46,9 +46,10 @@ operation table, so nothing lands here by accident.
 | Raw snapshot artifacts | `GET /snapshots/{id}/files[/{fileName}]` | `client.snapshots.files()`, `.file()` |
 | Processing exceptions | `GET /snapshots/{id}/exceptions`, `?view=json` | `client.snapshots.exceptions()`, `.exceptions_text()` |
 | Reprocess a snapshot in place | `POST /snapshots/{id}?action=invalidate[&reprocess=true]`, `?action=reprocess` | `client.snapshots.invalidate()`, `.reprocess()` |
-| Tenable VM scanners: list, add, change, delete, collect, test (read from Forward source; only the lists seen live) | `/vulnerability-scanners[/{name}][?action=collect]`, `/vulnerability-scanner-tests` | `client.integrations.*_vulnerability_scanner(s)` |
-| A network's scanners and include switch (read from Forward source; only the lists seen live) | `/networks/{id}/vulnerability-scanners[/{name}]` | `client.integrations.list_network_vulnerability_scanners()`, `set_network_vulnerability_scanner_include()` |
-| Org-level HTTP credentials (read from Forward source; only the lists seen live) | `/http-credentials[/{credentialId}]` | `client.credentials.*_org_http_credential(s)` |
+| Tenable VM scanners: list, add, change, delete, collect, test (read from Forward source; the list and its row shape seen live on 26.11) | `/vulnerability-scanners[/{name}][?action=collect]`, `/vulnerability-scanner-tests` | `client.integrations.*_vulnerability_scanner(s)` |
+| A network's scanners and include switch (read from Forward source; the list and its row shape seen live on 26.11) | `/networks/{id}/vulnerability-scanners[/{name}]` | `client.integrations.list_network_vulnerability_scanners()`, `set_network_vulnerability_scanner_include()` |
+| Org-level HTTP credentials (read from Forward source; the list and one read seen live on 26.11) | `/http-credentials[/{credentialId}]` | `client.credentials.*_org_http_credential(s)` |
+| MCP server (session-based; seen live on 26.10.6) | `POST`/`DELETE /mcp` | `client.mcp` |
 | List chats | `GET /ai-chats` | `client.ai.list()` |
 | Start a chat | `POST /ai-chats` | `client.ai.start()` |
 | Get a chat | `GET /ai-chats/{id}` | `client.ai.get()` |
@@ -69,7 +70,10 @@ operation table, so nothing lands here by accident.
 | Snapshot diffs, curated | `/diffs/{a}/{b}/...` (connectivity with a wait, vulnerabilities, routing loops, per-area counts, file summary) | `client.snapshot_diffs` |
 | Snapshot diffs, everything else | `/diffs/{a}/{b}/...` (checks, files, devices, cloud objects, per-device interface, ACL, NAT, routing, ARP and MAC entries, topology, VLANs, connectivity views) | `client.snapshot_diff_details` |
 | Firewall object listings | `.../devices/{name}/{address-objects,zones,...}` | `client.firewall_predict.list_firewall_*()` |
-| BGP advertisements | `.../draft/devices/{name}/bgp-advertisements?action=...` and `?view=diffs` | `client.bgp_advertisements` |
+| An NQE check's rows (seen live on 26.11) | `POST /nqe/queryResults?snapshotId=&resultKey=` | `client.nqe.check_result()` |
+| BGP collection requirements (served on 26.11, empty list seen live) | `GET /networks/{id}/bgp-collection-requirements` | `client.bgp_advertisements.get_bgp_collection_requirements()`, `client.change_sets.bgp_advertisement_readiness()` |
+| Edit a check in place (read from Forward source, not run live) | `PATCH /snapshots/{id}/checks/{checkId}` | `client.checks.update_check()` |
+| BGP advertisements | `.../draft/devices/{name}/bgp-advertisements?action=...` and `?view=diffs`; received: `/networks/{id}/devices/{name}/bgp-advertisements?vrf=&prefix=` (served on 26.11, empty list seen live; row shape from source) | `client.bgp_advertisements`, `handle.verify_bgp_staging()` |
 | Change-set directories | `/networks/{id}/change-set-directories[/{path}?action=...]` | `client.change_set_directories` |
 | SNMP credentials | `/networks/{id}/snmpCredentials[/{id}]` | `client.snmp_credentials` |
 | Collector binding and health | `/networks/{id}/collector` | `client.collector_binding` |

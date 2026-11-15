@@ -28,6 +28,7 @@ class AsyncPredictVerificationService(AsyncService):
         """Run unit packet tests against a snapshot's model.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a list of ``PredictIEntryCheck`` (each a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["runIEntryChecks"](snapshot_id=snapshot_id, body=body)

@@ -85,6 +85,7 @@ class AsyncPerformanceCollectionService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``interface_data_provider_type`` takes ``ASYNC_TREE_WALK`` or ``BULK_READ_TABLE``.
         """
         payload = await self._send_json(
             ops.BUILDERS["getRawSnmpData"](

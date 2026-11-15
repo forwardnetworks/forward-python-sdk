@@ -25,7 +25,10 @@ class AsyncAliasesService(AsyncService):
         name: str,
         body: Any,
     ) -> models.Alias:
-        """Create an Alias."""
+        """Create an Alias.
+
+        ``body`` is a ``AliasBuilder``.
+        """
         payload = await self._send_json(
             ops.BUILDERS["createAlias"](snapshot_id=snapshot_id, name=name, body=body)
         )

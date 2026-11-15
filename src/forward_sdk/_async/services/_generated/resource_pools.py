@@ -31,6 +31,7 @@ class AsyncResourcePoolsService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``ResourcePool``.
         """
         payload = await self._send_json(
             ops.BUILDERS["analyzeResourcePool"](
@@ -53,6 +54,7 @@ class AsyncResourcePoolsService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``ConnectivityDetailsRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["getResourcePoolConnectivityDetails"](

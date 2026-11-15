@@ -27,6 +27,7 @@ class AsyncWebhooksService(AsyncService):
         """Create a webhook.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``Webhook`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["createWebhook"](body=body))
         return payload
@@ -87,6 +88,7 @@ class AsyncWebhooksService(AsyncService):
         """Send a test event to a webhook definition without saving it.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``Webhook`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["testWebhookDefinition"](body=body))
         return models.WebhookTestResult.model_validate(payload or {})
@@ -100,6 +102,7 @@ class AsyncWebhooksService(AsyncService):
         """Change a webhook.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``WebhookPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["updateWebhook"](webhook_name=webhook_name, body=body)

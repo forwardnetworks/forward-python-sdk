@@ -5,6 +5,112 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.38] - 2026-11-15
+
+### Added
+
+- Asked for by the AutoCon6 workshop after live use on 26.10.6:
+  - Every generated method that takes a JSON `body` now accepts the request model itself (or a list of them) as
+    well as its `.to_api()` dict, and its docstring names the model. A query parameter with fixed values lists
+    them in the docstring (for example `get_connectivity_diff_location_pairs`' `type`: `ADDED`, `DELETED` or
+    `MODIFIED`; Forward answers 400 to `ALL`).
+  - `client.snapshot_diffs.wait_for_location_pairs(before, after, type)`: waits for the connectivity comparison
+    to settle before reading the per-location-pair diff, which answers `{"counts": []}` while still computing
+    and so looks like no change. Returns the pairs with the settled comparison; `nothing_compared` flags a
+    comparison with no subnet pairs at all, where empty pairs say nothing.
+  - Method signatures keep `body: Any`: a body can be a model, a dict, a list or a root model, and narrowing the
+    annotation would break callers who build dicts. A model sent this way cannot carry an explicit `null` (unset
+    fields are dropped); use a dict for that.
+  - `client.networks.ensure_locations({name: fields})` checks every entry first, then creates or patches
+    locations by name (trimmed, ignoring case, as Forward does) and sends only the read when they already match; `set_device_locations({device: location_name})` places devices by location name.
+    Both were checked with tests only, not live, because they write.
+  - An org admin cannot set `LOCATION_CONNECTIVITY_DIFFS` (403 "Permission denied", seen live); a support
+    account sets it with `set_org_scoped_config_value`. Noted in the docs.
+- `client.mcp`, for Forward's MCP server (`/api/mcp`), asked for by the AutoCon6 workshop. `config(style=)`
+  writes an MCP client entry (VS Code, Cursor, Claude Code or generic) with the Basic auth header from the
+  client's own settings. `tools()` and `call(name, network_id=, snapshot_id=, **args)` talk to the server
+  through the client's transport (retries, errors, hooks), and `close()` ends the session. The server is
+  session-based, although Forward's documentation calls it stateless, and answers as Server-Sent Events;
+  `client.mcp` opens the session, and reopens it once if Forward forgets it. All seen live on 26.10.6.
+  New `ForwardMcpError` for JSON-RPC errors; a tool that fails returns `is_error` instead.
+
+From the Go SDK v0.8.28 to v0.8.38, read from Forward master. Live on 26.11 (read-only): the received-advertisements
+and collection-requirements routes are served (both answered empty on a lab network), the readiness check ran end
+to end, an NQE check's rows were read, and the four state-read queries ran; the BGP row and diff shapes and the
+check edit are from source.
+
+- `client.bgp_advertisements.get_device_bgp_advertisements(device_name=, vrf=, prefix=)`: the BGP
+  advertisements a device received for one prefix in one VRF, eBGP first, in the same record shape Predict
+  stages. Whether a predicted snapshot answers with the staged state is not confirmed. `vrf` and `prefix` are
+  trimmed, and a blank one is refused before sending, as in Go: Forward compares the VRF exactly, so a blank or
+  padded one would answer an empty list.
+- `change_set.verify_bgp_staging(device_name, staged=, withdrawn=)` reads the draft's BGP diffs back and raises
+  `ForwardBgpKeyMatchedNothingError` (with `.report`) when a withdrawal reads `ABSENT` or a key has no row. A
+  staged key matches only added rows and a withdrawal only withdrawn rows, since Forward keeps the two apart and a
+  key can be in both.
+  Forward accepts such a stage and ignores it when the change set runs. A prefix given as a bare address and as
+  the same `/32` (or `/128`) compare equal; Forward writes a host route back as a bare address.
+  `forward_sdk.bgp.match_staging` does the same matching on diffs already read.
+- `ForwardAPIError.action_not_supported`: a 400 `Parameter conditions "action=..." not met`, which is what an
+  older Forward answers for a newer `?action=`. A caller can fall back to the older call.
+- `NqeRunResult.truncated`: the page holds fewer rows than `totalNumItems`, so it is not the whole answer.
+- `client.change_sets.bgp_advertisement_readiness(device_name)`, and `bgp_advertisement_readiness_for([...])` for
+  several devices on three requests in all: before staging BGP on a device, reports what would make Predict model
+  nothing without an error (`PREDICT_MODELING`, `PREDICT_MODEL_BGP` or `PREDICT_MODEL_EXT_ADV` off, the device not
+  collecting received routes, or collecting only ADJ_RIB_OUT) and whether the network requires BGP collection on
+  it. A read refused for permission, a property the API does not return, or a device with no classic collection
+  source (a controller-managed device is configured elsewhere) goes in `unknown` rather than raising or counting
+  as a problem; `ready` is false while anything is unknown, and `blocked` is true only for a definite problem.
+  Forward keys org properties in lowercase (seen live); Go v0.8.29 missed them, and v0.8.30 fixed it.
+- `client.bgp_advertisements.get_bgp_collection_requirements()`: the network's groups of devices that must collect
+  BGP advertisements. `permittedTableTypes` and `permittedPeerTypes` are modeled as optional: the source does not
+  hide them, but Go reads only `devices` and no non-empty answer has been seen.
+- `client.checks.update_check(snapshot_id=, check_id=, body=CheckUpdate(...).to_api())`: edit a check in place.
+  Fields left out are kept, and an empty `tags` list clears the tags. Unlike Go, an empty patch is not refused
+  before sending.
+- `client.snapshot_diffs.wait_for_check_diffs(before, after, types)`: reads the check diff again while any row is
+  `PROCESSING` (NQE answers early with such rows), with an optional `max_poll_interval` backoff and a timeout.
+- `client.nqe.check_result(snapshot_id, result_key, offset=, limit=)`: the rows behind an NQE check, by the
+  `nqeResultKey` now modeled on `NetworkCheckResult`. Forward answers with its internal run result (typed cells,
+  `totalNumValues`), not the published result page, so it returns `NqeCheckResult` with `.rows()` (cells
+  unwrapped) and `.truncated`. Forward refuses `itemFormat` in this body (400), so it is dropped. All seen live;
+  Go v0.8.30 decodes it as the published page and reads no rows, which has been reported.
+- `client.nqe.diff_source(query, before=, after=, key_columns=)`: diff a query's results on the client. Forward's
+  own diff takes only a committed query, so this covers inline source and queries with parameters. It reads every
+  row of both snapshots. `forward_sdk.nqe.diff_rows` does the keyed comparison on rows already read.
+- `client.nqe.bgp_sessions()`, `lldp_adjacencies(devices=, skip_interfaces=)`, `interface_admin()`,
+  `acl_entries()` and `acl_counts()`: the state a change check compares before and after, as typed rows
+  (`forward_sdk.nqe.state`), with the same queries and columns as the Go SDK. All four ran on 26.11; interface
+  admin state reads `AdminStatus.UP`, not `UP`, so use `InterfaceAdmin.up`. A BGP `remote_as` is text whether NQE
+  sends a number or text, and a null name reads as `""` rather than failing the read.
+- `client.nqe.acl_entries_with(query=, key_columns=)`: the ACL read with a query and key of your own, so each entry
+  is identified (by `UUID`, say) and a repeated key raises rather than hiding an entry. Each entry keeps the whole
+  row (`row`) and its key values (`identity`). `AclEntry` gains the optional `uuid` and `description` columns.
+- `BgpReadiness.unknown_reasons`: why each `unknown` entry could not be checked.
+- `forward_sdk.bgp.bgp_attributes(details)` decodes a BGP node's attributes from `getRpPrefixDetails` into
+  `RpBgpAttributes`, and documents how the predicted side differs from a collected advertisement (MED written as 0
+  when unset, local preference always present, the AS path a list of sets; `flat_as_path` flattens it). From
+  source; not yet decoded live.
+- `PathQuery.trace_request(group, path)` and `forward_sdk.trace.selections(facets)`: trace each path of a typed
+  query hop by hop, which is Go's `TraceFor` and `ExplainQuery`. The `get_trace` body form was seen live earlier;
+  a typed query with a chain or `to` through it is not yet run live.
+- `forward_sdk.nqe.decode_rows(rows, Model, normalize_enums=)` validates rows into a model, dataclass or TypedDict,
+  optionally turning `Vendor.CISCO` into `CISCO`; `flatten_cells` unwraps typed run-result cells.
+
+Go v0.8.38 also moved its Infoblox instance list to `GET /integrations/infoblox`, because the
+`/integrations/infoblox/instances` route answers only with `?view=status` (400 otherwise, seen live on 26.10.6). The
+Python SDK already had both right (`get_infoblox_integration` and `list_infoblox_instance_statuses`).
+
+Not ported from Go v0.8.31–v0.8.32: `RunAll`'s key checks (`KeyColumns`, `NonUniqueKey`), which guard Go's paging of
+a live query page by page. `nqe.query()` reads one stored background result, which `PageTracker` already checks.
+Also not ported: the `forwardtest` fake Forward server, which is Go test tooling. Python's `forward_sdk.testing`
+is only a partial equivalent: a request recorder without the ready-made scenarios.
+
+### Changed
+
+- `BgpAdvertisement` requires only its key (`vrf`, `externalPeer`, `prefix`). Received routes can lack `nextHop`
+  and `origin`, and one such row used to fail the whole response. Forward still refuses a stage without them.
+
 ## [0.1.37] - 2026-11-15
 
 ### Added

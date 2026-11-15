@@ -33,6 +33,7 @@ class SnapshotDiffDetailsService(Service):
         """Start computing diffs for the given NQE checks.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``NqeCheckDefinitions`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["computeNqeCheckDiffs"](
@@ -275,6 +276,7 @@ class SnapshotDiffDetailsService(Service):
         """Changed subnet pairs counted per location pair.
 
         Unpublished: not part of Forward's documented API.
+        ``type`` takes ``ADDED``, ``DELETED`` or ``MODIFIED``.
         """
         payload = self._send_json(
             ops.BUILDERS["getConnectivityDiffLocationPairs"](
@@ -493,6 +495,7 @@ class SnapshotDiffDetailsService(Service):
         """Which collected files changed, per device.
 
         Unpublished: not part of Forward's documented API.
+        ``type`` takes ``CONFIG``, ``STATE`` or ``CUSTOM``.
         """
         payload = self._send_json(
             ops.BUILDERS["getFileDiffs"](

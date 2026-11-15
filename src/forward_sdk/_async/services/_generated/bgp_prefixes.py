@@ -58,6 +58,7 @@ class AsyncBGPPrefixesService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``DevRoutingPrefixDetailsRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["getBgpPrefixDetails"](
@@ -128,6 +129,7 @@ class AsyncBGPPrefixesService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``DevRoutingRpPrefixDetailsRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["getRpPrefixDetails"](
@@ -150,6 +152,7 @@ class AsyncBGPPrefixesService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``DevRoutingPrefixSearchRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["searchBgpPrefix"](
@@ -172,6 +175,7 @@ class AsyncBGPPrefixesService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``DevRoutingRpPrefixSearchRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["searchRpPrefix"](
@@ -194,6 +198,7 @@ class AsyncBGPPrefixesService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``DevRoutingPrefixTraceRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["traceBgpPrefix"](
@@ -216,6 +221,7 @@ class AsyncBGPPrefixesService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``DevRoutingRpPrefixTraceRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["traceRpPrefix"](

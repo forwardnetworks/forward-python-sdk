@@ -22,6 +22,7 @@ import importlib.util
 import keyword
 import re
 import sys
+import textwrap
 import types
 from collections import defaultdict
 from pathlib import Path
@@ -89,6 +90,27 @@ def _model_names() -> frozenset[str]:
 
 
 MODEL_NAMES = _model_names()
+_CLASS_BASE = re.compile(r"^class (\w+)\((\w+)\):", re.MULTILINE)
+
+
+def _object_model_names() -> frozenset[str]:
+    """Models that are JSON objects (ForwardModel subclasses), as opposed to root models and enums.
+
+    Only these have ``to_api()``, so only these are "a model, or its dict".
+    """
+    bases = dict(_CLASS_BASE.findall(MODELS_PATH.read_text(encoding="utf-8")))
+    found = {"ForwardModel"}
+    changed = True
+    while changed:
+        changed = False
+        for name, base in bases.items():
+            if base in found and name not in found:
+                found.add(name)
+                changed = True
+    return frozenset(found - {"ForwardModel"})
+
+
+OBJECT_MODEL_NAMES = _object_model_names()
 
 OUTPUT_DIR = Path("src/forward_sdk/_async/services/_generated")
 
@@ -256,6 +278,39 @@ def _docstring(operation: OpDef, has_network: bool, has_snapshot: bool) -> list[
         )
     if operation.gating:
         notes.append(f"May be unavailable ({', '.join(operation.gating)}); see docs/gating.md.")
+    if operation.request_model:
+        shape = (
+            f"a list of ``{operation.request_model}``"
+            if operation.request_is_array
+            else f"a ``{operation.request_model}``"
+        )
+        how = (
+            (
+                " (each a model, or its ``.to_api()`` dict)"
+                if operation.request_is_array
+                else " (a model, or its ``.to_api()`` dict)"
+            )
+            if operation.request_model in OBJECT_MODEL_NAMES
+            else ""
+        )
+        notes.extend(
+            textwrap.wrap(
+                f"``body`` is {shape}{how}.",
+                width=90,
+                break_on_hyphens=False,
+            )
+        )
+    dispatched = {key for key, value in operation.fixed_query if value is not None}
+    for param in operation.query_params:
+        if param.name in dispatched or len(param.enum) < 2:
+            continue
+        values = [f"``{value}``" for value in param.enum]
+        listed = ", ".join(values[:-1]) + f" or {values[-1]}"
+        notes.extend(
+            textwrap.wrap(
+                f"``{snake(param.name)}`` takes {listed}.", width=90, break_on_hyphens=False
+            )
+        )
     if notes:
         lines.append("")
         lines.extend(f"        {note}" for note in notes)

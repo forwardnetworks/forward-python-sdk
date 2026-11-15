@@ -33,6 +33,7 @@ class AsyncLicensingService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``LicActivationRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["activateOrganizationLicense"](
@@ -50,6 +51,7 @@ class AsyncLicensingService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``SysAsciiCodedSignedLicenseKey`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["applyLicense"](body=body))
         return models.SysLicenseDetails.model_validate(payload or {})
@@ -63,6 +65,7 @@ class AsyncLicensingService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``SysAsciiCodedSignedLicenseKey`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["decodeLicense"](body=body))
         return models.SysDecodedLicenseKey.model_validate(payload or {})

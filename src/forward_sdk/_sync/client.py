@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Mapping
 from difflib import get_close_matches
 from typing import Any, Literal
@@ -15,6 +16,7 @@ from forward_sdk._generated.operations import OPERATIONS
 from forward_sdk._ops import REGISTRY
 from forward_sdk._ops import rest as _rest  # noqa: F401  registers every builder
 from forward_sdk._ops._generic import snake
+from forward_sdk._sync.services._base import Service
 from forward_sdk._sync.services._generated import GeneratedServices
 from forward_sdk._sync.services.ai import AiService
 from forward_sdk._sync.services.change_sets import ChangeSetsService
@@ -23,6 +25,7 @@ from forward_sdk._sync.services.device_tags import DeviceTagsService
 from forward_sdk._sync.services.devices import DevicesService
 from forward_sdk._sync.services.diffs import SnapshotDiffsService
 from forward_sdk._sync.services.events import UserEventsService
+from forward_sdk._sync.services.mcp import McpService
 from forward_sdk._sync.services.networks import NetworksService
 from forward_sdk._sync.services.nqe import NqeService
 from forward_sdk._sync.services.snapshots import SnapshotsService
@@ -33,6 +36,7 @@ from forward_sdk.access import Access
 from forward_sdk.config import ClientConfig, RetryPolicy, build_config, config_from_env
 from forward_sdk.errors import (
     ForwardConfigurationError,
+    ForwardError,
     ForwardNotFoundError,
     ForwardPermissionError,
 )
@@ -134,6 +138,7 @@ class ForwardClient(GeneratedServices):
         self.device_tags = DeviceTagsService(self._transport)
         self.nqe = NqeService(self._transport)
         self.ai = AiService(self._transport)
+        self.mcp = McpService(Service(self._transport))
         self.snapshot_diffs = SnapshotDiffsService(self._transport)
         self.change_sets = ChangeSetsService(self._transport, self.snapshots)
         self.user_events = UserEventsService(self._transport)
@@ -255,6 +260,10 @@ class ForwardClient(GeneratedServices):
         return self._transport.counters
 
     def close(self) -> None:
+        # End an MCP session first, while the transport is open; a failure to
+        # end it must not stop the client closing.
+        with contextlib.suppress(ForwardError):
+            self.mcp.close()
         self._transport.close()
 
     def __enter__(self) -> ForwardClient:

@@ -78,6 +78,7 @@ class AsyncCollectorBindingService(AsyncService):
         """Issue a new password for a collector.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``SysCollectorCredentials`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(ops.BUILDERS["resetCollectorPassword"](body=body))
         return models.SysCollectorCredentials.model_validate(payload or {})
@@ -92,6 +93,7 @@ class AsyncCollectorBindingService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``CollectorBinding`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["setNetworkCollector"](network_id=self._network(network_id), body=body)

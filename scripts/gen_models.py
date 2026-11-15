@@ -74,6 +74,66 @@ def retarget_enums(path: Path) -> int:
     return count
 
 
+# Hand-written members appended to generated classes. Kept to read-only
+# conveniences derived from the class's own fields, so the wire shape stays
+# exactly what the spec says.
+EXTRA_MEMBERS: dict[str, str] = {
+    "NqeRunResult": '''
+    @property
+    def truncated(self) -> bool:
+        """Whether this page holds fewer rows than Forward says the query matched.
+
+        A caller that reads one page must not treat it as the whole answer when
+        this is true. False when Forward sent no ``totalNumItems``, which says
+        nothing either way. On a later page read with an offset this is True
+        too, since ``totalNumItems`` counts every match, not what is left.
+        """
+        return self.total_num_items is not None and self.total_num_items > len(self.items or [])
+''',
+    "NqeCheckResult": '''
+    @property
+    def truncated(self) -> bool:
+        """Whether this page holds fewer rows than the check produced (``totalNumValues``).
+
+        It compares this page alone with the total, so a later page read with
+        an offset is True too, and so is an empty page past the end: page with
+        ``offset + len(values) < totalNumValues``, not with this. When
+        ``totalNumValuesIsExact`` is false the total is Forward's estimate.
+        """
+        page = self.result
+        if page is None or page.total_num_values is None:
+            return False
+        return page.total_num_values > len(page.values or [])
+
+    def rows(self) -> list[dict[str, Any]]:
+        """This page's rows with the typed cells unwrapped to plain values.
+
+        See :func:`forward_sdk.nqe.rows.flatten_cells`.
+        """
+        from forward_sdk.nqe.rows import flatten_cells
+
+        return [flatten_cells(row) for row in (self.result.values if self.result else None) or []]
+''',
+}
+
+
+def add_extra_members(path: Path) -> int:
+    """Append :data:`EXTRA_MEMBERS` to the end of each named class body."""
+    source = path.read_text(encoding="utf-8")
+    for name, members in EXTRA_MEMBERS.items():
+        start = source.find(f"\nclass {name}(")
+        if start < 0:
+            raise SystemExit(f"gen_models: class {name} not found for extra members")
+        # The body ends at the first non-blank, non-indented line after the header.
+        header_end = source.index("\n", start + 1)
+        match = re.compile(r"\n(?=[^\s])").search(source, header_end + 1)
+        end = len(source) if match is None else match.start()
+        body_end = len(source[:end].rstrip("\n"))
+        source = source[:body_end] + "\n" + members.rstrip("\n") + source[body_end:]
+    path.write_text(source, encoding="utf-8")
+    return len(EXTRA_MEMBERS)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=INPUT)
@@ -95,9 +155,11 @@ def main(argv: list[str] | None = None) -> int:
         return result.returncode
 
     enums = retarget_enums(args.output)
+    extras = add_extra_members(args.output)
 
     print(f"wrote {args.output} ({args.output.stat().st_size // 1024} KB)")
     print(f"  enums rebased on OpenEnum: {enums}")
+    print(f"  classes given hand-written members: {extras}")
     return 0
 
 

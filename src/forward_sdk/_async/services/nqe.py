@@ -15,6 +15,7 @@ case of "run this and give me every row".
 from __future__ import annotations
 
 import asyncio
+import builtins
 import json
 import time
 from collections.abc import AsyncIterator, Collection, Mapping, Sequence
@@ -26,6 +27,8 @@ from forward_sdk._async.transport import AsyncTransport
 from forward_sdk._generated.models import (
     AnalysisNqeInlinedType,
     AnalysisNqeRunMetric,
+    NqeCheckResult,
+    NqeCheckResultOptions,
     NqeDiffEntry,
     NqeDiffResult,
     NqeExecutionStatus,
@@ -48,6 +51,18 @@ from forward_sdk.nqe.pagination import (
     PageTracker,
 )
 from forward_sdk.nqe.query_ref import QueryRef, SortKey
+from forward_sdk.nqe.rows import diff_rows
+from forward_sdk.nqe.state import (
+    ACL_ENTRIES_QUERY,
+    BGP_SESSIONS_QUERY,
+    INTERFACE_ADMIN_QUERY,
+    AclEntry,
+    BgpSession,
+    InterfaceAdmin,
+    LldpAdjacency,
+    cell_text,
+    lldp_query,
+)
 from forward_sdk.nqe.telemetry import ExecutionReport, ExecutionReports
 
 __all__ = ["AsyncNqeExecution", "AsyncNqeService"]
@@ -632,6 +647,217 @@ class AsyncNqeService(AsyncService):
             entries.extend(NqeDiffEntry.model_validate(row) for row in page)
             if tracker.observe(page, data.get("totalNumRows")) is Decision.DONE:
                 return entries
+
+    async def diff_source(
+        self,
+        query: QueryRef | str,
+        *,
+        before: str,
+        after: str,
+        key_columns: Sequence[str],
+        network_id: str | None = None,
+        page_size: int = MAX_PAGE_SIZE,
+        guards: PageGuards | None = None,
+    ) -> list[NqeDiffEntry]:
+        """Diff a query's results between two snapshots on the client, keyed on ``key_columns``.
+
+        For what :meth:`diff` cannot do: Forward's diff takes only a committed
+        query, so inline source, or a query with parameters, is diffed here.
+        Runs the query on both snapshots with :meth:`query` (every row, with its
+        page checks) and compares in memory with
+        :func:`forward_sdk.nqe.rows.diff_rows`, so size ``guards`` to what you
+        can hold. Entries come back in Forward's diff shape (ADDED, DELETED,
+        MODIFIED; unchanged rows left out), in key order.
+
+        Raises:
+            ValueError: A key column is missing from a row, or repeats within
+                one snapshot's rows.
+        """
+        if isinstance(key_columns, str) or not key_columns:
+            raise ValueError("diff_source needs key_columns: a list of one or more column names")
+        if not before.strip() or not after.strip():
+            # A blank snapshot id could fall back to the latest snapshot and
+            # silently compare the wrong pair.
+            raise ValueError("diff_source needs both snapshot ids")
+        old = await self.query(
+            query, network_id=network_id, snapshot_id=before, page_size=page_size, guards=guards
+        )
+        new = await self.query(
+            query, network_id=network_id, snapshot_id=after, page_size=page_size, guards=guards
+        )
+        return diff_rows(old, new, key_columns)
+
+    # -- typed state reads --------------------------------------------------
+    # The queries and row types are in forward_sdk.nqe.state.
+
+    async def bgp_sessions(
+        self,
+        *,
+        snapshot_id: str | None = None,
+        network_id: str | None = None,
+        guards: PageGuards | None = None,
+    ) -> builtins.list[BgpSession]:
+        """Every BGP neighbor with its session state, as typed rows.
+
+        Read whole, like :meth:`query`. A network with no BGP is an empty list.
+        Compare snapshots on :attr:`BgpSession.key`.
+        """
+        rows = await self.query(
+            BGP_SESSIONS_QUERY, snapshot_id=snapshot_id, network_id=network_id, guards=guards
+        )
+        return [BgpSession.model_validate(row) for row in rows]
+
+    async def lldp_adjacencies(
+        self,
+        *,
+        snapshot_id: str | None = None,
+        network_id: str | None = None,
+        devices: Sequence[str] = (),
+        skip_interfaces: Sequence[str] = (),
+        guards: PageGuards | None = None,
+    ) -> builtins.list[LldpAdjacency]:
+        """Every LLDP neighbor, optionally only on ``devices`` and without ``skip_interfaces``.
+
+        Names are matched exactly; one with a quote, backslash or newline is
+        refused before sending.
+        """
+        source = lldp_query(devices, skip_interfaces)
+        rows = await self.query(
+            source, snapshot_id=snapshot_id, network_id=network_id, guards=guards
+        )
+        return [LldpAdjacency.model_validate(row) for row in rows]
+
+    async def interface_admin(
+        self,
+        *,
+        snapshot_id: str | None = None,
+        network_id: str | None = None,
+        guards: PageGuards | None = None,
+    ) -> builtins.list[InterfaceAdmin]:
+        """Every interface's administrative state. Use :attr:`InterfaceAdmin.up`, not the text."""
+        rows = await self.query(
+            INTERFACE_ADMIN_QUERY, snapshot_id=snapshot_id, network_id=network_id, guards=guards
+        )
+        return [InterfaceAdmin.model_validate(row) for row in rows]
+
+    async def acl_entries(
+        self,
+        *,
+        snapshot_id: str | None = None,
+        network_id: str | None = None,
+        guards: PageGuards | None = None,
+    ) -> builtins.list[AclEntry]:
+        """Every ACL entry, one row each. :meth:`acl_counts` is the usual consumer."""
+        rows = await self.query(
+            ACL_ENTRIES_QUERY, snapshot_id=snapshot_id, network_id=network_id, guards=guards
+        )
+        return [AclEntry.model_validate(row) for row in rows]
+
+    async def acl_entries_with(
+        self,
+        *,
+        query: str | None = None,
+        key_columns: Sequence[str] = (),
+        snapshot_id: str | None = None,
+        network_id: str | None = None,
+        guards: PageGuards | None = None,
+    ) -> builtins.list[AclEntry]:
+        """:meth:`acl_entries` with a query and key of your own.
+
+        ``query`` must select the ``Device``, ``AclName`` and ``Action``
+        columns and every column in ``key_columns``; select one that makes each
+        entry unique (``aclEntry.uuid`` where the vendor has one) and name it
+        there. Each entry keeps the whole row (``row``) and its key values
+        (``identity``). With ``key_columns`` a repeated key raises
+        ``ValueError``, since it would hide one entry behind another. Without a
+        ``query`` the default one is used, which identifies no entry, so
+        ``key_columns`` must then be empty; an empty ``query`` counts as none,
+        as in Go. Mirrors the Go SDK's
+        ``ACLEntriesWith``.
+        """
+        if isinstance(key_columns, str):
+            raise ValueError("key_columns takes a list of column names")
+        if not query:
+            if key_columns:
+                raise ValueError(
+                    "key_columns names columns the default ACL query does not select; "
+                    "give a query that does"
+                )
+            query = ACL_ENTRIES_QUERY
+        rows = await self.query(
+            query, snapshot_id=snapshot_id, network_id=network_id, guards=guards
+        )
+        out: builtins.list[AclEntry] = []
+        seen: set[tuple[str, ...]] = set()
+        for row in rows:
+            identity: tuple[str, ...] = ()
+            if key_columns:
+                missing = [column for column in key_columns if column not in row]
+                if missing:
+                    raise ValueError(f"an ACL row has no {missing[0]!r} column to key on")
+                identity = tuple(cell_text(row[column]) for column in key_columns)
+                if identity in seen:
+                    raise ValueError(
+                        f"the ACL rows repeat the key {', '.join(identity)}: "
+                        "the key columns are not unique"
+                    )
+                seen.add(identity)
+            out.append(AclEntry.model_validate(row)._attach(dict(row), identity))
+        return out
+
+    async def acl_counts(
+        self,
+        *,
+        snapshot_id: str | None = None,
+        network_id: str | None = None,
+        guards: PageGuards | None = None,
+    ) -> dict[tuple[str, str], int]:
+        """The number of entries in each ACL, keyed by (device, ACL name)."""
+        counts: dict[tuple[str, str], int] = {}
+        for entry in await self.acl_entries(
+            snapshot_id=snapshot_id, network_id=network_id, guards=guards
+        ):
+            counts[entry.acl] = counts.get(entry.acl, 0) + 1
+        return counts
+
+    async def check_result(
+        self,
+        snapshot_id: str,
+        result_key: str,
+        *,
+        offset: int | None = None,
+        limit: int | None = None,
+        options: NqeCheckResultOptions | Mapping[str, Any] | None = None,
+    ) -> NqeCheckResult:
+        """One page of the rows behind an NQE check, by the check's ``nqeResultKey``.
+
+        The key is on each NQE check's result in the checks list, and must
+        belong to ``snapshot_id`` (Forward answers 400 otherwise). Forward
+        answers with its internal run result, not the published result page:
+        ``result.rows()`` gives the rows with the typed cells unwrapped.
+        ``result.truncated`` compares this page with the total only; to read
+        every row, page while ``offset + len(values) < totalNumValues``.
+        ``options`` takes ``sortBy`` and ``columnFilters`` too; ``itemFormat``
+        is refused by Forward, so it is dropped if present. Unpublished
+        (``NqeController.getNqeQueryResults``); the shape was seen live on 26.11.
+        """
+        for name, number in (("offset", offset), ("limit", limit)):
+            if number is not None and number < 0:
+                raise ValueError(f"{name} must not be negative")
+        body: dict[str, Any] = {}
+        if options is not None:
+            body = options.to_api() if isinstance(options, NqeCheckResultOptions) else dict(options)
+        body.pop("itemFormat", None)
+        if offset is not None:
+            body["offset"] = offset
+        if limit is not None:
+            body["limit"] = limit
+        payload = await self._send_json(
+            rest.BUILDERS["getNqeCheckResult"](
+                snapshot_id=snapshot_id, result_key=result_key, body=body
+            )
+        )
+        return NqeCheckResult.model_validate(payload or {})
 
     async def diff_page(
         self,

@@ -23,6 +23,7 @@ from forward_sdk._ops import (  # noqa: F401
     core,
     diffs,
     events,
+    mcp,
     nqe,
     nqe_repo,
     tapi,

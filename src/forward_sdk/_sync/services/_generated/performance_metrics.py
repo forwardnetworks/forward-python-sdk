@@ -72,6 +72,8 @@ class PerformanceMetricsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``DeviceSet`` (a model, or its ``.to_api()`` dict).
+        ``type`` takes ``CPU`` or ``MEMORY``.
         """
         payload = self._send_json(
             ops.BUILDERS["getDeviceMetricHistory"](
@@ -105,6 +107,8 @@ class PerformanceMetricsService(Service):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``type`` takes ``CPU`` or ``MEMORY``.
+        ``aggregation`` takes ``MAX`` or ``P95``.
         """
         payload = self._send_json(
             ops.BUILDERS["getDeviceMetrics"](
@@ -211,6 +215,7 @@ class PerformanceMetricsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``type`` takes ``UTILIZATION``, ``PACKET_LOSS`` or ``ERROR``.
         """
         payload = self._send_json(
             ops.BUILDERS["getInterfaceMetricHistory"](
@@ -245,6 +250,9 @@ class PerformanceMetricsService(Service):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``type`` takes ``UTILIZATION``, ``PACKET_LOSS`` or ``ERROR``.
+        ``direction`` takes ``INGRESS`` or ``EGRESS``.
+        ``aggregation`` takes ``MAX`` or ``P95``.
         """
         payload = self._send_json(
             ops.BUILDERS["getInterfaceMetrics"](

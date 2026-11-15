@@ -46,6 +46,7 @@ class BackupsService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (deployment, admin); see docs/gating.md.
+        ``storage_type`` takes ``INTERNAL`` or ``S3``.
         """
         payload = self._send_json(
             ops.BUILDERS["deleteClusterBackup"](backup_id=backup_id, storage_type=storage_type)
@@ -72,6 +73,7 @@ class BackupsService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (deployment, admin); see docs/gating.md.
+        ``storage_type`` takes ``INTERNAL`` or ``S3``.
         """
         payload = self._send_json(
             ops.BUILDERS["getCommonBackupSettings"](storage_type=storage_type)
@@ -99,6 +101,8 @@ class BackupsService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (deployment, admin); see docs/gating.md.
+        ``storage_type`` takes ``INTERNAL`` or ``S3``.
+        ``trigger_type`` takes ``MANUAL`` or ``SCHEDULED``.
         """
         payload = self._send_json(
             ops.BUILDERS["getLastScheduledBackupResult"](
@@ -168,6 +172,7 @@ class BackupsService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (deployment, admin); see docs/gating.md.
+        ``storage_type`` takes ``INTERNAL`` or ``S3``.
         """
         payload = self._send_json(
             ops.BUILDERS["runClusterBackup"](
@@ -186,6 +191,7 @@ class BackupsService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (deployment, admin); see docs/gating.md.
+        ``body`` is a ``SysS3StorageSettings`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["setS3BackupBucketOwner"](body=body, storage_type=storage_type)
@@ -202,6 +208,8 @@ class BackupsService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (deployment, admin); see docs/gating.md.
+        ``body`` is a ``SysCommonBackupSettingsPatch`` (a model, or its ``.to_api()`` dict).
+        ``storage_type`` takes ``INTERNAL`` or ``S3``.
         """
         payload = self._send_json(
             ops.BUILDERS["updateCommonBackupSettings"](body=body, storage_type=storage_type)
@@ -217,6 +225,7 @@ class BackupsService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (deployment, admin); see docs/gating.md.
+        ``body`` is a ``SysS3StorageSettingsPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(ops.BUILDERS["updateS3BackupStorage"](body=body))
         return models.SysS3StorageSettings.model_validate(payload or {})

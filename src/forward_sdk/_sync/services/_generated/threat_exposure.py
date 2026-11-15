@@ -32,6 +32,7 @@ class ThreatExposureService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``ThreatExposureDefinitionInput`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["createThreatExposureDefinition"](
@@ -118,6 +119,7 @@ class ThreatExposureService(Service):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``ThreatTablePagingOptions`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["getCriticalAssetTransitiveExposureDetails"](
@@ -143,6 +145,7 @@ class ThreatExposureService(Service):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``ThreatTablePagingOptions`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["getCriticalAssetsExposureSummary"](
@@ -261,6 +264,7 @@ class ThreatExposureService(Service):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``ThreatExposureDefinitionInput`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["resolveThreatExposureDefinition"](
@@ -282,6 +286,7 @@ class ThreatExposureService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``ThreatExposureDefinitionPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateThreatExposureDefinition"](

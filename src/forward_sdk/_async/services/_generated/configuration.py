@@ -146,6 +146,8 @@ class AsyncConfigurationService(AsyncService):
         """The global defaults, never an org's override.
 
         Unpublished: not part of Forward's documented API.
+        ``filter`` takes ``OFF``, ``CONFIGURABLE``, ``CONFIGURED``, ``OVERRIDDEN`` or
+        ``NONDEFAULT``.
         """
         payload = await self._send_json(ops.BUILDERS["getGlobalConfigValues"](filter=filter))
         return models.ConfigValues.model_validate(payload or {})
@@ -202,6 +204,8 @@ class AsyncConfigurationService(AsyncService):
         """The calling user's org properties, as they take effect.
 
         Unpublished: not part of Forward's documented API.
+        ``filter`` takes ``OFF``, ``CONFIGURABLE``, ``CONFIGURED``, ``OVERRIDDEN`` or
+        ``NONDEFAULT``.
         """
         payload = await self._send_json(ops.BUILDERS["getOrgConfigValues"](filter=filter))
         return models.ConfigValues.model_validate(payload or {})
@@ -230,6 +234,8 @@ class AsyncConfigurationService(AsyncService):
         """Any org's properties, for a Forward support account.
 
         Unpublished: not part of Forward's documented API.
+        ``filter`` takes ``OFF``, ``CONFIGURABLE``, ``CONFIGURED``, ``OVERRIDDEN`` or
+        ``NONDEFAULT``.
         """
         payload = await self._send_json(
             ops.BUILDERS["getOrgScopedConfigValues"](org_id=org_id, filter=filter)
@@ -245,6 +251,7 @@ class AsyncConfigurationService(AsyncService):
         """Set or clear one property's override on several networks at once.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``ConfigNetworkOverrides``.
         """
         payload = await self._send_json(
             ops.BUILDERS["patchNetworkConfigPropertyOverrides"](property=property, body=body)

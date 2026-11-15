@@ -16,11 +16,17 @@ the path's.
 
 from __future__ import annotations
 
+import builtins
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 from forward_sdk._async.services._base import AsyncService
 from forward_sdk._generated.models import (
+    BgpAdvertisement,
+    BgpAdvertisementDiff,
+    BgpAdvertisementKey,
+    BgpCollectionRequirement,
+    BgpCollectionRequirements,
     ChangeSet,
     ChangeSetCheckResult,
     ChangeSetCheckResults,
@@ -29,13 +35,30 @@ from forward_sdk._generated.models import (
     ChangeSetDraftResponse,
     ChangeSetInfo,
     ChangeSetSummary,
+    ClassicDevice,
+    ClassicDevices,
     CommandValidationResponse,
     CommittedChangeSet,
+    ConfigValues,
     PredictedSnapshotMeta,
     SnapshotInfo,
 )
 from forward_sdk._ops import change_sets as ops
 from forward_sdk._ops import rest
+from forward_sdk.bgp import (
+    PREDICT_MODEL_BGP,
+    PREDICT_MODEL_EXT_ADV,
+    PREDICT_MODELING,
+    BgpReadiness,
+    BgpStagingReport,
+    match_staging,
+)
+from forward_sdk.errors import (
+    ForwardAPIError,
+    ForwardBgpKeyMatchedNothingError,
+    ForwardNotFoundError,
+    ForwardPermissionError,
+)
 
 if TYPE_CHECKING:  # pragma: no cover
     from forward_sdk._async.services.snapshots import AsyncSnapshotsService
@@ -138,6 +161,118 @@ class AsyncChangeSetsService(AsyncService):
                     names=remove,
                 )
             )
+
+    async def bgp_advertisement_readiness(
+        self, device_name: str, *, network_id: str | None = None
+    ) -> BgpReadiness:
+        """What would make Predict silently model nothing for BGP staged on a device.
+
+        Checks the org properties ``PREDICT_MODELING``, ``PREDICT_MODEL_BGP``
+        and ``PREDICT_MODEL_EXT_ADV``; the device's collection setup
+        (``collectBgpAdvertisements`` on, and a table type that includes
+        ADJ_RIB_IN so there are received routes to replace or withdraw); and
+        the network's BGP collection requirement groups. It only reads.
+
+        A read refused for permission (403), or a route this Forward does not
+        serve, is recorded in ``unknown`` and ``notes`` rather than raised, so a
+        caller without access to the organization's configuration still gets
+        the rest. So is a device with no classic collection source: a
+        controller-managed device takes its BGP setting elsewhere, which this
+        cannot check. ``ready`` is false while anything is unknown; ``blocked``
+        is true only for a definite problem. For several devices use
+        :meth:`bgp_advertisement_readiness_for`. Mirrors the Go SDK v0.8.32.
+        """
+        reports = await self.bgp_advertisement_readiness_for([device_name], network_id=network_id)
+        return reports[0]
+
+    async def bgp_advertisement_readiness_for(
+        self, device_names: Sequence[str], *, network_id: str | None = None
+    ) -> builtins.list[BgpReadiness]:
+        """:meth:`bgp_advertisement_readiness` for several devices, in the order given.
+
+        The three reads it is built on (org properties, the network's
+        collection sources, its requirement groups) are the same for every
+        device, so they are made once: three requests however many devices.
+        """
+        if isinstance(device_names, str):
+            raise ValueError(
+                "device_names takes a list of names; use bgp_advertisement_readiness for one"
+            )
+        names = [name.strip() for name in device_names]
+        if not names or not all(names):
+            raise ValueError("at least one device name is required, and none may be blank")
+        network = self._network(network_id)
+        shared = BgpReadiness(device="")
+
+        def soft(error: ForwardAPIError, what: str, unknown: list[str]) -> None:
+            refused = isinstance(error, ForwardPermissionError)
+            unserved = isinstance(error, ForwardNotFoundError) and error.endpoint_not_served
+            if not (refused or unserved):
+                raise error
+            reason = f"{what} could not be read: {error}"
+            shared.unknown.extend(unknown)
+            shared.unknown_reasons.update(dict.fromkeys(unknown, reason))
+            shared.notes.append(reason)
+
+        switches = (PREDICT_MODELING, PREDICT_MODEL_BGP, PREDICT_MODEL_EXT_ADV)
+        try:
+            payload = await self._send_json(rest.BUILDERS["getOrgConfigValues"](filter="OFF"))
+        except ForwardAPIError as error:
+            soft(error, "organization properties", ["organization-properties"])
+        else:
+            # Forward keys these by the lowercase property name (seen live on 26.11).
+            raw = ConfigValues.model_validate(payload or {}).model_extra or {}
+            values = {str(key).upper(): value for key, value in raw.items()}
+            shared.predict_modeling = _bool_or_none(values.get(PREDICT_MODELING))
+            shared.predict_model_bgp = _bool_or_none(values.get(PREDICT_MODEL_BGP))
+            shared.predict_model_ext_adv = _bool_or_none(values.get(PREDICT_MODEL_EXT_ADV))
+            absent = [n for n in switches if _bool_or_none(values.get(n)) is None]
+            if absent:
+                shared.unknown.extend(absent)
+                shared.unknown_reasons.update(
+                    dict.fromkeys(
+                        absent,
+                        "not returned by the organization properties API "
+                        "(Forward's source defaults it to on)",
+                    )
+                )
+                shared.notes.append(
+                    "not returned by the organization properties API (Forward's source "
+                    "defaults them to on): " + ", ".join(absent)
+                )
+        if shared.predict_modeling is False:
+            shared.problems.append(
+                "PREDICT_MODELING is off for the organization: Predict change sets are unavailable"
+            )
+        if shared.predict_model_bgp is False:
+            shared.problems.append("PREDICT_MODEL_BGP is off: Predict does not model BGP")
+        if shared.predict_model_ext_adv is False:
+            shared.problems.append(
+                "PREDICT_MODEL_EXT_ADV is off: protocol modeling does not seed routes from the "
+                "collected BGP received-route tables"
+            )
+
+        devices = None
+        try:
+            payload = await self._send_json(rest.BUILDERS["getClassicDevices"](network_id=network))
+        except ForwardAPIError as error:
+            soft(error, "the network's collection sources", ["classic-devices"])
+        else:
+            devices = ClassicDevices.model_validate(payload or {}).devices or []
+
+        groups = None
+        try:
+            payload = await self._send_json(
+                rest.BUILDERS["getBgpCollectionRequirements"](network_id=network)
+            )
+        except ForwardAPIError as error:
+            soft(
+                error, "the network's BGP collection requirements", ["bgp-collection-requirements"]
+            )
+        else:
+            groups = BgpCollectionRequirements.model_validate(payload or {}).requirements or []
+
+        return [_device_readiness(name, shared, devices, groups) for name in names]
 
 
 class AsyncChangeSetHandle:
@@ -365,6 +500,38 @@ class AsyncChangeSetHandle:
             ops.delete_check(network_id=self.network_id, change_set_id=self.id, check_id=check_id)
         )
 
+    async def verify_bgp_staging(
+        self,
+        device_name: str,
+        *,
+        staged: Sequence[BgpAdvertisement] = (),
+        withdrawn: Sequence[BgpAdvertisementKey] = (),
+    ) -> BgpStagingReport:
+        """Check the draft's BGP diffs for every advertisement staged and key withdrawn.
+
+        Reads the draft's diffs view for ``device_name`` and matches each key
+        (vrf, external peer, prefix) to its row; see
+        :func:`forward_sdk.bgp.match_staging`. A host prefix given as a bare
+        address or as ``/32`` compares equal; Forward writes it back bare.
+
+        Raises:
+            ForwardBgpKeyMatchedNothingError: When a withdrawal reads
+                ``ABSENT`` (Forward ignores it when the change set runs) or a
+                key has no diff row. ``error.report`` holds the full read-back.
+        """
+        payload = await self._service._send_json(
+            rest.BUILDERS["getDraftBgpAdvertisementDiffs"](
+                network_id=self.network_id, change_set_id=self.id, device_name=device_name
+            )
+        )
+        diffs = [BgpAdvertisementDiff.model_validate(row) for row in (payload or [])]
+        report = match_staging(diffs, staged, withdrawn)
+        if report.unmatched:
+            raise ForwardBgpKeyMatchedNothingError(
+                "a staged BGP key matched nothing: " + "; ".join(report.unmatched), report
+            )
+        return report
+
     # -- commits and configurations --------------------------------------
 
     async def commit_detail(self, commit_id: str) -> CommittedChangeSet:
@@ -513,3 +680,71 @@ class AsyncChangeSetHandle:
         await self._service._transport.send(
             ops.delete(network_id=self.network_id, change_set_id=self.id)
         )
+
+
+def _bool_or_none(value: object) -> bool | None:
+    return value if isinstance(value, bool) else None
+
+
+def _enum_text(value: object) -> str | None:
+    if value is None:
+        return None
+    return str(getattr(value, "value", value))
+
+
+def _device_readiness(
+    name: str,
+    shared: BgpReadiness,
+    devices: list[ClassicDevice] | None,
+    groups: list[BgpCollectionRequirement] | None,
+) -> BgpReadiness:
+    """One device's report, from the org-wide findings and the two network reads."""
+    report = BgpReadiness(
+        device=name,
+        predict_modeling=shared.predict_modeling,
+        predict_model_ext_adv=shared.predict_model_ext_adv,
+        predict_model_bgp=shared.predict_model_bgp,
+        problems=list(shared.problems),
+        unknown=list(shared.unknown),
+        unknown_reasons=dict(shared.unknown_reasons),
+        notes=list(shared.notes),
+    )
+    if devices is not None:
+        for device in devices:
+            if device.name.lower() != name.lower():
+                continue
+            report.device_found = True
+            report.collect_bgp_advertisements = device.collect_bgp_advertisements
+            report.bgp_table_type = _enum_text(device.bgp_table_type)
+            report.bgp_peer_type = _enum_text(device.bgp_peer_type)
+            break
+        if not report.device_found:
+            # Not a problem found: a controller-managed device has no classic
+            # source and takes its BGP setting elsewhere, which this cannot read.
+            key = f"collection-source:{name}"
+            reason = (
+                f"the network has no classic collection source named {name} (a "
+                "controller-managed device is configured elsewhere, and this read cannot check it)"
+            )
+            report.unknown.append(key)
+            report.unknown_reasons[key] = reason
+            report.notes.append(reason)
+        elif not report.collect_bgp_advertisements:
+            report.problems.append(
+                "collectBgpAdvertisements is not on for the device, so there are no "
+                "received routes to override or withdraw"
+            )
+        else:
+            # Forward leaves bgpTableType and bgpPeerType out when they are BOTH.
+            report.bgp_table_type = report.bgp_table_type or "BOTH"
+            report.bgp_peer_type = report.bgp_peer_type or "BOTH"
+            if report.bgp_table_type == "ADJ_RIB_OUT":
+                report.problems.append(
+                    "bgpTableType is ADJ_RIB_OUT: received routes are not collected; "
+                    "use BOTH or ADJ_RIB_IN"
+                )
+    if groups is not None:
+        report.required_by_network = any(
+            member.lower() == name.lower() for group in groups for member in group.devices or []
+        )
+    return report

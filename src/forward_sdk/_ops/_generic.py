@@ -23,6 +23,8 @@ import re
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
+from pydantic import BaseModel
+
 from forward_sdk._generated._defs import OpDef, ParamDef
 from forward_sdk._generated.operations import OPERATIONS
 from forward_sdk._ops import JSON_ACCEPT, RequestSpec, op, spec_for
@@ -157,6 +159,9 @@ def generic(
             kwargs.setdefault(name, value)
         for name, param in checked.items():
             _check(operation_id, param, kwargs.get(name))
+            if param.validate == "non-blank":
+                # Forward compares these exactly, so padding would match nothing.
+                kwargs[name] = str(kwargs[name]).strip()
 
         body = kwargs.pop(BODY_ARGUMENT, None) if has_body else None
         path_params: dict[str, Any] = {}
@@ -190,7 +195,7 @@ def generic(
             operation_id,
             path_params=path_params,
             query=query,
-            json=body,
+            json=_wire(body),
             accept=accept,
             stream=stream,
             **extra,
@@ -203,15 +208,44 @@ def generic(
     return op(operation_id)(build)
 
 
-_CHECKS = frozenset({"ip-address"})
+def _wire(body: Any) -> Any:
+    """A request model (or a list of them) as the JSON Forward expects; anything else unchanged.
+
+    So ``add_location(body=NewLocation(...))`` works as well as passing
+    ``.to_api()`` or a plain dict.
+    """
+    if isinstance(body, BaseModel):
+        to_api = getattr(body, "to_api", None)
+        return (
+            to_api()
+            if callable(to_api)
+            else body.model_dump(by_alias=True, exclude_none=True, mode="json")
+        )
+    if isinstance(body, (list, tuple)) and any(isinstance(item, BaseModel) for item in body):
+        return [_wire(item) for item in body]
+    return body
+
+
+_CHECKS = frozenset({"ip-address", "non-blank"})
 
 
 def _check(operation_id: str, param: ParamDef, value: Any) -> None:
-    """Refuse a value Forward would answer with a 500, before it is sent.
+    """Refuse a value Forward would misread, before it is sent.
 
-    Blank counts as absent, as Forward treats it.
+    ``ip-address``: Forward answers 500 to anything else; blank counts as
+    absent, as Forward treats it. ``non-blank``: a required filter Forward
+    would take as "match nothing" when blank, returning an empty result that
+    looks like a real answer.
     """
-    if value is None or not str(value).strip():
+    blank = value is None or not str(value).strip()
+    if param.validate == "non-blank":
+        if blank:
+            raise ValueError(
+                f"{operation_id}: {param.name} is required and must not be blank "
+                "(Forward has no unfiltered form of this read)"
+            )
+        return
+    if blank:
         return
     try:
         ipaddress.ip_address(str(value))

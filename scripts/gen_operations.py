@@ -145,6 +145,10 @@ def collect(
                 if response_model is None:
                     schema = (content.get("application/json") or {}).get("schema")
                     response_model, response_is_array = model_of(schema)
+            request_schema = (
+                (request_body.get("content") or {}).get("application/json") or {}
+            ).get("schema")
+            request_model, request_is_array = model_of(request_schema)
             operations.append(
                 {
                     "operation_id": operation["operationId"],
@@ -161,6 +165,8 @@ def collect(
                     "gating": tuple(gating_by_tag.get(tag, ())),
                     "response_model": response_model,
                     "response_is_array": response_is_array,
+                    "request_model": request_model,
+                    "request_is_array": request_is_array,
                     "stream": bool(response_media)
                     and not any(m in DOCUMENT_MEDIA for m in response_media),
                     "summary": " ".join((operation.get("summary") or "").split()) or None,
@@ -214,6 +220,10 @@ def render(operations: list[dict[str, Any]]) -> str:
             lines.append(f'        response_model="{op["response_model"]}",')
         if op["response_is_array"]:
             lines.append("        response_is_array=True,")
+        if op["request_model"]:
+            lines.append(f'        request_model="{op["request_model"]}",')
+        if op["request_is_array"]:
+            lines.append("        request_is_array=True,")
         if op["stream"]:
             lines.append("        stream=True,")
         if op["min_read_timeout"]:

@@ -34,6 +34,7 @@ class DataConnectorsService(Service):
 
         Uses the client's network when ``network_id`` is omitted.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``NewHttpDataConnector`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["addDataConnector"](network_id=self._network(network_id), body=body)
@@ -118,6 +119,7 @@ class DataConnectorsService(Service):
 
         Uses the client's network when ``network_id`` is omitted.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``HttpDataConnectorPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateDataConnector"](

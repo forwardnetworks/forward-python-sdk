@@ -56,6 +56,7 @@ class AsyncAuditLogsService(AsyncService):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``http_method`` takes ``POST``, ``PUT``, ``PATCH``, ``DELETE`` or ``GET``.
         """
         payload = await self._send_json(
             ops.BUILDERS["listAuditLogs"](

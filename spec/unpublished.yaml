@@ -163,6 +163,14 @@ x-extend-parameters:
         default: false
 
 x-extend-schemas:
+  NetworkCheckResult:
+    properties:
+        nqeResultKey:
+          type: string
+          description: >-
+            On an NQE check: the key to its rows, for client.nqe.check_result()
+            (POST /nqe/queryResults). Seen live on 26.11; Forward leaves it out
+            of its API description.
   NewClassicDevice:
     properties:
         collectorId:
@@ -1129,7 +1137,8 @@ paths:
         Needs the MANAGE_ORG_SETTINGS permission, and only works for properties
         an org administrator may configure. Others refuse with "Permission
         denied for PROPERTY"; a Forward support account can set those through
-        the org-scoped route instead.
+        the org-scoped route instead. Seen live on 26.10.6 (2026-11-15): an org
+        admin's key gets 403 "Permission denied for location_connectivity_diffs".
       x-forward-stability: unpublished
       tags: [Configuration]
       parameters:
@@ -2583,6 +2592,50 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/BgpAdvertisementDiff" }
               example: [ { change: INJECTED, updateAdded: { externalPeer: "10.0.0.2", prefix: "192.0.2.0/24", vrf: default, nextHop: "10.0.0.1", origin: IGP, type: EBGP, asPath: [65001] } } ]
+  /networks/{networkId}/bgp-collection-requirements:
+    get:
+      operationId: getBgpCollectionRequirements
+      summary: The devices whose collection must include BGP advertisements
+      description: "Groups of devices Forward requires BGP advertisement collection on: the network's gateways to adjacent networks, and the internet and intranet nodes and L3 VPNs whose subnets come from BGP routes. Each group needs a table type and peer type that Forward enforces when a device is saved. Device names are compared without case. Requires VIEW_NETWORK_AND_SNAPSHOTS (source: SyntheticDeviceController.getBgpCollectionRequirements, DeviceBgpCollectionReq). permittedTableTypes and permittedPeerTypes are not marked JsonIgnore in the source, so they are probably sent too; the Go SDK reads only devices. Live on 26.11.0-03 (2026-11-15): a lab network answered {\"requirements\":[]}. From the Go SDK v0.8.29. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [BGP Advertisements]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The requirement groups.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BgpCollectionRequirements" }
+              # synthetic fixture shaped like the source record
+              example: { requirements: [ { devices: ["edge-1", "edge-2"], permittedTableTypes: [ADJ_RIB_OUT, BOTH], permittedPeerTypes: [EBGP, BOTH] } ] }
+  /networks/{networkId}/devices/{deviceName}/bgp-advertisements:
+    get:
+      operationId: getDeviceBgpAdvertisements
+      summary: The BGP advertisements a device received for one prefix in one VRF
+      description: "Returns the advertisements the device received for the prefix in the VRF, as the snapshot recorded them: eBGP ones first, then iBGP ones. Each row is the same BgpAdvertisement record Predict stages, so a received route and a staged one compare field by field. vrf and prefix are both required; there is no unfiltered form. A VRF or prefix with no advertisements is an empty list. It reads the snapshot's parsed received-route tables; whether a predicted snapshot answers with the staged state is not confirmed (Go says the same and points to the rp-prefix-info read instead). Requires VIEW_NETWORK_AND_SNAPSHOTS (source: DeviceController.getDeviceBgpAdvertisements, served from BgpAdvertisementUtils.getBgpAdvertisements as JSON). From the Go SDK v0.8.28. Live on 26.11.0-03 (2026-11-15): served, and a lab without BGP answered an empty JSON array; the row shape is from source. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [BGP Advertisements]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: deviceName, in: path, required: true, schema: { type: string } }
+        - { name: vrf, in: query, required: true, description: "The VRF, such as default.", x-forward-validate: non-blank, schema: { type: string } }
+        - { name: prefix, in: query, required: true, description: "The prefix as an IP subnet, such as 192.0.2.0/24.", x-forward-validate: non-blank, schema: { type: string } }
+        - { name: snapshotId, in: query, required: false, description: "The snapshot to read. Uses the network's latest processed snapshot when omitted.", schema: { type: string } }
+      responses:
+        "200":
+          description: The received advertisements, eBGP first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BgpAdvertisement" }
+              # synthetic fixture shaped like the source record
+              example: [ { vrf: default, externalPeer: "198.51.100.2", prefix: "192.0.2.0/24", type: EBGP, nextHop: "198.51.100.2", origin: IGP, asPath: [65001], localPref: 100, med: 0, communities: ["65001:100"] } ]
+        "400":
+          description: A missing vrf or prefix, or a prefix that is not an IP subnet.
+        "404":
+          description: No such device in the snapshot.
   # ------------------------------------------------ change-set directories ---
   # The folder tree change sets are organised in. A directory path contains
   # slashes and travels percent-encoded in the URL, which the SDK does for you.
@@ -11934,11 +11987,38 @@ paths:
       responses:
         "204": { description: Refreshed. }
 
+  /snapshots/{snapshotId}/checks/{checkId}:
+    patch:
+      operationId: updateCheck
+      summary: Edit a check in place, keeping its id
+      description: "Changes only the fields sent: Forward reads an absent field and a null alike as keep. An empty tags list clears the tags. definition replaces the whole definition and must be the same check type; an NQE check keeps its queryId. note cannot be changed on an NQE check (400). On a predicted snapshot Forward refuses check edits unless the PREDICT_UNSANDBOXED org property is on. Requires EDIT_CHECKS (source: CheckController.updateCheck, CheckUpdate). From the Go SDK v0.8.29; read from Forward source, not run live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Checks]
+      parameters:
+        - { name: snapshotId, in: path, required: true, schema: { type: string } }
+        - { name: checkId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CheckUpdate" }
+      responses:
+        "200":
+          description: The check as stored after the edit.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NetworkCheckResult" }
+              # synthetic fixture shaped like the source record
+              example: { id: "C-1", name: "example-check", enabled: false, priority: HIGH, tags: [] }
+        "400":
+          description: A different check type, or a note on an NQE check.
+        "404":
+          description: No such check in the snapshot.
   /snapshots/{snapshotId}/checks/{checkId}?action=addServiceNowIncident:
     post:
       operationId: addCheckServiceNowIncident
       summary: Raise a ServiceNow incident for a failing check
-      description: "Creates an incident in ServiceNow and links it to the check. The check must be enabled and failing in this snapshot and every later one (400 otherwise). summary, impact and urgency are required; Forward appends a link back to the check to details. Changes state in ServiceNow and in Forward. Requires OPERATE_CHECK_INTEGRATIONS, VIEW_CHECKS on the network and the deployment's OUTBOUND_CONNECTIONS; on a Predict fork, also PREDICT_UNSANDBOXED (source: CheckController.addIncident). Never called live. Not part of Forward's documented API."
+      description: "Creates an incident in ServiceNow and links it to the check. The check must be enabled and failing in this snapshot and every later one (400 otherwise). summary, impact and urgency are required; Forward appends a link back to the check to details. Changes state in ServiceNow and in Forward. Requires OPERATE_CHECK_INTEGRATIONS, VIEW_CHECKS on the network and the deployment's OUTBOUND_CONNECTIONS; on a Predict fork, also PREDICT_UNSANDBOXED (source: CheckController.addIncident). Seen live on 26.10.6 by another client (2026-11-15): 409 'ServiceNow instance is hibernating' while a ServiceNow developer instance sleeps, and 409 'Unknown Error' after it wakes (cause unconfirmed, possibly a stale stored credential); neither created an incident. Not part of Forward's documented API."
       x-forward-stability: unpublished
       tags: [Checks]
       parameters:
@@ -12343,6 +12423,74 @@ paths:
               # from source: web/src/main/java/com/forwardnetworks/cv/web/json/EmptyObject.java (serializes to {})
               example: {}
 
+  /mcp:
+    post:
+      operationId: mcpRequest
+      summary: Send one MCP JSON-RPC message to Forward's MCP server
+      description: "Forward's Model Context Protocol server, the streamable-HTTP transport of the MCP Java SDK (mcp-core 2.0.1) mounted at /api/mcp, exposing Forward's read-only AI tools. It is SESSION-BASED, although Forward's documentation calls it stateless: initialize answers with an mcp-session-id response header, and every later message must carry it (without it, 400 'Session ID required in mcp-session-id header', seen live on 26.10.6). Responses come as Server-Sent Events (event: message, data: one JSON-RPC message) even for a single call, so send Accept: application/json, text/event-stream. A notification answers 202 with no body. Every tool takes networkId (required) and an optional snapshotId; with none, the network's latest processed snapshot is used (source: McpToolContextFactory). Gated by the ENABLE_MCP_SERVER org property (default on) and AI availability (source: McpServerConfig, McpAiToolAdapter). client.mcp handles the session; this route is not meant to be called directly. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [MCP]
+      parameters:
+        - { name: mcp-session-id, in: header, required: false, description: "The session from initialize's response header.", schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true, description: "One JSON-RPC 2.0 message." }
+      responses:
+        "200":
+          description: The JSON-RPC response, as one Server-Sent Event (or plain JSON).
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+              # synthetic fixture shaped like a live tools/list answer (26.10.6, 2026-11-15), one tool shown
+              example: { jsonrpc: "2.0", id: 1, result: { tools: [ { name: get_paths, description: "Trace paths between two IPs.", inputSchema: { type: object, properties: { networkId: { type: string }, srcIp: { type: string }, dstIp: { type: string } }, required: [networkId] } } ] } }
+            text/event-stream:
+              schema: { type: string }
+        "202":
+          description: A notification was accepted.
+        "400":
+          description: No mcp-session-id on a call after initialize, or a malformed message.
+        "404":
+          description: The session is unknown or has expired; initialize again.
+    delete:
+      operationId: mcpEndSession
+      summary: End an MCP session
+      description: "Ends the session named by the mcp-session-id header, as the MCP streamable-HTTP transport defines. Live on 26.10.6 (2026-11-15): 200, after which the session's id answers 404, and a second DELETE 404s. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [MCP]
+      parameters:
+        - { name: mcp-session-id, in: header, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The session ended.
+        "404":
+          description: No such session.
+  /nqe/queryResults:
+    post:
+      operationId: getNqeCheckResult
+      summary: The rows behind an NQE check's result key
+      description: "Returns the rows an NQE check produced, by the nqeResultKey on its NetworkCheckResult (from the checks list). The answer is Forward's internal run result, not the published NQE result page: each row's cells are typed ({value, metadata}, a list of cells, or {type, alternative} for a one-of value), with totalNumValues and per-column summaries. The body is optional: offset, limit, sortBy and columnFilters; itemFormat, which the published NqeQueryOptions carries, is refused with 400 (Unrecognized field). The key must belong to the snapshot named. Requires USE_NQE (source: NqeController.getNqeQueryResults). From the Go SDK v0.8.30. Live on 26.11.0-03 (2026-11-15): the shape here, with and without a body. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [NQE]
+      parameters:
+        - { name: snapshotId, in: query, required: true, x-forward-validate: non-blank, schema: { type: string } }
+        - { name: resultKey, in: query, required: true, description: "The check's nqeResultKey.", x-forward-validate: non-blank, schema: { type: string } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NqeCheckResultOptions" }
+      responses:
+        "200":
+          description: One page of the check's rows, in Forward's typed run-result form.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NqeCheckResult" }
+              # synthetic fixture shaped like a live response (2026-11-15); values are invented
+              example: { type: { type: Bag }, diagnostics: [], executionInfo: { computeDurationMillis: 12 }, cklbExportable: false, result: { values: [ { violation: { value: true }, Device: { value: "edge-1", metadata: { type: DEVICE } }, OS: { type: OS, alternative: { value: IOS_XE } }, "Management IPs": [ { value: "192.0.2.10" } ] } ], totalNumValues: 3, totalNumValuesIsExact: true, columnSummaries: {} } }
+        "400":
+          description: The result key does not belong to the snapshot, or an unknown body field.
   /nqe-run-metrics:
     get:
       operationId: listNqeRunMetrics
@@ -21150,8 +21298,8 @@ components:
 
     BgpAdvertisement:
       type: object
-      description: The key fields sit flat beside the attributes. asPath must be non-empty for EBGP.
-      required: [externalPeer, prefix, vrf, nextHop, origin]
+      description: "The key fields sit flat beside the attributes. When staging, Forward requires nextHop and origin, and a non-empty asPath for EBGP. A received route (getDeviceBgpAdvertisements, and a diff's original) can lack nextHop and origin: Forward builds those rows without its creator checks and leaves out null fields (source: BgpAdvertisementUtils, BgpRouteAttributes), so only the key is required here."
+      required: [externalPeer, prefix, vrf]
       properties:
         externalPeer: { type: string }
         prefix: { type: string }
@@ -21171,6 +21319,69 @@ components:
     BgpAdvertisementKeyList:
       type: array
       items: { $ref: "#/components/schemas/BgpAdvertisementKey" }
+
+    NqeCheckResultOptions:
+      type: object
+      description: "The internal NQE query options this route reads. Unlike the published NqeQueryOptions there is no itemFormat (Forward refuses it)."
+      properties:
+        offset: { type: integer, minimum: 0 }
+        limit: { type: integer, minimum: 0 }
+        sortBy: { type: object, additionalProperties: true }
+        columnFilters: { type: array, items: { type: object, additionalProperties: true } }
+
+    NqeCheckResult:
+      type: object
+      description: Forward's internal NQE run result.
+      properties:
+        type: { type: object, additionalProperties: true, description: "The result's NQE type: a Bag of Record with each column's name and type." }
+        diagnostics: { type: array, items: { type: object, additionalProperties: true } }
+        executionInfo: { type: object, additionalProperties: true }
+        cklbExportable: { type: boolean }
+        result: { $ref: "#/components/schemas/NqeCheckResultValues" }
+
+    NqeCheckResultValues:
+      type: object
+      properties:
+        values:
+          type: array
+          description: "One object per row, column name to a typed cell: {value, metadata}, a list of cells, or {type, alternative} for a one-of value."
+          items: { type: object, additionalProperties: true }
+        totalNumValues: { type: integer, description: "Rows the check produced in all, across pages." }
+        totalNumValuesIsExact: { type: boolean }
+        columnSummaries: { type: object, additionalProperties: true }
+
+    BgpCollectionRequirements:
+      type: object
+      properties:
+        requirements:
+          type: array
+          items: { $ref: "#/components/schemas/BgpCollectionRequirement" }
+
+    BgpCollectionRequirement:
+      type: object
+      description: One group of devices sharing a required BGP table type and peer type.
+      properties:
+        devices: { type: array, items: { type: string } }
+        permittedTableTypes:
+          type: array
+          description: From source; not seen live. The group's required table type and BOTH.
+          items: { type: string }
+        permittedPeerTypes:
+          type: array
+          description: From source; not seen live. The group's required peer type and BOTH.
+          items: { type: string }
+
+    CheckUpdate:
+      type: object
+      description: "Every field is optional; one left out (or null) is kept. An empty tags list clears the tags."
+      properties:
+        definition: { $ref: "#/components/schemas/CheckDefinition" }
+        name: { type: string }
+        note: { type: string, description: Refused for an NQE check. }
+        tags: { type: array, items: { type: string } }
+        enabled: { type: boolean }
+        priority: { $ref: "#/components/schemas/CheckPriority" }
+        perfMonitoringEnabled: { type: boolean }
 
     BgpAdvertisementDiff:
       type: object

@@ -28,6 +28,8 @@ class AsyncPredictReferenceService(AsyncService):
         """The commands Predict accepts for one protocol on one vendor OS.
 
         Unpublished: not part of Forward's documented API.
+        ``protocol`` takes ``BGP``, ``OSPF``, ``IS_IS``, ``EIGRP``, ``RIP``, ``CONFIG``, ``OMP``
+        or ``STP``.
         """
         async with self._transport.stream(
             ops.BUILDERS["getPredictOsAllowedCommands"](vendor_os=vendor_os, protocol=protocol)

@@ -103,6 +103,12 @@ indistinguishable from "nothing changed" unless you check the flag, and a
 webhook-driven pipeline hits this almost every time. `wait_for_subnet_connectivity`
 polls until the flag clears.
 
+**NQE check diffs answer early too.** `GET /diffs/{a}/{b}/checks?type=NQE`
+returns at once with rows still marked `PROCESSING`; the other check types block
+in Forward until computed. `diffs.wait_for_check_diffs(base.id, predicted.id,
+["NQE"])` reads again until no row (or side of one) is processing, and
+`max_poll_interval` makes the wait back off.
+
 **A settled zero is still ambiguous, and the two readings are opposites.**
 Either the change altered no site-to-site connectivity, which is the reassuring
 answer, or the network has no locations defined and the comparison had nothing
@@ -112,7 +118,26 @@ them: zero pairs means nothing was compared.
 **Gating differs per diff.** Connectivity needs the `LOCATION_CONNECTIVITY_DIFFS`
 org property. The bidirectional views, which split a change into what it makes
 worse and what it improves, need `PREDICT_DIFF_INSIGHT_ENHANCEMENTS`. The
-one-directional routing-loop and vulnerability counts need neither.
+one-directional routing-loop and vulnerability counts need neither. An org's
+own admin cannot turn `LOCATION_CONNECTIVITY_DIFFS` on: `set_org_config_value`
+answers 403 "Permission denied for location_connectivity_diffs" (seen live on
+26.10.6). A Forward support account sets it with `set_org_scoped_config_value`.
+
+**Per location pair**, `diffs.wait_for_location_pairs(base.id, predicted.id,
+"ADDED")` waits for the comparison to settle and then reads the changed subnet
+pairs per location pair. Read too early, Forward answers `{"counts": []}`, which
+looks the same as no change. It returns `.pairs` and the settled `.comparison`;
+`.nothing_compared` is true when no subnet pairs were compared at all (no
+locations), when an empty `.pairs` says nothing. Devices with no location are
+not counted. `type` is `ADDED`, `DELETED` or `MODIFIED`; `ALL` is refused with
+a 400.
+
+**Locations** for that comparison: `client.networks.ensure_locations({"Dayton
+DC": {"lat": 39.81, "lng": -84.27}})` creates or updates locations by name
+(trimmed, ignoring case, as Forward matches them) and sends only the read when
+they already match, and `client.networks.set_device_locations({"edge-1":
+"Dayton DC"})` places devices by location name. The first placement pins a
+device that a dynamic rule had placed, as any move in Forward does.
 
 `counts()` returns every per-area count at once, eight requests, keyed by area.
 `complete` false on any of them means the count is a lower bound so far.
@@ -220,6 +245,54 @@ peer address, the prefix and the VRF; an injected route needs a next hop, an
 origin and, for EBGP, a non-empty AS path. The draft's `?view=diffs` reports
 each advertisement as `INJECTED`, `MODIFIED`, `DUPLICATED`, `WITHDRAWN` or
 `ABSENT`.
+
+Forward accepts a withdrawal of a key the base snapshot does not have, and
+ignores it when the change set runs; the only sign is an `ABSENT` row. Read the
+diffs back after staging:
+
+```python
+from forward_sdk.errors import ForwardBgpKeyMatchedNothingError
+from forward_sdk.models import BgpAdvertisementKey
+
+key = BgpAdvertisementKey(vrf="default", external_peer="198.51.100.2", prefix="192.0.2.0/24")
+try:
+    report = change_set.verify_bgp_staging("edge-1", staged=[advertisement], withdrawn=[key])
+except ForwardBgpKeyMatchedNothingError as error:
+    print(error.report.unmatched)  # ["withdraw 192.0.2.0/24 via 198.51.100.2 in VRF default"]
+```
+
+It raises when a withdrawal reads `ABSENT` or a key has no row at all. A host
+prefix given as a bare address or as `/32` compares equal (Forward writes it
+back bare). A staged
+advertisement that reads `INJECTED` where you meant to replace a received route
+is reported, not raised: that is how an EBGP/IBGP type mismatch shows, so check
+`report.staged[i].change` if you expect `MODIFIED`.
+
+Before staging, `client.change_sets.bgp_advertisement_readiness("edge-1")`
+checks the three things that otherwise make Predict model nothing without an
+error: the org properties `PREDICT_MODELING`, `PREDICT_MODEL_EXT_ADV` and
+`PREDICT_MODEL_BGP`, the
+device's collection setup (`collectBgpAdvertisements` on, and a table type that
+includes ADJ_RIB_IN), and the network's BGP collection requirement groups.
+For several devices, `bgp_advertisement_readiness_for([...])` makes the same
+three reads once. A device with no classic collection source is unknown, not a
+problem: a controller-managed device is configured elsewhere.
+`report.ready` is true only when every check ran and found nothing;
+`report.blocked` is true when one found a definite problem. A read you lack
+permission for, or a property the API does not return, goes in
+`report.unknown` (with the reason for each in `report.unknown_reasons`) rather
+than raising.
+
+To see what a device received before staging,
+`client.bgp_advertisements.get_device_bgp_advertisements(device_name=,
+vrf=, prefix=)` returns the received advertisements in the same record shape,
+eBGP first. Both `vrf` and `prefix` are required; Forward has no unfiltered
+form. Whether a predicted snapshot answers with the staged state is not
+confirmed.
+
+On an older Forward that does not map a newer action (`?action=bulkAdd`, say),
+the call raises `ForwardBadRequestError` with `error.action_not_supported` set;
+fall back to the one-row call.
 
 Change sets live in a directory tree, through `client.change_set_directories`.
 A directory path contains slashes and travels percent-encoded in the URL, which

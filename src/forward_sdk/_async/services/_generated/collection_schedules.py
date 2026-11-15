@@ -26,6 +26,7 @@ class AsyncCollectionSchedulesService(AsyncService):
         """Add a network collection schedule.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``CollectionScheduleDefinition`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["addCollectionSchedule"](network_id=self._network(network_id), body=body)
@@ -90,6 +91,7 @@ class AsyncCollectionSchedulesService(AsyncService):
         """Replace a network collection schedule.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``CollectionSchedule`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["replaceCollectionSchedule"](

@@ -34,6 +34,7 @@ class NQEExplainService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``MiscNqeExplainParams`` (a model, or its ``.to_api()`` dict).
         """
         with self._transport.stream(
             ops.BUILDERS["explainCommittedNqeQuery"](
@@ -57,6 +58,7 @@ class NQEExplainService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``MiscNqeExplainParams`` (a model, or its ``.to_api()`` dict).
         """
         with self._transport.stream(
             ops.BUILDERS["explainNqeQueryAtPath"](

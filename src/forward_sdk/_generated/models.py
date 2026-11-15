@@ -757,7 +757,7 @@ class Type5(OpenEnum):
 
 class BgpAdvertisement(ForwardModel):
     """
-    The key fields sit flat beside the attributes. asPath must be non-empty for EBGP.
+    The key fields sit flat beside the attributes. When staging, Forward requires nextHop and origin, and a non-empty asPath for EBGP. A received route (getDeviceBgpAdvertisements, and a diff's original) can lack nextHop and origin: Forward builds those rows without its creator checks and leaves out null fields (source: BgpAdvertisementUtils, BgpRouteAttributes), so only the key is required here.
     """
 
     model_config = ConfigDict(
@@ -769,8 +769,8 @@ class BgpAdvertisement(ForwardModel):
     external_peer: Annotated[str, Field(alias="externalPeer")]
     local_pref: Annotated[int | None, Field(alias="localPref")] = None
     med: int | None = None
-    next_hop: Annotated[str, Field(alias="nextHop")]
-    origin: Origin
+    next_hop: Annotated[str | None, Field(alias="nextHop")] = None
+    origin: Origin | None = None
     prefix: str
     type: Type5 | None = None
     """
@@ -809,6 +809,34 @@ class BgpAdvertisementKeyList(RootModel[list[BgpAdvertisementKey]]):
 
 class BgpAdvertisementList(RootModel[list[BgpAdvertisement]]):
     root: list[BgpAdvertisement]
+
+
+class BgpCollectionRequirement(ForwardModel):
+    """
+    One group of devices sharing a required BGP table type and peer type.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    devices: list[str] | None = None
+    permitted_peer_types: Annotated[list[str] | None, Field(alias="permittedPeerTypes")] = None
+    """
+    From source; not seen live. The group's required peer type and BOTH.
+    """
+    permitted_table_types: Annotated[list[str] | None, Field(alias="permittedTableTypes")] = None
+    """
+    From source; not seen live. The group's required table type and BOTH.
+    """
+
+
+class BgpCollectionRequirements(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    requirements: list[BgpCollectionRequirement] | None = None
 
 
 class Type6(OpenEnum):
@@ -6552,6 +6580,38 @@ class NqeCheckDiffStats(ForwardModel):
     checks: list[NqeCheckDiffStat] | None = None
 
 
+class NqeCheckResultOptions(ForwardModel):
+    """
+    The internal NQE query options this route reads. Unlike the published NqeQueryOptions there is no itemFormat (Forward refuses it).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    column_filters: Annotated[list[dict[str, Any]] | None, Field(alias="columnFilters")] = None
+    limit: Annotated[int | None, Field(ge=0)] = None
+    offset: Annotated[int | None, Field(ge=0)] = None
+    sort_by: Annotated[dict[str, Any] | None, Field(alias="sortBy")] = None
+
+
+class NqeCheckResultValues(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    column_summaries: Annotated[dict[str, Any] | None, Field(alias="columnSummaries")] = None
+    total_num_values: Annotated[int | None, Field(alias="totalNumValues")] = None
+    """
+    Rows the check produced in all, across pages.
+    """
+    total_num_values_is_exact: Annotated[bool | None, Field(alias="totalNumValuesIsExact")] = None
+    values: list[dict[str, Any]] | None = None
+    """
+    One object per row, column name to a typed cell: {value, metadata}, a list of cells, or {type, alternative} for a one-of value.
+    """
+
+
 class Type45(OpenEnum):
     """
     Describes the type of difference between `before` and `after`:
@@ -6810,6 +6870,17 @@ class NqeRunResult(ForwardModel):
     The total number of items in the query's results. This number could be different than the length of `items` if a
     filter is used.
     """
+
+    @property
+    def truncated(self) -> bool:
+        """Whether this page holds fewer rows than Forward says the query matched.
+
+        A caller that reads one page must not treat it as the whole answer when
+        this is true. False when Forward sent no ``totalNumItems``, which says
+        nothing either way. On a later page read with an offset this is True
+        too, since ``totalNumItems`` counts every match, not what is left.
+        """
+        return self.total_num_items is not None and self.total_num_items > len(self.items or [])
 
 
 class Operator2(OpenEnum):
@@ -17706,6 +17777,48 @@ class NewSnmpCredential(ForwardModel):
     version: Version | None = None
 
 
+class NqeCheckResult(ForwardModel):
+    """
+    Forward's internal NQE run result.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cklb_exportable: Annotated[bool | None, Field(alias="cklbExportable")] = None
+    diagnostics: list[dict[str, Any]] | None = None
+    execution_info: Annotated[dict[str, Any] | None, Field(alias="executionInfo")] = None
+    result: NqeCheckResultValues | None = None
+    type: dict[str, Any] | None = None
+    """
+    The result's NQE type: a Bag of Record with each column's name and type.
+    """
+
+    @property
+    def truncated(self) -> bool:
+        """Whether this page holds fewer rows than the check produced (``totalNumValues``).
+
+        It compares this page alone with the total, so a later page read with
+        an offset is True too, and so is an empty page past the end: page with
+        ``offset + len(values) < totalNumValues``, not with this. When
+        ``totalNumValuesIsExact`` is false the total is Forward's estimate.
+        """
+        page = self.result
+        if page is None or page.total_num_values is None:
+            return False
+        return page.total_num_values > len(page.values or [])
+
+    def rows(self) -> list[dict[str, Any]]:
+        """This page's rows with the typed cells unwrapped to plain values.
+
+        See :func:`forward_sdk.nqe.rows.flatten_cells`.
+        """
+        from forward_sdk.nqe.rows import flatten_cells
+
+        return [flatten_cells(row) for row in (self.result.values if self.result else None) or []]
+
+
 class NqeExecutionRequest(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -21928,6 +22041,36 @@ class CheckDefinition2(IsolationCheck):
     check_type: Annotated[Literal["Isolation"], Field(alias="checkType")]
 
 
+class CheckUpdate(ForwardModel):
+    """
+    Every field is optional; one left out (or null) is kept. An empty tags list clears the tags.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    definition: Annotated[
+        CheckDefinition1
+        | CheckDefinition2
+        | CheckDefinition3
+        | CheckDefinition4
+        | CheckDefinition5
+        | CheckDefinition6
+        | None,
+        Field(discriminator="check_type"),
+    ] = None
+    enabled: bool | None = None
+    name: str | None = None
+    note: str | None = None
+    """
+    Refused for an NQE check.
+    """
+    perf_monitoring_enabled: Annotated[bool | None, Field(alias="perfMonitoringEnabled")] = None
+    priority: CheckPriority | None = None
+    tags: list[str] | None = None
+
+
 class ConnectivityDetails(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -22012,6 +22155,10 @@ class NetworkCheckResult(ForwardModel):
     id: str | None = None
     name: str | None = None
     note: str | None = None
+    nqe_result_key: Annotated[str | None, Field(alias="nqeResultKey")] = None
+    """
+    On an NQE check: the key to its rows, for client.nqe.check_result() (POST /nqe/queryResults). Seen live on 26.11; Forward leaves it out of its API description.
+    """
     num_violations: Annotated[int | None, Field(alias="numViolations")] = None
     perf_monitoring_enabled: Annotated[bool | None, Field(alias="perfMonitoringEnabled")] = None
     """

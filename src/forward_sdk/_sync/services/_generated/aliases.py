@@ -28,7 +28,10 @@ class AliasesService(Service):
         name: str,
         body: Any,
     ) -> models.Alias:
-        """Create an Alias."""
+        """Create an Alias.
+
+        ``body`` is a ``AliasBuilder``.
+        """
         payload = self._send_json(
             ops.BUILDERS["createAlias"](snapshot_id=snapshot_id, name=name, body=body)
         )

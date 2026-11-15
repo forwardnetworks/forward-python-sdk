@@ -31,6 +31,7 @@ class AsyncFlowTraceService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``TraceRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["getTrace"](
@@ -53,6 +54,7 @@ class AsyncFlowTraceService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``TraceRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["getTraceBehaviors"](
@@ -73,6 +75,7 @@ class AsyncFlowTraceService(AsyncService):
         """How one trace changed between two snapshots.
 
         Unpublished: not part of Forward's documented API.
+        ``body`` is a ``TraceDiffsRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["getTraceDiffs"](
@@ -96,6 +99,7 @@ class AsyncFlowTraceService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``TraceRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["getTraceFacets"](
@@ -119,6 +123,7 @@ class AsyncFlowTraceService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``TraceRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["getTraceFlows"](
@@ -141,6 +146,7 @@ class AsyncFlowTraceService(AsyncService):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``TraceRespTracesRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["getTraceResponses"](

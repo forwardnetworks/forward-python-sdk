@@ -65,6 +65,7 @@ class EdgeAssetsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``EdgeAssetCriticalityAssignment`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["setAssetCriticality"](network_id=self._network(network_id), body=body)
@@ -82,6 +83,7 @@ class EdgeAssetsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``EdgeAssetPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateEdgeAsset"](

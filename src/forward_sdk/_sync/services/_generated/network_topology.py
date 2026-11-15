@@ -48,6 +48,7 @@ class NetworkTopologyService(Service):
         """Edit link overrides at a Snapshot.
 
         Deprecated by Forward.
+        ``body`` is a ``LinkOverridesEdit`` (a model, or its ``.to_api()`` dict).
         """
         warnings.warn(
             "editSnapshotLinkOverrides is deprecated in the Forward API",
@@ -140,6 +141,7 @@ class NetworkTopologyService(Service):
         """Edit the network's link overrides.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``LinkOverridesEdit`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["patchLinkOverrides"](network_id=self._network(network_id), body=body)
@@ -155,6 +157,7 @@ class NetworkTopologyService(Service):
         """Set the network's link overrides.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``LinkOverrides`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["putLinkOverrides"](network_id=self._network(network_id), body=body)
@@ -170,6 +173,7 @@ class NetworkTopologyService(Service):
         """Replace link overrides at a Snapshot.
 
         Deprecated by Forward.
+        ``body`` is a ``LinkOverrides`` (a model, or its ``.to_api()`` dict).
         """
         warnings.warn(
             "replaceSnapshotLinkOverrides is deprecated in the Forward API",

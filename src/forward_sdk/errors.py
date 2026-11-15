@@ -30,16 +30,19 @@ if TYPE_CHECKING:  # pragma: no cover - imported for typing only
 
     from forward_sdk._generated._defs import OpDef
     from forward_sdk._generated.models import ErrorInfo, NqeErrorInfo, NqeQueryError
+    from forward_sdk.bgp import BgpStagingReport
 
 __all__ = [
     "Denial",
     "ForwardAPIError",
     "ForwardAuthError",
     "ForwardBadRequestError",
+    "ForwardBgpKeyMatchedNothingError",
     "ForwardConfigurationError",
     "ForwardConflictError",
     "ForwardError",
     "ForwardExecutionError",
+    "ForwardMcpError",
     "ForwardNotFoundError",
     "ForwardNqeQueryError",
     "ForwardPaginationError",
@@ -310,6 +313,21 @@ class ForwardAPIError(ForwardError):
         return self.status == 404 and self._message().lstrip().startswith("No endpoint ")
 
     @property
+    def action_not_supported(self) -> bool:
+        """Whether this deployment does not map the ``?action=`` (or query condition) used.
+
+        Spring answers 400 ``Parameter conditions "action=bulkAdd" not met for
+        actual request parameters: ...`` when the route exists but not that
+        variant, which is what an older build looks like for a newer action.
+        A caller can then fall back to the older call (one
+        ``add_bgp_advertisement`` per row instead of ``add_bgp_advertisements``)
+        without matching Forward's text itself. Read from Spring's
+        ``UnsatisfiedServletRequestParameterException``; not seen live.
+        """
+        message = self._message().lower()
+        return self.status == 400 and "parameter conditions" in message and "not met" in message
+
+    @property
     def account_locked(self) -> bool:
         """Whether the 401 is because the account is locked, not because the credential is wrong.
 
@@ -423,3 +441,32 @@ def status_error_class(status: int) -> type[ForwardAPIError]:
     if status >= 500:
         return ForwardServerError
     return ForwardAPIError
+
+
+class ForwardBgpKeyMatchedNothingError(ForwardError):
+    """A staged BGP advertisement or withdrawal matched nothing in the draft's diffs.
+
+    Raised by ``change_set.verify_bgp_staging()`` when a withdrawal reads
+    ``ABSENT`` (the base snapshot has no advertisement with that key) or a
+    staged key has no diff row at all. Forward does not refuse such a stage; it
+    ignores the key when the change set runs, so without this check a withdraw
+    that matched nothing looks like one that worked. ``report`` holds the full
+    read-back, one outcome per key.
+    """
+
+    def __init__(self, message: str, report: BgpStagingReport) -> None:
+        super().__init__(message)
+        self.report = report
+
+
+class ForwardMcpError(ForwardError):
+    """Forward's MCP server answered a JSON-RPC error, or no answer to the request.
+
+    A tool that ran and failed is not this: its result has ``is_error`` set.
+    ``code`` and ``data`` are the JSON-RPC error's, when there was one.
+    """
+
+    def __init__(self, message: str, *, code: int | None = None, data: Any = None) -> None:
+        super().__init__(message)
+        self.code = code
+        self.data = data

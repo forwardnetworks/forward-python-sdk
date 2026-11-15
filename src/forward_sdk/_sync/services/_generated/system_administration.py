@@ -55,6 +55,7 @@ class SystemAdministrationService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (license, deployment, admin); see docs/gating.md.
+        ``body`` is a ``NewUser`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(ops.BUILDERS["createOrganizationUser"](org_id=org_id, body=body))
         return models.User.model_validate(payload or {})

@@ -46,6 +46,7 @@ class EndpointProfilesService(Service):
         """Add a CLI endpoint profile.
 
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``CliEndpointProfileDef`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(ops.BUILDERS["createCliEndpointProfile"](body=body))
         return payload
@@ -58,6 +59,7 @@ class EndpointProfilesService(Service):
         """Add an HTTP endpoint profile.
 
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``HttpEndpointProfileDef`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(ops.BUILDERS["createHttpEndpointProfile"](body=body))
         return payload
@@ -70,6 +72,7 @@ class EndpointProfilesService(Service):
         """Add an SNMP endpoint profile.
 
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``SnmpEndpointProfileDef`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(ops.BUILDERS["createSnmpEndpointProfile"](body=body))
         return payload
@@ -141,6 +144,7 @@ class EndpointProfilesService(Service):
         """Update a CLI endpoint profile.
 
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``CliEndpointProfilePatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateCliEndpointProfile"](profile_id=profile_id, body=body)
@@ -156,6 +160,7 @@ class EndpointProfilesService(Service):
         """Update an HTTP endpoint profile.
 
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``HttpEndpointProfilePatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateHttpEndpointProfile"](profile_id=profile_id, body=body)
@@ -171,6 +176,7 @@ class EndpointProfilesService(Service):
         """Update an SNMP endpoint profile.
 
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``SnmpEndpointProfilePatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateSnmpEndpointProfile"](profile_id=profile_id, body=body)

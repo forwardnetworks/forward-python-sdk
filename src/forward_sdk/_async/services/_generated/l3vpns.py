@@ -29,6 +29,7 @@ class AsyncL3vpnsService(AsyncService):
         """Add a connection to an L3VPN.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``L3SyntheticWanConnection`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["addL3VpnConnection"](
@@ -186,6 +187,7 @@ class AsyncL3vpnsService(AsyncService):
         """Update an L3VPN.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``L3VpnPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["patchL3Vpn"](
@@ -204,6 +206,7 @@ class AsyncL3vpnsService(AsyncService):
         """Add or replace an L3VPN.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``L3Vpn`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["putL3Vpn"](
@@ -221,6 +224,7 @@ class AsyncL3vpnsService(AsyncService):
         """Replace all of a network's L3VPNs.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``L3VpnList`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["putL3Vpns"](network_id=self._network(network_id), body=body)

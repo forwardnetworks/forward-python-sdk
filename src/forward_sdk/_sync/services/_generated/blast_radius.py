@@ -35,6 +35,7 @@ class BlastRadiusService(Service):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``BlastRadiusRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["getBlastRadius"](
@@ -57,6 +58,7 @@ class BlastRadiusService(Service):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``BlastRadiusRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["getHostCentricBlastRadius"](
@@ -79,6 +81,7 @@ class BlastRadiusService(Service):
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
         Uses the network's latest processed snapshot when ``snapshot_id`` is omitted.
+        ``body`` is a ``BlastRadiusRequest`` (a model, or its ``.to_api()`` dict).
         """
         with self._transport.stream(
             ops.BUILDERS["getHostCentricBlastRadiusReport"](

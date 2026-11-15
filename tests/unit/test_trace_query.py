@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from forward_sdk.models import TraceFacetsResponse, TracePathFacet, TracePathGroup
 from forward_sdk.trace import (
     PERMIT_ALL,
     ChainHop,
@@ -15,6 +16,8 @@ from forward_sdk.trace import (
     interface,
     negate,
     security_zone,
+    selection,
+    selections,
     subnet,
     subnet_at_device,
     vrf,
@@ -159,3 +162,61 @@ def test_hops_carry_their_transit_and_headers() -> None:
 def test_limits_outside_forwards_range_are_refused(limits: dict[str, int]) -> None:
     with pytest.raises(ValueError, match="must be 1"):
         PathQuery(from_=Endpoint(device("r1"))).request(**limits)
+
+
+def test_one_facet_path_selects_into_a_trace_request() -> None:
+    facets = TraceFacetsResponse.model_validate(
+        {
+            "facets": {
+                "pathGroups": [
+                    {
+                        "traceType": "VALID",
+                        "paths": [
+                            {
+                                "path": ["edge-1", "core-1"],
+                                "behaviorSample": {
+                                    "processingStages": [["L2", "L3"]],
+                                    "aclDropHops": None,
+                                },
+                            },
+                            {"path": ["edge-1", "core-2"]},
+                        ],
+                    },
+                    {"traceType": "DROPPED", "paths": [{"path": ["edge-1"]}]},
+                ]
+            }
+        }
+    )
+    pairs = selections(facets)
+    assert [(g.trace_type, p.path) for g, p in pairs] == [
+        ("VALID", ["edge-1", "core-1"]),
+        ("VALID", ["edge-1", "core-2"]),
+        ("DROPPED", ["edge-1"]),
+    ]
+    query = PathQuery(from_=Endpoint(device("edge-1")))
+    body = query.trace_request(*pairs[0], max_results=50)
+    assert body == {
+        "filters": {"from": {"location": {"type": "DeviceFilter", "values": ["edge-1"]}}},
+        "maxResults": 50,
+        "selectedFacets": {
+            "paths": [
+                {
+                    "path": ["edge-1", "core-1"],
+                    "traceType": "VALID",
+                    "behavior": {"processingStages": [["L2", "L3"]]},
+                }
+            ]
+        },
+        "limit": 100,
+    }
+    # A path with no behaviour sample sends none.
+    second = query.trace_request(*pairs[1])["selectedFacets"]["paths"][0]
+    assert "behavior" not in second
+    assert selections(TraceFacetsResponse.model_validate({})) == []
+
+
+def test_a_path_without_hops_or_trace_type_is_refused() -> None:
+    with pytest.raises(ValueError, match="no hops"):
+        selection(TracePathGroup(trace_type="VALID"), TracePathFacet(path=[]))
+    with pytest.raises(ValueError, match="no trace type"):
+        selection(TracePathGroup(trace_type=" "), TracePathFacet(path=["edge-1"]))

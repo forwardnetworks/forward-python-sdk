@@ -31,6 +31,7 @@ class InternetNodeService(Service):
         """Add a connection to the internet node.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``L3SyntheticWanConnection`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["addInternetNodeConnection"](
@@ -166,6 +167,7 @@ class InternetNodeService(Service):
         """Replace the network's internet node.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``InternetNode`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["putInternetNode"](network_id=self._network(network_id), body=body)
@@ -181,6 +183,7 @@ class InternetNodeService(Service):
         """Update the network's internet node.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``InternetNodePatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateInternetNode"](network_id=self._network(network_id), body=body)

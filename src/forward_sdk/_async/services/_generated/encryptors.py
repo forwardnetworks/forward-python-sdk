@@ -96,6 +96,7 @@ class AsyncEncryptorsService(AsyncService):
         """Update an encryptor.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``EncryptorPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["patchEncryptor"](
@@ -114,6 +115,7 @@ class AsyncEncryptorsService(AsyncService):
         """Add or replace an encryptor.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``Encryptor`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["putEncryptor"](
@@ -131,6 +133,7 @@ class AsyncEncryptorsService(AsyncService):
         """Replace all of a network's encryptors.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``EncryptorList`` (a model, or its ``.to_api()`` dict).
         """
         payload = await self._send_json(
             ops.BUILDERS["putEncryptors"](network_id=self._network(network_id), body=body)

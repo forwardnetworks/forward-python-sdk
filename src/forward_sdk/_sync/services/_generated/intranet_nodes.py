@@ -32,6 +32,7 @@ class IntranetNodesService(Service):
         """Add a connection to an intranet node.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``L3SyntheticWanConnection`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["addIntranetNodeConnection"](
@@ -191,6 +192,7 @@ class IntranetNodesService(Service):
         """Update an intranet node.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``IntranetNodePatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["patchIntranetNode"](
@@ -209,6 +211,7 @@ class IntranetNodesService(Service):
         """Add or replace an intranet node.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``IntranetNode`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["putIntranetNode"](
@@ -226,6 +229,7 @@ class IntranetNodesService(Service):
         """Replace all of a network's intranet nodes.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``IntranetNodeList`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["putIntranetNodes"](network_id=self._network(network_id), body=body)

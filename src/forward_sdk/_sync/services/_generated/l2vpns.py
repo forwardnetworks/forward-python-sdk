@@ -32,6 +32,7 @@ class L2vpnsService(Service):
         """Add a connection to an L2VPN.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``L2VpnConnection`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["addL2VpnConnection"](
@@ -50,6 +51,7 @@ class L2vpnsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a list of ``L2Vpn`` (each a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["addL2Vpns"](network_id=self._network(network_id), body=body)
@@ -195,6 +197,7 @@ class L2vpnsService(Service):
         """Update an L2VPN.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``L2VpnPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["patchL2Vpn"](
@@ -213,6 +216,7 @@ class L2vpnsService(Service):
         """Add or replace an L2VPN.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``L2Vpn`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["putL2Vpn"](
@@ -230,6 +234,7 @@ class L2vpnsService(Service):
         """Replace all of a network's L2VPNs.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``L2VpnList`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["putL2Vpns"](network_id=self._network(network_id), body=body)

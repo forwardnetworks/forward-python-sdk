@@ -32,6 +32,7 @@ class CustomCommandGroupsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SrcNewCustomCommandGroup`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["createCustomCommandGroup"](
@@ -94,6 +95,7 @@ class CustomCommandGroupsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SrcCustomCommandGroupUpdate`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateCustomCommandGroup"](
@@ -112,6 +114,7 @@ class CustomCommandGroupsService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SrcCustomCommandsValidationRequest`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["validateCustomCommands"](network_id=self._network(network_id), body=body)

@@ -32,6 +32,7 @@ class SecurityMatrixFiltersService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NewSecurityMatrixFilter`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["addSecurityMatrixFilter"](network_id=self._network(network_id), body=body)
@@ -82,6 +83,7 @@ class SecurityMatrixFiltersService(Service):
 
         Unpublished: not part of Forward's documented API.
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``SecurityMatrixFilterUpdate`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateSecurityMatrixFilter"](

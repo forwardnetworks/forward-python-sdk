@@ -32,6 +32,7 @@ class NetworkLocationsService(Service):
         """Create a device cluster at a location.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``DeviceCluster`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["addDeviceCluster"](
@@ -49,6 +50,7 @@ class NetworkLocationsService(Service):
         """Create a network location.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``NewLocation`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["addLocation"](network_id=self._network(network_id), body=body)
@@ -197,6 +199,7 @@ class NetworkLocationsService(Service):
         """Update a network location.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``LocationPatch`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["patchLocation"](
@@ -214,6 +217,7 @@ class NetworkLocationsService(Service):
         """Create or update network locations.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a list of ``LocationBulkPatch`` (each a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["patchLocations"](network_id=self._network(network_id), body=body)
@@ -230,6 +234,7 @@ class NetworkLocationsService(Service):
         """Replace all device clusters at a location.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a list of ``DeviceCluster`` (each a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["putDeviceClusters"](
@@ -247,6 +252,7 @@ class NetworkLocationsService(Service):
         """Create network locations.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a list of ``Location`` (each a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["putLocations"](network_id=self._network(network_id), body=body)
@@ -279,6 +285,7 @@ class NetworkLocationsService(Service):
         """Update a device cluster.
 
         Uses the client's network when ``network_id`` is omitted.
+        ``body`` is a ``DeviceClusterUpdate`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(
             ops.BUILDERS["updateDeviceCluster"](

@@ -63,6 +63,9 @@ class OpDef:
     gating: tuple[Gating, ...] = field(default_factory=tuple)
     response_model: str | None = None
     response_is_array: bool = False
+    #: The model the JSON request body is (or is a list of), when the spec names one.
+    request_model: str | None = None
+    request_is_array: bool = False
     summary: str | None = None
     stream: bool = False
     #: Seconds Forward may take to answer this operation, when that is longer
@@ -102,6 +105,9 @@ HAND_WRITTEN_TAGS: frozenset[str] = frozenset(
         # Answers arrive asynchronously, so this needs a chat handle with a
         # poll loop rather than a method per endpoint.
         "Forward AI",
+        # A session-based JSON-RPC transport whose answers arrive as Server-Sent
+        # Events: one message route, not a method per endpoint.
+        "MCP",
         # The connectivity comparison is computed asynchronously and an early
         # read returns zeros that look like "nothing changed", so this needs a
         # wait loop and a docstring about the ambiguous settled zero.

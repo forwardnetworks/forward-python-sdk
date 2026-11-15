@@ -38,6 +38,7 @@ class OrganizationsService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``type`` takes ``ENTERPRISE_TRIAL``, ``ENTERPRISE``, ``INTERNAL`` or ``FREE_TRIAL``.
         """
         payload = self._send_json(
             ops.BUILDERS["createOrganization"](
@@ -151,6 +152,7 @@ class OrganizationsService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``OrganizationUpdate`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(ops.BUILDERS["renameOrganization"](org_id=org_id, body=body))
         return payload
@@ -164,6 +166,7 @@ class OrganizationsService(Service):
 
         Unpublished: not part of Forward's documented API.
         May be unavailable (admin); see docs/gating.md.
+        ``body`` is a ``OrganizationUpdate`` (a model, or its ``.to_api()`` dict).
         """
         payload = self._send_json(ops.BUILDERS["updateCurrentOrganization"](body=body))
         return payload

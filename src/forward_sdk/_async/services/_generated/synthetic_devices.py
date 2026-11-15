@@ -26,6 +26,8 @@ class AsyncSyntheticDevicesService(AsyncService):
         """Saved NQE queries a synthetic node of this type can use.
 
         Unpublished: not part of Forward's documented API.
+        ``type`` takes ``INTERNET``, ``INTRANET``, ``L2VPN``, ``L3VPN``, ``WAN_CIRCUIT``,
+        ``ENCRYPTOR``, ``TAPI_OPTICAL`` or ``ADJACENT_NETWORK``.
         """
         payload = await self._send_json(
             ops.BUILDERS["listSyntheticDeviceQueries"](type=type, network_id=network_id)

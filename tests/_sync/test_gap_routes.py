@@ -13,10 +13,20 @@ from __future__ import annotations
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from forward_sdk._sync.client import ForwardClient
-from forward_sdk.errors import ForwardConfigurationError
-from forward_sdk.models import AutoCreateImpact, SrcUpdateServiceNowSettings
+from forward_sdk.errors import ForwardConfigurationError, ForwardServerError, ForwardTransportError
+from forward_sdk.models import (
+    AutoCreateImpact,
+    IntervalSchedule,
+    NewTenableVmScanner,
+    SrcUpdateServiceNowSettings,
+    TenableVmScannerPatch,
+    TenableVmScannerTestConfig,
+)
+from forward_sdk.testing import snapshot_payload
+from forward_sdk.trace import Endpoint, PathQuery, device, interface
 from tests.conftest import Recorder, json_response
 
 pytestmark = pytest.mark.anyio
@@ -595,3 +605,443 @@ class TestServiceNowCmdb:
             {"action": ["disable"]},
             {"action": ["push"]},
         ]
+
+
+class TestForward2611Snapshots:
+    """Forward 26.11 leaves predicted snapshots out of the listing unless asked
+    (FWD-61712), and waiting on a Predict run finds its snapshot there."""
+
+    def test_waiting_on_a_snapshot_asks_for_predicted_ones(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/networks/101/snapshots",
+            json_response({"snapshots": [snapshot_payload("p1", processingTrigger="PREDICT")]}),
+        )
+        with make_client(recorder) as client:
+            snapshot = client.snapshots.wait_until_processed("p1")
+
+        assert snapshot.id == "p1"
+        assert recorder.query_for()["includePredicted"] == ["true"]
+
+    def test_a_plain_listing_says_what_it_wants(self, recorder: Recorder) -> None:
+        recorder.add("GET", "/api/networks/101/snapshots", json_response({"snapshots": []}))
+        with make_client(recorder) as client:
+            client.snapshots.list()
+            client.snapshots.list(include_predicted=True)
+
+        assert recorder.query_for(0)["includePredicted"] == ["false"]
+        assert recorder.query_for(1)["includePredicted"] == ["true"]
+
+    def test_latest_processed_asks_only_when_predictions_are_wanted(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add("GET", "/api/networks/101/snapshots", json_response({"snapshots": []}))
+        with make_client(recorder) as client:
+            client.snapshots.latest_processed()
+            client.snapshots.latest_processed(include_predicted=True)
+
+        assert [recorder.query_for(i)["includePredicted"] for i in (0, 1)] == [["false"], ["true"]]
+
+
+class TestSlowPredictReads:
+    def test_a_slow_read_waits_longer_than_the_client_default(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            "/api/internal/snapshots/s1/verify-predict-modeling",
+            json_response({"diffs": {}, "score": {"precision": 1, "recall": 1, "f1": 1}}),
+        )
+        with make_client(recorder) as client:
+            client.predict_verification.verify_predict_modeling_base(snapshot_id="s1")
+
+        assert recorder.requests[-1].extensions["timeout"]["read"] == 1800.0
+
+    def test_a_longer_client_timeout_is_kept(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/internal/snapshots/s1/protocol-modeling",
+            json_response({"error": "Partitioning was not used"}),
+        )
+        with ForwardClient(
+            "https://forward.test",
+            username="key",
+            password="secret",
+            rate_limit_rpm=None,
+            network_id="101",
+            timeout=7200.0,
+            transport=recorder.transport,
+        ) as client:
+            client.protocol_modeling.get_protocol_modeling_partitions(snapshot_id="s1")
+
+        assert recorder.query_for() == {"view": ["partitions"]}
+        assert recorder.requests[-1].extensions["timeout"]["read"] == 7200.0
+
+    def test_an_ordinary_read_keeps_the_client_default(self, recorder: Recorder) -> None:
+        recorder.add("GET", "/api/internal/snapshots/s1/bgp-nodes", json_response({"17": "edge-1"}))
+        with make_client(recorder) as client:
+            devices = client.protocol_modeling.list_bgp_node_devices(snapshot_id="s1")
+
+        assert devices == {"17": "edge-1"}
+        assert "devices" in recorder.query_for()
+        assert recorder.requests[-1].extensions["timeout"]["read"] == 300.0
+
+    def test_the_blob_download_streams_with_the_long_wait(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/internal/snapshots/s1/protocol-modeling",
+            httpx.Response(200, content=b"PK\x03\x04blob"),
+        )
+        with make_client(recorder) as client:
+            chunks = [
+                c for c in client.protocol_modeling.download_protocol_modeling(snapshot_id="s1")
+            ]
+
+        request = recorder.requests[-1]
+        assert b"".join(chunks) == b"PK\x03\x04blob"
+        # Forward picks the blob handler by Accept; a JSON Accept has no handler.
+        assert request.headers["accept"] == "application/zip"
+        assert recorder.query_for() == {}
+        assert request.extensions["timeout"]["read"] >= 1200.0
+
+    def test_no_read_limit_stays_no_limit(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            "/api/internal/snapshots/s1/verify-predict-modeling",
+            json_response({"diffs": {}}),
+        )
+        with ForwardClient(
+            "https://forward.test",
+            username="key",
+            password="secret",
+            rate_limit_rpm=None,
+            network_id="101",
+            timeout=httpx.Timeout(10.0, read=None),
+            transport=recorder.transport,
+        ) as client:
+            client.predict_verification.verify_predict_modeling_base(snapshot_id="s1")
+
+        assert recorder.requests[-1].extensions["timeout"]["read"] is None
+
+    def test_a_slow_read_is_not_repeated_after_a_read_timeout(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add(
+            "GET",
+            "/api/internal/snapshots/s1/protocol-modeling",
+            httpx.ReadTimeout("slow"),
+            json_response({}),
+        )
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardTransportError):
+                client.protocol_modeling.get_protocol_modeling_partitions(snapshot_id="s1")
+
+        assert len(recorder.requests) == 1
+
+    def test_a_slow_read_is_not_repeated_after_a_server_error(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add(
+            "GET",
+            "/api/internal/snapshots/s1/protocol-modeling",
+            json_response({"message": "boom"}, 503),
+            httpx.Response(200, content=b"PK"),
+        )
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardServerError):
+                for _ in client.protocol_modeling.download_protocol_modeling(snapshot_id="s1"):
+                    pass
+
+        assert len(recorder.requests) == 1
+
+    def test_a_slow_read_is_retried_when_it_never_reached_forward(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add(
+            "GET",
+            "/api/internal/snapshots/s1/protocol-modeling",
+            httpx.ConnectError("refused"),
+            json_response({"message": "busy"}, 429),
+            json_response({}),
+        )
+        with make_client(recorder) as client:
+            client.protocol_modeling.get_protocol_modeling_partitions(snapshot_id="s1")
+
+        assert len(recorder.requests) == 3
+
+    def test_a_slow_read_is_retried_after_waiting_for_a_pooled_connection(
+        self, recorder: Recorder, no_sleep: list[float]
+    ) -> None:
+        recorder.add(
+            "GET",
+            "/api/internal/snapshots/s1/protocol-modeling",
+            httpx.PoolTimeout("no free connection"),
+            json_response({}),
+        )
+        with make_client(recorder) as client:
+            client.protocol_modeling.get_protocol_modeling_partitions(snapshot_id="s1")
+
+        assert len(recorder.requests) == 2
+
+
+class TestRoutingNodeReads:
+    def test_a_neighbor_that_is_not_an_ip_is_refused_before_sending(
+        self, recorder: Recorder
+    ) -> None:
+        with make_client(recorder) as client:
+            with pytest.raises(ValueError, match="IP address"):
+                client.protocol_modeling.get_bgp_node_rules(
+                    snapshot_id="s1",
+                    device_name="edge-1",
+                    vrf_name="default",
+                    neighbor_addr="peer-a",
+                )
+
+        assert recorder.requests == []
+
+    def test_an_ipv6_neighbor_is_sent(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/internal/snapshots/s1/bgp-rules",
+            json_response(
+                {"deviceId": 17, "vrfId": 0, "deviceName": "edge-1", "nbrConfigRules": []}
+            ),
+        )
+        with make_client(recorder) as client:
+            rules = client.protocol_modeling.get_bgp_node_rules(
+                snapshot_id="s1",
+                device_name="edge-1",
+                vrf_name="default",
+                neighbor_addr="2001:db8::1",
+            )
+
+        assert recorder.query_for()["neighborAddr"] == ["2001:db8::1"]
+        assert rules.device_name == "edge-1"
+
+    def test_the_subset_repeats_each_changed_device(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/internal/snapshots/s1/rp-nodes",
+            json_response({"names": ["core-1", "edge-1"]}),
+        )
+        with make_client(recorder) as client:
+            subset = client.protocol_modeling.get_change_set_subset(
+                snapshot_id="s1", changed_devices=["edge-1", "edge-2"], threshold=50
+            )
+
+        assert recorder.query_for() == {
+            "view": ["changeSetSubset"],
+            "changedDevices": ["edge-1", "edge-2"],
+            "threshold": ["50"],
+        }
+        assert subset.names == ["core-1", "edge-1"]
+
+    def test_a_vrf_without_bgp_reads_as_none(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/internal/snapshots/s1/devices/edge-1/vrfs/blue/bgp-node",
+            json_response({"bgpNode": None}),
+        )
+        with make_client(recorder) as client:
+            node = client.protocol_modeling.get_bgp_node(
+                snapshot_id="s1", device_name="edge-1", vrf_name="blue"
+            )
+
+        assert node.bgp_node is None
+
+
+class TestNetworkProperty:
+    def test_set_sends_the_value_as_a_query_parameter(self, recorder: Recorder) -> None:
+        recorder.add(
+            "PUT",
+            "/api/networks/101/config/DISABLE_FLOW_COMPUTATION",
+            json_response({"disable_flow_computation": True}),
+        )
+        with make_client(recorder) as client:
+            client.configuration.set_network_config_property(
+                network_id="101", property="DISABLE_FLOW_COMPUTATION", value="true"
+            )
+
+        assert recorder.query_for() == {"value": ["true"]}
+        assert recorder.body_for() is None
+
+
+SCANNER = {
+    "sourceId": "00000000-0000-4000-8000-000000000001",
+    "type": "TENABLE_VM",
+    "name": "vm-1",
+    "credentialId": "H-2",
+    "govCloud": False,
+    "collectionEnabled": True,
+    "collectorId": "C1",
+    "schedule": {"intervalDays": 1, "startAt": "02:00", "timeZone": "UTC"},
+    "allowedForNetworkIds": ["101"],
+    "createdById": "11",
+    "createdBy": "me@example.com",
+}
+
+
+class TestTenableVmScanners:
+    def test_create_sends_only_what_was_set(self, recorder: Recorder) -> None:
+        recorder.add("POST", "/api/vulnerability-scanners", json_response(SCANNER))
+        body = NewTenableVmScanner(
+            name="vm-1",
+            credential_id="H-2",
+            collector_id="C1",
+            schedule=IntervalSchedule(interval_days=1),
+            allowed_for_all_networks=True,
+        )
+        with make_client(recorder) as client:
+            stored = client.integrations.create_vulnerability_scanner(body=body.to_api())
+
+        sent = recorder.body_for()
+        assert sent == {
+            "name": "vm-1",
+            "credentialId": "H-2",
+            "collectorId": "C1",
+            "schedule": {"intervalDays": 1},
+            "allowedForAllNetworks": True,
+        }
+        assert stored.name == "vm-1"
+        assert stored.created_by == "me@example.com"
+        assert stored.schedule is not None and stored.schedule.start_at == "02:00"
+
+    def test_a_name_forward_would_refuse_is_caught_by_the_model(self) -> None:
+        with pytest.raises(ValidationError):
+            NewTenableVmScanner(
+                name="vm 1",
+                credential_id="H-2",
+                collector_id="C1",
+                schedule=IntervalSchedule(interval_days=1),
+            )
+        with pytest.raises(ValidationError):
+            IntervalSchedule(interval_days=0)
+
+    def test_a_patch_never_sends_null(self, recorder: Recorder) -> None:
+        recorder.add("PATCH", "/api/vulnerability-scanners/vm-1", json_response(SCANNER))
+        with make_client(recorder) as client:
+            client.integrations.update_vulnerability_scanner(
+                name="vm-1", body=TenableVmScannerPatch(collection_enabled=False).to_api()
+            )
+
+        assert recorder.body_for() == {"collectionEnabled": False}
+
+    def test_collect_is_the_post_with_its_action(self, recorder: Recorder) -> None:
+        recorder.add("POST", "/api/vulnerability-scanners/vm-1", httpx.Response(200))
+        with make_client(recorder) as client:
+            client.integrations.collect_vulnerability_scanner(name="vm-1")
+
+        assert recorder.query_for() == {"action": ["collect"]}
+        assert recorder.body_for() is None
+
+    def test_the_list_carries_collection_status(self, recorder: Recorder) -> None:
+        row = {**SCANNER, "lastAttempted": "2026-01-03T02:00:00Z", "collectionError": "NONE"}
+        recorder.add("GET", "/api/vulnerability-scanners", json_response([row]))
+        with make_client(recorder) as client:
+            (info,) = client.integrations.list_vulnerability_scanners()
+
+        assert info.collection_error == "NONE"
+        assert info.last_retrieved is None
+        assert info.allowed_for_network_ids == ["101"]
+
+    def test_the_connection_test_names_its_type_and_waits(self, recorder: Recorder) -> None:
+        recorder.add("POST", "/api/vulnerability-scanner-tests", json_response({}))
+        body = TenableVmScannerTestConfig(name="vm-1", credential_id="H-2", collector_id="C1")
+        with make_client(recorder) as client:
+            result = client.integrations.test_vulnerability_scanner(body=body.to_api())
+
+        assert recorder.body_for() == {
+            "type": "TENABLE_VM",
+            "name": "vm-1",
+            "credentialId": "H-2",
+            "collectorId": "C1",
+        }
+        assert recorder.requests[-1].extensions["timeout"]["read"] >= 90.0
+        assert result.error is None
+
+    def test_a_network_lists_every_scanner_kind(self, recorder: Recorder) -> None:
+        rows = [
+            {"type": "TENABLE_VM", "name": "vm-1", "include": True, "credentialId": "H-2"},
+            {
+                "type": "RAPID7",
+                "name": "r7",
+                "include": False,
+                "baseUrl": "https://r7.example.invalid",
+                "reportNames": ["weekly"],
+            },
+        ]
+        recorder.add("GET", "/api/networks/101/vulnerability-scanners", json_response(rows))
+        with make_client(recorder) as client:
+            scanners = client.integrations.list_network_vulnerability_scanners()
+
+        assert [(s.type, s.include) for s in scanners] == [("TENABLE_VM", True), ("RAPID7", False)]
+        assert scanners[1].report_names == ["weekly"]
+
+    def test_the_include_switch_is_a_patch(self, recorder: Recorder) -> None:
+        recorder.add(
+            "PATCH",
+            "/api/networks/101/vulnerability-scanners/vm-1",
+            json_response(None, status=204),
+        )
+        with make_client(recorder) as client:
+            client.integrations.set_network_vulnerability_scanner_include(
+                name="vm-1", body={"include": False}
+            )
+
+        assert recorder.body_for() == {"include": False}
+
+
+class TestOrgHttpCredentials:
+    def test_the_org_routes_are_not_the_network_ones(self, recorder: Recorder) -> None:
+        stored = {"id": "H-2", "type": "LOGIN", "name": "keys", "username": "a", "password": "S-1"}
+        recorder.add("GET", "/api/http-credentials", json_response([stored]))
+        recorder.add("POST", "/api/http-credentials", json_response(stored))
+        recorder.add("PATCH", "/api/http-credentials/H-2", json_response(stored))
+        recorder.add("DELETE", "/api/http-credentials/H-2", json_response(None, status=204))
+        with make_client(recorder) as client:
+            (listed,) = client.credentials.list_org_http_credentials()
+            created = client.credentials.create_org_http_credential(
+                body={"type": "LOGIN", "name": "keys", "username": "a", "password": "b"}
+            )
+            updated = client.credentials.update_org_http_credential(
+                credential_id="H-2", body={"name": "keys"}
+            )
+            client.credentials.delete_org_http_credential(credential_id="H-2")
+
+        assert [r.url.path for r in recorder.requests] == [
+            "/api/http-credentials",
+            "/api/http-credentials",
+            "/api/http-credentials/H-2",
+            "/api/http-credentials/H-2",
+        ]
+        assert listed.id == created.id == updated.id == "H-2"
+
+
+class TestTracePathQuery:
+    def test_the_query_goes_out_as_the_facets_body(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            "/api/networks/101/trace-facets",
+            json_response(
+                {"facets": {"pathGroups": []}, "totalResults": {"value": 0, "type": "EXACT"}}
+            ),
+        )
+        query = PathQuery(
+            from_=Endpoint(device("edge-1"), headers=[{"ipv4_dst": ["192.0.2.10"]}]),
+            to=Endpoint(interface("core-1", "eth1/1")),
+        )
+        with make_client(recorder) as client:
+            facets = client.flow_trace.get_trace_facets(
+                body=query.request(max_results=100), snapshot_id="s1"
+            )
+
+        assert recorder.body_for() == {
+            "filters": {
+                "from": {
+                    "location": {"type": "DeviceFilter", "values": ["edge-1"]},
+                    "headers": [{"type": "PacketFilter", "values": {"ipv4_dst": ["192.0.2.10"]}}],
+                },
+                "to": {"location": {"type": "InterfaceFilter", "values": ["core-1 eth1/1"]}},
+            },
+            "maxResults": 100,
+        }
+        assert recorder.query_for() == {"snapshotId": ["s1"]}
+        assert facets.total_results is not None and facets.total_results.value == 0

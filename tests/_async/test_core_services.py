@@ -60,8 +60,23 @@ class TestNetworks:
         assert networks[0].name == "Prod"
         assert networks[0].org_id == "7"
 
-    async def test_get_filters_the_listing(self, recorder: Recorder) -> None:
-        """Forward has no single-network endpoint, so this reads the list."""
+    async def test_get_reads_the_single_network_route(self, recorder: Recorder) -> None:
+        """Forward after 26.10 has GET /networks/{id}; the list is not read."""
+        recorder.add(
+            "GET", "/api/networks/2", json_response({"id": "2", "name": "b", "orgId": "7"})
+        )
+        async with make_client(recorder) as client:
+            assert (await client.networks.get("2")).name == "b"
+
+        assert recorder.count("GET", "/api/networks") == 0
+
+    async def test_get_falls_back_to_the_listing_on_older_forward(self, recorder: Recorder) -> None:
+        """Forward 26.10 answers the single-network GET with a 405 HTML page."""
+        recorder.add(
+            "GET",
+            "/api/networks/2",
+            httpx.Response(405, text="<html><title>Error 405</title></html>"),
+        )
         recorder.add(
             "GET",
             "/api/networks",
@@ -72,11 +87,34 @@ class TestNetworks:
         async with make_client(recorder) as client:
             assert (await client.networks.get("2")).name == "b"
 
-    async def test_get_missing_network_raises(self, recorder: Recorder) -> None:
+    async def test_get_missing_network_raises_on_older_forward(self, recorder: Recorder) -> None:
+        recorder.add("GET", "/api/networks/999", httpx.Response(405, text="<html></html>"))
         recorder.add("GET", "/api/networks", json_response([]))
         async with make_client(recorder) as client:
             with pytest.raises(ForwardNotFoundError, match="no network with id"):
                 await client.networks.get("999")
+
+    async def test_get_falls_back_when_the_route_is_not_served(self, recorder: Recorder) -> None:
+        recorder.add(
+            "GET",
+            "/api/networks/2",
+            json_response({"message": "No endpoint GET /api/networks/2."}, 404),
+        )
+        recorder.add(
+            "GET", "/api/networks", json_response([{"id": "2", "name": "b", "orgId": "7"}])
+        )
+        async with make_client(recorder) as client:
+            assert (await client.networks.get("2")).name == "b"
+
+    async def test_a_404_from_the_single_network_route_is_not_masked(
+        self, recorder: Recorder
+    ) -> None:
+        recorder.add("GET", "/api/networks/999", json_response({"message": "not found"}, 404))
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardNotFoundError):
+                await client.networks.get("999")
+
+        assert recorder.count("GET", "/api/networks") == 0
 
     async def test_create_sends_the_name_as_a_query_parameter(self, recorder: Recorder) -> None:
         """Forward's create endpoint takes a name in the query and no body."""

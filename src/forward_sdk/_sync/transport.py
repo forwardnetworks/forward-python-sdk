@@ -112,7 +112,21 @@ class Transport:
             files=spec.files if files is None else files,
             data=spec.data,
             headers=headers,
-            timeout=spec.timeout if spec.timeout is not None else self.config.timeout,
+            timeout=spec.timeout if spec.timeout is not None else self._timeout_for(spec),
+        )
+
+    def _timeout_for(self, spec: RequestSpec) -> httpx.Timeout:
+        """The client's timeout, with the read limit raised for a slow operation.
+
+        Only ever lengthened: a client configured with a longer read timeout, or
+        none at all, keeps it.
+        """
+        timeout = self.config.timeout
+        floor = spec.operation.min_read_timeout
+        if floor is None or timeout.read is None or timeout.read >= floor:
+            return timeout
+        return httpx.Timeout(
+            connect=timeout.connect, read=floor, write=timeout.write, pool=timeout.pool
         )
 
     def _pace(self) -> None:
@@ -191,7 +205,11 @@ class Transport:
                 if isinstance(exc, httpx.TimeoutException):
                     self.counters.increment("http_timeouts")
                 last_error = exc
-                if final or not _retry_on_transport_error(spec, exc):
+                if (
+                    final
+                    or _slow_and_started(spec, exc)
+                    or not _retry_on_transport_error(spec, exc)
+                ):
                     raise ForwardTransportError(
                         f"{spec.method} {spec.path} failed: {exc}", attempts=attempt + 1
                     ) from exc
@@ -210,6 +228,7 @@ class Transport:
             if (
                 response.status_code in RETRYABLE_STATUS
                 and not final
+                and not _slow_and_failed(spec, response.status_code)
                 and (spec.idempotent or _is_rate_limit_refusal(response))
             ):
                 if response.status_code == 429:
@@ -252,9 +271,13 @@ class Transport:
         resumability should page instead.
         """
         policy = self.config.retries
+        stream_read: float | None = self.config.stream_read_timeout
+        floor = spec.operation.min_read_timeout
+        if floor is not None and stream_read is not None and stream_read < floor:
+            stream_read = floor
         timeout = httpx.Timeout(
             connect=self.config.timeout.connect,
-            read=self.config.stream_read_timeout,
+            read=stream_read,
             write=self.config.timeout.write,
             pool=self.config.timeout.pool,
         )
@@ -272,7 +295,7 @@ class Transport:
                 response = self._client.send(request, stream=True)
             except httpx.TransportError as exc:
                 self.counters.increment("transport_errors")
-                if final:
+                if final or _slow_and_started(spec, exc):
                     raise ForwardTransportError(
                         f"{spec.method} {spec.path} failed: {exc}", attempts=attempt + 1
                     ) from exc
@@ -281,7 +304,11 @@ class Transport:
                 )
                 continue
 
-            if response.status_code in RETRYABLE_STATUS and not final:
+            if (
+                response.status_code in RETRYABLE_STATUS
+                and not final
+                and not _slow_and_failed(spec, response.status_code)
+            ):
                 if response.status_code == 429:
                     self.counters.increment("http_429")
                 retry_after = parse_retry_after(response.headers.get("retry-after"))
@@ -310,6 +337,26 @@ class Transport:
             f"{spec.method} {spec.path} exhausted {policy.max_attempts} attempts",
             attempts=policy.max_attempts,
         )
+
+
+def _slow_and_started(spec: RequestSpec, exc: httpx.TransportError) -> bool:
+    """A slow operation's request may have reached Forward, so it is not repeated.
+
+    An operation with ``min_read_timeout`` starts work on Forward that can run
+    for many minutes (a queued search task). Repeating it after a read timeout
+    or a dropped connection waits that long again and queues a second task
+    beside the first. Only a failure to connect, where Forward never saw the
+    request, or a wait for a free pooled connection, is retried.
+    """
+    if spec.operation.min_read_timeout is None:
+        return False
+    return not isinstance(exc, (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout))
+
+
+def _slow_and_failed(spec: RequestSpec, status: int) -> bool:
+    """A slow operation's 5xx is final; see :func:`_slow_and_started`. A 429 is
+    Forward's rate limiter refusing before any work began, so it is retried."""
+    return spec.operation.min_read_timeout is not None and status >= 500
 
 
 def _retry_on_transport_error(spec: RequestSpec, exc: httpx.TransportError) -> bool:

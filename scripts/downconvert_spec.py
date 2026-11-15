@@ -317,6 +317,41 @@ def relax_schema_properties(schemas: dict[str, Any], relaxations: dict[str, Any]
     return relaxed
 
 
+def extend_parameters(paths: dict[str, Any], extensions: dict[str, Any]) -> int:
+    """Add query parameters Forward binds but leaves out of a published operation.
+
+    A newer Forward can accept a parameter on a published route before its
+    description lists it (``includePredicted`` on the snapshot listing). The
+    extension names the operation by ``operationId`` and gives the parameters
+    to append. Each is refused once the operation publishes a parameter of the
+    same name and location, so the entry is removed rather than duplicating it.
+
+    Returns the number of parameters added.
+    """
+    by_id: dict[str, dict[str, Any]] = {}
+    for item in paths.values():
+        for operation in item.values():
+            if isinstance(operation, dict) and "operationId" in operation:
+                by_id[operation["operationId"]] = operation
+    added = 0
+    for operation_id, parameters in extensions.items():
+        target = by_id.get(operation_id)
+        if target is None:
+            raise UnsupportedSpecFeature(
+                f"x-extend-parameters names {operation_id!r}, which is not published"
+            )
+        existing = target.setdefault("parameters", [])
+        for parameter in parameters:
+            key = (parameter.get("name"), parameter.get("in"))
+            if any((p.get("name"), p.get("in")) == key for p in existing if "$ref" not in p):
+                raise UnsupportedSpecFeature(
+                    f"{operation_id} publishes {key[0]!r} now; remove it from x-extend-parameters"
+                )
+            existing.append(parameter)
+            added += 1
+    return added
+
+
 def merge_unpublished(doc: dict[str, Any], extra: dict[str, Any]) -> int:
     """Fold the hand-written description of unpublished endpoints into ``doc``.
 
@@ -334,6 +369,7 @@ def merge_unpublished(doc: dict[str, Any], extra: dict[str, Any]) -> int:
 
     merged += extend_schemas(schemas, extra.get("x-extend-schemas") or {})
     relax_schema_properties(schemas, extra.get("x-relax-schema-properties") or {})
+    extend_parameters(doc.setdefault("paths", {}), extra.get("x-extend-parameters") or {})
 
     for path, item in (extra.get("paths") or {}).items():
         target = doc.setdefault("paths", {}).setdefault(path, {})

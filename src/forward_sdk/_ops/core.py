@@ -32,6 +32,12 @@ def list_networks() -> RequestSpec:
     return spec_for("getNetworks")
 
 
+@op("getNetwork")
+def get_network(*, network_id: str) -> RequestSpec:
+    """Forward after 26.10 only; older Forward answers 405."""
+    return spec_for("getNetwork", path_params={"networkId": network_id})
+
+
 @op("createNetwork")
 def create_network(*, name: str) -> RequestSpec:
     """Create a network.
@@ -94,6 +100,7 @@ def list_snapshots(
     state: str | Sequence[str] | None = None,
     limit: int | None = None,
     include_archived: bool = False,
+    include_predicted: bool = False,
     **filters: Any,
 ) -> RequestSpec:
     """List a network's snapshots, newest first."""
@@ -103,6 +110,9 @@ def list_snapshots(
         # Sent even when false, so the argument asserts something rather than
         # deferring to a server default that could change.
         "includeArchived": bool(include_archived),
+        # Forward 26.11 hides predicted snapshots unless asked; older Forward
+        # ignores the parameter and lists them anyway.
+        "includePredicted": bool(include_predicted),
     }
     query.update(filters)
     return spec_for("listNetworkSnapshots", path_params={"networkId": network_id}, query=query)

@@ -262,3 +262,38 @@ class TestExtendingPublishedSchemas:
         converter = _load_converter()
         with pytest.raises(converter.UnsupportedSpecFeature, match="not published"):
             converter.extend_schemas({}, {"Nope": {"properties": {"a": {"type": "string"}}}})
+
+
+class TestExtendingPublishedParameters:
+    """Query parameters a newer Forward accepts on a published route before its
+    description lists them (includePredicted on the snapshot listing)."""
+
+    def test_every_declared_parameter_reaches_the_merged_spec(
+        self, derived: dict[str, Any]
+    ) -> None:
+        unpublished = yaml.safe_load(Path("spec/unpublished.yaml").read_text(encoding="utf-8"))
+        extensions = unpublished["x-extend-parameters"]
+        assert extensions, "nothing is extended; remove this class if that is intended"
+        operations = {
+            op["operationId"]: op
+            for item in derived["paths"].values()
+            for op in item.values()
+            if isinstance(op, dict) and "operationId" in op
+        }
+        for operation_id, parameters in extensions.items():
+            names = [p.get("name") for p in operations[operation_id].get("parameters", [])]
+            for parameter in parameters:
+                assert names.count(parameter["name"]) == 1, f"{operation_id}.{parameter['name']}"
+
+    def test_a_parameter_forward_now_publishes_fails_the_build(self) -> None:
+        converter = _load_converter()
+        paths: dict[str, Any] = {
+            "/x": {"get": {"operationId": "op", "parameters": [{"name": "a", "in": "query"}]}}
+        }
+        with pytest.raises(converter.UnsupportedSpecFeature, match="publishes 'a' now"):
+            converter.extend_parameters(paths, {"op": [{"name": "a", "in": "query"}]})
+
+    def test_an_unknown_operation_fails_the_build(self) -> None:
+        converter = _load_converter()
+        with pytest.raises(converter.UnsupportedSpecFeature, match="not published"):
+            converter.extend_parameters({}, {"nope": [{"name": "a", "in": "query"}]})

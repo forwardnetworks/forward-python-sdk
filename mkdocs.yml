@@ -63,6 +63,7 @@ nav:
   - Snapshots: snapshots.md
   - Network maps: network-maps.md
   - Rehearsing a change: predict.md
+  - Flow trace queries: flow-trace.md
   - Live events: events.md
   - Forward AI: ai.md
   - API groups: services.md

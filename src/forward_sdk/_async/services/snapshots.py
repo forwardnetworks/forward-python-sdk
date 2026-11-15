@@ -205,12 +205,17 @@ class AsyncSnapshotsService(AsyncService):
         state: str | SnapshotState | Sequence[str] | None = None,
         limit: int | None = None,
         include_archived: bool = False,
+        include_predicted: bool = False,
         exclude_triggers: Sequence[str] = (),
         **filters: Any,
     ) -> list[SnapshotInfo]:
         """List a network's snapshots, newest first.
 
         Args:
+            include_predicted: Also list the snapshots Predict created. Forward
+                26.11 leaves them out unless asked; older Forward lists them
+                either way, so filter with ``exclude_triggers=("PREDICT",)`` when
+                you need them gone on every version.
             exclude_triggers: Drop snapshots whose ``processingTrigger`` is one
                 of these, ``("PREDICT",)`` being the usual case. Forward does not
                 filter by trigger, so this is applied here after the response.
@@ -231,6 +236,7 @@ class AsyncSnapshotsService(AsyncService):
                 # actually assert anything, and a change upstream would alter
                 # behaviour silently.
                 include_archived=bool(include_archived),
+                include_predicted=bool(include_predicted),
                 **filters,
             )
         )
@@ -282,7 +288,9 @@ class AsyncSnapshotsService(AsyncService):
         cached = self._cached(key)
         if cached is not _MISS:
             return cached  # type: ignore[no-any-return]
-        snapshots = await self.list(network_id, state=PROCESSED)
+        snapshots = await self.list(
+            network_id, state=PROCESSED, include_predicted=include_predicted
+        )
         # Forward's own test for a fork is a parent snapshot, whatever the
         # trigger says: a reprocessed fork reports REPROCESS, and a caller may
         # name any trigger when forking. Predictions have a parent too, so an
@@ -963,7 +971,9 @@ class AsyncSnapshotsService(AsyncService):
         )
 
     async def _find(self, network_id: str, snapshot_id: str) -> SnapshotInfo:
-        for snapshot in await self.list(network_id, include_archived=True):
+        # Predicted snapshots included: Forward 26.11 hides them from the plain
+        # listing, and waiting on a Predict run looks its snapshot up here.
+        for snapshot in await self.list(network_id, include_archived=True, include_predicted=True):
             if snapshot.id == snapshot_id:
                 return snapshot
         raise ForwardNotFoundError(

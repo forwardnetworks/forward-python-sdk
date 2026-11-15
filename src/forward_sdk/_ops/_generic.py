@@ -17,6 +17,7 @@ assembled from several arguments -- are written by hand in the other modules.
 from __future__ import annotations
 
 import inspect
+import ipaddress
 import keyword
 import re
 from collections.abc import Callable, Mapping, Sequence
@@ -146,9 +147,16 @@ def generic(
         if param.required and len(param.enum) == 1
     }
 
+    checked = {snake(p.name): p for p in operation.parameters if p.validate}
+    for param in checked.values():
+        if param.validate not in _CHECKS:
+            raise AssertionError(f"unknown parameter check {param.validate!r} on {operation_id}")
+
     def build(**kwargs: Any) -> RequestSpec:
         for name, value in implied.items():
             kwargs.setdefault(name, value)
+        for name, param in checked.items():
+            _check(operation_id, param, kwargs.get(name))
 
         body = kwargs.pop(BODY_ARGUMENT, None) if has_body else None
         path_params: dict[str, Any] = {}
@@ -193,6 +201,25 @@ def generic(
     build.__doc__ = _describe(operation)
     build.__signature__ = _signature(operation, has_body=has_body)  # type: ignore[attr-defined]
     return op(operation_id)(build)
+
+
+_CHECKS = frozenset({"ip-address"})
+
+
+def _check(operation_id: str, param: ParamDef, value: Any) -> None:
+    """Refuse a value Forward would answer with a 500, before it is sent.
+
+    Blank counts as absent, as Forward treats it.
+    """
+    if value is None or not str(value).strip():
+        return
+    try:
+        ipaddress.ip_address(str(value))
+    except ValueError:
+        raise ValueError(
+            f"{operation_id}: {param.name} must be an IP address, not {value!r} "
+            "(Forward answers 500 to anything else)"
+        ) from None
 
 
 def _describe(operation: OpDef) -> str:

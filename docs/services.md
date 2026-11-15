@@ -66,7 +66,7 @@ Forward's API documentation: `getLocations` becomes `get_locations`.
 | `client.predict_assist` | Predict Assist | Unpublished; `AI_ALLOWED` and `PREDICT_AI_ASSIST` |
 | `client.predict_reference` | Predict Reference | Unpublished; Predict OS list and allowed commands per OS and protocol |
 | `client.change_set_checks` | Change Set Checks | Unpublished; `PREDICT_MODELING` org property; edit a check, list NQE checks |
-| `client.protocol_modeling` | Protocol Modeling | Unpublished; status needs `MANAGE_PROTOCOL_MODELING` (network admin); affected devices need `PREDICT_MODELING` |
+| `client.protocol_modeling` | Protocol Modeling | Unpublished; status, partitions and the debug blob need `MANAGE_PROTOCOL_MODELING` (network admin); affected devices need `PREDICT_MODELING`; the BGP, OSPF and config node reads and the change-set subset need only `VIEW_NETWORK_AND_SNAPSHOTS` |
 | `client.performance_collection` | Performance Collection | Unpublished; collector upload and collector device list need a collector credential |
 | `client.device_interfaces` | Device Interfaces | Unpublished; one device's interfaces |
 | `client.device_diffs` | Device Diffs | Unpublished; per-device differences between two snapshots |
@@ -161,7 +161,7 @@ described by hand in `spec/unpublished.yaml` (see [unpublished endpoints](unpubl
 | `client.collection_sources` | Controller-managed and cloud-managed setups | reads |
 | `client.custom_command_groups` | Extra CLI commands and OIDs collection runs | reads |
 | `client.device_discovery` | Finding devices by scanning, including scheduled scans | reads |
-| `client.integrations` | Infoblox, ServiceNow (incidents and CMDB), Rapid7 | Infoblox status, CMDB history |
+| `client.integrations` | Infoblox, ServiceNow (incidents and CMDB), Rapid7, Tenable Security Center and Tenable VM scanners | Infoblox status, CMDB history, scanner lists |
 | `client.data_files` | The org's data-file library and a network's use of it | reads |
 | `client.performance_metrics` | Device and interface utilization and health | reads |
 | `client.scorecards` | Scorecards, KPI categories and trends | reads |

@@ -10,6 +10,7 @@ These endpoints are not part of Forward's published API.
 
 from __future__ import annotations
 
+from collections.abc import Iterator, Sequence
 from typing import Any
 
 from forward_sdk._generated import models
@@ -21,6 +22,97 @@ __all__ = ["ProtocolModelingService"]
 
 class ProtocolModelingService(Service):
     """Protocol Modeling."""
+
+    def download_protocol_modeling(
+        self,
+        *,
+        snapshot_id: str,
+    ) -> Iterator[bytes]:
+        """Download a snapshot's protocol-modeling debug blob.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        with self._transport.stream(
+            ops.BUILDERS["downloadProtocolModeling"](snapshot_id=snapshot_id)
+        ) as response:
+            for chunk in response.iter_bytes():
+                yield chunk
+
+    def get_bgp_node(
+        self,
+        *,
+        snapshot_id: str,
+        device_name: str,
+        vrf_name: str,
+    ) -> models.PredictBgpNodeResponse:
+        """One modeled BGP node.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getBgpNode"](
+                snapshot_id=snapshot_id, device_name=device_name, vrf_name=vrf_name
+            )
+        )
+        return models.PredictBgpNodeResponse.model_validate(payload or {})
+
+    def get_bgp_node_rules(
+        self,
+        *,
+        snapshot_id: str,
+        device_name: str,
+        vrf_name: str,
+        neighbor_addr: str | None = None,
+    ) -> models.PredictBgpNodePolicyRules:
+        """A BGP node's import and export policy rules.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getBgpNodeRules"](
+                snapshot_id=snapshot_id,
+                device_name=device_name,
+                vrf_name=vrf_name,
+                neighbor_addr=neighbor_addr,
+            )
+        )
+        return models.PredictBgpNodePolicyRules.model_validate(payload or {})
+
+    def get_change_set_subset(
+        self,
+        *,
+        snapshot_id: str,
+        changed_devices: Sequence[str],
+        num_iterations: int | None = None,
+        threshold: int | None = None,
+    ) -> models.DeviceNames:
+        """The devices a routing change on some devices can reach.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getChangeSetSubset"](
+                snapshot_id=snapshot_id,
+                changed_devices=changed_devices,
+                num_iterations=num_iterations,
+                threshold=threshold,
+            )
+        )
+        return models.DeviceNames.model_validate(payload or {})
+
+    def get_protocol_modeling_partitions(
+        self,
+        *,
+        snapshot_id: str,
+    ) -> Any:
+        """How protocol modeling partitioned a snapshot.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getProtocolModelingPartitions"](snapshot_id=snapshot_id)
+        )
+        return payload
 
     def get_protocol_modeling_path_selection(
         self,
@@ -73,6 +165,78 @@ class ProtocolModelingService(Service):
             ops.BUILDERS["getProtocolModelingStatus"](snapshot_id=snapshot_id)
         )
         return models.PredictProtocolModelingStatus.model_validate(payload or {})
+
+    def list_bgp_node_devices(
+        self,
+        *,
+        snapshot_id: str,
+    ) -> Any:
+        """Devices with a modeled BGP node.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["listBgpNodeDevices"](snapshot_id=snapshot_id))
+        return payload
+
+    def list_config_node_devices(
+        self,
+        *,
+        snapshot_id: str,
+    ) -> Any:
+        """Devices with a modeled config node.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["listConfigNodeDevices"](snapshot_id=snapshot_id))
+        return payload
+
+    def list_device_config_nodes(
+        self,
+        *,
+        snapshot_id: str,
+        device_name: str,
+        vrf_name: str | None = None,
+    ) -> models.PredictConfigNodesResponse:
+        """A device's modeled config nodes.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["listDeviceConfigNodes"](
+                snapshot_id=snapshot_id, device_name=device_name, vrf_name=vrf_name
+            )
+        )
+        return models.PredictConfigNodesResponse.model_validate(payload or {})
+
+    def list_device_ospf_nodes(
+        self,
+        *,
+        snapshot_id: str,
+        device_name: str,
+        vrf_name: str | None = None,
+    ) -> models.PredictOspfNodesResponse:
+        """A device's modeled OSPF nodes.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["listDeviceOspfNodes"](
+                snapshot_id=snapshot_id, device_name=device_name, vrf_name=vrf_name
+            )
+        )
+        return models.PredictOspfNodesResponse.model_validate(payload or {})
+
+    def list_ospf_node_devices(
+        self,
+        *,
+        snapshot_id: str,
+    ) -> Any:
+        """Devices with a modeled OSPF node.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = self._send_json(ops.BUILDERS["listOspfNodeDevices"](snapshot_id=snapshot_id))
+        return payload
 
     def list_predict_affected_devices(
         self,

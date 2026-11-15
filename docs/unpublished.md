@@ -46,6 +46,9 @@ operation table, so nothing lands here by accident.
 | Raw snapshot artifacts | `GET /snapshots/{id}/files[/{fileName}]` | `client.snapshots.files()`, `.file()` |
 | Processing exceptions | `GET /snapshots/{id}/exceptions`, `?view=json` | `client.snapshots.exceptions()`, `.exceptions_text()` |
 | Reprocess a snapshot in place | `POST /snapshots/{id}?action=invalidate[&reprocess=true]`, `?action=reprocess` | `client.snapshots.invalidate()`, `.reprocess()` |
+| Tenable VM scanners: list, add, change, delete, collect, test (read from Forward source; only the lists seen live) | `/vulnerability-scanners[/{name}][?action=collect]`, `/vulnerability-scanner-tests` | `client.integrations.*_vulnerability_scanner(s)` |
+| A network's scanners and include switch (read from Forward source; only the lists seen live) | `/networks/{id}/vulnerability-scanners[/{name}]` | `client.integrations.list_network_vulnerability_scanners()`, `set_network_vulnerability_scanner_include()` |
+| Org-level HTTP credentials (read from Forward source; only the lists seen live) | `/http-credentials[/{credentialId}]` | `client.credentials.*_org_http_credential(s)` |
 | List chats | `GET /ai-chats` | `client.ai.list()` |
 | Start a chat | `POST /ai-chats` | `client.ai.start()` |
 | Get a chat | `GET /ai-chats/{id}` | `client.ai.get()` |
@@ -89,6 +92,7 @@ operation table, so nothing lands here by accident.
 | Connectivity tests: start, stop, results, phase breakdown | `/networks/{id}/connectivityTests[/{name}][/start\|/stop]`, `?type=endpoint` | `client.connectivity_tests` |
 | Listing org, global and support-scoped properties | `GET /config`, `/global-config`, `/orgs/{id}/config` (`?filter=`) | `client.configuration.get_*_config_values()`, `describe_properties()` |
 | Org, global and deployment configuration | `/config/{p}`, `/global-config/{p}`, `/orgs/{org}/config/{p}`, `/deployment-config[/{p}]` | `client.configuration`, `config_value()` |
+| One network's property | `/networks/{id}/config/{p}` (GET, PUT `?value=`, DELETE) | `client.configuration.get_network_config_property()` and the set and delete |
 | Client packages (headless collector) | `GET /software/client?type=` | `client.client_software.download()`, `get_client_package()` |
 
 The published `POST /snapshots/{id}?action=computeAdvancedReachability` does the

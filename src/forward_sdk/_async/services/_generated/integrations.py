@@ -69,6 +69,18 @@ class AsyncIntegrationsService(AsyncService):
         payload = await self._send_json(ops.BUILDERS["closeServiceNowIncidents"](body=body))
         return payload
 
+    async def collect_vulnerability_scanner(
+        self,
+        *,
+        name: str,
+    ) -> Any:
+        """Collect a Tenable Vulnerability Management scanner now.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(ops.BUILDERS["collectVulnerabilityScanner"](name=name))
+        return payload
+
     async def create_change_set_change_request(
         self,
         *,
@@ -131,6 +143,18 @@ class AsyncIntegrationsService(AsyncService):
             ops.BUILDERS["createTenableSource"](network_id=self._network(network_id), body=body)
         )
         return models.AdmTenableSource.model_validate(payload or {})
+
+    async def create_vulnerability_scanner(
+        self,
+        *,
+        body: Any,
+    ) -> models.StoredVulnerabilityScanner:
+        """Add a Tenable Vulnerability Management scanner.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(ops.BUILDERS["createVulnerabilityScanner"](body=body))
+        return models.StoredVulnerabilityScanner.model_validate(payload or {})
 
     async def delete_infoblox_instance(
         self,
@@ -200,6 +224,18 @@ class AsyncIntegrationsService(AsyncService):
                 network_id=self._network(network_id), source_name=source_name
             )
         )
+        return payload
+
+    async def delete_vulnerability_scanner(
+        self,
+        *,
+        name: str,
+    ) -> Any:
+        """Delete a Tenable Vulnerability Management scanner.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(ops.BUILDERS["deleteVulnerabilityScanner"](name=name))
         return payload
 
     async def disable_service_now_cmdb(
@@ -406,6 +442,21 @@ class AsyncIntegrationsService(AsyncService):
         payload = await self._send_json(ops.BUILDERS["listInfobloxInstanceStatuses"]())
         return models.SrcInfobloxInstancesStatus.model_validate(payload or {})
 
+    async def list_network_vulnerability_scanners(
+        self,
+        *,
+        network_id: str | None = None,
+    ) -> list[models.NetworkVulnerabilityScanner]:
+        """List the vulnerability scanners a network can use.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["listNetworkVulnerabilityScanners"](network_id=self._network(network_id))
+        )
+        return [models.NetworkVulnerabilityScanner.model_validate(row) for row in payload or []]
+
     async def list_service_now_cmdb_configuration_items(
         self,
         *,
@@ -433,6 +484,16 @@ class AsyncIntegrationsService(AsyncService):
             ops.BUILDERS["listServiceNowCmdbDiscoverySources"](body=body)
         )
         return payload
+
+    async def list_vulnerability_scanners(
+        self,
+    ) -> list[models.VulnerabilityScannerInfo]:
+        """List the organization's vulnerability scanners.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(ops.BUILDERS["listVulnerabilityScanners"]())
+        return [models.VulnerabilityScannerInfo.model_validate(row) for row in payload or []]
 
     async def patch_service_now_settings(
         self,
@@ -468,6 +529,25 @@ class AsyncIntegrationsService(AsyncService):
         payload = await self._send_json(ops.BUILDERS["saveServiceNowCmdbConfiguration"](body=body))
         return payload
 
+    async def set_network_vulnerability_scanner_include(
+        self,
+        *,
+        name: str,
+        body: Any,
+        network_id: str | None = None,
+    ) -> Any:
+        """Include or exclude a scanner in a network's snapshots.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["setNetworkVulnerabilityScannerInclude"](
+                network_id=self._network(network_id), name=name, body=body
+            )
+        )
+        return payload
+
     async def test_service_now_cmdb_connection(
         self,
         *,
@@ -495,6 +575,18 @@ class AsyncIntegrationsService(AsyncService):
             ops.BUILDERS["testTenableSource"](network_id=self._network(network_id), body=body)
         )
         return models.AdmTenableSourceTestResult.model_validate(payload or {})
+
+    async def test_vulnerability_scanner(
+        self,
+        *,
+        body: Any,
+    ) -> models.VulnerabilityScannerTestResult:
+        """Test a Tenable Vulnerability Management connection.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(ops.BUILDERS["testVulnerabilityScanner"](body=body))
+        return models.VulnerabilityScannerTestResult.model_validate(payload or {})
 
     async def update_infoblox_instance(
         self,
@@ -548,3 +640,18 @@ class AsyncIntegrationsService(AsyncService):
             )
         )
         return models.AdmTenableSource.model_validate(payload or {})
+
+    async def update_vulnerability_scanner(
+        self,
+        *,
+        name: str,
+        body: Any,
+    ) -> models.StoredVulnerabilityScanner:
+        """Change a Tenable Vulnerability Management scanner.
+
+        Unpublished: not part of Forward's documented API.
+        """
+        payload = await self._send_json(
+            ops.BUILDERS["updateVulnerabilityScanner"](name=name, body=body)
+        )
+        return models.StoredVulnerabilityScanner.model_validate(payload or {})

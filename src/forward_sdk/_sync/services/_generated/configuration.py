@@ -73,6 +73,24 @@ class ConfigurationService(Service):
         )
         return payload
 
+    def delete_network_config_property(
+        self,
+        *,
+        property: str,
+        network_id: str | None = None,
+    ) -> Any:
+        """Remove a network's override of one property.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["deleteNetworkConfigProperty"](
+                network_id=self._network(network_id), property=property
+            )
+        )
+        return payload
+
     def get_deployment_config(
         self,
     ) -> models.ConfigValues:
@@ -132,6 +150,24 @@ class ConfigurationService(Service):
         """
         payload = self._send_json(ops.BUILDERS["getGlobalConfigValues"](filter=filter))
         return models.ConfigValues.model_validate(payload or {})
+
+    def get_network_config_property(
+        self,
+        *,
+        property: str,
+        network_id: str | None = None,
+    ) -> Any:
+        """One network property's effective value.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["getNetworkConfigProperty"](
+                network_id=self._network(network_id), property=property
+            )
+        )
+        return payload
 
     def get_network_config_property_overrides(
         self,
@@ -245,6 +281,25 @@ class ConfigurationService(Service):
             ops.BUILDERS["setGlobalConfigValue"](property=property, value=value)
         )
         return models.ConfigValue.model_validate(payload or {})
+
+    def set_network_config_property(
+        self,
+        *,
+        property: str,
+        value: str,
+        network_id: str | None = None,
+    ) -> Any:
+        """Override one network property.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["setNetworkConfigProperty"](
+                network_id=self._network(network_id), property=property, value=value
+            )
+        )
+        return payload
 
     def set_org_config_value(
         self,

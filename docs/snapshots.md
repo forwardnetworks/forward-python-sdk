@@ -249,6 +249,11 @@ the wrong state of the network.
 Forward does not publish `PREDICT` in its API description, so a deployment not
 using Predict sees no difference either way.
 
+Forward 26.11 also leaves predicted snapshots out of `list()` unless you pass
+`include_predicted=True` (older Forward lists them either way). The SDK asks for
+them where it has to: `wait_until_processed` looks a snapshot up in the listing,
+and a Predict run waits on a predicted one.
+
 `list()` takes the same idea as a filter: `exclude_triggers=["PREDICT"]` drops
 predictions from a listing. Forward does not filter by trigger, so the SDK does,
 and when a `limit` is also given the listing is fetched without a server limit

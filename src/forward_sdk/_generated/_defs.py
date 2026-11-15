@@ -34,6 +34,9 @@ class ParamDef:
     description: str | None = None
     #: The value arrives already percent-encoded and is put in the path as it is.
     pre_encoded: bool = False
+    #: A check applied before sending, for a value Forward fails on with a 500
+    #: (which the client would otherwise retry). Only ``"ip-address"`` exists.
+    validate: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,6 +65,11 @@ class OpDef:
     response_is_array: bool = False
     summary: str | None = None
     stream: bool = False
+    #: Seconds Forward may take to answer this operation, when that is longer
+    #: than any sensible client default (a debug read Forward queues for up to
+    #: 15 minutes). The transport waits this long for the response when the
+    #: client's own read timeout is shorter, and never shortens a longer one.
+    min_read_timeout: float | None = None
 
     @property
     def path_params(self) -> tuple[ParamDef, ...]:

@@ -8,7 +8,7 @@ from typing import Any
 from forward_sdk._async.services._base import AsyncService
 from forward_sdk._generated.models import Network
 from forward_sdk._ops import core as ops
-from forward_sdk.errors import ForwardNotFoundError
+from forward_sdk.errors import ForwardAPIError, ForwardNotFoundError
 
 __all__ = ["AsyncNetworksService"]
 
@@ -22,10 +22,22 @@ class AsyncNetworksService(AsyncService):
         return [Network.model_validate(row) for row in payload or []]
 
     async def get(self, network_id: str) -> Network:
-        """Find one network by id.
+        """Read one network by id.
 
-        Forward has no endpoint for a single network, so this filters the list.
+        Uses Forward's single-network read where it exists (after 26.10). Older
+        Forward answers that path with 405 (or 404 "No endpoint"), and then the
+        network list is filtered instead, so this works against both.
         """
+        try:
+            payload = await self._send_json(ops.get_network(network_id=network_id))
+        except ForwardAPIError as exc:
+            # 405: Forward 26.10 maps PATCH and DELETE on this path but not GET.
+            # A 404 "No endpoint" is the same answer from a deployment that
+            # maps nothing there. A plain 404 is a real missing network.
+            if exc.status != 405 and not exc.endpoint_not_served:
+                raise
+        else:
+            return Network.model_validate(payload or {})
         for network in await self.list():
             if network.id == network_id:
                 return network

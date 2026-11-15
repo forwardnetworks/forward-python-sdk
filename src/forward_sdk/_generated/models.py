@@ -4805,6 +4805,29 @@ class InternetExposure(ForwardModel):
     ] = None
 
 
+class IntervalSchedule(ForwardModel):
+    """
+    When a scanner's collection runs (IntervalSchedule).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    interval_days: Annotated[int, Field(alias="intervalDays", ge=1)]
+    """
+    Days between collections; must be positive.
+    """
+    start_at: Annotated[str | None, Field(alias="startAt")] = None
+    """
+    Time of day as HH:mm; absent means midnight.
+    """
+    time_zone: Annotated[str | None, Field(alias="timeZone")] = None
+    """
+    Zone id from Forward's list (such as America/New_York); absent means the org's preferred zone.
+    """
+
+
 class InventoryDeviceInfo(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -5984,6 +6007,51 @@ class NetworkUpdate(ForwardModel):
     retention_days: Annotated[int | None, Field(alias="retentionDays")] = None
 
 
+class NetworkVulnerabilityScanner(Attribution):
+    """
+    A scanner as one network sees it (NetworkVulnerabilityScanner). type is TENABLE_VM, TENABLE_SC or RAPID7; the type-specific fields (credentialId and govCloud for TENABLE_VM; baseUrl, disableSslValidation, maxPageSize or reportNames for the end-host scanners) sit beside the common ones.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    base_url: Annotated[str | None, Field(alias="baseUrl")] = None
+    collection_error: Annotated[str | None, Field(alias="collectionError")] = None
+    """
+    DeviceCollectionError; NONE on success.
+    """
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    """
+    Absent for a legacy scanner with no collector.
+    """
+    credential_id: Annotated[str | None, Field(alias="credentialId")] = None
+    disable_ssl_validation: Annotated[bool | None, Field(alias="disableSslValidation")] = None
+    gov_cloud: Annotated[bool | None, Field(alias="govCloud")] = None
+    include: bool | None = None
+    """
+    Whether the network's next snapshots take this scanner's data.
+    """
+    last_attempted: Annotated[AwareDatetime | None, Field(alias="lastAttempted")] = None
+    last_retrieved: Annotated[AwareDatetime | None, Field(alias="lastRetrieved")] = None
+    max_page_size: Annotated[int | None, Field(alias="maxPageSize")] = None
+    name: str | None = None
+    report_names: Annotated[list[str] | None, Field(alias="reportNames")] = None
+    type: str | None = None
+
+
+class NetworkVulnerabilityScannerPatch(ForwardModel):
+    """
+    Body of PATCH /networks/{networkId}/vulnerability-scanners/{name}.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    include: bool
+
+
 class NewAiMessage(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -6353,6 +6421,31 @@ class NewSnmpNetworkEndpoint(ForwardModel):
     ID of the endpoint profile to use. Auto-detected during connectivity testing if unspecified.
     """
     type: Literal["SNMP"]
+
+
+class NewTenableVmScanner(ForwardModel):
+    """
+    Body of POST /vulnerability-scanners (NewTenableVmScanner). Set exactly one of allowedForAllNetworks true and allowedForNetworkIds.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    allowed_for_all_networks: Annotated[bool | None, Field(alias="allowedForAllNetworks")] = None
+    allowed_for_network_ids: Annotated[list[str] | None, Field(alias="allowedForNetworkIds")] = None
+    """
+    Networks that may use the scanner; an empty list allows none. Leave out when allowedForAllNetworks is true.
+    """
+    collection_enabled: Annotated[bool | None, Field(alias="collectionEnabled")] = None
+    collector_id: Annotated[str, Field(alias="collectorId")]
+    credential_id: Annotated[str, Field(alias="credentialId")]
+    """
+    Id of an org-level HTTP LOGIN credential.
+    """
+    gov_cloud: Annotated[bool | None, Field(alias="govCloud")] = None
+    name: Annotated[str, Field(pattern="^[A-Za-z0-9_.-]+$")]
+    schedule: IntervalSchedule
 
 
 class NewUser(ForwardModel):
@@ -7704,6 +7797,56 @@ class PredefinedCheckType(OpenEnum):
     vpc_mst_region_consistency = "VPC_MST_REGION_CONSISTENCY"
 
 
+class PredictBgpNeighborFamilyRules(ForwardModel):
+    """
+    One neighbor address family's rules (source: BgpNeighborFamilyConfigRules). Rules are Forward's RpPolicyRule, returned as sent.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    export_rules: Annotated[list[dict[str, Any]], Field(alias="exportRules")]
+    family_type: Annotated[str, Field(alias="familyType")]
+    import_rules: Annotated[list[dict[str, Any]], Field(alias="importRules")]
+
+
+class PredictBgpNodePolicyRules(ForwardModel):
+    """
+    Answer of getBgpNodeRules (source: BgpNodePolicyRules).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    device_id: Annotated[int, Field(alias="deviceId")]
+    """
+    Forward's internal device id.
+    """
+    device_name: Annotated[str, Field(alias="deviceName")]
+    nbr_config_rules: Annotated[list[PredictBgpNeighborFamilyRules], Field(alias="nbrConfigRules")]
+    vrf_id: Annotated[int, Field(alias="vrfId")]
+    """
+    Forward's internal VRF id.
+    """
+
+
+class PredictBgpNodeResponse(ForwardModel):
+    """
+    Answer of getBgpNode (source: BgpNodeResponse).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    bgp_node: Annotated[dict[str, Any] | None, Field(alias="bgpNode")] = None
+    """
+    Forward's BgpNodeInfo: deviceName, vrfName, vendorOs, routerId, familyTypes, domainAsNumbers, cliAdvertisedSubnets, seedRules, nextHopFilterRules, aggregateRules, installRules, allocateLabelRules, conditionalDistanceConfigs, neighbors and more. Returned as sent; null when the VRF runs no BGP.
+    """
+
+
 class PredictChangeSetCheckPatch(ForwardModel):
     """
     Changes one change-set check (source ChangeSetCheckPatch). An absent field is left alone; name null clears the name. A definition replaces the whole definition and must keep its category.
@@ -7760,6 +7903,18 @@ class PredictCommandError(ForwardModel):
     start_column_number: Annotated[int | None, Field(alias="startColumnNumber")] = None
 
 
+class PredictConfigNodesResponse(ForwardModel):
+    """
+    Answer of listDeviceConfigNodes (source: ConfigNodesResponse).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    config_nodes: Annotated[list[dict[str, Any]], Field(alias="configNodes")]
+
+
 class Type53(OpenEnum):
     ip = "IP"
     mpls = "MPLS"
@@ -7809,7 +7964,7 @@ class PredictIpEntryAction(ForwardModel):
 
 class PredictModelScore(ForwardModel):
     """
-    Precision, recall and F1 of Predict's model against the collected entries, as percentages 0 to 100 (source: PredictModelScore).
+    Precision, recall and F1 of Predict's model against the collected entries, as percentages 0 to 100, not fractions: precision is 100 x matching / modeled, recall 100 x matching / collected, F1 their harmonic mean. All three are 0 whenever nothing matched, which cannot be told apart from nothing modeled or nothing collected, since the counts are not in the answer (source: PredictModelScore).
     """
 
     model_config = ConfigDict(
@@ -7889,6 +8044,18 @@ class PredictNqeCheckInfo(ForwardModel):
     """
     Whether the query is restricted for this caller. Omitted when false.
     """
+
+
+class PredictOspfNodesResponse(ForwardModel):
+    """
+    Answer of listDeviceOspfNodes (source: OspfNodesResponse).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    ospf_nodes: Annotated[list[dict[str, Any]], Field(alias="ospfNodes")]
 
 
 class PredictProtocolModelingError(ForwardModel):
@@ -10632,6 +10799,36 @@ class StoredFileInfo(ForwardModel):
     """
 
 
+class StoredVulnerabilityScanner(Attribution):
+    """
+    An org-level scanner as Forward stores it (StoredVulnerabilityScanner, with the TenableVmScanner and the attribution unwrapped). allowedForAllNetworks is present (true) only when every network may use it; otherwise allowedForNetworkIds lists the networks.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    allowed_for_all_networks: Annotated[bool | None, Field(alias="allowedForAllNetworks")] = None
+    allowed_for_network_ids: Annotated[list[str] | None, Field(alias="allowedForNetworkIds")] = None
+    collection_enabled: Annotated[bool | None, Field(alias="collectionEnabled")] = None
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    credential_id: Annotated[str | None, Field(alias="credentialId")] = None
+    """
+    Id of an org-level HTTP LOGIN credential.
+    """
+    gov_cloud: Annotated[bool | None, Field(alias="govCloud")] = None
+    """
+    Use fedcloud.tenable.com instead of cloud.tenable.com.
+    """
+    name: str | None = None
+    schedule: IntervalSchedule | None = None
+    source_id: Annotated[str | None, Field(alias="sourceId")] = None
+    type: str | None = None
+    """
+    TENABLE_VM; the only org-level scanner type today.
+    """
+
+
 class SubnetConnDiffDetail(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -11856,6 +12053,48 @@ class TenableInfo(ForwardModel):
     source_id: Annotated[int, Field(alias="sourceId")]
 
 
+class TenableVmScannerPatch(ForwardModel):
+    """
+    Body of PATCH /vulnerability-scanners/{name} (TenableVmScannerPatch). Omitted fields are unchanged; null is refused for every field.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    allowed_for_all_networks: Annotated[bool | None, Field(alias="allowedForAllNetworks")] = None
+    """
+    true opens the scanner to every network; do not send with allowedForNetworkIds.
+    """
+    allowed_for_network_ids: Annotated[list[str] | None, Field(alias="allowedForNetworkIds")] = None
+    collection_enabled: Annotated[bool | None, Field(alias="collectionEnabled")] = None
+    collector_id: Annotated[str | None, Field(alias="collectorId")] = None
+    credential_id: Annotated[str | None, Field(alias="credentialId")] = None
+    gov_cloud: Annotated[bool | None, Field(alias="govCloud")] = None
+    name: Annotated[str | None, Field(pattern="^[A-Za-z0-9_.-]+$")] = None
+    schedule: IntervalSchedule | None = None
+
+
+class TenableVmScannerTestConfig(ForwardModel):
+    """
+    Body of POST /vulnerability-scanner-tests (TenableVmScannerTestConfig). Nothing is stored.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collector_id: Annotated[str, Field(alias="collectorId")]
+    credential_id: Annotated[str, Field(alias="credentialId")]
+    disable_ssl_validation: Annotated[bool | None, Field(alias="disableSslValidation")] = None
+    gov_cloud: Annotated[bool | None, Field(alias="govCloud")] = None
+    name: Annotated[str, Field(pattern="^[A-Za-z0-9_.-]+$")]
+    type: Literal["TENABLE_VM"] = "TENABLE_VM"
+    """
+    Forward needs it; the model fills it in, a plain dict must carry it.
+    """
+
+
 class TextPosition(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -12297,28 +12536,36 @@ class TraceLineRange(Line):
 
 class TraceLocationFilter(ForwardModel):
     """
-    Where the flow starts. {type: SubnetLocationFilter, value: <ip or prefix>, device?: <device to resolve it on>} or {type: DeviceFilter, values: [<device>]}. Other filter types exist in the GUI and are not traced.
+    A location: HostFilter, DeviceFilter, InterfaceFilter and VrfFilter take values; DeviceVrfFilter {device, vrf}; SecurityZoneFilter {device, value}; SubnetLocationFilter {value, device?}; NotFilter {clause}. An InterfaceFilter value is '<device> <interface>' with a space (the comma form is a 400, live). DeviceFilter, InterfaceFilter and SubnetLocationFilter seen live; the rest from source.
     """
 
     model_config = ConfigDict(
         extra="allow",
         populate_by_name=True,
     )
+    clause: dict[str, Any] | None = None
+    """
+    NotFilter: the location negated (not itself a NotFilter).
+    """
     device: str | None = None
     """
-    SubnetLocationFilter: resolve the address on this device.
+    DeviceVrfFilter, SecurityZoneFilter: the device. SubnetLocationFilter: resolve the address on this device.
     """
     type: str | None = None
     """
-    SubnetLocationFilter or DeviceFilter (others not traced).
+    The filter type, as listed above.
     """
     value: str | None = None
     """
-    SubnetLocationFilter: the source address or prefix.
+    SubnetLocationFilter: the address or prefix. SecurityZoneFilter: the zone.
     """
     values: list[str] | None = None
     """
-    DeviceFilter: the device names.
+    HostFilter, DeviceFilter, InterfaceFilter, VrfFilter: the names.
+    """
+    vrf: str | None = None
+    """
+    DeviceVrfFilter: the VRF.
     """
 
 
@@ -12354,7 +12601,7 @@ class TraceNetworkFunction(ForwardModel):
 
 class TracePacketFilter(ForwardModel):
     """
-    One header filter, e.g. {type: PacketFilter, values: {ip_proto: ["6"]}}. Known fields: ip_proto, tp_src, tp_dst, ipv4_dst (ipv6_dst for IPv6, not verified).
+    One header filter, e.g. {type: PacketFilter, values: {ip_proto: ["6"]}}. Known fields: ip_proto, tp_src, tp_dst, ipv4_dst; ipv6_dst was accepted live, its results not checked.
     """
 
     model_config = ConfigDict(
@@ -13369,6 +13616,44 @@ class VulnerabilityDiffCounts(ForwardModel):
     new_exposed_vulnerable_devices_count: Annotated[
         int | None, Field(alias="newExposedVulnerableDevicesCount")
     ] = None
+
+
+class VulnerabilityScannerInfo(StoredVulnerabilityScanner):
+    """
+    A stored scanner plus the status of its latest collection (VulnerabilityScannerInfo).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    collection_error: Annotated[str | None, Field(alias="collectionError")] = None
+    """
+    Outcome of the last attempt (DeviceCollectionError): NONE on success; absent if never attempted.
+    """
+    last_attempted: Annotated[AwareDatetime | None, Field(alias="lastAttempted")] = None
+    """
+    Start of the last attempt; absent if never.
+    """
+    last_retrieved: Annotated[AwareDatetime | None, Field(alias="lastRetrieved")] = None
+    """
+    Start of the last successful collection; absent if never.
+    """
+
+
+class VulnerabilityScannerTestResult(ForwardModel):
+    """
+    Verdict of a connection test (VulnerabilityScannerTestResult). An empty object means success.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    error: str | None = None
+    """
+    Present only when the test failed.
+    """
 
 
 class VulnerabilityVendor(OpenEnum):
@@ -19681,14 +19966,22 @@ class TraceFlowsResponse(ForwardModel):
 
 class TracePathQuery(ForwardModel):
     """
-    The GUI's PathQuery. Put the source in from.location and EVERY header filter (including ipv4_dst) in from.headers: a destination under to returned zero paths live (Go SDK), because to constrains where the packet leaves the network.
+    The GUI's PathQuery (source: PathQuery.java). Build it with forward_sdk.trace.PathQuery, which refuses what Forward would refuse. from is where traffic enters the network, chain the hops it must pass, to where it leaves: a subnet under to returned zero paths live even for an in-network address, while an interface under to returned paths (live, 26.11); the Go SDK reads the source as to meaning where traffic leaves the network (not confirmed). Put an in-network destination in from.headers (ipv4_dst) or name a device or interface in to.
     """
 
     model_config = ConfigDict(
         extra="allow",
         populate_by_name=True,
     )
+    chain: list[dict[str, Any]] | None = None
+    """
+    Hops the traffic must pass: {transitType: through|ingress|egress, location, headers?}. A host or subnet cannot be a hop (source only, not probed).
+    """
     from_: Annotated[TraceEndpointFilter | None, Field(alias="from")] = None
+    mode: str | None = None
+    """
+    PERMIT_ALL computes flows as if ACL drops permitted the traffic; needs the org property ACL_LESS_ANALYSIS (default on). Accepted live.
+    """
     to: TraceEndpointFilter | None = None
 
 
@@ -20906,7 +21199,7 @@ class PredictModelVerification(ForwardModel):
         dict[str, PredictModelScore] | None, Field(alias="scoresByProtocol")
     ] = None
     """
-    Per protocol name, such as BGP.
+    Per protocol, keyed by Forward's ProtocolConfigType name: BGP (MPLS entries count as BGP), OSPF, CONFIG, OMP and IS_IS, following the organization's PREDICT_MODEL_* properties. A key appears only for a protocol some device counted entries for, so a missing key means nothing was counted and all zeros means entries existed and none matched.
     """
 
 

@@ -14,6 +14,7 @@ implemented exactly once.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import sys
 from collections import Counter
 from pathlib import Path
@@ -86,6 +87,7 @@ def build_param(doc: dict[str, Any], raw: Any) -> dict[str, Any]:
         "enum": tuple(str(v) for v in enum),
         "description": " ".join(description.split()) if description else None,
         "pre_encoded": bool(param.get("x-forward-pre-encoded")),
+        "validate": param.get("x-forward-validate"),
     }
 
 
@@ -162,6 +164,7 @@ def collect(
                     "stream": bool(response_media)
                     and not any(m in DOCUMENT_MEDIA for m in response_media),
                     "summary": " ".join((operation.get("summary") or "").split()) or None,
+                    "min_read_timeout": operation.get("x-forward-min-read-timeout"),
                 }
             )
     return operations
@@ -191,6 +194,8 @@ def render(operations: list[dict[str, Any]]) -> str:
                     bits.append(f"enum={param['enum']!r}")
                 if param["pre_encoded"]:
                     bits.append("pre_encoded=True")
+                if param["validate"]:
+                    bits.append(f'validate="{param["validate"]}"')
                 lines.append(f"            ParamDef({', '.join(bits)}),")
             lines.append("        ),")
         if op["parent_tag"]:
@@ -211,6 +216,8 @@ def render(operations: list[dict[str, Any]]) -> str:
             lines.append("        response_is_array=True,")
         if op["stream"]:
             lines.append("        stream=True,")
+        if op["min_read_timeout"]:
+            lines.append(f"        min_read_timeout={float(op['min_read_timeout'])!r},")
         if op["summary"]:
             summary = op["summary"].replace("\\", "\\\\").replace('"', '\\"')
             lines.append(f'        summary="{summary}",')
@@ -218,6 +225,16 @@ def render(operations: list[dict[str, Any]]) -> str:
     lines.append("}")
     lines.append("")
     return "\n".join(lines)
+
+
+def _downconvert() -> Any:
+    """scripts/downconvert_spec.py, loaded by path since scripts is not a package."""
+    path = Path(__file__).with_name("downconvert_spec.py")
+    spec = importlib.util.spec_from_file_location("downconvert_spec", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -235,16 +252,20 @@ def main(argv: list[str] | None = None) -> int:
         ) or {}
 
     doc = yaml.safe_load(args.spec.read_text(encoding="utf-8"))
+    extra: dict[str, Any] = {}
+    if args.unpublished.exists():
+        extra = yaml.safe_load(args.unpublished.read_text(encoding="utf-8")) or {}
+    # Parameters Forward binds on published operations but has not described
+    # yet; the same function the downconverted spec uses, so both agree.
+    _downconvert().extend_parameters(doc.get("paths") or {}, extra.get("x-extend-parameters") or {})
     operations = collect(doc, "published", gating_by_tag)
     published = len(operations)
 
     unpublished = 0
-    if args.unpublished.exists():
-        extra = yaml.safe_load(args.unpublished.read_text(encoding="utf-8")) or {}
-        if extra.get("paths"):
-            found = collect(extra, "unpublished", gating_by_tag)
-            operations.extend(found)
-            unpublished = len(found)
+    if extra.get("paths"):
+        found = collect(extra, "unpublished", gating_by_tag)
+        operations.extend(found)
+        unpublished = len(found)
 
     counts = Counter(op["operation_id"] for op in operations)
     duplicates = sorted(name for name, count in counts.items() if count > 1)

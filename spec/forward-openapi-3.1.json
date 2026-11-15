@@ -11948,6 +11948,28 @@
         },
         "type": "object"
       },
+      "IntervalSchedule": {
+        "description": "When a scanner's collection runs (IntervalSchedule).",
+        "properties": {
+          "intervalDays": {
+            "description": "Days between collections; must be positive.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "startAt": {
+            "description": "Time of day as HH:mm; absent means midnight.",
+            "type": "string"
+          },
+          "timeZone": {
+            "description": "Zone id from Forward's list (such as America/New_York); absent means the org's preferred zone.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "intervalDays"
+        ],
+        "type": "object"
+      },
       "IntranetNode": {
         "properties": {
           "connections": {
@@ -14309,6 +14331,78 @@
         },
         "type": "object"
       },
+      "NetworkVulnerabilityScanner": {
+        "allOf": [
+          {
+            "properties": {
+              "baseUrl": {
+                "type": "string"
+              },
+              "collectionError": {
+                "description": "DeviceCollectionError; NONE on success.",
+                "type": "string"
+              },
+              "collectorId": {
+                "description": "Absent for a legacy scanner with no collector.",
+                "type": "string"
+              },
+              "credentialId": {
+                "type": "string"
+              },
+              "disableSslValidation": {
+                "type": "boolean"
+              },
+              "govCloud": {
+                "type": "boolean"
+              },
+              "include": {
+                "description": "Whether the network's next snapshots take this scanner's data.",
+                "type": "boolean"
+              },
+              "lastAttempted": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "lastRetrieved": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "maxPageSize": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "reportNames": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          {
+            "$ref": "#/components/schemas/Attribution"
+          }
+        ],
+        "description": "A scanner as one network sees it (NetworkVulnerabilityScanner). type is TENABLE_VM, TENABLE_SC or RAPID7; the type-specific fields (credentialId and govCloud for TENABLE_VM; baseUrl, disableSslValidation, maxPageSize or reportNames for the end-host scanners) sit beside the common ones."
+      },
+      "NetworkVulnerabilityScannerPatch": {
+        "description": "Body of PATCH /networks/{networkId}/vulnerability-scanners/{name}.",
+        "properties": {
+          "include": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "include"
+        ],
+        "type": "object"
+      },
       "NewAiMessage": {
         "properties": {
           "prompt": {
@@ -15524,6 +15618,48 @@
           "type",
           "name",
           "host"
+        ],
+        "type": "object"
+      },
+      "NewTenableVmScanner": {
+        "description": "Body of POST /vulnerability-scanners (NewTenableVmScanner). Set exactly one of allowedForAllNetworks true and allowedForNetworkIds.",
+        "properties": {
+          "allowedForAllNetworks": {
+            "type": "boolean"
+          },
+          "allowedForNetworkIds": {
+            "description": "Networks that may use the scanner; an empty list allows none. Leave out when allowedForAllNetworks is true.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "collectionEnabled": {
+            "type": "boolean"
+          },
+          "collectorId": {
+            "type": "string"
+          },
+          "credentialId": {
+            "description": "Id of an org-level HTTP LOGIN credential.",
+            "type": "string"
+          },
+          "govCloud": {
+            "type": "boolean"
+          },
+          "name": {
+            "pattern": "^[A-Za-z0-9_.-]+$",
+            "type": "string"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/IntervalSchedule"
+          }
+        },
+        "required": [
+          "name",
+          "credentialId",
+          "collectorId",
+          "schedule"
         ],
         "type": "object"
       },
@@ -18405,6 +18541,77 @@
         ],
         "type": "string"
       },
+      "PredictBgpNeighborFamilyRules": {
+        "description": "One neighbor address family's rules (source: BgpNeighborFamilyConfigRules). Rules are Forward's RpPolicyRule, returned as sent.",
+        "properties": {
+          "exportRules": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "familyType": {
+            "type": "string"
+          },
+          "importRules": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "familyType",
+          "importRules",
+          "exportRules"
+        ],
+        "type": "object"
+      },
+      "PredictBgpNodePolicyRules": {
+        "description": "Answer of getBgpNodeRules (source: BgpNodePolicyRules).",
+        "properties": {
+          "deviceId": {
+            "description": "Forward's internal device id.",
+            "type": "integer"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "nbrConfigRules": {
+            "items": {
+              "$ref": "#/components/schemas/PredictBgpNeighborFamilyRules"
+            },
+            "type": "array"
+          },
+          "vrfId": {
+            "description": "Forward's internal VRF id.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "deviceId",
+          "vrfId",
+          "deviceName",
+          "nbrConfigRules"
+        ],
+        "type": "object"
+      },
+      "PredictBgpNodeResponse": {
+        "description": "Answer of getBgpNode (source: BgpNodeResponse).",
+        "properties": {
+          "bgpNode": {
+            "additionalProperties": true,
+            "description": "Forward's BgpNodeInfo: deviceName, vrfName, vendorOs, routerId, familyTypes, domainAsNumbers, cliAdvertisedSubnets, seedRules, nextHopFilterRules, aggregateRules, installRules, allocateLabelRules, conditionalDistanceConfigs, neighbors and more. Returned as sent; null when the VRF runs no BGP.",
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "PredictChangeSetCheckPatch": {
         "description": "Changes one change-set check (source ChangeSetCheckPatch). An absent field is left alone; name null clears the name. A definition replaces the whole definition and must keep its category.",
         "properties": {
@@ -18460,6 +18667,23 @@
             "type": "integer"
           }
         },
+        "type": "object"
+      },
+      "PredictConfigNodesResponse": {
+        "description": "Answer of listDeviceConfigNodes (source: ConfigNodesResponse).",
+        "properties": {
+          "configNodes": {
+            "items": {
+              "additionalProperties": true,
+              "description": "Forward's ConfigNodeInfo: device, vrf, vendorOs, routes and more. Empty fields omitted.",
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "configNodes"
+        ],
         "type": "object"
       },
       "PredictDeviceEntryDiffs": {
@@ -18627,7 +18851,7 @@
         "type": "object"
       },
       "PredictModelScore": {
-        "description": "Precision, recall and F1 of Predict's model against the collected entries, as percentages 0 to 100 (source: PredictModelScore).",
+        "description": "Precision, recall and F1 of Predict's model against the collected entries, as percentages 0 to 100, not fractions: precision is 100 x matching / modeled, recall 100 x matching / collected, F1 their harmonic mean. All three are 0 whenever nothing matched, which cannot be told apart from nothing modeled or nothing collected, since the counts are not in the answer (source: PredictModelScore).",
         "properties": {
           "f1": {
             "type": "number"
@@ -18658,7 +18882,7 @@
             "additionalProperties": {
               "$ref": "#/components/schemas/PredictModelScore"
             },
-            "description": "Per protocol name, such as BGP.",
+            "description": "Per protocol, keyed by Forward's ProtocolConfigType name: BGP (MPLS entries count as BGP), OSPF, CONFIG, OMP and IS_IS, following the organization's PREDICT_MODEL_* properties. A key appears only for a protocol some device counted entries for, so a missing key means nothing was counted and all zeros means entries existed and none matched.",
             "type": "object"
           }
         },
@@ -18729,6 +18953,23 @@
             "type": "boolean"
           }
         },
+        "type": "object"
+      },
+      "PredictOspfNodesResponse": {
+        "description": "Answer of listDeviceOspfNodes (source: OspfNodesResponse).",
+        "properties": {
+          "ospfNodes": {
+            "items": {
+              "additionalProperties": true,
+              "description": "Forward's OspfNodeInfo: device, vrf, vendorOs, routerId, areaType, routerType, installRules, tableMapRules, redistributeRules, neighborControlRules, interAreaPropagationPolicies, interfaces and more. Empty fields omitted.",
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "ospfNodes"
+        ],
         "type": "object"
       },
       "PredictProtocolModelingError": {
@@ -24197,6 +24438,55 @@
           }
         ]
       },
+      "StoredVulnerabilityScanner": {
+        "allOf": [
+          {
+            "properties": {
+              "allowedForAllNetworks": {
+                "type": "boolean"
+              },
+              "allowedForNetworkIds": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "collectionEnabled": {
+                "type": "boolean"
+              },
+              "collectorId": {
+                "type": "string"
+              },
+              "credentialId": {
+                "description": "Id of an org-level HTTP LOGIN credential.",
+                "type": "string"
+              },
+              "govCloud": {
+                "description": "Use fedcloud.tenable.com instead of cloud.tenable.com.",
+                "type": "boolean"
+              },
+              "name": {
+                "type": "string"
+              },
+              "schedule": {
+                "$ref": "#/components/schemas/IntervalSchedule"
+              },
+              "sourceId": {
+                "type": "string"
+              },
+              "type": {
+                "description": "TENABLE_VM; the only org-level scanner type today.",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          {
+            "$ref": "#/components/schemas/Attribution"
+          }
+        ],
+        "description": "An org-level scanner as Forward stores it (StoredVulnerabilityScanner, with the TenableVmScanner and the attribution unwrapped). allowedForAllNetworks is present (true) only when every network may use it; otherwise allowedForNetworkIds lists the networks."
+      },
       "SubnetConnDiffDetail": {
         "properties": {
           "diffType": {
@@ -25978,6 +26268,73 @@
         ],
         "type": "object"
       },
+      "TenableVmScannerPatch": {
+        "description": "Body of PATCH /vulnerability-scanners/{name} (TenableVmScannerPatch). Omitted fields are unchanged; null is refused for every field.",
+        "properties": {
+          "allowedForAllNetworks": {
+            "description": "true opens the scanner to every network; do not send with allowedForNetworkIds.",
+            "type": "boolean"
+          },
+          "allowedForNetworkIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "collectionEnabled": {
+            "type": "boolean"
+          },
+          "collectorId": {
+            "type": "string"
+          },
+          "credentialId": {
+            "type": "string"
+          },
+          "govCloud": {
+            "type": "boolean"
+          },
+          "name": {
+            "pattern": "^[A-Za-z0-9_.-]+$",
+            "type": "string"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/IntervalSchedule"
+          }
+        },
+        "type": "object"
+      },
+      "TenableVmScannerTestConfig": {
+        "description": "Body of POST /vulnerability-scanner-tests (TenableVmScannerTestConfig). Nothing is stored.",
+        "properties": {
+          "collectorId": {
+            "type": "string"
+          },
+          "credentialId": {
+            "type": "string"
+          },
+          "disableSslValidation": {
+            "type": "boolean"
+          },
+          "govCloud": {
+            "type": "boolean"
+          },
+          "name": {
+            "pattern": "^[A-Za-z0-9_.-]+$",
+            "type": "string"
+          },
+          "type": {
+            "const": "TENABLE_VM",
+            "default": "TENABLE_VM",
+            "description": "Forward needs it; the model fills it in, a plain dict must carry it."
+          }
+        },
+        "required": [
+          "name",
+          "credentialId",
+          "collectorId"
+        ],
+        "type": "object"
+      },
       "TextPosition": {
         "properties": {
           "character": {
@@ -27025,26 +27382,35 @@
       },
       "TraceLocationFilter": {
         "additionalProperties": true,
-        "description": "Where the flow starts. {type: SubnetLocationFilter, value: <ip or prefix>, device?: <device to resolve it on>} or {type: DeviceFilter, values: [<device>]}. Other filter types exist in the GUI and are not traced.",
+        "description": "A location: HostFilter, DeviceFilter, InterfaceFilter and VrfFilter take values; DeviceVrfFilter {device, vrf}; SecurityZoneFilter {device, value}; SubnetLocationFilter {value, device?}; NotFilter {clause}. An InterfaceFilter value is '<device> <interface>' with a space (the comma form is a 400, live). DeviceFilter, InterfaceFilter and SubnetLocationFilter seen live; the rest from source.",
         "properties": {
+          "clause": {
+            "additionalProperties": true,
+            "description": "NotFilter: the location negated (not itself a NotFilter).",
+            "type": "object"
+          },
           "device": {
-            "description": "SubnetLocationFilter: resolve the address on this device.",
+            "description": "DeviceVrfFilter, SecurityZoneFilter: the device. SubnetLocationFilter: resolve the address on this device.",
             "type": "string"
           },
           "type": {
-            "description": "SubnetLocationFilter or DeviceFilter (others not traced).",
+            "description": "The filter type, as listed above.",
             "type": "string"
           },
           "value": {
-            "description": "SubnetLocationFilter: the source address or prefix.",
+            "description": "SubnetLocationFilter: the address or prefix. SecurityZoneFilter: the zone.",
             "type": "string"
           },
           "values": {
-            "description": "DeviceFilter: the device names.",
+            "description": "HostFilter, DeviceFilter, InterfaceFilter, VrfFilter: the names.",
             "items": {
               "type": "string"
             },
             "type": "array"
+          },
+          "vrf": {
+            "description": "DeviceVrfFilter: the VRF.",
+            "type": "string"
           }
         },
         "type": "object"
@@ -27097,7 +27463,7 @@
       },
       "TracePacketFilter": {
         "additionalProperties": true,
-        "description": "One header filter, e.g. {type: PacketFilter, values: {ip_proto: [\"6\"]}}. Known fields: ip_proto, tp_src, tp_dst, ipv4_dst (ipv6_dst for IPv6, not verified).",
+        "description": "One header filter, e.g. {type: PacketFilter, values: {ip_proto: [\"6\"]}}. Known fields: ip_proto, tp_src, tp_dst, ipv4_dst; ipv6_dst was accepted live, its results not checked.",
         "properties": {
           "type": {
             "description": "PacketFilter.",
@@ -27168,10 +27534,22 @@
       },
       "TracePathQuery": {
         "additionalProperties": true,
-        "description": "The GUI's PathQuery. Put the source in from.location and EVERY header filter (including ipv4_dst) in from.headers: a destination under to returned zero paths live (Go SDK), because to constrains where the packet leaves the network.",
+        "description": "The GUI's PathQuery (source: PathQuery.java). Build it with forward_sdk.trace.PathQuery, which refuses what Forward would refuse. from is where traffic enters the network, chain the hops it must pass, to where it leaves: a subnet under to returned zero paths live even for an in-network address, while an interface under to returned paths (live, 26.11); the Go SDK reads the source as to meaning where traffic leaves the network (not confirmed). Put an in-network destination in from.headers (ipv4_dst) or name a device or interface in to.",
         "properties": {
+          "chain": {
+            "description": "Hops the traffic must pass: {transitType: through|ingress|egress, location, headers?}. A host or subnet cannot be a hop (source only, not probed).",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
           "from": {
             "$ref": "#/components/schemas/TraceEndpointFilter"
+          },
+          "mode": {
+            "description": "PERMIT_ALL computes flows as if ACL drops permitted the traffic; needs the org property ACL_LESS_ANALYSIS (default on). Accepted live.",
+            "type": "string"
           },
           "to": {
             "$ref": "#/components/schemas/TraceEndpointFilter"
@@ -28741,6 +29119,43 @@
           },
           "newExposedVulnerableDevicesCount": {
             "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "VulnerabilityScannerInfo": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/StoredVulnerabilityScanner"
+          },
+          {
+            "properties": {
+              "collectionError": {
+                "description": "Outcome of the last attempt (DeviceCollectionError): NONE on success; absent if never attempted.",
+                "type": "string"
+              },
+              "lastAttempted": {
+                "description": "Start of the last attempt; absent if never.",
+                "format": "date-time",
+                "type": "string"
+              },
+              "lastRetrieved": {
+                "description": "Start of the last successful collection; absent if never.",
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "A stored scanner plus the status of its latest collection (VulnerabilityScannerInfo)."
+      },
+      "VulnerabilityScannerTestResult": {
+        "description": "Verdict of a connection test (VulnerabilityScannerTestResult). An empty object means success.",
+        "properties": {
+          "error": {
+            "description": "Present only when the test failed.",
+            "type": "string"
           }
         },
         "type": "object"
@@ -36011,6 +36426,206 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/http-credentials": {
+      "get": {
+        "description": "Lists the org-level HTTP credentials, which are separate from each network's (getHttpCredentials). Org-level scanners such as Tenable VM (createVulnerabilityScanner) take their credentialId from here. Passwords come back as system-generated identifiers. Requires VIEW_CREDENTIALS on the org (source: CredentialController.getAllHttpCredentials). Not part of Forward's documented API.",
+        "operationId": "listOrgHttpCredentials",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "createdAt": "2026-01-02T03:04:05.123Z",
+                    "createdBy": "me@example.com",
+                    "createdById": "11",
+                    "id": "H-2",
+                    "name": "example-tenable-keys",
+                    "password": "S-1",
+                    "type": "LOGIN",
+                    "username": "example-access-key"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StoredHttpCredential"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The credentials."
+          }
+        },
+        "summary": "List the organization's HTTP credentials",
+        "tags": [
+          "Credentials"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Adds an org-level HTTP credential (NewHttpCredential). For a Tenable VM scanner use type LOGIN with the Tenable access key as username and the secret key as password. Requires EDIT_CREDENTIALS on the org (source: CredentialController.addHttpCredential). Returns 200 with the stored credential, password replaced by an identifier. Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "createOrgHttpCredential",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "example-tenable-keys",
+                "password": "example-secret-key",
+                "type": "LOGIN",
+                "username": "example-access-key"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NewHttpCredential"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-01-02T03:04:05.123Z",
+                  "createdBy": "me@example.com",
+                  "createdById": "11",
+                  "id": "H-2",
+                  "name": "example-tenable-keys",
+                  "password": "S-1",
+                  "type": "LOGIN",
+                  "username": "example-access-key"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/StoredHttpCredential"
+                }
+              }
+            },
+            "description": "The stored credential."
+          }
+        },
+        "summary": "Create an organization HTTP credential",
+        "tags": [
+          "Credentials"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/http-credentials/{credentialId}": {
+      "delete": {
+        "description": "Deletes an org-level HTTP credential. Forward master refuses (400) while a vulnerability scanner still uses it, naming up to five scanners; older builds may not check. Requires EDIT_CREDENTIALS on the org (source: CredentialController.deleteHttpCredential). Returns 204. Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "deleteOrgHttpCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "credentialId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete an organization HTTP credential",
+        "tags": [
+          "Credentials"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "Reads one org-level HTTP credential; the password comes back as a system-generated identifier. Requires VIEW_CREDENTIALS on the org (source: CredentialController.getHttpCredential). An unknown id is a 404. Not part of Forward's documented API.",
+        "operationId": "getOrgHttpCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "credentialId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "H-2",
+                  "name": "example-tenable-keys",
+                  "password": "S-1",
+                  "type": "LOGIN",
+                  "username": "example-access-key"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/StoredHttpCredential"
+                }
+              }
+            },
+            "description": "The credential."
+          }
+        },
+        "summary": "Get an organization HTTP credential",
+        "tags": [
+          "Credentials"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Partial update of an org-level HTTP credential (HttpCredentialUpdate); include only the properties to change. Unlike the network route (patchHttpCredential, 204), this answers 200 with the stored credential. Requires EDIT_CREDENTIALS on the org (source: CredentialController.updateHttpCredential). Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "updateOrgHttpCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "credentialId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "example-tenable-keys-2"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/HttpCredentialUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "H-2",
+                  "name": "example-tenable-keys-2",
+                  "password": "S-1",
+                  "type": "LOGIN",
+                  "username": "example-access-key"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/StoredHttpCredential"
+                }
+              }
+            },
+            "description": "The stored credential."
+          }
+        },
+        "summary": "Update an organization HTTP credential",
+        "tags": [
+          "Credentials"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/integrations/infoblox": {
       "get": {
         "description": "Returns whether Infoblox is enabled and its instances (profiles removed). Gated by MANAGE_INFOBLOX_INTEGRATION (org operation). The Go SDK's ListInfobloxLegacy. Live-verified (enabled false, no instances). Source: the instance objects carry a password field (see schema).",
@@ -36929,6 +37544,391 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/internal/snapshots/{snapshotId}/bgp-nodes": {
+      "get": {
+        "description": "An object of Forward's internal device id (as a string key) to device name, for each device that hosts at least one modeled BGP node. Requires VIEW_NETWORK_AND_SNAPSHOTS and a snapshot past creation; not gated on PREDICT_MODELING (source: BenchmarkController.getBgpNodeDevices). Live on 26.10.5: about 1,900 devices on a large network. Internal route, not part of Forward's documented API.",
+        "operationId": "listBgpNodeDevices",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "17": "edge-1",
+                  "42": "core-1"
+                },
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Device id to name."
+          }
+        },
+        "summary": "Devices with a modeled BGP node",
+        "tags": [
+          "Protocol Modeling"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "devices",
+            ""
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/internal/snapshots/{snapshotId}/bgp-rules": {
+      "get": {
+        "description": "The import and export rules of the node's neighbors, per neighbor address family (first-import rules are folded into import, last-export into export). Without neighborAddr every neighbor is included. A neighborAddr that is not an IP address makes Forward answer 500, since it does not catch the parse failure; the SDK refuses one before sending. A well-formed address that is not a neighbor is a 400. A VRF with no BGP node gives an empty nbrConfigRules for any well-formed address (seen live on 26.10.5). Requires VIEW_NETWORK_AND_SNAPSHOTS (source: BenchmarkController.getBgpNodeRulesByName). Internal route, not part of Forward's documented API.",
+        "operationId": "getBgpNodeRules",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "vrfName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "An IPv4 or IPv6 neighbor address.",
+            "in": "query",
+            "name": "neighborAddr",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "x-forward-validate": "ip-address"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "deviceId": 17,
+                  "deviceName": "edge-1",
+                  "nbrConfigRules": [
+                    {
+                      "exportRules": [],
+                      "familyType": "IPV4_UNICAST",
+                      "importRules": []
+                    }
+                  ],
+                  "vrfId": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PredictBgpNodePolicyRules"
+                }
+              }
+            },
+            "description": "The rules."
+          }
+        },
+        "summary": "A BGP node's import and export policy rules",
+        "tags": [
+          "Protocol Modeling"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/internal/snapshots/{snapshotId}/config-nodes": {
+      "get": {
+        "description": "As listBgpNodeDevices, for config nodes: the direct, local and static routes per VRF (source: BenchmarkController.getConfigNodeDevices). On Forward master; the Go SDK does not cover it. Never called live. Internal route, not part of Forward's documented API.",
+        "operationId": "listConfigNodeDevices",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "17": "edge-1"
+                },
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Device id to name."
+          }
+        },
+        "summary": "Devices with a modeled config node",
+        "tags": [
+          "Protocol Modeling"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "devices",
+            ""
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/internal/snapshots/{snapshotId}/devices/{deviceName}/config-nodes": {
+      "get": {
+        "description": "One node per VRF that has direct, local or static routes, with those routes. vrfName limits it to that VRF. A device with none gives an empty list; an unknown device or VRF is a 404. Empty fields are omitted. Requires VIEW_NETWORK_AND_SNAPSHOTS (source: BenchmarkController.getConfigNodes, ConfigNodeInfo). On Forward master; the Go SDK does not cover it. Never called live. Internal route, not part of Forward's documented API.",
+        "operationId": "listDeviceConfigNodes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "vrfName",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "configNodes": [
+                    {
+                      "device": "edge-1",
+                      "vendorOs": "CISCO_IOS_XE",
+                      "vrf": "default"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PredictConfigNodesResponse"
+                }
+              }
+            },
+            "description": "The nodes."
+          }
+        },
+        "summary": "A device's modeled config nodes",
+        "tags": [
+          "Protocol Modeling"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/internal/snapshots/{snapshotId}/devices/{deviceName}/ospf-nodes": {
+      "get": {
+        "description": "One node per OSPF process and area. vrfName limits it to that VRF. A device that runs no OSPF gives an empty list; an unknown device or VRF is a 404. Empty fields are omitted. Requires VIEW_NETWORK_AND_SNAPSHOTS (source: BenchmarkController.getOspfNodes, OspfNodeInfo). Newer than Forward 26.10. Never called live. Internal route, not part of Forward's documented API.",
+        "operationId": "listDeviceOspfNodes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "vrfName",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "ospfNodes": [
+                    {
+                      "areaType": "NORMAL",
+                      "device": "edge-1",
+                      "routerId": "192.0.2.1",
+                      "vendorOs": "CISCO_IOS_XE",
+                      "vrf": "default"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PredictOspfNodesResponse"
+                }
+              }
+            },
+            "description": "The nodes."
+          }
+        },
+        "summary": "A device's modeled OSPF nodes",
+        "tags": [
+          "Protocol Modeling"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/internal/snapshots/{snapshotId}/devices/{deviceName}/vrfs/{vrfName}/bgp-node": {
+      "get": {
+        "description": "The BGP node of the device's VRF with its configuration as modeled: router id, families, AS numbers, policy rules and neighbors. bgpNode is null when the VRF runs no BGP; an unknown device or VRF is a 404. Requires VIEW_NETWORK_AND_SNAPSHOTS (source: BenchmarkController.getBgpNode, BgpNodeInfo). The node's own fields are returned as Forward sends them. Live on 26.10.5: {\"bgpNode\": null} for a VRF without BGP. Internal route, not part of Forward's documented API.",
+        "operationId": "getBgpNode",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deviceName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "vrfName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "bgpNode": {
+                    "deviceName": "edge-1",
+                    "familyTypes": [
+                      "IPV4_UNICAST"
+                    ],
+                    "routerId": "192.0.2.1",
+                    "vendorOs": "CISCO_IOS_XE",
+                    "vrfName": "default"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PredictBgpNodeResponse"
+                }
+              }
+            },
+            "description": "The node, or null."
+          }
+        },
+        "summary": "One modeled BGP node",
+        "tags": [
+          "Protocol Modeling"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/internal/snapshots/{snapshotId}/ospf-nodes": {
+      "get": {
+        "description": "As listBgpNodeDevices, for OSPF (source: BenchmarkController.getOspfNodeDevices). Newer than Forward 26.10, which answers 404 'No endpoint' (seen live on 26.10.5). Internal route, not part of Forward's documented API.",
+        "operationId": "listOspfNodeDevices",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "17": "edge-1"
+                },
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Device id to name."
+          }
+        },
+        "summary": "Devices with a modeled OSPF node",
+        "tags": [
+          "Protocol Modeling"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "devices",
+            ""
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/internal/snapshots/{snapshotId}/protocol-modeling": {
       "get": {
         "description": "Returns done true once a successful protocol-modeling result is stored; a failed modeling job also reads false, so bound any wait. Requires MANAGE_PROTOCOL_MODELING on the network and the organization property PREDICT_MODELING (source: BenchmarkController.getProtocolModelingStatus). MANAGE_PROTOCOL_MODELING belongs only to the network ADMIN role, so read-only and operator users are refused. Live: 403 'Unlicensed operation: NetworkOperation.MANAGE_PROTOCOL_MODELING' on the test account, so the body is source-only. Internal route, not part of Forward's documented API.",
@@ -37001,6 +38001,21 @@
                 "path-selection"
               ]
             ]
+          },
+          {
+            "operationId": "downloadProtocolModeling",
+            "summary": "Download a snapshot's protocol-modeling debug blob",
+            "x-forward-fixed-query": []
+          },
+          {
+            "operationId": "getProtocolModelingPartitions",
+            "summary": "How protocol modeling partitioned a snapshot",
+            "x-forward-fixed-query": [
+              [
+                "view",
+                "partitions"
+              ]
+            ]
           }
         ],
         "x-forward-stability": "unpublished"
@@ -37051,9 +38066,89 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/internal/snapshots/{snapshotId}/rp-nodes": {
+      "get": {
+        "description": "The names, sorted, of the devices in the route-protocol blast radius of changedDevices: at most numIterations rounds of expansion (default 3), stopping once the subset reaches threshold devices (default 200), plus the L2 switches that OSPF adjacencies between subset devices cross. A device not in the snapshot, a negative numIterations or a threshold below 1 is a 400. With OSPF nodes present but no stored L2 domain Forward answers 404. Requires VIEW_NETWORK_AND_SNAPSHOTS (source: BenchmarkController.getChangeSetSubset, RpSubsetGenerator). Live on 26.10.5: one changed device, one iteration and a threshold of 20 answered 20 names. Internal route, not part of Forward's documented API.",
+        "operationId": "getChangeSetSubset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "explode": true,
+            "in": "query",
+            "name": "changedDevices",
+            "required": true,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "in": "query",
+            "name": "numIterations",
+            "required": false,
+            "schema": {
+              "default": 3,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "threshold",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "names": [
+                    "core-1",
+                    "edge-1",
+                    "edge-2"
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceNames"
+                }
+              }
+            },
+            "description": "Device names."
+          }
+        },
+        "summary": "The devices a routing change on some devices can reach",
+        "tags": [
+          "Protocol Modeling"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "view",
+            "changeSetSubset"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/internal/snapshots/{snapshotId}/verify-predict-modeling": {
       "post": {
-        "description": "Compares the entries Predict models for a BASE snapshot with the entries the snapshot collected, and returns per-device differences, an overall score and a score per protocol. returnDiffs (default true) false returns only the scores. A read, but it can be slow on a large snapshot. Requires MANAGE_PROTOCOL_MODELING on the network (ADMIN only); the snapshot must be past creation. Unlike its siblings it names no organization property in the annotation (source: IEntryCheckController.verifyPredictModelingBase). Source-only: not called live. Internal route, not part of Forward's documented API.",
+        "description": "Compares the entries Predict models for a BASE snapshot with the entries the snapshot collected, and returns per-device differences, an overall score and a score per protocol. returnDiffs (default true) false returns only the scores. A read, but it can be slow on a large snapshot. Requires MANAGE_PROTOCOL_MODELING on the network (ADMIN only); the snapshot must be past creation. Unlike its siblings it names no organization property in the annotation (source: IEntryCheckController.verifyPredictModelingBase). It is computed on every call, with no stored result: Forward first runs (or reuses) the snapshot's protocol-modeling and predictable-routes jobs, then compares on a search worker with a 90-minute task limit, so the SDK waits up to 30 minutes for the answer when the client's own read timeout is shorter, and does not repeat it. Nothing is written and the route is not audited. With returnDiffs false, diffs is an empty object (source: PredictModelChecker.snapshotBaseTest). Source-only: not called live. Internal route, not part of Forward's documented API.",
         "operationId": "verifyPredictModelingBase",
         "parameters": [
           {
@@ -37131,6 +38226,7 @@
             "base"
           ]
         ],
+        "x-forward-min-read-timeout": 1800,
         "x-forward-stability": "unpublished"
       }
     },
@@ -37738,6 +38834,50 @@
         "tags": [
           "Network Management"
         ]
+      },
+      "get": {
+        "description": "Returns the network, as one row of getNetworks. An expired network answers 404. Requires VIEW_NETWORK_AND_SNAPSHOTS on the network (source: NetworkController.getNetwork, FWD-61722, Forward master after 26.10). Older Forward has no GET on this path and answers 405 with an HTML page (seen live on 26.10.5); client.networks.get falls back to filtering getNetworks there. Not yet in Forward's published description.",
+        "operationId": "getNetwork",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": 1767225600000,
+                  "creator": "admin",
+                  "id": "101",
+                  "name": "example-network",
+                  "orgId": "1"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Network"
+                }
+              }
+            },
+            "description": "The network."
+          },
+          "404": {
+            "description": "No such network, or it has expired."
+          },
+          "405": {
+            "description": "Forward before the route existed."
+          }
+        },
+        "summary": "Read one network",
+        "tags": [
+          "Network Management"
+        ],
+        "x-forward-stability": "unpublished"
       },
       "patch": {
         "description": "All JSON properties in the request body are optional. Include only the properties you wish to\nchange.",
@@ -44573,6 +45713,136 @@
           "Legacy Collection"
         ],
         "x-position": 1
+      }
+    },
+    "/networks/{networkId}/config/{property}": {
+      "delete": {
+        "description": "The network goes back to the organization's value. Answers 204. Requires EDIT_NETWORK_SETTINGS on the network, or Forward support (source: ConfigController.deleteNetworkConfigOverride). Changes state. Not called live. Not part of Forward's documented API.",
+        "operationId": "deleteNetworkConfigProperty",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed."
+          }
+        },
+        "summary": "Remove a network's override of one property",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "get": {
+        "description": "Returns a one-key object, the property name in lower case (as Forward serializes NetworkProperty) to the value in effect for the network: its own override, else the organization's value, else the default. Requires EDIT_NETWORK_SETTINGS on the network, or Forward support (source: ConfigController.getNetworkConfig). The property must be a NetworkProperty such as DISABLE_FLOW_COMPUTATION, ALERT_NEW_DEVICE_FAILURE_PERCENTAGE or ADVANCED_REACHABILITY_ANALYSIS. Live: DISABLE_FLOW_COMPUTATION answered {\"disable_flow_computation\": false}. Not part of Forward's documented API.",
+        "operationId": "getNetworkConfigProperty",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A NetworkProperty name.",
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "disable_flow_computation": false
+                },
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The property and its value."
+          }
+        },
+        "summary": "One network property's effective value",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "put": {
+        "description": "Sets the network's own value for the property. The value goes in the value query parameter as a string and Forward parses it for the property's type (400 if it cannot). Answers the property and the parsed value, as the GET does. Requires EDIT_NETWORK_SETTINGS on the network, or Forward support (source: ConfigController.setNetworkConfigOverride). Changes state. Not called live. Not part of Forward's documented API.",
+        "operationId": "setNetworkConfigProperty",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "property",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The value as text, such as true or 25.",
+            "in": "query",
+            "name": "value",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "disable_flow_computation": true
+                },
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The property and the value set."
+          }
+        },
+        "summary": "Override one network property",
+        "tags": [
+          "Configuration"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/connectivityTests": {
@@ -58919,6 +60189,16 @@
               "default": false,
               "type": "boolean"
             }
+          },
+          {
+            "description": "Also list predicted snapshots (the forks Predict creates). Forward 26.11 leaves them out unless this is true (FWD-61712; source SnapshotController.getSnapshots); Forward 26.10 lists them anyway and ignores the parameter (seen live).",
+            "in": "query",
+            "name": "includePredicted",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -61630,6 +62910,106 @@
         "tags": [
           "Vulnerability Analysis"
         ]
+      }
+    },
+    "/networks/{networkId}/vulnerability-scanners": {
+      "get": {
+        "description": "Lists the scanners as one network sees them: the org-level Tenable VM scanners it may use plus its own end-host scanners (Rapid7 and Tenable Security Center), each with the network's include switch and the latest collection status. Filter on type. Requires VIEW_END_HOST_SCANNERS on the network (source: VulnerabilityScannerController.getNetworkScanners). A network with none answers an empty list (seen live on 26.11.0-03). Not part of Forward's documented API.",
+        "operationId": "listNetworkVulnerabilityScanners",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "collectionError": "NONE",
+                    "collectorId": "C1",
+                    "createdAt": "2026-01-02T03:04:05.123Z",
+                    "createdBy": "me@example.com",
+                    "createdById": "11",
+                    "credentialId": "H-2",
+                    "govCloud": false,
+                    "include": true,
+                    "lastAttempted": "2026-01-03T02:00:00Z",
+                    "lastRetrieved": "2026-01-03T02:00:00Z",
+                    "name": "example-tenable-vm",
+                    "type": "TENABLE_VM"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/NetworkVulnerabilityScanner"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The scanners."
+          }
+        },
+        "summary": "List the vulnerability scanners a network can use",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/networks/{networkId}/vulnerability-scanners/{name}": {
+      "patch": {
+        "description": "Turns the network's switch for the named scanner on or off; the change applies to the network's next snapshot. include must be true or false (null is refused). Forward refuses (400) a scanner the network may not use, and an include while a scanner of another type is already included. A name matching a legacy Rapid7 or Tenable Security Center source changes that source instead. Requires MANAGE_END_HOST_SCANNERS on the network (source: VulnerabilityScannerController.updateIncludeForSnapshots). Returns 204. Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "setNetworkVulnerabilityScannerInclude",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_.-]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "include": true
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NetworkVulnerabilityScannerPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Changed."
+          }
+        },
+        "summary": "Include or exclude a scanner in a network's snapshots",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/networks/{networkId}/wan-circuits": {
@@ -67245,6 +68625,285 @@
         "summary": "The fingerprint this instance presents when a license is issued",
         "tags": [
           "Licensing"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/vulnerability-scanner-tests": {
+      "post": {
+        "description": "Tests a Tenable VM connection without storing anything (TenableVmScannerTestConfig; type TENABLE_VM). Forward runs the test on the named collector and holds the request until it finishes, up to about 60 seconds (VulnerabilityScannerService CONNECTIVITY_TEST_TIMEOUT), so the SDK waits at least 90 seconds and does not retry once the request has started. A failed test is still a 200 with error set; a success is an empty object. The collector sends the credential to Tenable as the header `X-ApiKeys: accessKey=<username>; secretKey=<password>;` against https://cloud.tenable.com, or https://fedcloud.tenable.com when govCloud is set; the SDK never sends that header itself. Requires MANAGE_VULNERABILITY_SCANNERS on the org (source: VulnerabilityScannerController.testScanner). Source-only: it contacts Tenable through a collector, so never exercised live. Not part of Forward's documented API.",
+        "operationId": "testVulnerabilityScanner",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "collectorId": "C1",
+                "credentialId": "H-2",
+                "govCloud": false,
+                "name": "example-tenable-vm",
+                "type": "TENABLE_VM"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/TenableVmScannerTestConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid API keys"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/VulnerabilityScannerTestResult"
+                }
+              }
+            },
+            "description": "The verdict. error is absent when the test found nothing wrong."
+          }
+        },
+        "summary": "Test a Tenable Vulnerability Management connection",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-min-read-timeout": 90,
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/vulnerability-scanners": {
+      "get": {
+        "description": "Lists the org-level vulnerability scanners (Tenable Vulnerability Management, type TENABLE_VM) with the status of each one's latest collection. Requires VIEW_VULNERABILITY_SCANNERS on the org (source: VulnerabilityScannerController.getScanners, Forward 26.11). An org with none answers an empty list (seen live on 26.11.0-03). This is not the per-network Tenable Security Center source (createTenableSource). Not part of Forward's documented API.",
+        "operationId": "listVulnerabilityScanners",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "allowedForNetworkIds": [
+                      "11"
+                    ],
+                    "collectionEnabled": true,
+                    "collectionError": "NONE",
+                    "collectorId": "C1",
+                    "createdAt": "2026-01-02T03:04:05.123Z",
+                    "createdBy": "me@example.com",
+                    "createdById": "11",
+                    "credentialId": "H-2",
+                    "govCloud": false,
+                    "lastAttempted": "2026-01-03T02:00:00Z",
+                    "lastRetrieved": "2026-01-03T02:00:00Z",
+                    "name": "example-tenable-vm",
+                    "schedule": {
+                      "intervalDays": 1,
+                      "startAt": "02:00",
+                      "timeZone": "UTC"
+                    },
+                    "sourceId": "00000000-0000-4000-8000-000000000001",
+                    "type": "TENABLE_VM"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/VulnerabilityScannerInfo"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The scanners."
+          }
+        },
+        "summary": "List the organization's vulnerability scanners",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Adds an org-level Tenable VM scanner (NewTenableVmScanner). Requires MANAGE_VULNERABILITY_SCANNERS on the org (source: VulnerabilityScannerController.addScanner). credentialId must name an org-level HTTP credential (createOrgHttpCredential, not a network one; 400 \"HTTP credential X does not exist\" otherwise) of type LOGIN, holding the Tenable access key as username and the secret key as password. name matches [A-Za-z0-9_.-]+ (ASCII only) and must be unique among the org's scanners and end-host scanners, ignoring case. schedule.intervalDays must be positive. Exactly one of allowedForAllNetworks true and allowedForNetworkIds (an empty list allows no network) must be set, or Forward answers 400. The connection test (testVulnerabilityScanner) is separate and not required. Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "createVulnerabilityScanner",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "allowedForAllNetworks": false,
+                "allowedForNetworkIds": [
+                  "11"
+                ],
+                "collectionEnabled": true,
+                "collectorId": "C1",
+                "credentialId": "H-2",
+                "govCloud": false,
+                "name": "example-tenable-vm",
+                "schedule": {
+                  "intervalDays": 1,
+                  "startAt": "02:00",
+                  "timeZone": "UTC"
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/NewTenableVmScanner"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "allowedForNetworkIds": [
+                    "11"
+                  ],
+                  "collectionEnabled": true,
+                  "collectorId": "C1",
+                  "createdAt": "2026-01-02T03:04:05.123Z",
+                  "createdBy": "me@example.com",
+                  "createdById": "11",
+                  "credentialId": "H-2",
+                  "govCloud": false,
+                  "name": "example-tenable-vm",
+                  "schedule": {
+                    "intervalDays": 1,
+                    "startAt": "02:00",
+                    "timeZone": "UTC"
+                  },
+                  "sourceId": "00000000-0000-4000-8000-000000000001",
+                  "type": "TENABLE_VM"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/StoredVulnerabilityScanner"
+                }
+              }
+            },
+            "description": "The stored scanner."
+          }
+        },
+        "summary": "Add a Tenable Vulnerability Management scanner",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/vulnerability-scanners/{name}": {
+      "delete": {
+        "description": "Deletes the named org-level scanner; networks that used it stop receiving its data. It does not delete the credential. Requires MANAGE_VULNERABILITY_SCANNERS on the org (source: VulnerabilityScannerController.deleteScanner). Returns 204. An already-gone scanner is a 404, which this SDK raises (the Go SDK treats it as success). Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "deleteVulnerabilityScanner",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_.-]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          }
+        },
+        "summary": "Delete a Tenable Vulnerability Management scanner",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "patch": {
+        "description": "Partial update of the named scanner (TenableVmScannerPatch); omitted fields stay as they are, and Forward refuses an explicit null for any field. schedule replaces the whole schedule. allowedForNetworkIds (a list, empty for none) restricts the scanner and allowedForAllNetworks true opens it to every network; sending both, or allowedForAllNetworks false without a list, is refused (400). Requires MANAGE_VULNERABILITY_SCANNERS on the org (source: VulnerabilityScannerController.updateScanner). Returns 200 with the stored scanner. Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "updateVulnerabilityScanner",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_.-]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "allowedForAllNetworks": true,
+                "collectionEnabled": false
+              },
+              "schema": {
+                "$ref": "#/components/schemas/TenableVmScannerPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "allowedForAllNetworks": true,
+                  "collectionEnabled": false,
+                  "collectorId": "C1",
+                  "credentialId": "H-2",
+                  "govCloud": false,
+                  "name": "example-tenable-vm",
+                  "schedule": {
+                    "intervalDays": 1
+                  },
+                  "sourceId": "00000000-0000-4000-8000-000000000001",
+                  "type": "TENABLE_VM"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/StoredVulnerabilityScanner"
+                }
+              }
+            },
+            "description": "The stored scanner."
+          }
+        },
+        "summary": "Change a Tenable Vulnerability Management scanner",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-stability": "unpublished"
+      },
+      "post": {
+        "description": "Starts a collection of the named scanner outside its schedule. Asynchronous: Forward answers once the collection is queued, with no body; the outcome shows later in the scanner's lastRetrieved, lastAttempted and collectionError (listVulnerabilityScanners). Forward answers 409 while a collection of the scanner is already running, and a refused enqueue can record a failed attempt first. Requires MANAGE_VULNERABILITY_SCANNERS on the org (source: VulnerabilityScannerController.triggerCollection). Source-only, never exercised live. Not part of Forward's documented API.",
+        "operationId": "collectVulnerabilityScanner",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_.-]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Queued."
+          }
+        },
+        "summary": "Collect a Tenable Vulnerability Management scanner now",
+        "tags": [
+          "Integrations"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "collect"
+          ]
         ],
         "x-forward-stability": "unpublished"
       }

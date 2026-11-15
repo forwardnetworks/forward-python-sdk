@@ -5,6 +5,64 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.37] - 2026-11-15
+
+### Added
+
+From the Go SDK v0.8.19 to v0.8.24, read from Forward master (ec7a86a); unpublished routes.
+
+- `client.protocol_modeling`: the predict debug reads. The protocol-modeling partitions and debug ZIP, the
+  devices with modeled BGP, OSPF or config nodes, one BGP node, a device's OSPF and config nodes, a BGP node's
+  policy rules, and `get_change_set_subset` (the devices a routing change on some devices can reach). The OSPF
+  and config node reads are newer than Forward 26.10. The config node reads go beyond Go. A `neighbor_addr`
+  that is not an IP address is refused before sending, because Forward answers 500 to it.
+  Checked live on 26.10.5: the BGP node list, a BGP node, BGP rules and the subset. The OSPF read answers
+  404 there because it is newer.
+- `client.configuration`: read, set and remove one network's property override
+  (`/networks/{id}/config/{property}`). Reading was checked live.
+- `snapshots.list(include_predicted=...)`, and the `includePredicted` parameter on the `listNetworkSnapshots`
+  operation.
+
+From the Go SDK v0.8.25 and v0.8.26, read from Forward master; unpublished routes, not run live beyond the two lists.
+
+- `client.integrations`: Tenable Vulnerability Management scanners at org level. List, add, change, delete,
+  collect now and test a connection, plus a network's scanner list and its include switch. Build bodies with
+  `NewTenableVmScanner`, `TenableVmScannerPatch` and `TenableVmScannerTestConfig` and send `.to_api()`. The
+  test model fills in `type: TENABLE_VM` for you, and the test waits at least 90 seconds without retrying,
+  because Forward holds the request while a collector runs it. Both lists answered empty on a live 26.11.
+- `client.credentials`: the org-level HTTP credentials (`/http-credentials`): list, create, get, update and
+  delete. A Tenable VM scanner needs one of these, of type LOGIN; a network credential is refused with
+  400 "HTTP credential ... does not exist". Forward refuses to delete a credential a scanner still uses.
+- Unlike Go, the SDK does not pre-check that a scanner sets exactly one of `allowedForAllNetworks` and
+  `allowedForNetworkIds`; Forward answers 400. The name pattern is checked by the models.
+
+From the Go SDK v0.8.27:
+
+- `forward_sdk.trace`: typed path queries for `client.flow_trace` (`PathQuery`, `Endpoint`, `ChainHop` and
+  location builders such as `device()`, `interface()` and `subnet()`). It covers from, to, chain hops,
+  header filters and `PERMIT_ALL`, and refuses before sending what Forward refuses (plus, as Go does, an empty
+  query or header filter, which Forward accepts). `interface()` writes
+  Forward's `"<device> <interface>"` form; the comma form is a 400 (live). See docs/flow-trace.md for what
+  was seen live on 26.11 and what is read from source.
+
+### Changed
+
+- Slow reads wait longer: `verify_predict_modeling_base` waits up to 30 minutes, and the protocol-modeling
+  partitions and blob up to 20 minutes, when the client's own read timeout is shorter. A longer client timeout
+  is kept. These calls are not repeated after a read timeout or a 5xx, so the wait is not multiplied by the
+  retry count and Forward does not queue the same job twice. A failure to connect, or a 429, is still retried.
+- `networks.get()` uses Forward's single-network read where it exists (after 26.10). On older Forward the
+  route answers 405, and `get()` falls back to filtering the list as before. Where the direct read exists, a
+  network the caller cannot see may now raise `ForwardPermissionError` (403) rather than
+  `ForwardNotFoundError`.
+
+### Fixed
+
+- Forward 26.11 leaves predicted snapshots out of the snapshot listing unless asked (FWD-61712). The SDK looks
+  snapshots up there, so `change_set.predict_and_wait()` and `wait_until_processed()` would never have found a
+  predicted snapshot. They now ask for them, and so does `latest_processed(include_predicted=True)`. Forward
+  26.10 ignores the parameter (checked live).
+
 ## [0.1.36] - 2026-11-07
 
 ### Added

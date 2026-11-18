@@ -2275,6 +2275,17 @@ class CveAnalysisRule(ForwardModel):
     """
 
 
+class CveIndexUpdateResponse(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    error: str | None = None
+    """
+    Absent on success; CONNECTION_FAILED or INSTALL_FAILED.
+    """
+
+
 class CveInfo(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -4275,27 +4286,6 @@ class Action2(OpenEnum):
     add_dir = "addDir"
 
 
-class DraftChange(ForwardModel):
-    """
-    One staged, uncommitted change to the library.
-    """
-
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    action: Action2 | None = None
-    path: str | None = None
-
-
-class DraftChangePage(ForwardModel):
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    changes: list[DraftChange] | None = None
-
-
 class Status7(OpenEnum):
     no_latest_snapshot = "NO_LATEST_SNAPSHOT"
     query_missing = "QUERY_MISSING"
@@ -4511,6 +4501,36 @@ class FileDiffSummary(ForwardModel):
     )
     direct_changes: Annotated[DirectChanges | None, Field(alias="directChanges")] = None
     indirect_changes: Annotated[IndirectChanges | None, Field(alias="indirectChanges")] = None
+
+
+class FwdAppConnectionTest(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    status: str | None = None
+    """
+    SUCCESS, AUTH_FAILED or CONNECTION_FAILED.
+    """
+
+
+class FwdAppProxy(Attribution):
+    """
+    The org's proxy for reaching fwd.app (StoredFwdAppProxy, FwdAppProxy), with the attribution unwrapped beside it. The credential is unwrapped into username; its password is never returned.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    enable_auth: Annotated[bool | None, Field(alias="enableAuth")] = None
+    enabled: bool | None = None
+    url: str | None = None
+    username: str | None = None
+    """
+    The proxy credential's username.
+    """
+    verify_certificate: Annotated[bool | None, Field(alias="verifyCertificate")] = None
 
 
 class TransitType(OpenEnum):
@@ -6521,6 +6541,20 @@ class NotFilter(ForwardModel):
     type: Literal["NotFilter"]
 
 
+class NqeChangeBasis(ForwardModel):
+    """
+    The committed query an edit or deletion started from.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    commit_id: Annotated[str | None, Field(alias="commitId")] = None
+    path: str | None = None
+    query_id: Annotated[str | None, Field(alias="queryId")] = None
+
+
 class NqeCheck(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -6718,6 +6752,17 @@ class NqeExecutionStatusWithResultKey(ForwardModel):
     rows_produced: Annotated[int | None, Field(alias="rowsProduced")] = None
     status: str | None = None
     timeout_minutes: Annotated[int | None, Field(alias="timeoutMinutes")] = None
+
+
+class NqeExportRequest(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    paths: list[str]
+    """
+    Library paths; one ending in / is a directory.
+    """
 
 
 class Aggregation(OpenEnum):
@@ -16688,6 +16733,35 @@ class Disp2UserAccountWithRoles(User):
     """
     The orgs a support user can enter. Omitted when empty (source: NON_EMPTY). Never sent on the test account (live).
     """
+
+
+class DraftChange(ForwardModel):
+    """
+    One staged, uncommitted change to the library, as Forward's ChangeInfo lists it (source: NqeLibController.getUserWorkspaceChanges). type names the change. path is set for an addition only: an edit or a deletion carries basis (the committed query, with its path) instead, plus directory and name when an edit moves or renames the query and sourceCodeSha when it changes the source; a permission change names its directory. action is the staging request's spelling, kept for older answers.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    action: Action2 | None = None
+    basis: NqeChangeBasis | None = None
+    directory: str | None = None
+    name: str | None = None
+    path: str | None = None
+    source_code_sha: Annotated[str | None, Field(alias="sourceCodeSha")] = None
+    type: str | None = None
+    """
+    QUERY_ADD, QUERY_EDIT, QUERY_DELETE, DIR_ADD, PERMISSION_SET or PERMISSION_RESET.
+    """
+
+
+class DraftChangePage(ForwardModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    changes: list[DraftChange] | None = None
 
 
 class EdgeAsset(EdgeAssetAttribution):

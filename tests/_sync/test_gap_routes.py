@@ -15,12 +15,14 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
+import forward_sdk._sync.services.nqe_repo as nqe_repo_service
 from forward_sdk._sync.client import ForwardClient
 from forward_sdk.errors import (
     ForwardBadRequestError,
     ForwardBgpKeyMatchedNothingError,
     ForwardConfigurationError,
     ForwardNotFoundError,
+    ForwardResponseError,
     ForwardServerError,
     ForwardTimeoutError,
     ForwardTransportError,
@@ -42,6 +44,7 @@ from forward_sdk.models import (
 from forward_sdk.testing import snapshot_payload
 from forward_sdk.trace import Endpoint, PathQuery, device, interface
 from tests.conftest import Recorder, json_response
+from tests.unit.test_nqe_export import export, zipped
 
 pytestmark = pytest.mark.anyio
 
@@ -1944,9 +1947,9 @@ class TestWaitForLocationPairs:
         assert recorder.query_for()["type"] == ["ADDED"]
         assert len(recorder.requests) == 3
         assert result.pairs.counts is not None and result.pairs.counts[0].count == 14
-        assert not result.nothing_compared
+        assert not result.no_forwarding_change
 
-    def test_no_subnet_pairs_at_all_is_flagged_and_type_case_is_forgiven(
+    def test_no_forwarding_change_is_flagged_and_type_case_is_forgiven(
         self, recorder: Recorder
     ) -> None:
         def answer(request: httpx.Request) -> httpx.Response:
@@ -1958,7 +1961,8 @@ class TestWaitForLocationPairs:
         with make_client(recorder) as client:
             result = client.snapshot_diffs.wait_for_location_pairs("s1", "s2", "added")
 
-        assert result.nothing_compared and result.pairs.counts == []
+        assert result.no_forwarding_change and result.pairs.counts == []
+        assert result.nothing_compared  # the 0.1.38 name
         assert recorder.query_for()["type"] == ["ADDED"]
 
     def test_all_is_refused_before_sending(self, recorder: Recorder) -> None:
@@ -1967,3 +1971,95 @@ class TestWaitForLocationPairs:
                 client.snapshot_diffs.wait_for_location_pairs("s1", "s2", "ALL")
 
         assert recorder.requests == []
+
+
+class TestNqeExport:
+    def test_org_sources_come_back_by_path(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            "/api/users/current/nqe/changes",
+            httpx.Response(200, content=zipped(export(("/A/q", "select {}")))),
+        )
+        with make_client(recorder) as client:
+            sources = client.nqe.repo.export_org_sources(["/A/", " /B/q "])
+
+        request = recorder.requests[-1]
+        assert recorder.query_for() == {"action": ["export"]}
+        assert recorder.body_for() == {"paths": ["/A/", "/B/q"]}
+        assert request.headers["accept"] == "application/zip"
+        assert sources == {"/A/q": "select {}"}
+
+    def test_forward_sources_use_the_forward_library_route(self, recorder: Recorder) -> None:
+        recorder.add(
+            "POST",
+            "/api/nqe/repos/fwd/commits/head/queries",
+            httpx.Response(200, content=zipped(export())),
+        )
+        with make_client(recorder) as client:
+            assert client.nqe.repo.export_forward_sources(["/"]) == {}
+
+    def test_bad_paths_and_no_paths_send_nothing(self, recorder: Recorder) -> None:
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardConfigurationError, match="must start with /"):
+                client.nqe.repo.export_org_sources(["Devices"])
+            with pytest.raises(ForwardConfigurationError, match="list of library paths"):
+                client.nqe.repo.export_org_sources("/")
+            assert client.nqe.repo.export_org_sources([]) == {}
+
+        assert recorder.requests == []
+
+
+class TestNqeExportSize:
+    def test_an_answer_larger_than_the_cap_stops_the_download(
+        self, recorder: Recorder, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(nqe_repo_service, "MAX_EXPORT_BYTES", 100)
+        undeclared = httpx.Response(200, content=b"x" * 101)
+        del undeclared.headers["content-length"]  # only the streaming cap can stop it
+        recorder.add("POST", "/api/users/current/nqe/changes", undeclared)
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardResponseError, match="larger than the SDK reads"):
+                client.nqe.repo.export_org_sources(["/"])
+
+    def test_a_declared_size_over_the_cap_is_refused_before_reading(
+        self, recorder: Recorder, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(nqe_repo_service, "MAX_EXPORT_BYTES", 100)
+        recorder.add(
+            "POST",
+            "/api/users/current/nqe/changes",
+            httpx.Response(200, content=b"x" * 10, headers={"content-length": "5000"}),
+        )
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardResponseError, match="larger than the SDK reads"):
+                client.nqe.repo.export_org_sources(["/"])
+
+
+class TestFwdAppConnection:
+    def test_the_test_proxy_and_cve_update_routes(self, recorder: Recorder) -> None:
+        recorder.add("POST", "/api/fwd-app-connection", json_response({"status": "AUTH_FAILED"}))
+        recorder.add(
+            "GET",
+            "/api/fwd-app-proxy",
+            json_response(
+                {
+                    "enabled": True,
+                    "url": "http://proxy.example.com:3128",
+                    # Forward unwraps the credential: username sits at the top level.
+                    "username": "u",
+                    "updatedAt": "2026-11-01T00:00:00Z",
+                }
+            ),
+        )
+        recorder.add("POST", "/api/cve-index", json_response({"error": "CONNECTION_FAILED"}))
+        with make_client(recorder) as client:
+            test = client.system_administration.test_fwd_app_connection()
+            assert recorder.query_for() == {"action": ["test"]}
+            proxy = client.system_administration.get_fwd_app_proxy()
+            update = client.system_administration.update_cve_index_from_software_central()
+            assert recorder.query_for() == {"action": ["update"]}
+
+        assert test.status == "AUTH_FAILED"
+        assert proxy.enabled and proxy.username == "u"
+        assert proxy.updated_at is not None  # the attribution Forward unwraps beside it
+        assert update.error == "CONNECTION_FAILED"

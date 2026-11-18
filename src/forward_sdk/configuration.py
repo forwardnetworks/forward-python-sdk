@@ -11,7 +11,33 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-__all__ = ["PropertySource", "config_value", "describe_properties"]
+__all__ = [
+    "ADVANCED_REACHABILITY_ANALYSIS",
+    "ADVANCED_REACHABILITY_ASYNC",
+    "ADVANCED_REACHABILITY_ON_DEMAND",
+    "ALERT_NEW_DEVICE_FAILURE_PERCENTAGE",
+    "DISABLE_FLOW_COMPUTATION",
+    "PropertySource",
+    "config_value",
+    "describe_properties",
+]
+
+#: The network properties Forward defines (``NetworkProperty``, a subset of the
+#: org properties), in the lowercase spelling a live 26.10.6 appserver answers
+#: and accepts. Set one per network with ``configuration.set_network_config_property``
+#: and clear it with ``delete_network_config_property``. A build may define more
+#: or fewer; an unknown name, such as the org-only ``location_connectivity_diffs``,
+#: is a 400 (``error.unknown_network_property``). Mirrors the Go SDK v0.8.40.
+DISABLE_FLOW_COMPUTATION = "disable_flow_computation"
+ALERT_NEW_DEVICE_FAILURE_PERCENTAGE = "alert_new_device_failure_percentage"
+ADVANCED_REACHABILITY_ANALYSIS = "advanced_reachability_analysis"
+
+#: Values of ``advanced_reachability_analysis``: ``ON_DEMAND`` (the default)
+#: computes the advanced analysis only when a user asks; ``ASYNC`` computes it
+#: after each snapshot finishes processing. The AutoCon6 workshop set ``ASYNC``
+#: on 67 networks with an org admin's key on 26.10.6.
+ADVANCED_REACHABILITY_ASYNC = "ASYNC"
+ADVANCED_REACHABILITY_ON_DEMAND = "ON_DEMAND"
 
 
 def config_value(response: Any) -> Any:

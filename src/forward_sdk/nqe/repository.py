@@ -115,28 +115,103 @@ class RepositoryQuery:
 
 @dataclass(frozen=True, slots=True)
 class DraftChange:
-    """One staged, uncommitted change.
+    """One staged, uncommitted change, as Forward lists it (its ``ChangeInfo``).
 
-    A frozen dataclass rather than a pydantic model, like
-    :class:`RepositoryQuery`, so serialize it with :meth:`to_api`.
+    ``type`` names the change (``QUERY_ADD``, ``QUERY_EDIT``, ``QUERY_DELETE``,
+    ``DIR_ADD``, ``PERMISSION_SET``, ``PERMISSION_RESET``). Forward sets
+    ``path`` for an addition ONLY: an edit or a deletion carries the committed
+    query it started from (``basis_path``, ``basis_query_id``,
+    ``basis_commit_id``), plus ``directory`` and ``name`` when an edit moves or
+    renames the query. :attr:`query_path` names the query in every case; before
+    0.1.39 an edit's or deletion's ``path`` read empty and nothing else said
+    which query it was.
+
+    ``action`` is kept for older code: Forward's ``type``, or the staging
+    request's ``action`` when an answer carries that instead. A frozen
+    dataclass rather than a pydantic model, like :class:`RepositoryQuery`, so
+    serialize it with :meth:`to_api`.
     """
 
     path: str
     action: str | None = None
+    type: str | None = None
+    directory: str | None = None
+    name: str | None = None
+    source_code_sha: str | None = None
+    basis_query_id: str | None = None
+    basis_commit_id: str | None = None
+    basis_path: str | None = None
+
+    @property
+    def query_path(self) -> str:
+        """The path this draft's query is known by.
+
+        An addition's ``path``; for an edit, where the edit leaves the query
+        (the committed path with ``directory`` and ``name`` applied when it
+        moves or renames it); for a deletion, the committed path. Empty for a
+        directory or permission change, whose ``path`` or ``directory`` names
+        it. Read from Forward's source (``ChangeInfo.QueryEdit``); not yet seen
+        in a live answer.
+        """
+        if self.path:
+            return self.path
+        if not self.basis_path:
+            return ""
+        if (self.type or "").upper() != "QUERY_EDIT" or not (self.directory or self.name):
+            return self.basis_path
+        folder, _, leaf = self.basis_path.rpartition("/")
+        folder = (self.directory or folder + "/").rstrip("/") + "/"
+        return folder + (self.name or leaf)
+
+    def touches(self, path: str) -> bool:
+        """Whether committing ``path`` would publish this draft too.
+
+        True when ``path`` is the draft's own path, its :attr:`query_path`, or
+        the committed path an edit or deletion started from (which catches a
+        rename away from ``path``). Mirrors the Go SDK's ``Touches`` (v0.8.47).
+        """
+        return bool(path) and path in (self.path, self.query_path, self.basis_path)
 
     def to_api(self) -> dict[str, Any]:
         """Serialize with Forward's field names."""
         data: dict[str, Any] = {"path": self.path}
-        if self.action is not None:
-            data["action"] = self.action
+        for key, value in (
+            ("action", self.action),
+            ("type", self.type),
+            ("directory", self.directory),
+            ("name", self.name),
+            ("sourceCodeSha", self.source_code_sha),
+        ):
+            if value is not None:
+                data[key] = value
+        if self.basis_path is not None or self.basis_query_id is not None:
+            data["basis"] = {
+                key: value
+                for key, value in (
+                    ("queryId", self.basis_query_id),
+                    ("commitId", self.basis_commit_id),
+                    ("path", self.basis_path),
+                )
+                if value is not None
+            }
         return data
 
     @classmethod
     def from_payload(cls, payload: Mapping[str, Any]) -> DraftChange:
         parsed = wire.DraftChange.model_validate(dict(payload))
+        basis = parsed.basis
+        kind = optional_str(parsed.type)
+        action = parsed.action.value if parsed.action is not None else None
         return cls(
             path=str(parsed.path or ""),
-            action=optional_str(parsed.action or payload.get("type")),
+            action=optional_str(action or kind),
+            type=kind,
+            directory=optional_str(parsed.directory),
+            name=optional_str(parsed.name),
+            source_code_sha=optional_str(parsed.source_code_sha),
+            basis_query_id=optional_str(basis.query_id) if basis else None,
+            basis_commit_id=optional_str(basis.commit_id) if basis else None,
+            basis_path=optional_str(basis.path) if basis else None,
         )
 
 

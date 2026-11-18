@@ -70,7 +70,9 @@ Forward 26.11, a two-device lab: device, interface and subnet locations, the
 interface naming, an empty result as `{"value": 0, "type": "EXACT"}`, and
 `ipv6_dst` and `PERMIT_ALL` accepted. Seen since by the forward-skills
 tooling (fwdctl, built on the Go SDK) on 26.11, 2026-11-15:
-a device chain hop with `through` narrows the paths and `egress` is accepted;
+a device chain hop with `through` narrows the paths and `egress` is accepted
+(and the AutoCon6 workshop's persistent Existential check took a device hop
+written with the singular `value` as well as `values`, which the SDK sends);
 header filters in `from_` (`ip_proto`, `tp_dst`, an `ipv4_dst` prefix) narrow;
 a device in `to` returns the paths leaving there; and `get_trace` with the
 same filters traces a searched path hop by hop. Everything else here, including

@@ -123,3 +123,27 @@ def reachability_status(*, network_id: str, snapshot_id: str, job_key: str) -> R
             "jobKey": job_key,
         },
     )
+
+
+@op("exportOrgQuerySources")
+def export_org(*, paths: Sequence[str]) -> RequestSpec:
+    """Export organization library sources as a ZIP. A read, so a retry is safe."""
+    return spec_for(
+        "exportOrgQuerySources",
+        json={"paths": list(paths)},
+        accept="application/zip",
+        idempotent=True,
+        stream=True,
+    )
+
+
+@op("exportForwardQuerySources")
+def export_forward(*, paths: Sequence[str]) -> RequestSpec:
+    """Export Forward Library sources as a ZIP. A read, so a retry is safe."""
+    return spec_for(
+        "exportForwardQuerySources",
+        json={"paths": list(paths)},
+        accept="application/zip",
+        idempotent=True,
+        stream=True,
+    )

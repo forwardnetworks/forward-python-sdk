@@ -461,6 +461,36 @@ class TestPublishing:
         assert recorder.count("POST", CHANGES) == 0
         assert recorder.count("POST", COMMITS) == 0
 
+    @pytest.mark.parametrize(
+        "draft",
+        [
+            # Forward lists an edit or deletion with no path, only the committed basis.
+            {
+                "type": "QUERY_EDIT",
+                "sourceCodeSha": "s",
+                "basis": {"queryId": "Q", "commitId": "c", "path": "/B"},
+            },
+            {"type": "QUERY_DELETE", "basis": {"queryId": "Q", "commitId": "c", "path": "/B"}},
+            # A rename moving another query onto the path being published.
+            {
+                "type": "QUERY_EDIT",
+                "name": "B",
+                "basis": {"queryId": "Q", "commitId": "c", "path": "/Old"},
+            },
+        ],
+    )
+    async def test_publish_sees_an_edit_or_delete_in_forwards_own_shape(
+        self, recorder: Recorder, draft: dict[str, object]
+    ) -> None:
+        recorder.add("GET", QUERIES, json_response({"queries": []}))
+        recorder.add("GET", CHANGES, json_response({"changes": [draft]}))
+        recorder.default = lambda request: pytest.fail(
+            f"publish should have stopped before {request.method} {request.url.path}"
+        )
+        async with make_client(recorder) as client:
+            with pytest.raises(ForwardConflictError, match="/B"):
+                await client.nqe.repo.publish({"/A": "a", "/B": "b"}, title="t")
+
     async def test_publish_can_be_told_to_overwrite_drafts(self, recorder: Recorder) -> None:
         recorder.add("GET", QUERIES, json_response({"queries": []}))
         recorder.add("POST", CHANGES, json_response({}))

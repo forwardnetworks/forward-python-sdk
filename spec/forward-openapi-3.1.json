@@ -6000,6 +6000,15 @@
         ],
         "type": "object"
       },
+      "CveIndexUpdateResponse": {
+        "properties": {
+          "error": {
+            "description": "Absent on success; CONNECTION_FAILED or INSTALL_FAILED.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "CveInfo": {
         "properties": {
           "description": {
@@ -10191,7 +10200,7 @@
         "description": "A user account with its roles. The user fields are unwrapped into this object, as User is (source: UserAccountWithRoles, @JsonUnwrapped)."
       },
       "DraftChange": {
-        "description": "One staged, uncommitted change to the library.",
+        "description": "One staged, uncommitted change to the library, as Forward's ChangeInfo lists it (source: NqeLibController.getUserWorkspaceChanges). type names the change. path is set for an addition only: an edit or a deletion carries basis (the committed query, with its path) instead, plus directory and name when an edit moves or renames the query and sourceCodeSha when it changes the source; a permission change names its directory. action is the staging request's spelling, kept for older answers.",
         "properties": {
           "action": {
             "enum": [
@@ -10201,7 +10210,23 @@
             ],
             "type": "string"
           },
+          "basis": {
+            "$ref": "#/components/schemas/NqeChangeBasis"
+          },
+          "directory": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
           "path": {
+            "type": "string"
+          },
+          "sourceCodeSha": {
+            "type": "string"
+          },
+          "type": {
+            "description": "QUERY_ADD, QUERY_EDIT, QUERY_DELETE, DIR_ADD, PERMISSION_SET or PERMISSION_RESET.",
             "type": "string"
           }
         },
@@ -10784,6 +10809,44 @@
         },
         "description": "Stored file name to the line ranges the entry came from.",
         "type": "object"
+      },
+      "FwdAppConnectionTest": {
+        "properties": {
+          "status": {
+            "description": "SUCCESS, AUTH_FAILED or CONNECTION_FAILED.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "FwdAppProxy": {
+        "allOf": [
+          {
+            "properties": {
+              "enableAuth": {
+                "type": "boolean"
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "url": {
+                "type": "string"
+              },
+              "username": {
+                "description": "The proxy credential's username.",
+                "type": "string"
+              },
+              "verifyCertificate": {
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          {
+            "$ref": "#/components/schemas/Attribution"
+          }
+        ],
+        "description": "The org's proxy for reaching fwd.app (StoredFwdAppProxy, FwdAppProxy), with the attribution unwrapped beside it. The credential is unwrapped into username; its password is never returned."
       },
       "HopFilter": {
         "properties": {
@@ -15802,6 +15865,21 @@
         ],
         "type": "object"
       },
+      "NqeChangeBasis": {
+        "description": "The committed query an edit or deletion started from.",
+        "properties": {
+          "commitId": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "queryId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "NqeCheck": {
         "properties": {
           "checkType": {
@@ -16229,6 +16307,21 @@
             "type": "integer"
           }
         },
+        "type": "object"
+      },
+      "NqeExportRequest": {
+        "properties": {
+          "paths": {
+            "description": "Library paths; one ending in / is a directory.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "paths"
+        ],
         "type": "object"
       },
       "NqeMetricPreview": {
@@ -32789,6 +32882,34 @@
           }
         ]
       },
+      "post": {
+        "description": "The deployment downloads the CVE index from Software Central (fwd.app) with the org's active license id and deployment fingerprint, and installs it if it is newer than the installed one. It contacts an external service and can install an index, so it is a write, though not a destructive one. A failed update is a 200 whose error names it (CONNECTION_FAILED or INSTALL_FAILED), not an HTTP error. Requires MANAGE_CVE_INDEX; on-premises deployments only, so a SaaS deployment answers 404 'No endpoint' (source: FwdAppConnectionController.updateCveIndex, CveIndexUpdateService). From the Go SDK v0.8.45; read from Forward source, not run live. Not part of Forward's documented API.",
+        "operationId": "updateCveIndexFromSoftwareCentral",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {},
+                "schema": {
+                  "$ref": "#/components/schemas/CveIndexUpdateResponse"
+                }
+              }
+            },
+            "description": "The update's outcome; error is absent on success."
+          }
+        },
+        "summary": "Have an on-premises deployment update its CVE index from fwd.app",
+        "tags": [
+          "System Administration"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "update"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      },
       "put": {
         "description": "Replaces the CVE index in use.\n\nTo upload a CVE index gzipped binary (.bin.gz) file downloaded from fwd.app:\n\n`curl -vu <user>:<pass> https://<host>/api/cve-index?sha=<digest> -T cve-index.bin.gz`\n\nThe `sha` parameter is optional but recommended. The `<digest>` value can be found in the `Digest` response\nheader when a CVE index is downloaded from fwd.app.\n\n**Note:** This operation is for on-premises deployments only.",
         "operationId": "putCveIndex",
@@ -36408,6 +36529,68 @@
           "Endpoint Profiles"
         ],
         "x-position": 5
+      }
+    },
+    "/fwd-app-connection": {
+      "post": {
+        "description": "Forward makes an outbound HEAD /api/cve-index to the org's SOFTWARE_CENTRAL_URL through the org's configured proxy, authenticating with the license and deployment ids. It contacts an external service but changes no stored setting. status is SUCCESS, AUTH_FAILED (the license or deployment was refused) or CONNECTION_FAILED (the host or proxy could not be reached); a failed connection is a 200, not an HTTP error. Requires MANAGE_FWD_CONNECTION_CONFIG; on-premises deployments only (404 'No endpoint' on SaaS). Source: FwdAppConnectionController.testConnection. From the Go SDK v0.8.45; not run live. Not part of Forward's documented API.",
+        "operationId": "testFwdAppConnection",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "SUCCESS"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/FwdAppConnectionTest"
+                }
+              }
+            },
+            "description": "The connection test's outcome."
+          }
+        },
+        "summary": "Test an on-premises deployment's connection to fwd.app (Software Central)",
+        "tags": [
+          "System Administration"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "test"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
+    "/fwd-app-proxy": {
+      "get": {
+        "description": "Read-only. enabled false means a direct connection; a deployment that never configured a proxy answers Forward's default (enabled false). The proxy credential's password is never returned, only its username. Attribution fields say who set it and when. Requires VIEW_FWD_CONNECTION_CONFIG; on-premises deployments only (404 'No endpoint' on SaaS). Source: FwdAppConnectionController.getProxy, StoredFwdAppProxy. From the Go SDK v0.8.45; not run live. Not part of Forward's documented API.",
+        "operationId": "getFwdAppProxy",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "enableAuth": true,
+                  "enabled": true,
+                  "url": "http://proxy.example.com:3128",
+                  "username": "proxy-user",
+                  "verifyCertificate": true
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/FwdAppProxy"
+                }
+              }
+            },
+            "description": "The proxy settings."
+          }
+        },
+        "summary": "The organization's proxy settings for reaching fwd.app",
+        "tags": [
+          "System Administration"
+        ],
+        "x-forward-stability": "unpublished"
       }
     },
     "/global-config": {
@@ -64568,6 +64751,46 @@
         "x-forward-stability": "unpublished"
       }
     },
+    "/nqe/repos/fwd/commits/head/queries": {
+      "post": {
+        "description": "exportOrgQuerySources for the Forward Library, Forward's own shipped queries, at its head commit. Queries the org's license tier does not permit are left out. Same ZIP format. Requires VIEW_NQE_LIBRARY (source: NqeLibController.exportHeadPathsFwd). client.nqe.repo.export_forward_sources() decodes it. From the Go SDK v0.8.43; not run live. Not part of Forward's documented API.",
+        "operationId": "exportForwardQuerySources",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NqeExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "A ZIP holding queries-export.proto."
+          }
+        },
+        "summary": "Export the source of Forward Library queries, as a ZIP",
+        "tags": [
+          "NQE Repository"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "export"
+          ]
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/nqe/repos/org/commits": {
       "post": {
         "operationId": "commitDraftChanges",
@@ -68310,8 +68533,18 @@
                 "example": {
                   "changes": [
                     {
-                      "action": "editQuery",
-                      "path": "/NetBox/Devices"
+                      "path": "/Example/New query",
+                      "sourceCodeSha": "a1b2c3",
+                      "type": "QUERY_ADD"
+                    },
+                    {
+                      "basis": {
+                        "commitId": "c0ffee",
+                        "path": "/Example/Devices",
+                        "queryId": "Q_example"
+                      },
+                      "name": "Renamed devices",
+                      "type": "QUERY_EDIT"
                     }
                   ]
                 },
@@ -68330,64 +68563,47 @@
         "x-forward-stability": "unpublished"
       },
       "post": {
-        "operationId": "addDraftChange",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "action",
-            "required": true,
-            "schema": {
-              "enum": [
-                "addQuery",
-                "editQuery",
-                "addDir"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "description": "Takes {paths: [...]}: a path ending in / is a directory (everything under it; / is the whole library), any other is one query. Answers a ZIP with one entry, queries-export.proto: protobuf NqeLibExportPB {repeated ExportedQueryPB queries = 1}, ExportedQueryPB {QueryPathPB path = 1; NqeQuerySourcePB source_code = 2}, each wrapper one string field 1. It is the CALLING USER'S view of the library (the committed head with that user's drafts applied), and it also includes the non-Forward queries the requested ones import. Requires VIEW_NQE_LIBRARY (source: NqeLibController.exportWorkspacePathsOrg). client.nqe.repo.export_org_sources() decodes it. From the Go SDK v0.8.43; not run live. Not part of Forward's documented API.",
+        "operationId": "exportOrgQuerySources",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "basis": {
-                    "description": "The query and commit an edit is based on.",
-                    "properties": {
-                      "commitId": {
-                        "type": "string"
-                      },
-                      "queryId": {
-                        "type": "string"
-                      }
-                    },
-                    "type": "object"
-                  },
-                  "sourceCode": {
-                    "type": "string"
-                  }
-                },
-                "type": "object"
+                "$ref": "#/components/schemas/NqeExportRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
-            "description": "The change was staged."
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "A ZIP holding queries-export.proto."
           }
         },
-        "summary": "Stage a query addition, edit, or new directory",
+        "summary": "Export the source of organization library queries, as a ZIP",
         "tags": [
           "NQE Repository"
+        ],
+        "x-forward-fixed-query": [
+          [
+            "action",
+            "export"
+          ]
+        ],
+        "x-forward-operation-variants": [
+          {
+            "operationId": "addDraftChange",
+            "summary": "Stage a query addition, edit, or new directory",
+            "x-forward-fixed-query": []
+          }
         ],
         "x-forward-stability": "unpublished"
       }

@@ -109,11 +109,13 @@ in Forward until computed. `diffs.wait_for_check_diffs(base.id, predicted.id,
 ["NQE"])` reads again until no row (or side of one) is processing, and
 `max_poll_interval` makes the wait back off.
 
-**A settled zero is still ambiguous, and the two readings are opposites.**
-Either the change altered no site-to-site connectivity, which is the reassuring
-answer, or the network has no locations defined and the comparison had nothing
-to compute over, which is a false all-clear. `total_subnet_pairs` separates
-them: zero pairs means nothing was compared.
+**A settled zero pairs count means no forwarding change.** Forward compares
+only the subnet pairs that a route, ACL or NAT change between the two snapshots
+could affect, so `total_subnet_pairs` of zero means it found no such change: a
+real "no reachability change". Seen live on 26.10.6: a change whose route diff
+was empty gave zero pairs, six route changes gave 42, and restoring a link gave
+168 with 14 subnet pairs gained. (Earlier versions of this page said zero meant
+the network had no locations; that was wrong.)
 
 **Gating differs per diff.** Connectivity needs the `LOCATION_CONNECTIVITY_DIFFS`
 org property. The bidirectional views, which split a change into what it makes
@@ -127,9 +129,9 @@ answers 403 "Permission denied for location_connectivity_diffs" (seen live on
 "ADDED")` waits for the comparison to settle and then reads the changed subnet
 pairs per location pair. Read too early, Forward answers `{"counts": []}`, which
 looks the same as no change. It returns `.pairs` and the settled `.comparison`;
-`.nothing_compared` is true when no subnet pairs were compared at all (no
-locations), when an empty `.pairs` says nothing. Devices with no location are
-not counted. `type` is `ADDED`, `DELETED` or `MODIFIED`; `ALL` is refused with
+`.no_forwarding_change` is true when Forward found no route, ACL or NAT change
+to compare at all (`.nothing_compared` is the 0.1.38 name for it). Devices with
+no location are not counted in `.pairs`. `type` is `ADDED`, `DELETED` or `MODIFIED`; `ALL` is refused with
 a 400.
 
 **Locations** for that comparison: `client.networks.ensure_locations({"Dayton
@@ -137,7 +139,15 @@ DC": {"lat": 39.81, "lng": -84.27}})` creates or updates locations by name
 (trimmed, ignoring case, as Forward matches them) and sends only the read when
 they already match, and `client.networks.set_device_locations({"edge-1":
 "Dayton DC"})` places devices by location name. The first placement pins a
-device that a dynamic rule had placed, as any move in Forward does.
+device that a dynamic rule had placed, as any move in Forward does. Forward
+places only devices it knows as collection sources: on an upload-only network,
+register them first as classic devices with `collect` false in each
+`NewClassicDevice` (`classic_devices.add_classic_devices`).
+Otherwise Forward refuses the whole update with a 400, and
+`error.unrecognized_devices` lists the devices it did not know.
+Both helpers ran live on 26.10.6 (2026-11-15, the AutoCon6 workshop): four
+locations created, a second run sending only the read, and devices placed by
+name.
 
 `counts()` returns every per-area count at once, eight requests, keyed by area.
 `complete` false on any of them means the count is a lower bound so far.
@@ -225,6 +235,39 @@ Predict gate, have an immutable global default: the global write refuses with
 admin route refuses too because they are not org-admin-configurable. A Forward
 support account sets them per org with `set_org_scoped_config_value`, and reads
 them back from the same route.
+
+## Intent checks
+
+Critical flows can be checks Forward judges on every later snapshot,
+predictions included, so a change that breaks one shows as a failing check.
+`forward_sdk.checks` builds the definitions from a trace query:
+
+```python
+from forward_sdk import checks
+from forward_sdk.trace import ChainHop, Endpoint, PathQuery, device, subnet
+
+app = PathQuery(
+    from_=Endpoint(subnet("10.10.10.10/32")),
+    chain=[ChainHop("through", device("r2"))],
+    to=Endpoint(subnet("10.20.20.20/32"), headers=[{"ip_proto": ["6"], "tp_dst": ["8080"]}]),
+)
+client.checks.add_check(
+    snapshot_id=base.id,
+    body={"definition": checks.existential(app), "name": "APP via r2"},
+    persistent=True,
+)
+client.checks.add_check(
+    snapshot_id=base.id, body={"definition": checks.nqe_check("Q_...")}, persistent=True
+)
+```
+
+`existential` passes when the flow has a path, `isolation` when it has none,
+and `reachability` when all of it is delivered. An NQE check without
+parameters takes its name from its query, so Forward answers 400 to a `name`
+beside it; one with parameters needs a name; neither takes a note or tags
+(`error.check_field_not_allowed`). `checks.validate_new_check(body)` applies
+Forward's rules before a request. Existential, Isolation and NQE checks of this shape ran
+live on 26.10.6 (the AutoCon6 workshop).
 
 ## Webhooks
 

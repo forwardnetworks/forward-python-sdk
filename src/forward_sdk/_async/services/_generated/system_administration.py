@@ -107,6 +107,17 @@ class AsyncSystemAdministrationService(AsyncService):
         payload = await self._send_json(ops.BUILDERS["getFdbUsage"](prefix=prefix))
         return models.AdmFdbUsage.model_validate(payload or {})
 
+    async def get_fwd_app_proxy(
+        self,
+    ) -> models.FwdAppProxy:
+        """The organization's proxy settings for reaching fwd.app.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (license, deployment, admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["getFwdAppProxy"]())
+        return models.FwdAppProxy.model_validate(payload or {})
+
     async def list_admin_networks(
         self,
     ) -> list[models.AdminNetwork]:
@@ -184,3 +195,25 @@ class AsyncSystemAdministrationService(AsyncService):
             ops.BUILDERS["setUserSupportedOrganizations"](user_id=user_id, body=body)
         )
         return payload
+
+    async def test_fwd_app_connection(
+        self,
+    ) -> models.FwdAppConnectionTest:
+        """Test an on-premises deployment's connection to fwd.app (Software Central).
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (license, deployment, admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["testFwdAppConnection"]())
+        return models.FwdAppConnectionTest.model_validate(payload or {})
+
+    async def update_cve_index_from_software_central(
+        self,
+    ) -> models.CveIndexUpdateResponse:
+        """Have an on-premises deployment update its CVE index from fwd.app.
+
+        Unpublished: not part of Forward's documented API.
+        May be unavailable (license, deployment, admin); see docs/gating.md.
+        """
+        payload = await self._send_json(ops.BUILDERS["updateCveIndexFromSoftwareCentral"]())
+        return models.CveIndexUpdateResponse.model_validate(payload or {})

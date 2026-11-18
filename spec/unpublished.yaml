@@ -541,6 +541,42 @@ paths:
                   - id: 84f84b0c0a0a1805ddff0ca5451c2c55c58605e5
                     message: Update device query
 
+  /users/current/nqe/changes?action=export:
+    post:
+      operationId: exportOrgQuerySources
+      summary: Export the source of organization library queries, as a ZIP
+      description: "Takes {paths: [...]}: a path ending in / is a directory (everything under it; / is the whole library), any other is one query. Answers a ZIP with one entry, queries-export.proto: protobuf NqeLibExportPB {repeated ExportedQueryPB queries = 1}, ExportedQueryPB {QueryPathPB path = 1; NqeQuerySourcePB source_code = 2}, each wrapper one string field 1. It is the CALLING USER'S view of the library (the committed head with that user's drafts applied), and it also includes the non-Forward queries the requested ones import. Requires VIEW_NQE_LIBRARY (source: NqeLibController.exportWorkspacePathsOrg). client.nqe.repo.export_org_sources() decodes it. From the Go SDK v0.8.43; not run live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [NQE Repository]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NqeExportRequest" }
+      responses:
+        "200":
+          description: A ZIP holding queries-export.proto.
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+  /nqe/repos/fwd/commits/head/queries?action=export:
+    post:
+      operationId: exportForwardQuerySources
+      summary: Export the source of Forward Library queries, as a ZIP
+      description: "exportOrgQuerySources for the Forward Library, Forward's own shipped queries, at its head commit. Queries the org's license tier does not permit are left out. Same ZIP format. Requires VIEW_NQE_LIBRARY (source: NqeLibController.exportHeadPathsFwd). client.nqe.repo.export_forward_sources() decodes it. From the Go SDK v0.8.43; not run live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [NQE Repository]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NqeExportRequest" }
+      responses:
+        "200":
+          description: A ZIP holding queries-export.proto.
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
   /users/current/nqe/changes:
     get:
       operationId: getDraftChanges
@@ -553,10 +589,15 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DraftChangePage" }
+              # synthetic fixture shaped like Forward's ChangeInfo (source)
               example:
                 changes:
-                  - path: /NetBox/Devices
-                    action: editQuery
+                  - type: QUERY_ADD
+                    path: /Example/New query
+                    sourceCodeSha: "a1b2c3"
+                  - type: QUERY_EDIT
+                    name: Renamed devices
+                    basis: { queryId: "Q_example", commitId: "c0ffee", path: /Example/Devices }
     post:
       operationId: addDraftChange
       summary: Stage a query addition, edit, or new directory
@@ -14588,6 +14629,51 @@ paths:
               schema: { $ref: "#/components/schemas/Disp2CollectorTaskWithSubTasks" }
               # live (test account, task P1, 2026-10-17): the task with max=5, its one subtask kept
               example: {"id": "P1", "type": "NETWORK_COLLECTION", "status": "SUCCEEDED", "collectorId": "C1", "collectorName": "collector-a", "collectors": [{"collectorId": "C1", "collectorName": "collector-a"}], "progress": {"total": 1, "queued": 0, "running": 0, "succeeded": 1, "failed": 0, "timedOut": 0, "canceled": 0}, "createdById": "-1", "createdAt": "2026-10-17T17:30:07.246943Z", "createdBy": "scheduler", "networkId": "173636", "networkName": "Danny-Test", "startedAt": "2026-10-17T17:30:07.302873Z", "finishedAt": "2026-10-17T17:30:21.380805Z", "subTasks": [{"id": "P2", "collectorId": "C1", "description": "branch-a-sw1.example.net", "status": "SUCCEEDED", "startedAt": "2026-10-17T17:30:07.299564Z", "finishedAt": "2026-10-17T17:30:21.383713Z"}]}
+  /cve-index?action=update:
+    post:
+      operationId: updateCveIndexFromSoftwareCentral
+      summary: Have an on-premises deployment update its CVE index from fwd.app
+      description: "The deployment downloads the CVE index from Software Central (fwd.app) with the org's active license id and deployment fingerprint, and installs it if it is newer than the installed one. It contacts an external service and can install an index, so it is a write, though not a destructive one. A failed update is a 200 whose error names it (CONNECTION_FAILED or INSTALL_FAILED), not an HTTP error. Requires MANAGE_CVE_INDEX; on-premises deployments only, so a SaaS deployment answers 404 'No endpoint' (source: FwdAppConnectionController.updateCveIndex, CveIndexUpdateService). From the Go SDK v0.8.45; read from Forward source, not run live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [System Administration]
+      responses:
+        "200":
+          description: The update's outcome; error is absent on success.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CveIndexUpdateResponse" }
+              # synthetic fixture shaped like the source record
+              example: {}
+  /fwd-app-connection?action=test:
+    post:
+      operationId: testFwdAppConnection
+      summary: Test an on-premises deployment's connection to fwd.app (Software Central)
+      description: "Forward makes an outbound HEAD /api/cve-index to the org's SOFTWARE_CENTRAL_URL through the org's configured proxy, authenticating with the license and deployment ids. It contacts an external service but changes no stored setting. status is SUCCESS, AUTH_FAILED (the license or deployment was refused) or CONNECTION_FAILED (the host or proxy could not be reached); a failed connection is a 200, not an HTTP error. Requires MANAGE_FWD_CONNECTION_CONFIG; on-premises deployments only (404 'No endpoint' on SaaS). Source: FwdAppConnectionController.testConnection. From the Go SDK v0.8.45; not run live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [System Administration]
+      responses:
+        "200":
+          description: The connection test's outcome.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FwdAppConnectionTest" }
+              # synthetic fixture shaped like the source record
+              example: { status: SUCCESS }
+  /fwd-app-proxy:
+    get:
+      operationId: getFwdAppProxy
+      summary: The organization's proxy settings for reaching fwd.app
+      description: "Read-only. enabled false means a direct connection; a deployment that never configured a proxy answers Forward's default (enabled false). The proxy credential's password is never returned, only its username. Attribution fields say who set it and when. Requires VIEW_FWD_CONNECTION_CONFIG; on-premises deployments only (404 'No endpoint' on SaaS). Source: FwdAppConnectionController.getProxy, StoredFwdAppProxy. From the Go SDK v0.8.45; not run live. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [System Administration]
+      responses:
+        "200":
+          description: The proxy settings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FwdAppProxy" }
+              # synthetic fixture shaped like the source record
+              example: { enabled: true, url: "http://proxy.example.com:3128", verifyCertificate: true, enableAuth: true, username: proxy-user }
   /cve-index?view=metadata:
     get:
       operationId: getCveIndexMetadata
@@ -20402,13 +20488,62 @@ components:
 
     DraftChange:
       type: object
-      description: One staged, uncommitted change to the library.
+      description: "One staged, uncommitted change to the library, as Forward's ChangeInfo lists it (source: NqeLibController.getUserWorkspaceChanges). type names the change. path is set for an addition only: an edit or a deletion carries basis (the committed query, with its path) instead, plus directory and name when an edit moves or renames the query and sourceCodeSha when it changes the source; a permission change names its directory. action is the staging request's spelling, kept for older answers."
       properties:
+        type:
+          type: string
+          description: QUERY_ADD, QUERY_EDIT, QUERY_DELETE, DIR_ADD, PERMISSION_SET or PERMISSION_RESET.
         path:
           type: string
+        directory:
+          type: string
+        name:
+          type: string
+        sourceCodeSha:
+          type: string
+        basis: { $ref: "#/components/schemas/NqeChangeBasis" }
         action:
           type: string
           enum: [addQuery, editQuery, addDir]
+
+    NqeChangeBasis:
+      type: object
+      description: The committed query an edit or deletion started from.
+      properties:
+        queryId: { type: string }
+        commitId: { type: string }
+        path: { type: string }
+
+    NqeExportRequest:
+      type: object
+      required: [paths]
+      properties:
+        paths:
+          type: array
+          description: Library paths; one ending in / is a directory.
+          items: { type: string }
+
+    FwdAppConnectionTest:
+      type: object
+      properties:
+        status: { type: string, description: "SUCCESS, AUTH_FAILED or CONNECTION_FAILED." }
+
+    CveIndexUpdateResponse:
+      type: object
+      properties:
+        error: { type: string, description: "Absent on success; CONNECTION_FAILED or INSTALL_FAILED." }
+
+    FwdAppProxy:
+      description: "The org's proxy for reaching fwd.app (StoredFwdAppProxy, FwdAppProxy), with the attribution unwrapped beside it. The credential is unwrapped into username; its password is never returned."
+      allOf:
+        - type: object
+          properties:
+            enabled: { type: boolean }
+            url: { type: string }
+            verifyCertificate: { type: boolean }
+            enableAuth: { type: boolean }
+            username: { type: string, description: "The proxy credential's username." }
+        - $ref: "#/components/schemas/Attribution"
 
     DraftChangePage:
       type: object

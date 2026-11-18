@@ -25,6 +25,7 @@ from forward_sdk.errors import (
     ForwardConfigurationError,
     ForwardConflictError,
     ForwardNotFoundError,
+    ForwardResponseError,
 )
 from forward_sdk.nqe.bundle import (
     FWD_IMPORT_PREFIX,
@@ -34,6 +35,7 @@ from forward_sdk.nqe.bundle import (
     import_paths,
     module_path,
 )
+from forward_sdk.nqe.export import MAX_EXPORT_BYTES, decode_export_zip
 from forward_sdk.nqe.query_ref import sanitize_commit_id
 from forward_sdk.nqe.repository import (
     INVALID_CHANGE_PATH,
@@ -321,6 +323,52 @@ class AsyncNqeRepository(AsyncService):
             return list(payload)
         return list((payload or {}).get("commits") or [])
 
+    async def export_org_sources(self, paths: Sequence[str]) -> dict[str, str]:
+        """The source of org library queries under ``paths``, by query path, in one request.
+
+        A path ending in ``/`` is a directory (everything under it, so ``["/"]``
+        is the whole library); any other is one query. It is the CALLING USER'S
+        view of the library, the committed head with that user's drafts
+        applied, not a fixed commit, and it also includes the non-Forward
+        queries the requested ones import. A path that matches nothing is
+        simply absent. Read from Forward's source; not run live.
+        """
+        return await self._export(ops.export_org, paths)
+
+    async def export_forward_sources(self, paths: Sequence[str]) -> dict[str, str]:
+        """:meth:`export_org_sources` for the Forward Library at its head.
+
+        Queries the organization's license tier does not permit are left out.
+        """
+        return await self._export(ops.export_forward, paths)
+
+    async def _export(self, build: Any, paths: Sequence[str]) -> dict[str, str]:
+        if isinstance(paths, str):
+            raise ForwardConfigurationError("paths takes a list of library paths")
+        clean = [path.strip() for path in paths]
+        bad = [path for path in clean if not path.startswith("/")]
+        if bad:
+            raise ForwardConfigurationError(
+                f"NQE library path {bad[0]!r} must start with / (a directory ends with / too)"
+            )
+        if not clean:
+            return {}
+        too_big = ForwardResponseError(
+            "the NQE export is larger than the SDK reads", model_name="ZIP"
+        )
+        chunks: list[bytes] = []
+        size = 0
+        async with self._transport.stream(build(paths=clean)) as response:
+            declared = response.headers.get("content-length")
+            if declared and declared.isdigit() and int(declared) > MAX_EXPORT_BYTES:
+                raise too_big
+            async for chunk in response.aiter_bytes():
+                size += len(chunk)
+                if size > MAX_EXPORT_BYTES:
+                    raise too_big
+                chunks.append(chunk)
+        return decode_export_zip(b"".join(chunks))
+
     async def drafts(self) -> list[DraftChange]:
         """List the current user's staged, uncommitted changes."""
         payload = await self._send_json(ops.list_drafts())
@@ -598,8 +646,10 @@ class AsyncNqeRepository(AsyncService):
         unrelated draft would be published as part of this commit with no
         signal to either party.
         """
-        existing = {draft.path for draft in await self.drafts()}
-        clashes = sorted(path for path in paths if path in existing)
+        # An edit or deletion has no path of its own: DraftChange.touches checks
+        # the path it leaves the query at and the committed path it started from.
+        drafts = await self.drafts()
+        clashes = sorted(path for path in paths if any(draft.touches(path) for draft in drafts))
         if clashes:
             raise ForwardConflictError(
                 f"{len(clashes)} path(s) already have uncommitted changes: "

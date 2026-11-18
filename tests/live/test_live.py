@@ -392,13 +392,13 @@ def test_publishing_an_unchanged_query_is_a_no_op(client: ForwardClient) -> None
         pytest.skip("the organization library has no committed query to re-publish")
 
     target = committed[0].path
-    before = {draft.path for draft in repo.drafts()}
+    before = {draft.query_path for draft in repo.drafts()}
     try:
         report = repo.publish({target: repo.source(target)}, title="forward-sdk no-op check")
     finally:
         for draft in repo.drafts():
-            if draft.path not in before:
-                repo.discard(draft.path)
+            if draft.query_path and draft.query_path not in before:
+                repo.discard(draft.query_path)
 
     assert report.committed_paths == ()
     assert report.skipped_paths == (target,)

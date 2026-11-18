@@ -98,6 +98,21 @@ A few more cases look like the ordinary kind of the same status:
   "action=bulkAdd" not met ...`), which is what an older build looks like for a
   newer action. Fall back to the older call. Read from Spring's source; not
   seen live.
+- `error.servicenow_instance_asleep` is true for the 409 a hibernating or
+  suspended ServiceNow instance causes; nothing was created, and a retry once
+  it is woken can work.
+- `error.unknown_network_property` is true for the 400 a property Forward
+  defines only for orgs gets when written per network.
+- `error.check_field_not_allowed` is true for the 400 for a check field its
+  type refuses or requires: a name on a Predefined or non-parameterized NQE
+  check (or none on a parameterized one), a note on an NQE check, tags on
+  anything but a path check.
+- `error.unrecognized_devices` lists the devices of the 400 Forward answers
+  when an atlas update names a device it does not know as a collection source
+  (`None` otherwise).
+- `error.org_not_accessible` is true for the 403 a support or cross-org key
+  gets for an organization that has not granted it access. The NQE check
+  wordings and the other four were seen live on 26.10.6.
 - `error.account_locked` is true for a 401 that means the account is locked, not
   that the credential is wrong. The wording is from Forward's source and has not
   been seen live.

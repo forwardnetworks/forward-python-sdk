@@ -78,4 +78,5 @@ nav:
       - NQE: reference/nqe.md
       - Forward AI: reference/ai.md
       - API groups: reference/services.md
+      - Checks and configuration: reference/checks.md
       - Errors: reference/errors.md

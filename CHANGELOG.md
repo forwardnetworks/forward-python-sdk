@@ -5,6 +5,49 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.39] - 2026-11-18
+
+### Added
+
+From the Go SDK v0.8.39 to v0.8.47 (v0.8.46 is the doc fix also made here):
+
+- `forward_sdk.checks`: `existential`, `isolation` and `reachability` build path-check definitions from a
+  `trace.PathQuery`, `nqe_check(query_id, params)` an NQE check's, and `validate_new_check(body)` applies Forward's
+  field rules before a request (no name on a Predefined or unparameterized NQE check, a name required on a
+  parameterized one, no note on NQE, tags only on path checks, `perfMonitoringEnabled` only on Existential; from
+  `NewNetworkCheck`). Names and notes are trimmed and Forward's older type names count, as Forward does.
+  `header_fields_with_defaults` takes Forward's seven (`SearchUtils`). Go fixed its version of these rules in
+  v0.8.47 after this port reported them.
+- `ForwardAPIError` properties for refusals seen live on 26.10.6: `servicenow_instance_asleep`,
+  `unknown_network_property`, `check_field_not_allowed` (Forward's capitalised `Predefined`, the name-required and
+  `perfMonitoringEnabled` wordings too; Go matches since v0.8.47), `unrecognized_devices` (the device names) and
+  `org_not_accessible`.
+- `client.nqe.repo.export_org_sources(paths)` and `export_forward_sources(paths)`: the source of many library
+  queries in one request, decoded from Forward's export ZIP (a small protobuf, read without a protobuf
+  dependency). The download stops past 256 MiB. From source; not run live.
+- `client.system_administration.test_fwd_app_connection()`, `get_fwd_app_proxy()` and
+  `update_cve_index_from_software_central()`: an on-premises deployment's Software Central connection. On-premises
+  only; from source, not run live.
+- `forward_sdk.configuration`: the network property names Forward defines and the `advanced_reachability_analysis`
+  values, for `set_network_config_property`.
+- `LocationPairs.no_forwarding_change`, the honest name for what `nothing_compared` measures.
+
+### Fixed
+
+- `client.nqe.repo.drafts()` read an edit's or a deletion's path as empty: Forward lists drafts as `ChangeInfo`,
+  where only an addition has a path and an edit carries the committed query it started from. `DraftChange` now
+  has `type`, `directory`, `name`, `source_code_sha` and the basis fields, and `query_path` names the query in
+  every case. The spec's example had the staging request's shape, not Forward's.
+- `LocationPairs.nothing_compared` and the subnet-connectivity docs said zero subnet pairs meant nothing was
+  compared (no locations). Forward compares only the subnet pairs a route, ACL or NAT change could affect
+  (`LocalDiffComputer.generateDeviceSubnetPairs`), so zero means no forwarding change, a real "no reachability
+  change". Seen live on 26.10.6 by the AutoCon6 workshop. `nothing_compared` stays as an alias.
+
+### Changed
+
+- Docs: `ensure_locations` and `set_device_locations` are now confirmed live on 26.10.6 (by the AutoCon6 workshop),
+  and `set_device_locations` says Forward places only devices registered as collection sources.
+
 ## [0.1.38] - 2026-11-15
 
 ### Added

@@ -230,6 +230,21 @@ def classify_denial(message: str | None) -> Denial | None:
     return None
 
 
+#: Whole messages of refusals the error properties below classify. Anchored, so
+#: a message that merely contains the words does not count.
+_SERVICENOW_ASLEEP = re.compile(r"(?i)^ServiceNow instance is (hibernating|suspended)\.?$")
+#: NewNetworkCheck's refusals: "'name' not allowed for Predefined checks", "'name'
+#: required for parameterized NQE checks", "'tags' not allowed for NQE checks",
+#: "'perfMonitoringEnabled' not allowed for Isolation checks" and so on; the type
+#: is written as its JSON name.
+_CHECK_FIELD_NOT_ALLOWED = re.compile(
+    r"^'(name|note|tags|perfMonitoringEnabled)' (not allowed|required) for "
+    r"((non-)?parameterized NQE|[A-Za-z]+) checks$"
+)
+_UNRECOGNIZED_DEVICES = re.compile(r"^Unrecognized devices cannot be moved: \[(.*)\]$")
+_ORG_NOT_ACCESSIBLE = re.compile(r"^Org \S+ is not accessible to user \S+$")
+
+
 class ForwardAPIError(ForwardError):
     """Forward returned an error response.
 
@@ -326,6 +341,69 @@ class ForwardAPIError(ForwardError):
         """
         message = self._message().lower()
         return self.status == 400 and "parameter conditions" in message and "not met" in message
+
+    @property
+    def servicenow_instance_asleep(self) -> bool:
+        """Whether this is the 409 for a ServiceNow instance that is hibernating or suspended.
+
+        Forward reads ServiceNow's wake-up page and refuses the call: nothing
+        was created, and retrying once the instance is woken can work. The 409
+        "Unknown Error" a woken instance answered live is NOT this (its cause
+        is unconfirmed). Seen live on 26.10.6.
+        """
+        return self.status == 409 and bool(_SERVICENOW_ASLEEP.match(self._message().strip()))
+
+    @property
+    def unknown_network_property(self) -> bool:
+        """Whether this is the 400 for a network property name Forward does not define.
+
+        Forward defines far fewer network properties than org properties, so an
+        org-only one such as ``location_connectivity_diffs`` written per network
+        answers ``No enum constant ...NetworkProperty.X`` (seen live on 26.10.6).
+        """
+        message = self._message().lower()
+        return self.status == 400 and "no enum constant" in message and "networkproperty" in message
+
+    @property
+    def check_field_not_allowed(self) -> bool:
+        """Whether this is the 400 for a check field its type refuses (or requires).
+
+        Forward's rules (``NewNetworkCheck``): no name on a Predefined or a
+        non-parameterized NQE check, a name required on a parameterized NQE
+        check, no note on an NQE check, tags only on path checks, and
+        ``perfMonitoringEnabled`` only on an Existential one. The NQE wordings
+        were seen live on 26.10.6; the rest are read from source.
+        :func:`forward_sdk.checks.validate_new_check` applies the same rules
+        before a request.
+        """
+        return self.status == 400 and bool(_CHECK_FIELD_NOT_ALLOWED.match(self._message().strip()))
+
+    @property
+    def unrecognized_devices(self) -> list[str] | None:
+        """The devices of a 400 "Unrecognized devices cannot be moved: [r1, r2]", else ``None``.
+
+        Forward refuses a whole atlas update when any device in it is not one
+        the network knows as a collection source, even one present in every
+        snapshot (a network fed only by uploads). Register such devices as
+        classic devices with ``collect`` false in each ``NewClassicDevice``
+        (``classic_devices.add_classic_devices``) and place them again (seen
+        live on 26.10.6).
+        """
+        if self.status != 400:
+            return None
+        match = _UNRECOGNIZED_DEVICES.match(self._message().strip())
+        if match is None:
+            return None
+        return [name.strip() for name in match.group(1).split(",") if name.strip()]
+
+    @property
+    def org_not_accessible(self) -> bool:
+        """Whether this is the 403 "Org <id> is not accessible to user <id>".
+
+        A support or cross-org key gets it for an organization that has not
+        granted it access (seen live on 26.10.6 on ``/api/orgs/{id}/config``).
+        """
+        return self.status == 403 and bool(_ORG_NOT_ACCESSIBLE.match(self._message().strip()))
 
     @property
     def account_locked(self) -> bool:

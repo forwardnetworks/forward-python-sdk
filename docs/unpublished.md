@@ -50,6 +50,11 @@ operation table, so nothing lands here by accident.
 | A network's scanners and include switch (read from Forward source; the list and its row shape seen live on 26.11) | `/networks/{id}/vulnerability-scanners[/{name}]` | `client.integrations.list_network_vulnerability_scanners()`, `set_network_vulnerability_scanner_include()` |
 | Org-level HTTP credentials (read from Forward source; the list and one read seen live on 26.11) | `/http-credentials[/{credentialId}]` | `client.credentials.*_org_http_credential(s)` |
 | MCP server (session-based; seen live on 26.10.6) | `POST`/`DELETE /mcp` | `client.mcp` |
+| Export org library query sources (from source, not run live) | `POST /users/current/nqe/changes?action=export` | `client.nqe.repo.export_org_sources()` |
+| Export Forward Library query sources (from source, not run live) | `POST /nqe/repos/fwd/commits/head/queries?action=export` | `client.nqe.repo.export_forward_sources()` |
+| Software Central connection test, on-premises (from source, not run live) | `POST /fwd-app-connection?action=test` | `client.system_administration.test_fwd_app_connection()` |
+| fwd.app proxy settings, on-premises (from source, not run live) | `GET /fwd-app-proxy` | `client.system_administration.get_fwd_app_proxy()` |
+| CVE index self-update, on-premises (from source, not run live) | `POST /cve-index?action=update` | `client.system_administration.update_cve_index_from_software_central()` |
 | List chats | `GET /ai-chats` | `client.ai.list()` |
 | Start a chat | `POST /ai-chats` | `client.ai.start()` |
 | Get a chat | `GET /ai-chats/{id}` | `client.ai.get()` |

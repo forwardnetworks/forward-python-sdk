@@ -265,7 +265,10 @@ class SnapshotsService(Service):
         back an old snapshot over a newer processed one. The listing's order is
         not documented, so this sorts what comes back rather than taking the
         first row. Drafts and forks (a snapshot with a ``parentSnapshotId``)
-        are never considered, as in Forward. Predictions are forks too, so
+        are never considered, as in Forward (``SnapshotService.
+        getLatestProcessedSnapshot``: newest first, no drafts or forks, the
+        first ``PROCESSED``; the same at the primary, stable and master builds
+        the Go SDK checked). Predictions are forks too, so
         ``include_predicted`` is the one place this goes beyond Forward's rule.
 
         Predicted snapshots are excluded by default. Forward creates one for

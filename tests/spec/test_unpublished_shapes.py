@@ -109,8 +109,10 @@ def test_head_commit_parses_the_recorded_shape(examples: dict[str, Any]) -> None
 def test_draft_changes_parse_the_recorded_shape(examples: dict[str, Any]) -> None:
     rows = examples["getDraftChanges"]["changes"]
     parsed = [DraftChange.from_payload(row) for row in rows]
-    assert parsed[0].path == "/NetBox/Devices"
-    assert parsed[0].action == "editQuery"
+    assert parsed[0].path == "/Example/New query" and parsed[0].type == "QUERY_ADD"
+    # An edit carries no path of its own, only the committed query it started from.
+    assert parsed[1].path == "" and parsed[1].basis_path == "/Example/Devices"
+    assert parsed[1].query_path == "/Example/Renamed devices"
 
 
 def test_reachability_job_identifier_is_where_the_sdk_looks(

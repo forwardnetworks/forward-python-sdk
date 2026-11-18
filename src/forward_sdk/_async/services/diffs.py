@@ -41,9 +41,26 @@ class LocationPairs:
     comparison: SubnetConnectivityDiff
 
     @property
-    def nothing_compared(self) -> bool:
-        """No subnet pairs were compared, so empty ``pairs`` says nothing about change."""
+    def no_forwarding_change(self) -> bool:
+        """Forward found no route, ACL or NAT change affecting any subnet.
+
+        Forward compares only the subnet pairs such a change could affect
+        (``LocalDiffComputer.generateDeviceSubnetPairs``), so zero pairs is a
+        real "no reachability change", not missing data. The one degenerate
+        case is a network with no device subnets at all. Seen live on 26.10.6:
+        two snapshots with an empty route diff gave zero pairs, while six route
+        changes gave 42.
+        """
         return not self.comparison.total_subnet_pairs
+
+    @property
+    def nothing_compared(self) -> bool:
+        """The same as :attr:`no_forwarding_change`, kept for 0.1.38 callers.
+
+        Its 0.1.38 docstring said empty pairs then meant nothing; that was
+        wrong. Zero pairs means no forwarding change.
+        """
+        return self.no_forwarding_change
 
 
 #: How often to re-read a connectivity comparison that is still computing.
@@ -81,11 +98,11 @@ class AsyncSnapshotDiffsService(AsyncService):
         arrives before this computation has started almost every time; reading
         once there reports zero change on a change that isolated seven sites.
 
-        A settled result of zero is still ambiguous, and the two readings are
-        opposites. Either the change altered no site-to-site connectivity, or the
-        network has no locations defined and the comparison had nothing to
-        compute over. ``total_subnet_pairs`` separates them: zero pairs means
-        nothing was compared, not that nothing changed.
+        ``total_subnet_pairs`` counts only the subnet pairs a route, ACL or NAT
+        change between the two snapshots could affect (Forward source,
+        ``LocalDiffComputer.generateDeviceSubnetPairs``). Zero means Forward
+        found no such change: no reachability change, not missing data (seen
+        live on 26.10.6).
 
         Raises:
             ForwardTimeoutError: If the comparison is still partial at the
@@ -123,8 +140,8 @@ class AsyncSnapshotDiffsService(AsyncService):
         change". This waits for the comparison to settle
         (:meth:`wait_for_subnet_connectivity`) and then reads the pairs, and
         returns both. Empty ``pairs`` then means no change between located
-        subnets, unless ``nothing_compared`` is true (no subnet pairs at all,
-        typically because the network has no locations). Pairs are grouped by
+        subnets; ``no_forwarding_change`` says Forward found no route, ACL or
+        NAT change to compare at all. Pairs are grouped by
         the network's current device locations, so devices with no location
         are not counted. ``type`` is ``ADDED``, ``DELETED`` or ``MODIFIED``
         (Forward answers 400 to anything else, ``ALL`` included); ``loc``

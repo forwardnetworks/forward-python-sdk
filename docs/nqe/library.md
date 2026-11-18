@@ -113,3 +113,17 @@ client.nqe.repo.commit(["/MyOrg/New"], title="Add query")
 
 The `basis` on an edit records which version you edited, so Forward can reject a
 change built on a version that has since moved on.
+
+## Exporting sources in bulk
+
+`client.nqe.repo.export_org_sources(["/Team/"])` returns the source of every
+query under the given paths, by path, in one request (a path ending in `/` is
+a directory; `["/"]` is the whole library). It is your own view of the
+library, with your drafts applied, and it includes the org queries the
+requested ones import. `export_forward_sources([...])` does the same for the
+Forward Library. Read from Forward's source; not yet run live.
+
+Listing drafts: `drafts()` returns each staged change with its `type`. Forward
+gives an edit or a deletion no path of its own, so use `change.query_path`,
+which names the query in every case.
+

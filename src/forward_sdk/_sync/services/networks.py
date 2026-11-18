@@ -173,7 +173,13 @@ class NetworksService(Service):
 
         Names match as Forward matches them, trimmed and ignoring case. An
         unknown name raises ``ValueError`` before anything is sent (create it
-        with :meth:`ensure_locations` first). Sends one atlas update. Repeating
+        with :meth:`ensure_locations` first). Forward places only devices it
+        knows as collection sources, so on an upload-only network register them
+        first as classic devices with ``collect`` false in each
+        ``NewClassicDevice`` (``classic_devices.add_classic_devices``):
+        otherwise Forward refuses the whole update with a 400 whose
+        ``error.unrecognized_devices`` names them.
+        Sends one atlas update. Repeating
         it changes nothing more, but the first call pins a device that a
         dynamic (glob) rule had placed, as Forward does for any move.
         """

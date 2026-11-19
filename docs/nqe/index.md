@@ -255,6 +255,32 @@ support. `select_field_sets` and `missing_fields` read the columns a query
 produces, which makes contract drift between a query and its consumer a test
 failure rather than a production surprise.
 
+## Reading a union value
+
+Some NQE fields hold one of several cases, such as `VlanIdOrRange` in a trunk's
+`trunkVlans` (`ID` or `RANGE`). Field access on the union itself fails ("Can't
+access field 'ID' from 'entry'"); match it with `when ... is`, cases separated
+by semicolons, and `otherwise` as the default:
+
+```
+foreach device in network.devices
+foreach iface in device.interfaces
+where isPresent(iface.ethernet.switchedVlan)
+foreach entry in iface.ethernet.switchedVlan.trunkVlans
+let low = when entry is ID(i) -> i; RANGE(r) -> r.from
+let high = when entry is ID(i) -> i; RANGE(r) -> r.to
+select { device: device.name, intf: iface.name, low: low, high: high }
+```
+
+A case binds its payload: `ID(i)` gives the VLAN number, and `RANGE(r)` a
+record with `from` and `to`. A case with no payload is written `NAME -> e`. A
+`when` expression works anywhere an expression does, in `let`, `select` or
+`where` (`where when entry is RANGE(r) -> true; otherwise -> false`). A `when`
+has no `then`, `else` or `match`; for a plain condition use
+`if c then a else b`. The grammar is Forward's `NqeParser.g4`; the query above
+ran live on 26.10. `client.nqe.schema()` shows a
+union field as a `OneOf` type listing its cases.
+
 ## Building predicates
 
 Scoping a query at runtime means assembling query text from values, so escape

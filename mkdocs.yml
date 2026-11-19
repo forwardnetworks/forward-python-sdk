@@ -65,6 +65,7 @@ nav:
   - Rehearsing a change: predict.md
   - Flow trace queries: flow-trace.md
   - MCP server: mcp.md
+  - Change reports: change-report.md
   - Live events: events.md
   - Forward AI: ai.md
   - API groups: services.md
@@ -78,5 +79,5 @@ nav:
       - NQE: reference/nqe.md
       - Forward AI: reference/ai.md
       - API groups: reference/services.md
-      - Checks and configuration: reference/checks.md
+      - Checks, configuration and provenance: reference/checks.md
       - Errors: reference/errors.md

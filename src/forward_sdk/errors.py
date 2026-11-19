@@ -301,8 +301,9 @@ class ForwardAPIError(ForwardError):
         recognised. Best-effort: see :func:`classify_denial` for why this reads
         prose, and why it is a hint rather than something to branch on.
         """
-        detail = getattr(self.error_info, "message", None) or self.text
-        return classify_denial(detail)
+        # _message() also reads a body ErrorInfo could not parse, as the other
+        # properties here do; matching the raw JSON text would miss it.
+        return classify_denial(self._message())
 
     def _message(self) -> str:
         """Forward's message, from the parsed body, else the raw one, else the text."""

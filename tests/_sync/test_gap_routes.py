@@ -272,10 +272,10 @@ class TestSaseAndOverrides:
         )
         with make_client(recorder) as client:
             client.configuration.patch_network_config_property_overrides(
-                property="DISABLE_FLOW_COMPUTATION", body={"101": True, "102": None}
+                property="DISABLE_FLOW_COMPUTATION", body={"101": True, "103": None}
             )
 
-        assert recorder.body_for() == {"101": True, "102": None}
+        assert recorder.body_for() == {"101": True, "103": None}
 
 
 class TestSnapshotFileMetadata:
@@ -2063,3 +2063,95 @@ class TestFwdAppConnection:
         assert proxy.enabled and proxy.username == "u"
         assert proxy.updated_at is not None  # the attribution Forward unwraps beside it
         assert update.error == "CONNECTION_FAILED"
+
+
+CLASSIC = "/api/networks/101/classic-devices"
+
+
+class TestRegisterDevices:
+    def test_unknown_devices_are_added_without_collection(self, recorder: Recorder) -> None:
+        recorder.add("GET", CLASSIC, json_response({"devices": [{"name": "R1", "host": "r1"}]}))
+        recorder.add("POST", CLASSIC, json_response(None, status=204))
+        with make_client(recorder) as client:
+            added = client.networks.register_devices(["r1", "r2", "edge-3"])
+
+        assert added == ["r2", "edge-3"]  # r1 is already known, ignoring case
+        assert recorder.body_for() == [
+            {"name": "r2", "host": "r2", "collect": False},
+            {"name": "edge-3", "host": "edge-3", "collect": False},
+        ]
+
+    def test_a_mapping_gives_each_device_its_host(self, recorder: Recorder) -> None:
+        recorder.add("GET", CLASSIC, json_response({"devices": []}))
+        recorder.add("POST", CLASSIC, json_response(None, status=204))
+        with make_client(recorder) as client:
+            client.networks.register_devices({"r1.": "192.0.2.1"})
+
+        assert recorder.body_for() == [{"name": "r1.", "host": "192.0.2.1", "collect": False}]
+
+    def test_a_second_run_sends_only_the_read(self, recorder: Recorder) -> None:
+        recorder.add("GET", CLASSIC, json_response({"devices": [{"name": "r1", "host": "r1"}]}))
+        with make_client(recorder) as client:
+            assert client.networks.register_devices(["r1"]) == []
+
+        assert [r.method for r in recorder.requests] == ["GET"]
+
+    @pytest.mark.parametrize(
+        "name",
+        # Valid device names that Forward's Hostnames pattern refuses as a host.
+        ["r1.", "-lead", "lead-", "x" * 64, ".".join(["a" * 63] * 4), "a..b"],
+    )
+    def test_a_name_that_is_not_a_hostname_is_refused_before_sending(
+        self, recorder: Recorder, name: str
+    ) -> None:
+        with make_client(recorder) as client:
+            with pytest.raises(
+                ForwardConfigurationError, match="not a valid IP address or hostname"
+            ):
+                client.networks.register_devices([name])
+
+        assert recorder.requests == []
+
+    @pytest.mark.parametrize("host", ["fe80::1%eth0", "edge-1\n"])
+    def test_a_scoped_or_newline_ended_host_is_refused(self, recorder: Recorder, host: str) -> None:
+        with make_client(recorder) as client:
+            with pytest.raises(
+                ForwardConfigurationError, match="not a valid IP address or hostname"
+            ):
+                client.networks.register_devices({"edge-1": host})
+
+        assert recorder.requests == []
+
+    def test_a_name_ending_in_a_newline_is_refused(self, recorder: Recorder) -> None:
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardConfigurationError, match="device names take only"):
+                client.networks.register_devices({"r1\n": "192.0.2.1"})
+
+        assert recorder.requests == []
+
+    @pytest.mark.parametrize("name", ["core_1", "Edge-01.lab", "r1", "a" * 63])
+    def test_hostnames_forward_accepts_pass(self, recorder: Recorder, name: str) -> None:
+        recorder.add("GET", CLASSIC, json_response({"devices": []}))
+        recorder.add("POST", CLASSIC, json_response(None, status=204))
+        with make_client(recorder) as client:
+            assert client.networks.register_devices([name]) == [name]
+
+    @pytest.mark.parametrize(
+        "devices",
+        [{"has space": "192.0.2.1"}, ["2001:db8::1"], {"caf\u00e9": "192.0.2.1"}],
+    )
+    def test_a_device_name_forward_refuses_is_refused_before_sending(
+        self, recorder: Recorder, devices: object
+    ) -> None:
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardConfigurationError, match="device names take only"):
+                client.networks.register_devices(devices)  # type: ignore[arg-type]
+
+        assert recorder.requests == []
+
+    def test_names_differing_only_in_case_are_refused(self, recorder: Recorder) -> None:
+        with make_client(recorder) as client:
+            with pytest.raises(ForwardConfigurationError, match="differ only in case"):
+                client.networks.register_devices(["sw1", "SW1"])
+
+        assert recorder.requests == []

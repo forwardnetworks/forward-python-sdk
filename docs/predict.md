@@ -141,13 +141,15 @@ they already match, and `client.networks.set_device_locations({"edge-1":
 "Dayton DC"})` places devices by location name. The first placement pins a
 device that a dynamic rule had placed, as any move in Forward does. Forward
 places only devices it knows as collection sources: on an upload-only network,
-register them first as classic devices with `collect` false in each
-`NewClassicDevice` (`classic_devices.add_classic_devices`).
+register them first with `client.networks.register_devices(["r1", "r2"])`, which
+adds them as classic devices Forward never collects from (the name doubles as
+the host unless you pass a name-to-host mapping) and skips the ones it knows.
 Otherwise Forward refuses the whole update with a 400, and
 `error.unrecognized_devices` lists the devices it did not know.
-Both helpers ran live on 26.10.6 (2026-11-15, the AutoCon6 workshop): four
-locations created, a second run sending only the read, and devices placed by
-name.
+`ensure_locations` and `set_device_locations` ran live on 26.10.6
+(2026-11-15, the AutoCon6 workshop): four locations created, a second run
+sending only the read, and devices placed by name. `register_devices` has not
+run live.
 
 `counts()` returns every per-area count at once, eight requests, keyed by area.
 `complete` false on any of them means the count is a lower bound so far.

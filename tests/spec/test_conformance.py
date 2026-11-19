@@ -122,6 +122,15 @@ def build(operation_id: str) -> RequestSpec | None:
         arguments[name] = allowed.get(name) or sample_for(name, parameter.annotation)
     if OPERATIONS[operation_id].request_media == ("application/octet-stream",):
         arguments["body"] = b"\x00"
+    elif (
+        OPERATIONS[operation_id].request_media
+        in (
+            ("application/x-www-form-urlencoded",),
+            ("multipart/form-data",),
+        )
+        and "body" in signature.parameters
+    ):
+        arguments["body"] = {"field": "value", "file": b"\x00"}
     return builder(**arguments)
 
 

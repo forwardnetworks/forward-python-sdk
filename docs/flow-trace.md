@@ -43,7 +43,10 @@ traces = [
 ```
 
 Use the snapshot the facets came from for both. A trace of only `{timedOut}`
-means no flow was found for that path.
+means no flow was found for that path. Seen live on fwd.app (2026-11-18): a
+query with a `through` chain hop listed valid, dropped, blackholed and
+unreachable paths, and `trace_request` traced each selected path hop by hop, its
+hop count equal to the path's length.
 
 ## What goes where
 

@@ -49,7 +49,10 @@ def argument_for(name: str, parameter: inspect.Parameter, operation: OpDef) -> A
         return param.enum[0]
     annotation = str(parameter.annotation)
     if name == "body":
-        return b"\x00" if operation.request_media == ("application/octet-stream",) else {}
+        if operation.request_media == ("application/octet-stream",):
+            return b"\x00"
+        # A multipart upload needs a file part; it is refused without one.
+        return {"file": b"\x00"} if operation.request_media == ("multipart/form-data",) else {}
     if "bool" in annotation:
         return True
     if "int" in annotation:

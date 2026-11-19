@@ -12,6 +12,7 @@ import httpx
 from forward_sdk._async.services._base import AsyncService
 from forward_sdk._async.services._generated import AsyncGeneratedServices
 from forward_sdk._async.services.ai import AsyncAiService
+from forward_sdk._async.services.change_reports import AsyncChangeReportsService
 from forward_sdk._async.services.change_sets import AsyncChangeSetsService
 from forward_sdk._async.services.client_software import AsyncClientSoftwareService
 from forward_sdk._async.services.device_tags import AsyncDeviceTagsService
@@ -136,6 +137,7 @@ class AsyncForwardClient(AsyncGeneratedServices):
         self.nqe = AsyncNqeService(self._transport)
         self.ai = AsyncAiService(self._transport)
         self.mcp = AsyncMcpService(AsyncService(self._transport))
+        self.change_reports = AsyncChangeReportsService(self)
         self.snapshot_diffs = AsyncSnapshotDiffsService(self._transport)
         self.change_sets = AsyncChangeSetsService(self._transport, self.snapshots)
         self.user_events = AsyncUserEventsService(self._transport)

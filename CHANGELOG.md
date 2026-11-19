@@ -5,6 +5,50 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.40] - 2026-11-18
+
+### Added
+
+- `client.change_reports.compare(base, after, change_set_id=, flows=, state=)`: one report comparing two
+  snapshots, for Predict (a predicted `after`) or before/after a change (two collections). A three-way verdict
+  (`regression`, `no_regression`, `incomplete`; a refused or unevaluable read never reads as no regression), then
+  checks, flows, state, connectivity, routing, config, devices, security rules, vulnerabilities, diff counts and
+  the predicted snapshot's state, with `.to_json()` and `.to_markdown()` (for a pull request comment). Built from
+  reads the SDK already has. The Go SDK's `ChangeReports.Compare` (v0.8.50) reads the same way and assembles
+  and renders the same report byte for byte; both test against shared golden files (`tests/fixtures/change_report`: rules, JSON Schema, 12 hand-written
+  cases). `forward_sdk.change_report` holds the pure assemble and render steps. Ran live read-only on a pair of
+  collected snapshots (262 checks compared); a Predict comparison has not run live. A section Forward answers
+  with data the rules do not allow is reported unavailable, not raised. schema_version 1 is a preview.
+- `ForwardAPIError.denial` now also reads a refusal whose body lacks the fields `ErrorInfo` requires, as the
+  other error properties do.
+- `client.networks.register_devices(names)` registers devices as classic devices Forward never collects from
+  (`collect` false, no credentials) in one request, skipping the ones the network has, so an upload-only network
+  can place them with `set_device_locations`. A name doubles as the host unless a name-to-host mapping is given;
+  one that is not a valid hostname is refused before sending. Asked for by the AutoCon6 workshop; not yet run
+  live (it writes).
+- `forward_sdk.provenance.describe_archive(path)`: a snapshot ZIP's SHA-256, size, devices and files (from
+  `"<device>,<file>"` names), and `.note(prefix)` to upload with it so a snapshot can be tied back to the
+  collector output it came from. Asked for by the AutoCon6 workshop.
+
+### Fixed
+
+- Request bodies are now sent in the media type each operation declares. `user_accounts.create_current_user_api_token`
+  sent its body as JSON, and Forward answered 403 "'password' is required" (reported live by the AutoCon6 workshop);
+  it and `change_current_user_password` now send form fields, as the Go SDK does. `body=None` mints a token with
+  its name only, as an SSO user does. The multipart uploads made through the generated services
+  (`data_files.add_data_file`, `infer_data_file_schema`, `replace_data_file_content`,
+  `assess_data_file_replacement`, `endpoint_profiles.update_approved_cli_commands`,
+  `integrations.attach_change_set_change_request_file`) also sent JSON and now send their `body` mapping as parts:
+  bytes, a file object or a `(filename, content[, content_type])` tuple is a file part; a mapping is a JSON part
+  (`add_data_file`'s `request`); text, numbers, bools and lists of them are plain fields. A body that is not a
+  mapping, or that has no file part, is refused before sending. Neither fix was re-run
+  live before release.
+
+### Changed
+
+- Docs: `PathQuery.trace_request` and `trace.selections` are now confirmed live on fwd.app with a `through` chain
+  hop. The NQE guide explains reading a union value (`when ... is`, cases separated by semicolons), checked live.
+
 ## [0.1.39] - 2026-11-18
 
 ### Added

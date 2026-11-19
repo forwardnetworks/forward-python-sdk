@@ -118,20 +118,25 @@ client.snapshots.wait_until_processed(
 A progress or poll callback that raises is logged and ignored. A bug in a status
 line must not abort a transfer that has been running for an hour.
 
-## Collecting
+### Recording where a snapshot came from
 
-## Raw files
-
-`files(snapshot_id)` lists every raw file Forward stored, named `"<device>,<file>"`. From there:
+`forward_sdk.provenance.describe_archive(path)` hashes a snapshot ZIP (SHA-256,
+streamed) and lists its devices and files without unpacking it. Its `.note()`
+is a one-line note naming the archive and its full hash, to upload with it, so
+the ZIP and the snapshot can always be tied together:
 
 ```python
-name = "edge-1,configuration.txt"
-client.snapshots.file(snap, name)  # the whole file as text
-client.snapshots.file_info(snap, name)  # id, size, creation time; no content
-client.snapshots.file_excerpts(snap, name, [(0, 9), (40, 49)])  # line ranges, 0-based, inclusive
-client.snapshots.search_file(snap, name, "ospf")  # matching line numbers
-client.snapshots.file_access()  # which devices' files you may read
+from forward_sdk.provenance import describe_archive
+
+archive = describe_archive("collection.zip")
+print(len(archive.devices), "devices,", archive.file_count, "files")
+snapshot = client.snapshots.upload("collection.zip", note=archive.note("CHG-1234 pre-change"))
 ```
+
+Files named `"<device>,<file>"`, the naming Forward lists a snapshot's raw files
+under, are grouped by device; anything else is listed in `other_files`.
+
+## Collecting
 
 `collect()` starts a network collection and waits for the snapshot it produces:
 
@@ -159,6 +164,19 @@ shapes, not against a live collection. A task that fails, times out or is cancel
 `ForwardTimeoutError`, and the collection carries on in Forward. Pass
 `wait=False` to return as soon as the task is queued, and `on_poll` to watch the
 task: `on_poll(task, elapsed_seconds)`.
+
+## Raw files
+
+`files(snapshot_id)` lists every raw file Forward stored, named `"<device>,<file>"`. From there:
+
+```python
+name = "edge-1,configuration.txt"
+client.snapshots.file(snap, name)  # the whole file as text
+client.snapshots.file_info(snap, name)  # id, size, creation time; no content
+client.snapshots.file_excerpts(snap, name, [(0, 9), (40, 49)])  # line ranges, 0-based, inclusive
+client.snapshots.search_file(snap, name, "ospf")  # matching line numbers
+client.snapshots.file_access()  # which devices' files you may read
+```
 
 ## Exporting
 

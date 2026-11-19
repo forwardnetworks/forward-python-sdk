@@ -19,6 +19,7 @@ from forward_sdk._ops._generic import snake
 from forward_sdk._sync.services._base import Service
 from forward_sdk._sync.services._generated import GeneratedServices
 from forward_sdk._sync.services.ai import AiService
+from forward_sdk._sync.services.change_reports import ChangeReportsService
 from forward_sdk._sync.services.change_sets import ChangeSetsService
 from forward_sdk._sync.services.client_software import ClientSoftwareService
 from forward_sdk._sync.services.device_tags import DeviceTagsService
@@ -139,6 +140,7 @@ class ForwardClient(GeneratedServices):
         self.nqe = NqeService(self._transport)
         self.ai = AiService(self._transport)
         self.mcp = McpService(Service(self._transport))
+        self.change_reports = ChangeReportsService(self)
         self.snapshot_diffs = SnapshotDiffsService(self._transport)
         self.change_sets = ChangeSetsService(self._transport, self.snapshots)
         self.user_events = UserEventsService(self._transport)

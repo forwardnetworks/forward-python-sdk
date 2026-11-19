@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import inspect
 import ipaddress
+import json
 import keyword
 import re
 from collections.abc import Callable, Mapping, Sequence
@@ -138,6 +139,8 @@ def generic(
         accept = operation.response_media[0] if stream and operation.response_media else JSON_ACCEPT
     has_body = bool(operation.request_media)
     raw_body = operation.request_media == ("application/octet-stream",)
+    form_body = operation.request_media == ("application/x-www-form-urlencoded",)
+    multipart_body = operation.request_media == ("multipart/form-data",)
     path_names = {snake(param.name): param.name for param in operation.path_params}
     query_names = {snake(param.name): param.name for param in operation.query_params}
     # A required parameter with exactly one legal value. `__signature__` is
@@ -191,6 +194,54 @@ def generic(
             extra["content"] = bytes(body)
             extra["headers"] = {"Content-Type": operation.request_media[0]}
             body = None
+        elif form_body:
+            # Form fields (the password for a new API token, say). As JSON they
+            # never arrive: Forward answers that the field is required. No body
+            # is an empty form: an SSO user mints a token with its name only.
+            if body is None:
+                body = {}
+            if not isinstance(body, Mapping):
+                raise TypeError(
+                    f"{operation_id} takes its form fields as a mapping, not {type(body).__name__}"
+                )
+            # Values go to httpx as they are: it writes a bool as true/false and
+            # a list as the field repeated.
+            extra["data"] = {key: value for key, value in body.items() if value is not None}
+            body = None
+        elif multipart_body:
+            # A file part is bytes, a file object, or a (filename, content[,
+            # content type]) tuple; a mapping is a JSON part (add_data_file's
+            # "request"); text, numbers, bools and lists of them are plain form
+            # fields (a list repeats the field), as httpx sends them.
+            if not isinstance(body, Mapping):
+                raise TypeError(
+                    f"{operation_id} takes its parts as a mapping of part name to content, "
+                    f"not {type(body).__name__}"
+                )
+            files: list[tuple[str, Any]] = []
+            fields: dict[str, Any] = {}
+            for key, value in body.items():
+                if value is None:
+                    continue
+                if isinstance(value, Mapping):
+                    files.append((key, (None, json.dumps(_wire(value)), "application/json")))
+                elif isinstance(value, (bytes, bytearray, memoryview, tuple)) or hasattr(
+                    value, "read"
+                ):
+                    files.append((key, _part(value)))
+                else:
+                    fields[key] = value
+            if not files:
+                # Without a file part httpx would send the fields url-encoded,
+                # which a multipart endpoint refuses with a confusing error.
+                raise TypeError(
+                    f"{operation_id} needs at least one file part: bytes, a file object or a "
+                    "(filename, content[, content type]) tuple, not text"
+                )
+            extra["files"] = files
+            if fields:
+                extra["data"] = fields
+            body = None
         return spec_for(
             operation_id,
             path_params=path_params,
@@ -206,6 +257,15 @@ def generic(
     build.__doc__ = _describe(operation)
     build.__signature__ = _signature(operation, has_body=has_body)  # type: ignore[attr-defined]
     return op(operation_id)(build)
+
+
+def _part(value: Any) -> Any:
+    """A file part as httpx takes it: a memoryview, alone or as the content in a tuple, as bytes."""
+    if isinstance(value, memoryview):
+        return bytes(value)
+    if isinstance(value, tuple) and len(value) > 1 and isinstance(value[1], memoryview):
+        return (value[0], bytes(value[1]), *value[2:])
+    return value
 
 
 def _wire(body: Any) -> Any:

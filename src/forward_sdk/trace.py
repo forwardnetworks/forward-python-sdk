@@ -331,7 +331,8 @@ class PathQuery:
         ``group`` and ``path`` come from the facets answer to this same query
         (see :func:`selections`), so a query with a chain, a ``to`` location,
         headers or ``PERMIT_ALL`` can be traced hop by hop as well as counted.
-        Mirrors the Go SDK's ``TraceFor`` (v0.8.38).
+        Mirrors the Go SDK's ``TraceFor`` (v0.8.38). Seen live on fwd.app with a
+        ``through`` chain hop: the traced hops match the selected path.
         """
         return self.request(
             max_results=max_results,

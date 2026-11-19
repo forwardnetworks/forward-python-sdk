@@ -6,14 +6,28 @@
 from __future__ import annotations
 
 import builtins
+import contextlib
+import ipaddress
+import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from forward_sdk._generated.models import Location, LocationPatch, Network, NewLocation
+from forward_sdk._generated.models import (
+    Location,
+    LocationPatch,
+    Network,
+    NewClassicDevice,
+    NewLocation,
+)
 from forward_sdk._ops import core as ops
 from forward_sdk._ops import rest
 from forward_sdk._sync.services._base import Service
-from forward_sdk.errors import ForwardAPIError, ForwardNotFoundError, ForwardResponseError
+from forward_sdk.errors import (
+    ForwardAPIError,
+    ForwardConfigurationError,
+    ForwardNotFoundError,
+    ForwardResponseError,
+)
 
 __all__ = ["NetworksService"]
 
@@ -175,8 +189,7 @@ class NetworksService(Service):
         unknown name raises ``ValueError`` before anything is sent (create it
         with :meth:`ensure_locations` first). Forward places only devices it
         knows as collection sources, so on an upload-only network register them
-        first as classic devices with ``collect`` false in each
-        ``NewClassicDevice`` (``classic_devices.add_classic_devices``):
+        first with :meth:`register_devices`:
         otherwise Forward refuses the whole update with a 400 whose
         ``error.unrecognized_devices`` names them.
         Sends one atlas update. Repeating
@@ -192,6 +205,71 @@ class NetworksService(Service):
             raise ValueError(f"no location named {', '.join(map(repr, unknown))} in the network")
         atlas = {device: str(rows[name.strip().lower()]["id"]) for device, name in devices.items()}
         self._send_json(rest.BUILDERS["updateAtlas"](network_id=network, body=atlas))
+
+    def register_devices(
+        self,
+        devices: Sequence[str] | Mapping[str, str],
+        *,
+        network_id: str | None = None,
+    ) -> builtins.list[str]:
+        """Register devices as classic devices that Forward never collects from.
+
+        For a network fed only by snapshot uploads, which has no collection
+        sources: Forward places only devices it knows as classic devices, so
+        :meth:`set_device_locations` refuses the rest (``error.unrecognized_devices``).
+        Each is created with ``collect`` false and no credentials, in one request.
+        Devices the network already has (matched by name, ignoring case) are
+        left alone, so a second run sends only the read.
+
+        ``devices`` is a list of names, each also used as its ``host``, or a
+        mapping of name to host. Before anything is sent, a name Forward would
+        refuse (letters, digits, ``_``, ``.`` and ``-`` only), two names that
+        differ only in case, and a host that is not a valid IP address or
+        hostname are all refused; a name that is not a valid hostname, such as
+        ``r1.``, needs the mapping form. Forward adds the batch all or nothing,
+        and also refuses a name another kind of source already uses (only
+        classic devices are skipped here). Returns the names registered.
+        """
+        if isinstance(devices, str):
+            raise ForwardConfigurationError(
+                "devices takes a list of names or a name-to-host mapping"
+            )
+        hosts = dict(devices) if isinstance(devices, Mapping) else {name: name for name in devices}
+        names = sorted(name for name in hosts if not _DEVICE_NAME.fullmatch(name))
+        if names:
+            raise ForwardConfigurationError(
+                f"{', '.join(map(repr, names))}: Forward's device names take only letters, "
+                "digits, '_', '.' and '-'"
+            )
+        seen: dict[str, str] = {}
+        for name in hosts:
+            if name.lower() in seen:
+                raise ForwardConfigurationError(
+                    f"{seen[name.lower()]!r} and {name!r} differ only in case; Forward treats "
+                    "them as one device and would refuse the batch"
+                )
+            seen[name.lower()] = name
+        bad = sorted(name for name, host in hosts.items() if not _host_ok(str(host)))
+        if bad:
+            raise ForwardConfigurationError(
+                f"{', '.join(map(repr, bad))}: not a valid IP address or hostname, which Forward "
+                "requires as the host; pass a name-to-host mapping"
+            )
+        network = self._network(network_id)
+        payload = self._send_json(rest.BUILDERS["getClassicDevices"](network_id=network))
+        known = {
+            str(row.get("name", "")).lower()
+            for row in (payload or {}).get("devices") or []
+            if isinstance(row, Mapping)
+        }
+        missing = [name for name in hosts if name.lower() not in known]
+        if missing:
+            body = [
+                NewClassicDevice(name=name, host=str(hosts[name]), collect=False)
+                for name in missing
+            ]
+            self._send_json(rest.BUILDERS["addClassicDevices"](network_id=network, body=body))
+        return missing
 
     def _location_rows(self, network: str) -> builtins.dict[str, builtins.dict[str, Any]]:
         """The network's locations as raw rows, by trimmed lowercase name.
@@ -216,3 +294,23 @@ def _snake(row: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "admin_division" if key == "adminDivision" else key: value for key, value in row.items()
     }
+
+
+#: Forward's ``Hostnames.isValidHostname``: dot-separated labels of letters,
+#: digits, ``_`` and ``-`` that start and end with a letter or digit, at most 253
+#: characters, no trailing dot. ASCII only, case-insensitive.
+_HOSTNAME = re.compile(
+    r"^[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?)*$",
+    re.IGNORECASE | re.ASCII,
+)
+#: Forward's ``Identifiers`` rule for a device name: ``^[\w.-]+$``, Java's ASCII ``\w``.
+_DEVICE_NAME = re.compile(r"^[\w.-]+$", re.ASCII)
+
+
+def _host_ok(value: str) -> bool:
+    """Whether Forward would take ``value`` as a host: an IP address or a hostname it accepts."""
+    if "%" not in value:  # Forward refuses a scoped IPv6 address such as fe80::1%eth0
+        with contextlib.suppress(ValueError):
+            ipaddress.ip_address(value)
+            return True
+    return len(value) <= 253 and bool(_HOSTNAME.fullmatch(value))

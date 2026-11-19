@@ -1,0 +1,3 @@
+# The change-report files are shared with the Go SDK byte for byte and pinned
+# by MANIFEST.sha256: never convert their line endings on checkout.
+tests/fixtures/change_report/** -text

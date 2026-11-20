@@ -499,9 +499,8 @@
           {
             "properties": {
               "creator": {
-                "description": "The creator's username",
+                "description": "The creator's username, or null if the account was deleted.",
                 "nullable": true,
-                "or null if the account was deleted.": null,
                 "type": "string"
               },
               "orgName": {
@@ -1500,9 +1499,8 @@
             "type": "integer"
           },
           "total": {
-            "description": "Every record that matches the filters",
+            "description": "Every record that matches the filters, not just this page.",
             "format": "int64",
-            "not just this page.": null,
             "type": "integer"
           }
         },
@@ -1533,8 +1531,7 @@
             "type": "boolean"
           },
           "impersonatorId": {
-            "and only when impersonating.": null,
-            "description": "Present only for a support user",
+            "description": "Present only for a support user, and only when impersonating.",
             "type": "string"
           },
           "impersonatorUsername": {
@@ -1545,9 +1542,8 @@
             "type": "string"
           },
           "targetUri": {
-            "description": "The path after /api",
-            "type": "string",
-            "with the query string.": null
+            "description": "The path after /api, with the query string.",
+            "type": "string"
           },
           "timestamp": {
             "format": "date-time",
@@ -5059,8 +5055,7 @@
             "type": "integer"
           },
           "createdBy": {
-            "description": "A user id",
-            "not a name.": null,
+            "description": "A user id, not a name.",
             "type": "string"
           },
           "id": {
@@ -5094,13 +5089,11 @@
             "type": "string"
           },
           "createdAt": {
-            "description": "Epoch milliseconds",
-            "type": "integer",
-            "unlike most timestamps.": null
+            "description": "Epoch milliseconds, unlike most timestamps.",
+            "type": "integer"
           },
           "createdBy": {
-            "description": "A user id",
-            "not a name.": null,
+            "description": "A user id, not a name.",
             "type": "string"
           },
           "disconnectedAt": {
@@ -6000,6 +5993,34 @@
         ],
         "type": "object"
       },
+      "CveConfigDetectionLogic": {
+        "description": "How Forward decides whether a device configuration is exposed to a CVE whose impact depends on configuration.",
+        "properties": {
+          "cveId": {
+            "description": "The CVE id, upper-cased.",
+            "type": "string"
+          },
+          "source": {
+            "description": "A config block pattern or an NQE query, raw text with newlines.",
+            "type": "string"
+          },
+          "sourceType": {
+            "$ref": "#/components/schemas/CveConfigDetectionSourceType"
+          }
+        },
+        "required": [
+          "cveId"
+        ],
+        "type": "object"
+      },
+      "CveConfigDetectionSourceType": {
+        "description": "What a CVE's detection source is (CveConfigDetectionSourceType). Absent, or null, when the CVE's impact does not depend on configuration.",
+        "enum": [
+          "CONFIG_BLOCK_PATTERN",
+          "NQE_QUERY"
+        ],
+        "type": "string"
+      },
       "CveIndexUpdateResponse": {
         "properties": {
           "error": {
@@ -6361,8 +6382,7 @@
             "type": "integer"
           },
           "id": {
-            "description": "Server-assigned per embedding; echo it to keep the embedding",
-            "omit it to create a new one.": null,
+            "description": "Server-assigned per embedding; echo it to keep the embedding, omit it to create a new one.",
             "type": "integer"
           },
           "override": {
@@ -8523,8 +8543,7 @@
             "type": "string"
           },
           "neighborType": {
-            "description": "A DeviceConnType name",
-            "e.g. CISCO_IOS_SSH.": null,
+            "description": "A DeviceConnType name, e.g. CISCO_IOS_SSH.",
             "type": "string"
           },
           "vendor": {
@@ -13067,8 +13086,7 @@
             "type": "string"
           },
           "lite": {
-            "description": "Present only when true (a lite",
-            "peripheral device).": null,
+            "description": "Present only when true (a lite, peripheral device).",
             "type": "boolean"
           },
           "names": {
@@ -13217,9 +13235,8 @@
             "type": "integer"
           },
           "timestamp": {
-            "description": "The instant",
+            "description": "The instant, in whole milliseconds since the epoch.",
             "format": "int64",
-            "in whole milliseconds since the epoch.": null,
             "type": "integer"
           }
         },
@@ -19132,14 +19149,12 @@
         "description": "The commit of an NQE check's query (source NqeCheckCommitInfo and CommitAuthor). The author is authorId or authorEmail, never both.",
         "properties": {
           "authorEmail": {
-            "description": "The author's email",
-            "type": "string",
-            "when the author is not a Forward user.": null
+            "description": "The author's email, when the author is not a Forward user.",
+            "type": "string"
           },
           "authorId": {
-            "description": "The author's user id",
-            "type": "string",
-            "when the author is a Forward user.": null
+            "description": "The author's user id, when the author is a Forward user.",
+            "type": "string"
           },
           "committedAt": {
             "description": "ISO-8601 instant.",
@@ -19701,8 +19716,7 @@
             "type": "string"
           },
           "verificationCert": {
-            "PEM.": null,
-            "description": "The IdP's signing certificate",
+            "description": "The IdP's signing certificate, PEM.",
             "type": "string"
           }
         },
@@ -21566,14 +21580,11 @@
       "SnapLineRange": {
         "properties": {
           "end": {
-            "description": "Last line",
-            "inclusive.": null,
+            "description": "Last line, inclusive.",
             "type": "integer"
           },
           "start": {
-            "0-based": null,
-            "description": "First line",
-            "inclusive.": null,
+            "description": "First line, 0-based, inclusive.",
             "type": "integer"
           }
         },
@@ -22142,8 +22153,7 @@
             "type": "boolean"
           },
           "communityString": {
-            "description": "The stored secret's id",
-            "not the value.": null,
+            "description": "The stored secret's id, not the value.",
             "type": "string"
           },
           "createdAt": {
@@ -28113,8 +28123,7 @@
           {
             "properties": {
               "certificate": {
-                "PEM.": null,
-                "description": "The X.509 certificate",
+                "description": "The X.509 certificate, PEM.",
                 "type": "string"
               },
               "expiresAt": {
@@ -28139,10 +28148,8 @@
       "TrustedCertificateRequest": {
         "properties": {
           "certificate": {
-            "PEM.": null,
-            "description": "A valid",
-            "type": "string",
-            "unexpired X.509 certificate": null
+            "description": "A valid, unexpired X.509 certificate, PEM.",
+            "type": "string"
           },
           "name": {
             "type": "string"
@@ -32951,6 +32958,53 @@
         ]
       }
     },
+    "/cves/{cveId}/detection-logic": {
+      "get": {
+        "description": "The configuration detection logic for one CVE: a config block pattern or an NQE query, as raw text with newlines. Organization-scoped: no network and no snapshot. Needs the organization property CVE_DETECTION_LOGIC_EXPOSED (off by default, set on premises, a GUI property); with it off Forward answers 403 \"CVE_DETECTION_LOGIC_EXPOSED is off for your organization\". A CVE in the index whose impact does not depend on configuration answers 200 with no sourceType and no source; a CVE the index does not have is a 404. Forward's CveId needs CVE-YYYY-NNNN (four-digit year, at least four digits). Source: VulnerabilityAnalysisController.getCveConfigDetectionLogic, CveConfigDetectionLogic. Live: not exercised. Not part of Forward's documented API.",
+        "operationId": "getCveConfigDetectionLogic",
+        "parameters": [
+          {
+            "description": "CVE-YYYY-NNNN; lower case is sent upper-cased.",
+            "example": "CVE-2024-20399",
+            "in": "path",
+            "name": "cveId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-forward-validate": "cve-id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "cveId": "CVE-2024-20399",
+                  "source": "feature nxapi\n",
+                  "sourceType": "CONFIG_BLOCK_PATTERN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CveConfigDetectionLogic"
+                }
+              }
+            },
+            "description": "The detection logic, or none for a CVE whose impact does not depend on configuration."
+          },
+          "403": {
+            "description": "The organization property CVE_DETECTION_LOGIC_EXPOSED is off (\"CVE_DETECTION_LOGIC_EXPOSED is off for your organization\")."
+          },
+          "404": {
+            "description": "The CVE index has no such CVE."
+          }
+        },
+        "summary": "How Forward decides whether a configuration is exposed to a CVE",
+        "tags": [
+          "Vulnerability Analysis"
+        ],
+        "x-forward-stability": "unpublished"
+      }
+    },
     "/data-files": {
       "get": {
         "description": "Lists every data file in the organization, with its attribution and the networks it is attached to. Gated by the org operation VIEW_DATA_FILES (DataFileController.get, @Requires).",
@@ -36662,7 +36716,7 @@
         "x-forward-stability": "unpublished"
       },
       "get": {
-        "description": "Returns a map of org id to the value that org overrides the property with; orgs without an override are absent. A Forward administrator sees all orgs, a Forward support account only the orgs it supports. Requires Forward support access (source: ConfigController.getConfigPropertyOverrides, @RequiresForwardSupport); an ordinary account answers 403 Forward support authority required (confirmed live). Not part of Forward's documented API. Source-only for the response shape.",
+        "description": "Returns a map of org id to the org-level row stored for the property; orgs without a row are absent and take the global value. These are stored rows, not effective values: a row equal to the default counts, nothing from the global level is included, and Forward keeps an org's rows after the org is deleted, so the map can name orgs that no longer exist (the Go SDK measured hundreds of such rows on one deployment). Intersect with the live org list before trusting a count; for what one org actually gets, read its effective value and compare its CONFIGURED listings (forward_sdk.configuration.describe_properties). A Forward administrator sees all orgs, a Forward support account only the orgs it supports. Requires the internal VIEW_CONFIG operation, filtered per org (source: ConfigController.getConfigPropertyOverrides, @Requires(internal = InternalOperation.VIEW_CONFIG)); an ordinary account answers 403 Forward support authority required (confirmed live). Not part of Forward's documented API. Source-only for the response shape.",
         "operationId": "getGlobalConfigPropertyOrgOverrides",
         "parameters": [
           {
@@ -47101,6 +47155,48 @@
       }
     },
     "/networks/{networkId}/controller-managed-setups/{setupName}/controllers/{name}": {
+      "delete": {
+        "description": "Removes one controller without restating the setup's others. Requires DELETE_COLLECTION_SOURCES on the network and answers 204 (source: ControllerManagedSetupController.deleteControllerDevice). Removing the setup's last controller is a 400, because the setup would be left with none (ControllerManagedSetupService maps the IllegalArgumentException to BadRequestException); delete the whole setup with deleteControllerManagedSetup instead. A 404 means the controller or its setup is already absent; the Go SDK treats it as success, which also hides a misspelt setup name. Live: not exercised (a write); source-only. Not part of Forward's documented API.",
+        "operationId": "deleteControllerDevice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The controller-managed setup's name.",
+            "in": "path",
+            "name": "setupName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The controller's name.",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed."
+          }
+        },
+        "summary": "Remove one controller from a controller-managed setup",
+        "tags": [
+          "Collection Sources"
+        ],
+        "x-forward-stability": "unpublished"
+      },
       "patch": {
         "description": "Partial update of one controller: absent fields are left alone, and an explicit null clears a clearable field. Per the Go SDK, Name cannot be cleared (Forward answers 400); a rename is allowed, done in place, and is not idempotent (the old name answers 404 afterwards, so do not retry it blind). The patch has no collectorId: a setup's collector is set on the setup (patchControllerManagedSetup). Requires MANAGE_COLLECTION_SOURCES on the network (source: ControllerManagedSetupController.patchControllerDevice). Books a CONTROLLER_MANAGED_SETUP feature-usage event. The response is the controller as stored, with ndoName when a Nexus Dashboard Orchestrator is linked. Not traced: whether the SD_WAN SDWAN_SETUPS gate, which the setup patch applies, also applies here. Live: not exercised (a write); source-only. Not part of Forward's documented API.",
         "operationId": "patchControllerDevice",
@@ -47172,6 +47268,48 @@
       }
     },
     "/networks/{networkId}/controller-managed-setups/{setupName}/managed-devices/{name}": {
+      "delete": {
+        "description": "Removes one guest device without restating the setup's others. Requires DELETE_COLLECTION_SOURCES on the network and answers 204 (source: ControllerManagedSetupController.deleteManagedDevice). Removing the setup's last guest device is a 400, because the setup would be left with none (ControllerManagedSetupService maps the IllegalArgumentException to BadRequestException; a setup with no guest-device list answers 400 too, an IllegalStateException); delete the whole setup with deleteControllerManagedSetup instead. A 404 means the guest device or its setup is already absent; the Go SDK treats it as success, which also hides a misspelt setup name. Live: not exercised (a write); source-only. Not part of Forward's documented API.",
+        "operationId": "deleteManagedDevice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The controller-managed setup's name.",
+            "in": "path",
+            "name": "setupName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The guest device's name.",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed."
+          }
+        },
+        "summary": "Remove one guest device from a controller-managed setup",
+        "tags": [
+          "Collection Sources"
+        ],
+        "x-forward-stability": "unpublished"
+      },
       "patch": {
         "description": "Partial update of one guest (managed) device: only the fields the patch states are written, so nothing the SDK does not model is dropped. The same fields as patchControllerDevice, except concurrency and ndoName, which apply to controllers only. Per the Go SDK, Name cannot be cleared (Forward answers 400); a rename is allowed, done in place, and is not idempotent. Requires MANAGE_COLLECTION_SOURCES on the network (source: ControllerManagedSetupController.patchManagedDevice). Books a CONTROLLER_MANAGED_SETUP feature-usage event. Not traced: the SD_WAN SDWAN_SETUPS gate. Live: not exercised (a write); source-only. Not part of Forward's documented API.",
         "operationId": "patchManagedDevice",

@@ -1206,7 +1206,7 @@ paths:
     get:
       operationId: getGlobalConfigPropertyOrgOverrides
       summary: Every org's override of one property
-      description: "Returns a map of org id to the value that org overrides the property with; orgs without an override are absent. A Forward administrator sees all orgs, a Forward support account only the orgs it supports. Requires Forward support access (source: ConfigController.getConfigPropertyOverrides, @RequiresForwardSupport); an ordinary account answers 403 Forward support authority required (confirmed live). Not part of Forward's documented API. Source-only for the response shape."
+      description: "Returns a map of org id to the org-level row stored for the property; orgs without a row are absent and take the global value. These are stored rows, not effective values: a row equal to the default counts, nothing from the global level is included, and Forward keeps an org's rows after the org is deleted, so the map can name orgs that no longer exist (the Go SDK measured hundreds of such rows on one deployment). Intersect with the live org list before trusting a count; for what one org actually gets, read its effective value and compare its CONFIGURED listings (forward_sdk.configuration.describe_properties). A Forward administrator sees all orgs, a Forward support account only the orgs it supports. Requires the internal VIEW_CONFIG operation, filtered per org (source: ConfigController.getConfigPropertyOverrides, @Requires(internal = InternalOperation.VIEW_CONFIG)); an ordinary account answers 403 Forward support authority required (confirmed live). Not part of Forward's documented API. Source-only for the response shape."
       x-forward-stability: unpublished
       tags: [Configuration]
       parameters:
@@ -16675,6 +16675,19 @@ paths:
                 host: 192.0.2.10
                 collect: true
                 # synthetic fixture shaped like ControllerDevice (source: ControllerManagedSetupController.patchControllerDevice); ndoName omitted here
+    delete:
+      operationId: deleteControllerDevice
+      summary: Remove one controller from a controller-managed setup
+      description: "Removes one controller without restating the setup's others. Requires DELETE_COLLECTION_SOURCES on the network and answers 204 (source: ControllerManagedSetupController.deleteControllerDevice). Removing the setup's last controller is a 400, because the setup would be left with none (ControllerManagedSetupService maps the IllegalArgumentException to BadRequestException); delete the whole setup with deleteControllerManagedSetup instead. A 404 means the controller or its setup is already absent; the Go SDK treats it as success, which also hides a misspelt setup name. Live: not exercised (a write); source-only. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Collection Sources]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: setupName, in: path, required: true, schema: { type: string }, description: "The controller-managed setup's name." }
+        - { name: name, in: path, required: true, schema: { type: string }, description: "The controller's name." }
+      responses:
+        "204":
+          description: Removed.
 
   /networks/{networkId}/controller-managed-setups/{setupName}/managed-devices/{name}:
     patch:
@@ -16705,6 +16718,19 @@ paths:
                 host: 192.0.2.20
                 collect: false
                 # synthetic fixture shaped like ManagedDevice (source: ControllerManagedSetupController.patchManagedDevice)
+    delete:
+      operationId: deleteManagedDevice
+      summary: Remove one guest device from a controller-managed setup
+      description: "Removes one guest device without restating the setup's others. Requires DELETE_COLLECTION_SOURCES on the network and answers 204 (source: ControllerManagedSetupController.deleteManagedDevice). Removing the setup's last guest device is a 400, because the setup would be left with none (ControllerManagedSetupService maps the IllegalArgumentException to BadRequestException; a setup with no guest-device list answers 400 too, an IllegalStateException); delete the whole setup with deleteControllerManagedSetup instead. A 404 means the guest device or its setup is already absent; the Go SDK treats it as success, which also hides a misspelt setup name. Live: not exercised (a write); source-only. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Collection Sources]
+      parameters:
+        - { name: networkId, in: path, required: true, schema: { type: string } }
+        - { name: setupName, in: path, required: true, schema: { type: string }, description: "The controller-managed setup's name." }
+        - { name: name, in: path, required: true, schema: { type: string }, description: "The guest device's name." }
+      responses:
+        "204":
+          description: Removed.
 
   /diffs/{beforeSnapshotId}/{afterSnapshotId}/failure-summary-assist:
     get:
@@ -18123,9 +18149,42 @@ paths:
         "409":
           description: A snapshot is not yet processed to the reachability stage.
 
+  /cves/{cveId}/detection-logic:
+    get:
+      operationId: getCveConfigDetectionLogic
+      summary: How Forward decides whether a configuration is exposed to a CVE
+      description: "The configuration detection logic for one CVE: a config block pattern or an NQE query, as raw text with newlines. Organization-scoped: no network and no snapshot. Needs the organization property CVE_DETECTION_LOGIC_EXPOSED (off by default, set on premises, a GUI property); with it off Forward answers 403 \"CVE_DETECTION_LOGIC_EXPOSED is off for your organization\". A CVE in the index whose impact does not depend on configuration answers 200 with no sourceType and no source; a CVE the index does not have is a 404. Forward's CveId needs CVE-YYYY-NNNN (four-digit year, at least four digits). Source: VulnerabilityAnalysisController.getCveConfigDetectionLogic, CveConfigDetectionLogic. Live: not exercised. Not part of Forward's documented API."
+      x-forward-stability: unpublished
+      tags: [Vulnerability Analysis]
+      parameters:
+        - { name: cveId, in: path, required: true, x-forward-validate: cve-id, description: "CVE-YYYY-NNNN; lower case is sent upper-cased.", schema: { type: string }, example: CVE-2024-20399 }
+      responses:
+        "200":
+          description: The detection logic, or none for a CVE whose impact does not depend on configuration.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CveConfigDetectionLogic" }
+              example: { cveId: CVE-2024-20399, sourceType: CONFIG_BLOCK_PATTERN, source: "feature nxapi\n" }
+        "403":
+          description: The organization property CVE_DETECTION_LOGIC_EXPOSED is off ("CVE_DETECTION_LOGIC_EXPOSED is off for your organization").
+        "404":
+          description: The CVE index has no such CVE.
 
 components:
   schemas:
+    CveConfigDetectionSourceType:
+      type: string
+      description: What a CVE's detection source is (CveConfigDetectionSourceType). Absent, or null, when the CVE's impact does not depend on configuration.
+      enum: [CONFIG_BLOCK_PATTERN, NQE_QUERY]
+    CveConfigDetectionLogic:
+      type: object
+      description: How Forward decides whether a device configuration is exposed to a CVE whose impact depends on configuration.
+      required: [cveId]
+      properties:
+        cveId: { type: string, description: "The CVE id, upper-cased." }
+        sourceType:
+          $ref: "#/components/schemas/CveConfigDetectionSourceType"
+        source: { type: string, description: "A config block pattern or an NQE query, raw text with newlines." }
     DecoEntityDecorator:
       type: object
       description: "An entity decorator as Forward returns it (source: EntityDecorator.java with DecoratorDefinition unwrapped). Only the join columns for type are present; createdAt/createdBy/updatedAt/updatedBy are absent on system-managed decorators."
@@ -18594,8 +18653,8 @@ components:
       type: object
       required: [start, end]
       properties:
-        start: { type: integer, description: First line, 0-based, inclusive. }
-        end: { type: integer, description: Last line, inclusive. }
+        start: { type: integer, description: "First line, 0-based, inclusive." }
+        end: { type: integer, description: "Last line, inclusive." }
     SnapExcerpt:
       type: object
       properties:
@@ -18786,7 +18845,7 @@ components:
         firstSnapshotAt: { type: string, format: date-time }
         lastSnapshotAt: { type: string, format: date-time }
         ineligibleReason: { type: string, description: "Why it cannot be licensed. Known value UNLICENSED_DEPENDENCY. Absent otherwise." }
-        lite: { type: boolean, description: Present only when true (a lite, peripheral device). }
+        lite: { type: boolean, description: "Present only when true (a lite, peripheral device)." }
     LicLicensedDevices:
       type: object
       properties:
@@ -18824,7 +18883,7 @@ components:
       type: object
       description: Use against caps at one moment (LicenseUsageEvent).
       properties:
-        timestamp: { type: integer, format: int64, description: The instant, in whole milliseconds since the epoch. }
+        timestamp: { type: integer, format: int64, description: "The instant, in whole milliseconds since the epoch." }
         standardDeviceCap: { type: integer }
         standardDeviceUsage: { type: integer }
         liteDeviceCap: { type: integer }
@@ -19061,8 +19120,8 @@ components:
         path: { type: string, description: The query's path in that commit. }
         intent: { type: string }
         hasParams: { type: boolean, description: Whether the query takes parameters. Omitted when false. }
-        authorId: { type: string, description: The author's user id, when the author is a Forward user. }
-        authorEmail: { type: string, description: The author's email, when the author is not a Forward user. }
+        authorId: { type: string, description: "The author's user id, when the author is a Forward user." }
+        authorEmail: { type: string, description: "The author's email, when the author is not a Forward user." }
 
     PredictChangeSetCheckPatch:
       type: object
@@ -22058,7 +22117,7 @@ components:
         version: { type: string, enum: [V2C, V3] }
         port: { type: integer }
         timeoutSec: { type: integer }
-        communityString: { type: string, description: The stored secret's id, not the value. }
+        communityString: { type: string, description: "The stored secret's id, not the value." }
         authSettings: { $ref: "#/components/schemas/SnmpAuthSettings" }
         autoAssociate: { type: boolean }
         createdById: { type: string }
@@ -22104,8 +22163,8 @@ components:
         version: { type: string }
         updateStatus: { type: string, enum: [UP_TO_DATE, OUTDATED, NOT_SUPPORTED, END_OF_LIFE] }
         collectorUpdating: { type: boolean }
-        createdAt: { type: integer, description: Epoch milliseconds, unlike most timestamps. }
-        createdBy: { type: string, description: A user id, not a name. }
+        createdAt: { type: integer, description: "Epoch milliseconds, unlike most timestamps." }
+        createdBy: { type: string, description: "A user id, not a name." }
       additionalProperties: true
 
     CollectorBinding:
@@ -22126,7 +22185,7 @@ components:
         name: { type: string }
         username: { type: string }
         createdAt: { type: integer, description: Epoch milliseconds. }
-        createdBy: { type: string, description: A user id, not a name. }
+        createdBy: { type: string, description: "A user id, not a name." }
         authorizationKey:
           type: string
           description: >-
@@ -22441,7 +22500,7 @@ components:
           type: array
           items: { type: object, additionalProperties: true }
         panelId: { type: string }
-        id: { type: integer, description: Server-assigned per embedding; echo it to keep the embedding, omit it to create a new one. }
+        id: { type: integer, description: "Server-assigned per embedding; echo it to keep the embedding, omit it to create a new one." }
         override:
           type: object
           description: displayName, queryParams, or a config override; at least one.
@@ -23001,7 +23060,7 @@ components:
       required: [neighborType, discoverySources]
       properties:
         neighborName: { type: string }
-        neighborType: { type: string, description: A DeviceConnType name, e.g. CISCO_IOS_SSH. }
+        neighborType: { type: string, description: "A DeviceConnType name, e.g. CISCO_IOS_SSH." }
         vendor: { $ref: "#/components/schemas/Vendor" }
         neighborAddress: { type: string }
         discoverySources:
@@ -23324,7 +23383,7 @@ components:
         name: { type: string, description: A display label. Omitted when unset. }
         entityId: { type: string, description: The IdP's entity or issuer ID. }
         ssoRedirectUrl: { type: string, description: The IdP's SSO URL. }
-        verificationCert: { type: string, description: The IdP's signing certificate, PEM. }
+        verificationCert: { type: string, description: "The IdP's signing certificate, PEM." }
         disableAuthNRequestSigning: { type: boolean, description: "false keeps Forward signing its AuthnRequests." }
         customSpCertKey:
           type: object
@@ -23339,11 +23398,11 @@ components:
       properties:
         remoteIp: { type: string }
         userId: { type: string, description: Absent for unauthenticated requests. }
-        impersonatorId: { type: string, description: Present only for a support user, and only when impersonating. }
+        impersonatorId: { type: string, description: "Present only for a support user, and only when impersonating." }
         impersonatorUsername: { type: string, description: Present only with impersonatorId. }
         impersonated: { type: boolean }
         httpMethod: { type: string, enum: [POST, PUT, PATCH, DELETE, GET] }
-        targetUri: { type: string, description: The path after /api, with the query string. }
+        targetUri: { type: string, description: "The path after /api, with the query string." }
         httpResponseCode: { type: integer }
         timestamp: { type: string, format: date-time }
     AuditLogPaging:
@@ -23352,7 +23411,7 @@ components:
       properties:
         offset: { type: integer }
         limit: { type: integer }
-        total: { type: integer, format: int64, description: Every record that matches the filters, not just this page. }
+        total: { type: integer, format: int64, description: "Every record that matches the filters, not just this page." }
     AuditLogPage:
       type: object
       required: [records, paging]
@@ -23367,14 +23426,14 @@ components:
           required: [name, certificate]
           properties:
             name: { type: string, description: Unique (ignoring case) within the org. }
-            certificate: { type: string, description: The X.509 certificate, PEM. }
+            certificate: { type: string, description: "The X.509 certificate, PEM." }
             expiresAt: { type: string, format: date-time, description: The certificate's not-after time. }
     TrustedCertificateRequest:
       type: object
       required: [name, certificate]
       properties:
         name: { type: string }
-        certificate: { type: string, description: A valid, unexpired X.509 certificate, PEM. }
+        certificate: { type: string, description: "A valid, unexpired X.509 certificate, PEM." }
     CollectorTaskId:
       type: string
       description: A collector task ID. E followed by a number for an ephemeral task, P for a persistent one.
@@ -23441,7 +23500,7 @@ components:
         - type: object
           properties:
             orgName: { type: string }
-            creator: { type: string, nullable: true, description: The creator's username, or null if the account was deleted. }
+            creator: { type: string, nullable: true, description: "The creator's username, or null if the account was deleted." }
             secondsToExpiry: { type: integer, format: int64, description: Present only for a network that expires. }
     AdminUserWithOrgId:
       description: A user with the ID of the org it belongs to.

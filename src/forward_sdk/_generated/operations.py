@@ -2213,6 +2213,19 @@ OPERATIONS: dict[str, OpDef] = {
         stability="unpublished",
         summary="Delete a collector account and all related state",
     ),
+    "deleteControllerDevice": OpDef(
+        operation_id="deleteControllerDevice",
+        method="delete",
+        path="/networks/{networkId}/controller-managed-setups/{setupName}/controllers/{name}",
+        tag="Collection Sources",
+        parameters=(
+            ParamDef(name="networkId", location="path", required=True, schema_type="string"),
+            ParamDef(name="setupName", location="path", required=True, schema_type="string"),
+            ParamDef(name="name", location="path", required=True, schema_type="string"),
+        ),
+        stability="unpublished",
+        summary="Remove one controller from a controller-managed setup",
+    ),
     "deleteControllerManagedSetup": OpDef(
         operation_id="deleteControllerManagedSetup",
         method="delete",
@@ -2562,6 +2575,19 @@ OPERATIONS: dict[str, OpDef] = {
         ),
         parent_tag="Topology",
         summary="Delete a network location",
+    ),
+    "deleteManagedDevice": OpDef(
+        operation_id="deleteManagedDevice",
+        method="delete",
+        path="/networks/{networkId}/controller-managed-setups/{setupName}/managed-devices/{name}",
+        tag="Collection Sources",
+        parameters=(
+            ParamDef(name="networkId", location="path", required=True, schema_type="string"),
+            ParamDef(name="setupName", location="path", required=True, schema_type="string"),
+            ParamDef(name="name", location="path", required=True, schema_type="string"),
+        ),
+        stability="unpublished",
+        summary="Remove one guest device from a controller-managed setup",
     ),
     "deleteNetwork": OpDef(
         operation_id="deleteNetwork",
@@ -4648,6 +4674,20 @@ OPERATIONS: dict[str, OpDef] = {
         gating=('license',),
         response_model="CveAnalysis",
         summary="Get a custom CVE analysis",
+    ),
+    "getCveConfigDetectionLogic": OpDef(
+        operation_id="getCveConfigDetectionLogic",
+        method="get",
+        path="/cves/{cveId}/detection-logic",
+        tag="Vulnerability Analysis",
+        parameters=(
+            ParamDef(name="cveId", location="path", required=True, schema_type="string", validate="cve-id"),
+        ),
+        response_media=('application/json',),
+        stability="unpublished",
+        gating=('license',),
+        response_model="CveConfigDetectionLogic",
+        summary="How Forward decides whether a configuration is exposed to a CVE",
     ),
     "getCveIndex": OpDef(
         operation_id="getCveIndex",

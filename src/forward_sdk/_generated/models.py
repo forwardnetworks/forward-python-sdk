@@ -654,7 +654,7 @@ class AuditLogPaging(ForwardModel):
     offset: int
     total: int
     """
-    Every record that matches the filters
+    Every record that matches the filters, not just this page.
     """
 
 
@@ -680,7 +680,7 @@ class AuditLogRecord(ForwardModel):
     impersonated: bool
     impersonator_id: Annotated[str | None, Field(alias="impersonatorId")] = None
     """
-    Present only for a support user
+    Present only for a support user, and only when impersonating.
     """
     impersonator_username: Annotated[str | None, Field(alias="impersonatorUsername")] = None
     """
@@ -689,7 +689,7 @@ class AuditLogRecord(ForwardModel):
     remote_ip: Annotated[str, Field(alias="remoteIp")]
     target_uri: Annotated[str, Field(alias="targetUri")]
     """
-    The path after /api
+    The path after /api, with the query string.
     """
     timestamp: AwareDatetime
     user_id: Annotated[str | None, Field(alias="userId")] = None
@@ -1810,7 +1810,7 @@ class CollectorWithAuthKey(ForwardModel):
     """
     created_by: Annotated[str | None, Field(alias="createdBy")] = None
     """
-    A user id
+    A user id, not a name.
     """
     id: str | None = None
     name: str | None = None
@@ -1844,11 +1844,11 @@ class CollectorWithStatus(ForwardModel):
     connection_status: Annotated[ConnectionStatus | None, Field(alias="connectionStatus")] = None
     created_at: Annotated[int | None, Field(alias="createdAt")] = None
     """
-    Epoch milliseconds
+    Epoch milliseconds, unlike most timestamps.
     """
     created_by: Annotated[str | None, Field(alias="createdBy")] = None
     """
-    A user id
+    A user id, not a name.
     """
     disconnected_at: Annotated[str | None, Field(alias="disconnectedAt")] = None
     external_ip: Annotated[str | None, Field(alias="externalIp")] = None
@@ -2275,6 +2275,15 @@ class CveAnalysisRule(ForwardModel):
     """
 
 
+class CveConfigDetectionSourceType(OpenEnum):
+    """
+    What a CVE's detection source is (CveConfigDetectionSourceType). Absent, or null, when the CVE's impact does not depend on configuration.
+    """
+
+    config_block_pattern = "CONFIG_BLOCK_PATTERN"
+    nqe_query = "NQE_QUERY"
+
+
 class CveIndexUpdateResponse(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -2407,7 +2416,7 @@ class DashboardWidget(ForwardModel):
     h: int
     id: int | None = None
     """
-    Server-assigned per embedding; echo it to keep the embedding
+    Server-assigned per embedding; echo it to keep the embedding, omit it to create a new one.
     """
     override: dict[str, Any] | None = None
     """
@@ -5352,7 +5361,7 @@ class LicLicensedDevice(ForwardModel):
     last_snapshot_at: Annotated[AwareDatetime | None, Field(alias="lastSnapshotAt")] = None
     lite: bool | None = None
     """
-    Present only when true (a lite
+    Present only when true (a lite, peripheral device).
     """
     names: list[str] | None = None
     network_ids: Annotated[list[str] | None, Field(alias="networkIds")] = None
@@ -5448,7 +5457,7 @@ class LicUsagePoint(ForwardModel):
     standard_device_usage: Annotated[int | None, Field(alias="standardDeviceUsage")] = None
     timestamp: int | None = None
     """
-    The instant
+    The instant, in whole milliseconds since the epoch.
     """
 
 
@@ -8103,11 +8112,11 @@ class PredictNqeCheckCommit(ForwardModel):
     )
     author_email: Annotated[str | None, Field(alias="authorEmail")] = None
     """
-    The author's email
+    The author's email, when the author is not a Forward user.
     """
     author_id: Annotated[str | None, Field(alias="authorId")] = None
     """
-    The author's user id
+    The author's user id, when the author is a Forward user.
     """
     committed_at: Annotated[str | None, Field(alias="committedAt")] = None
     """
@@ -8503,7 +8512,7 @@ class SamlAuthSettings(ForwardModel):
     """
     verification_cert: Annotated[str, Field(alias="verificationCert")]
     """
-    The IdP's signing certificate
+    The IdP's signing certificate, PEM.
     """
 
 
@@ -9310,11 +9319,11 @@ class SnapLineRange(ForwardModel):
     )
     end: int
     """
-    Last line
+    Last line, inclusive.
     """
     start: int
     """
-    First line
+    First line, 0-based, inclusive.
     """
 
 
@@ -9579,7 +9588,7 @@ class SnmpCredential(ForwardModel):
     auto_associate: Annotated[bool | None, Field(alias="autoAssociate")] = None
     community_string: Annotated[str | None, Field(alias="communityString")] = None
     """
-    The stored secret's id
+    The stored secret's id, not the value.
     """
     created_at: Annotated[str | None, Field(alias="createdAt")] = None
     created_by: Annotated[str | None, Field(alias="createdBy")] = None
@@ -12867,7 +12876,7 @@ class TrustedCertificate(Attribution):
     )
     certificate: str
     """
-    The X.509 certificate
+    The X.509 certificate, PEM.
     """
     expires_at: Annotated[AwareDatetime | None, Field(alias="expiresAt")] = None
     """
@@ -12886,7 +12895,7 @@ class TrustedCertificateRequest(ForwardModel):
     )
     certificate: str
     """
-    A valid
+    A valid, unexpired X.509 certificate, PEM.
     """
     name: str
 
@@ -14071,9 +14080,9 @@ class AdminNetwork(Network):
         extra="allow",
         populate_by_name=True,
     )
-    creator: str | None = None
+    creator: Annotated[str | None, Field(examples=["mary"])] = None
     """
-    The creator's username
+    The creator's username, or null if the account was deleted.
     """
     org_name: Annotated[str | None, Field(alias="orgName")] = None
     seconds_to_expiry: Annotated[int | None, Field(alias="secondsToExpiry")] = None
@@ -15800,6 +15809,26 @@ class CveAnalysisDef(ForwardModel):
     """
 
 
+class CveConfigDetectionLogic(ForwardModel):
+    """
+    How Forward decides whether a device configuration is exposed to a CVE whose impact depends on configuration.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    cve_id: Annotated[str, Field(alias="cveId")]
+    """
+    The CVE id, upper-cased.
+    """
+    source: str | None = None
+    """
+    A config block pattern or an NQE query, raw text with newlines.
+    """
+    source_type: Annotated[CveConfigDetectionSourceType | None, Field(alias="sourceType")] = None
+
+
 class CveOsInfo(ForwardModel):
     model_config = ConfigDict(
         extra="allow",
@@ -16317,7 +16346,7 @@ class DeviceNeighbor(ForwardModel):
     neighbor_name: Annotated[str | None, Field(alias="neighborName")] = None
     neighbor_type: Annotated[str, Field(alias="neighborType")]
     """
-    A DeviceConnType name
+    A DeviceConnType name, e.g. CISCO_IOS_SSH.
     """
     vendor: Vendor | None = None
     vendor_specific_device_neighbor: Annotated[

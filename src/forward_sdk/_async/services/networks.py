@@ -11,6 +11,8 @@ from typing import Any
 
 from forward_sdk._async.services._base import AsyncService
 from forward_sdk._generated.models import (
+    ClassicDevice,
+    HttpCredential,
     Location,
     LocationPatch,
     Network,
@@ -19,6 +21,7 @@ from forward_sdk._generated.models import (
 )
 from forward_sdk._ops import core as ops
 from forward_sdk._ops import rest
+from forward_sdk.classic_devices import ClassicDeviceWithCredential
 from forward_sdk.errors import (
     ForwardAPIError,
     ForwardConfigurationError,
@@ -203,6 +206,65 @@ class AsyncNetworksService(AsyncService):
         atlas = {device: str(rows[name.strip().lower()]["id"]) for device, name in devices.items()}
         await self._send_json(rest.BUILDERS["updateAtlas"](network_id=network, body=atlas))
 
+    async def create_classic_device_with_api_key(
+        self,
+        credential: Mapping[str, Any] | Any,
+        device: Mapping[str, Any] | Any,
+        *,
+        network_id: str | None = None,
+    ) -> ClassicDeviceWithCredential:
+        """Create an ``API_KEY`` HTTP credential, then a classic device that uses it.
+
+        For connection types whose HTTP credential is an API key, such as
+        ``k8s_cni_control_plane_api`` (the key is the cluster's bearer token).
+        ``credential`` is a ``NewHttpCredential`` or its dict without a
+        username; its ``type`` is set to ``API_KEY``. ``device`` is a
+        ``NewClassicDevice`` or its dict; its ``httpCredentialId`` is set to the
+        new credential's id, so leave it out.
+
+        Not atomic: if creating the device fails, the credential stays. The
+        error raised then carries it as ``error.http_credential``, so it can be
+        deleted or reused. Mirrors the Go SDK's ``CreateWithAPIKey`` (v0.8.55);
+        composed from two existing writes and not run against a live Forward.
+
+        Raises:
+            ValueError: ``device`` has no name or host, ``credential`` names a
+                type other than ``API_KEY``, or ``device`` already names an HTTP
+                credential. All are checked before anything is created.
+        """
+        cred = _as_body(credential)
+        dev = _as_body(device)
+        given_type = str(cred.get("type") or "API_KEY")
+        if given_type.upper() != "API_KEY":
+            raise ValueError(f"this creates an API_KEY credential, not {given_type!r}")
+        if not str(dev.get("name") or "").strip() or not str(dev.get("host") or "").strip():
+            raise ValueError("the classic device needs a name and a host")
+        if dev.get("httpCredentialId"):
+            raise ValueError(
+                "the device's HTTP credential is set from the new one; leave httpCredentialId out"
+            )
+        network = self._network(network_id)
+        cred["type"] = "API_KEY"
+        created = HttpCredential.model_validate(
+            await self._send_json(
+                rest.BUILDERS["createHttpCredential"](network_id=network, body=cred)
+            )
+            or {}
+        )
+        dev["httpCredentialId"] = created.id
+        try:
+            payload = await self._send_json(
+                rest.BUILDERS["addClassicDevice"](network_id=network, body=dev)
+            )
+            made = ClassicDevice.model_validate(payload or {})
+        except BaseException as error:
+            # Any failure, a cancellation included, leaves the credential behind;
+            # say which one (Go returns it with the error too).
+            with contextlib.suppress(AttributeError):
+                error.http_credential = created  # type: ignore[attr-defined]
+            raise
+        return ClassicDeviceWithCredential(credential=created, device=made)
+
     async def register_devices(
         self,
         devices: Sequence[str] | Mapping[str, str],
@@ -311,3 +373,12 @@ def _host_ok(value: str) -> bool:
             ipaddress.ip_address(value)
             return True
     return len(value) <= 253 and bool(_HOSTNAME.fullmatch(value))
+
+
+def _as_body(value: Mapping[str, Any] | Any) -> dict[str, Any]:
+    """A request model or mapping as a fresh dict in the API's own field names."""
+    if hasattr(value, "to_api"):
+        return dict(value.to_api())
+    if isinstance(value, Mapping):
+        return dict(value)
+    raise TypeError(f"expected a request model or a mapping, not {type(value).__name__}")

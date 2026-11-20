@@ -48,6 +48,8 @@ def argument_for(name: str, parameter: inspect.Parameter, operation: OpDef) -> A
     if param is not None and param.enum:
         return param.enum[0]
     annotation = str(parameter.annotation)
+    if name == "cve_id":
+        return "CVE-2024-20399"  # refused before sending unless it is a CVE id
     if name == "body":
         if operation.request_media == ("application/octet-stream",):
             return b"\x00"

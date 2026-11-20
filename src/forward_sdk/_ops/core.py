@@ -380,8 +380,14 @@ def list_device_tags(*, network_id: str) -> RequestSpec:
 
 
 @op("getDeviceTagsWithDevices")
-def list_device_tags_with_devices(*, network_id: str) -> RequestSpec:
-    return spec_for("getDeviceTagsWithDevices", path_params={"networkId": network_id})
+def list_device_tags_with_devices(
+    *, network_id: str, snapshot_id: str | None = None
+) -> RequestSpec:
+    return spec_for(
+        "getDeviceTagsWithDevices",
+        path_params={"networkId": network_id},
+        query={"snapshotId": snapshot_id},
+    )
 
 
 @op("getDeviceTag")
@@ -458,26 +464,49 @@ def remove_tag_from_devices(
 
 
 @op("addDeviceTagsToDevices")
-def add_tags_to_devices(*, network_id: str, body: Any) -> RequestSpec:
-    return spec_for("addDeviceTagsToDevices", path_params={"networkId": network_id}, json=body)
+def add_tags_to_devices(
+    *, network_id: str, body: Any, snapshot_id: str | None = None
+) -> RequestSpec:
+    return spec_for(
+        "addDeviceTagsToDevices",
+        path_params={"networkId": network_id},
+        query={"snapshotId": snapshot_id},
+        json=body,
+    )
 
 
 @op("removeDeviceTagsFromDevices")
-def remove_tags_from_devices(*, network_id: str, body: Any) -> RequestSpec:
-    return spec_for("removeDeviceTagsFromDevices", path_params={"networkId": network_id}, json=body)
+def remove_tags_from_devices(
+    *, network_id: str, body: Any, snapshot_id: str | None = None
+) -> RequestSpec:
+    return spec_for(
+        "removeDeviceTagsFromDevices",
+        path_params={"networkId": network_id},
+        query={"snapshotId": snapshot_id},
+        json=body,
+    )
 
 
 @op("removeAllDeviceTagsFromDevices")
-def remove_all_tags_from_devices(*, network_id: str, devices: Sequence[str]) -> RequestSpec:
+def remove_all_tags_from_devices(
+    *, network_id: str, devices: Sequence[str], snapshot_id: str | None = None
+) -> RequestSpec:
     return spec_for(
         "removeAllDeviceTagsFromDevices",
         path_params={"networkId": network_id},
-        json=list(devices),
+        query={"snapshotId": snapshot_id},
+        # A DeviceSet, as for add_tag_to_devices: Forward refuses a bare array.
+        json={"devices": list(devices)},
     )
 
 
 @op("replaceAllDeviceTagsForDevices")
-def replace_all_tags_for_devices(*, network_id: str, body: Any) -> RequestSpec:
+def replace_all_tags_for_devices(
+    *, network_id: str, body: Any, snapshot_id: str | None = None
+) -> RequestSpec:
     return spec_for(
-        "replaceAllDeviceTagsForDevices", path_params={"networkId": network_id}, json=body
+        "replaceAllDeviceTagsForDevices",
+        path_params={"networkId": network_id},
+        query={"snapshotId": snapshot_id},
+        json=body,
     )

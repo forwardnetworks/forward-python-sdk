@@ -19,12 +19,26 @@ class AsyncDeviceTagsService(AsyncService):
     """
 
     async def list(
-        self, network_id: str | None = None, *, with_devices: bool = False
+        self,
+        network_id: str | None = None,
+        *,
+        with_devices: bool = False,
+        snapshot_id: str | None = None,
     ) -> list[dict[str, Any]]:
-        """List every tag, optionally with the devices carrying each one."""
+        """List every tag, optionally with the devices carrying each one.
+
+        ``snapshot_id`` reads the devices that carried each tag as of that
+        snapshot rather than now; only the form with devices takes one, so it
+        needs ``with_devices=True``.
+        """
+        snapshot_id = _snapshot(snapshot_id)
+        if snapshot_id is not None and not with_devices:
+            raise ValueError(
+                "snapshot_id reads the devices as of a snapshot; pass with_devices=True"
+            )
         resolved = self._network(network_id)
         spec = (
-            ops.list_device_tags_with_devices(network_id=resolved)
+            ops.list_device_tags_with_devices(network_id=resolved, snapshot_id=snapshot_id)
             if with_devices
             else ops.list_device_tags(network_id=resolved)
         )
@@ -99,28 +113,86 @@ class AsyncDeviceTagsService(AsyncService):
             )
         )
 
-    async def add_tags_to_devices(self, body: Any, *, network_id: str | None = None) -> Any:
-        """Apply several tags to several devices in one request."""
+    async def add_tags_to_devices(
+        self, body: Any, *, network_id: str | None = None, snapshot_id: str | None = None
+    ) -> Any:
+        """Apply several tags to several devices in one request.
+
+        ``snapshot_id`` makes the change take effect from that snapshot, so an
+        NQE read of it (``device.tagNames``) shows it at once; without one it
+        shows from the next snapshot. With a snapshot, Forward checks the device
+        names against that snapshot's devices and endpoints rather than the
+        network's collection sources.
+        """
         return await self._send_json(
-            ops.add_tags_to_devices(network_id=self._network(network_id), body=body)
+            ops.add_tags_to_devices(
+                network_id=self._network(network_id), body=body, snapshot_id=_snapshot(snapshot_id)
+            )
         )
 
-    async def remove_tags_from_devices(self, body: Any, *, network_id: str | None = None) -> Any:
-        """Remove several tags from several devices in one request."""
+    async def remove_tags_from_devices(
+        self, body: Any, *, network_id: str | None = None, snapshot_id: str | None = None
+    ) -> Any:
+        """Remove several tags from several devices in one request.
+
+        ``snapshot_id`` makes the change take effect from that snapshot, so an
+        NQE read of it (``device.tagNames``) shows it at once; without one it
+        shows from the next snapshot. With a snapshot, Forward checks the device
+        names against that snapshot's devices and endpoints rather than the
+        network's collection sources.
+        """
         return await self._send_json(
-            ops.remove_tags_from_devices(network_id=self._network(network_id), body=body)
+            ops.remove_tags_from_devices(
+                network_id=self._network(network_id), body=body, snapshot_id=_snapshot(snapshot_id)
+            )
         )
 
     async def remove_all_from_devices(
-        self, devices: Sequence[str], *, network_id: str | None = None
+        self,
+        devices: Sequence[str],
+        *,
+        network_id: str | None = None,
+        snapshot_id: str | None = None,
     ) -> Any:
-        """Strip every tag from a set of devices."""
+        """Strip every tag from a set of devices.
+
+        ``snapshot_id`` makes the change take effect from that snapshot, so an
+        NQE read of it (``device.tagNames``) shows it at once; without one it
+        shows from the next snapshot. With a snapshot, Forward checks the device
+        names against that snapshot's devices and endpoints rather than the
+        network's collection sources.
+        """
         return await self._send_json(
-            ops.remove_all_tags_from_devices(network_id=self._network(network_id), devices=devices)
+            ops.remove_all_tags_from_devices(
+                network_id=self._network(network_id),
+                devices=devices,
+                snapshot_id=_snapshot(snapshot_id),
+            )
         )
 
-    async def replace_all_for_devices(self, body: Any, *, network_id: str | None = None) -> Any:
-        """Replace the full tag set of the given devices."""
+    async def replace_all_for_devices(
+        self, body: Any, *, network_id: str | None = None, snapshot_id: str | None = None
+    ) -> Any:
+        """Replace the full tag set of the given devices.
+
+        ``snapshot_id`` makes the change take effect from that snapshot, so an
+        NQE read of it (``device.tagNames``) shows it at once; without one it
+        shows from the next snapshot. With a snapshot, Forward checks the device
+        names against that snapshot's devices and endpoints rather than the
+        network's collection sources.
+        """
         return await self._send_json(
-            ops.replace_all_tags_for_devices(network_id=self._network(network_id), body=body)
+            ops.replace_all_tags_for_devices(
+                network_id=self._network(network_id), body=body, snapshot_id=_snapshot(snapshot_id)
+            )
         )
+
+
+def _snapshot(snapshot_id: str | None) -> str | None:
+    """A snapshot id as Forward reads it; blank is refused rather than sent as "snapshotId="."""
+    if snapshot_id is None:
+        return None
+    cleaned = str(snapshot_id).strip()
+    if not cleaned:
+        raise ValueError("snapshot_id is blank; pass a snapshot id or leave it out")
+    return cleaned

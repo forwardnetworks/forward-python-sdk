@@ -98,6 +98,25 @@ class CollectionSourcesService(Service):
         )
         return payload
 
+    def delete_controller_device(
+        self,
+        *,
+        setup_name: str,
+        name: str,
+        network_id: str | None = None,
+    ) -> Any:
+        """Remove one controller from a controller-managed setup.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["deleteControllerDevice"](
+                network_id=self._network(network_id), setup_name=setup_name, name=name
+            )
+        )
+        return payload
+
     def delete_controller_managed_setup(
         self,
         *,
@@ -112,6 +131,25 @@ class CollectionSourcesService(Service):
         payload = self._send_json(
             ops.BUILDERS["deleteControllerManagedSetup"](
                 network_id=self._network(network_id), setup_name=setup_name
+            )
+        )
+        return payload
+
+    def delete_managed_device(
+        self,
+        *,
+        setup_name: str,
+        name: str,
+        network_id: str | None = None,
+    ) -> Any:
+        """Remove one guest device from a controller-managed setup.
+
+        Unpublished: not part of Forward's documented API.
+        Uses the client's network when ``network_id`` is omitted.
+        """
+        payload = self._send_json(
+            ops.BUILDERS["deleteManagedDevice"](
+                network_id=self._network(network_id), setup_name=setup_name, name=name
             )
         )
         return payload

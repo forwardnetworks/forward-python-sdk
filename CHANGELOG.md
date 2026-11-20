@@ -5,8 +5,33 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.41] - 2026-11-20
+
 ### Added
 
+- Go SDK v0.8.51 to v0.8.58 parity:
+  - `device_tags.add_tags_to_devices`, `remove_tags_from_devices`, `remove_all_from_devices` and
+    `replace_all_for_devices` take `snapshot_id`, so the change takes effect from that snapshot (an NQE read of it
+    shows the tags at once); `device_tags.list(with_devices=True, snapshot_id=...)` reads the tags as of a snapshot.
+  - `vulnerability_analysis.get_cve_config_detection_logic(cve_id=...)`: how Forward decides a configuration is
+    exposed to a CVE (a config block pattern or an NQE query). Needs the `CVE_DETECTION_LOGIC_EXPOSED` org property
+    (off by default). A malformed CVE id is refused before a request; lower case is sent upper-cased.
+  - `collection_sources.delete_controller_device` and `delete_managed_device` remove one member of a
+    controller-managed setup. Removing the last one is a 400; a 404 means it is already absent.
+  - `networks.create_classic_device_with_api_key(credential, device)`: an `API_KEY` HTTP credential, then a classic
+    device that uses it (such as `k8s_cni_control_plane_api` with the cluster's bearer token). Not atomic: on a
+    failed device create the error carries `error.http_credential`.
+  - `forward_sdk.classic_devices`: connection-type statuses, the Kubernetes CNI type ids, and
+    `conn_type_exposed(info)` (Forward's rule: PRODUCTION and TECH_PREVIEW).
+  - `forward_sdk.snapshot_package`: `read_sources(path)` decodes a snapshot package's `sources.json`, whose
+    `devices_without_snapshots()` explains a snapshot that processed with zero devices; `redact_log(text)` masks
+    `Authorization` headers and bearer or basic tokens in package logs (Forward writes a Kubernetes token there
+    unmasked).
+  - Docs: the per-property org overrides list holds stored rows, including orgs since deleted, not effective
+    values; `describe_properties` with another org's listings gives that org's effective values and their source.
+  - Go's `Properties.CurrentValue` was already covered by `configuration.get_org_config_value` with
+    `config_value()`; its `forwardtest` change is Go-only. All of this is from Forward's source and the Go SDK, not
+    run against a live Forward.
 - `error.denial` recognises an NQE query refused by the organization's licence tier ("Query ... is not
   permitted for this organization's license tier", and "Custom Query ...") as kind `license`, with the query's
   path or id in `detail`.
@@ -19,6 +44,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- `device_tags.remove_all_from_devices` sends `{"devices": [...]}`, the `DeviceSet` Forward reads; it sent a bare
+  array, which Forward refuses (`add_to_devices` had the same bug once).
+- The vendored unpublished spec had 20 descriptions cut at a comma into a stray schema key; they are quoted, and a
+  test keeps them so.
 - `docs/gating.md` showed `client.vulnerabilities.list`, which never existed; it is
   `client.vulnerability_analysis.get_vulnerabilities`.
 - Confirmed live since 0.1.40 (no code change): the form-field fix for `create_current_user_api_token`; the

@@ -98,6 +98,12 @@ def describe_properties(
         glob = client.configuration.get_global_config_values(filter="CONFIGURED")
         sources = describe_properties(effective, org, glob)
 
+    For another org, as a Forward support account, read that org's listings
+    instead: ``get_org_scoped_config_values(org_id=..., filter="OFF")`` and
+    ``filter="CONFIGURED"``. The per-property overrides list
+    (``get_global_config_property_org_overrides``) is not a substitute: it holds
+    stored rows, including those of deleted orgs, not effective values.
+
     The org wins if it set the property, then the global scope, and otherwise the
     value is the compiled default. No route exposes that default on its own, so
     ``default`` means "nobody changed it", not a value you can read back.

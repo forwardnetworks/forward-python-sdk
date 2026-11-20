@@ -74,6 +74,8 @@ def sample_for(name: str, annotation: Any) -> Any:
     Values only need to be type-correct: this checks request shape, not
     behaviour.
     """
+    if name == "cve_id":
+        return "CVE-2024-20399"  # refused before sending unless it is a CVE id
     origin = get_origin(annotation)
     if annotation is QueryRef or origin is QueryRef:
         return QueryRef.inline("foreach d in network.devices select {n: d.name}")

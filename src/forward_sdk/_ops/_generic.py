@@ -165,6 +165,9 @@ def generic(
             if param.validate == "non-blank":
                 # Forward compares these exactly, so padding would match nothing.
                 kwargs[name] = str(kwargs[name]).strip()
+            elif param.validate == "cve-id":
+                # Forward's CveId is upper case; the check above accepted any case.
+                kwargs[name] = str(kwargs[name]).strip().upper()
 
         body = kwargs.pop(BODY_ARGUMENT, None) if has_body else None
         path_params: dict[str, Any] = {}
@@ -286,7 +289,8 @@ def _wire(body: Any) -> Any:
     return body
 
 
-_CHECKS = frozenset({"ip-address", "non-blank"})
+_CHECKS = frozenset({"cve-id", "ip-address", "non-blank"})
+_CVE_ID = re.compile(r"(?i)CVE-[0-9]{4}-[0-9]{4,}")
 
 
 def _check(operation_id: str, param: ParamDef, value: Any) -> None:
@@ -295,9 +299,17 @@ def _check(operation_id: str, param: ParamDef, value: Any) -> None:
     ``ip-address``: Forward answers 500 to anything else; blank counts as
     absent, as Forward treats it. ``non-blank``: a required filter Forward
     would take as "match nothing" when blank, returning an empty result that
-    looks like a real answer.
+    looks like a real answer. ``cve-id``: CVE-YYYY-NNNN in any case, as
+    Forward's CveId requires; anything else is refused before a request.
     """
     blank = value is None or not str(value).strip()
+    if param.validate == "cve-id":
+        if blank or not _CVE_ID.fullmatch(str(value).strip()):
+            raise ValueError(
+                f"{operation_id}: {param.name} must be a CVE id such as CVE-2024-20399, "
+                f"not {value!r}"
+            )
+        return
     if param.validate == "non-blank":
         if blank:
             raise ValueError(

@@ -187,6 +187,17 @@ _DENIAL_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         re.compile(r"^(?P<detail>[A-Z0-9_]+) is (?:on|off) for your deployment"),
     ),
     ("authority", re.compile(r"^(?P<detail>.+?) authority required")),
+    # QueryIdentityPolicy / QueryIdentityPolicyUtils: an NQE query (or any custom
+    # query) the org's licence tier does not cover. "detail" is the query's path,
+    # or its id (FQ_... or Q_...) when Forward did not resolve one. The apostrophe is
+    # matched as "." only defensively: both sources write a straight one.
+    (
+        "license",
+        re.compile(
+            r"^(?:Query (?P<detail>.+?)|Custom Query) is not permitted for this "
+            r"organization.s license tier"
+        ),
+    ),
 )
 
 

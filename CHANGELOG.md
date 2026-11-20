@@ -5,6 +5,25 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `error.denial` recognises an NQE query refused by the organization's licence tier ("Query ... is not
+  permitted for this organization's license tier", and "Custom Query ...") as kind `license`, with the query's
+  path or id in `detail`.
+- Docs: which NQE paths each licence tier reads as empty (Forward empties them without an error), and the
+  optional support dates and `isVulnerable` on CVE findings. Raised by the Infrahub integration.
+- A test that every `client.<service>.<method>(` (and deeper, such as `client.nqe.repo.<method>(`) named in the
+  docs and README exists.
+- Docs: `device.securityPolicy` exists in NQE only when the `NQE_SECURITY_RULES_PANOS` or `_FORTIOS`
+  setting is on (both default off), which is why the vendored data-model schema has no such field.
+
+### Fixed
+
+- `docs/gating.md` showed `client.vulnerabilities.list`, which never existed; it is
+  `client.vulnerability_analysis.get_vulnerabilities`.
+- Confirmed live since 0.1.40 (no code change): the form-field fix for `create_current_user_api_token`; the
+  AutoCon6 workshop minted and rotated a key with it on fwd.app.
+
 ## [0.1.40] - 2026-11-18
 
 ### Added

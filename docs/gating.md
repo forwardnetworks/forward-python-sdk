@@ -31,7 +31,7 @@ server's own explanation is handed to you:
 from forward_sdk import ForwardClient, ForwardPermissionError, ForwardNotFoundError
 
 try:
-    vulns = client.vulnerabilities.list(network_id="101")
+    vulns = client.vulnerability_analysis.get_vulnerabilities(network_id="101")
 except (ForwardPermissionError, ForwardNotFoundError) as error:
     print(error.status)  # 403 or 404
     print(error.error_info.message)  # Forward's own explanation
@@ -80,6 +80,44 @@ in, and everyone else fails authentication. In the SDK that surfaces as
 `ForwardAuthError` on requests that worked the day before, which is worth
 distinguishing from a bad credential when you are diagnosing a sudden failure.
 
+## NQE data and the licence tier
+
+An organization's licence tier also limits what NQE can read, and for parts of
+the data model it does so **without an error**: Forward empties the restricted
+fields before the query runs, so the query succeeds and the rows simply hold
+nothing there. A sync that reads CVE findings on a tier without them gets an
+empty list, not a refusal, so an empty answer from these paths is not proof
+that there is nothing to find.
+
+| Tier | Paths read as empty |
+| --- | --- |
+| B | `network.cveDatabase`, `cisDatabase`, `stigDatabase`, `endpoints`, `dataConnectors`, `extensions`, `externalSources`; on each device `cveFindings`, `cisFindings`, `aclEntries`, `natEntries`, `bgpRib`, `files`, `outputs`, `networkInstances`, `stp`, `securityPolicy`, `securityZones`, `hosts.securityZones`, `interfaces.acls` (and subinterfaces), `platform.osSupport`, `platform.components.support` |
+| N, NP | `network.cveDatabase`, `cisDatabase`, `stigDatabase`; on each device `cveFindings`, `cisFindings`, `securityPolicy`, `securityZones`, `hosts.securityZones` |
+| S (and no tier recorded) | `network.dataConnectors`, `extensions`, `externalSources`; on each device `bgpRib`, `files`, `outputs`, `networkInstances`, `stp` |
+| NS, NSP | nothing |
+
+Read from Forward's `NqeLicenseTierPolicyService`; the API does not report an
+organization's tier. A whole query the tier does not cover, by contrast, is
+refused with HTTP 403 ("Query ... is not permitted for this organization's
+license tier", or "Custom Query ..." for one written in place), which
+`error.denial` reads as kind `license` with the query's path, or its id
+(`FQ_...` or `Q_...`) when Forward did not resolve a path, in `detail`.
+
+Some of these fields hold data only for some devices even on a full tier:
+`platform.osSupport` and `platform.components.support` are optional dates
+(`lastMaintenanceDate`, `lastVulnerabilityDate`, `lastSupportDate`, with an
+`announcementUrl`) that Forward fills only for vendors it has support data for,
+and `cveFindings` lists CVEs ruled out as well as those that apply, so filter on
+`isVulnerable`.
+
+`device.securityPolicy` is behind an organization setting as well as the tier:
+it exists in the data model only when `NQE_SECURITY_RULES_PANOS` or
+`NQE_SECURITY_RULES_FORTIOS` is on (both default off; they can be set for the
+deployment or, on premises, by an organization administrator), and holds
+rules only for PAN-OS or FortiOS devices respectively. With both off, a query that names it does not
+compile, which is why the data-model schema vendored here
+(`spec/nqe-network-schema.json`, Forward's documentation build) has no such field.
+
 ## Telling one refusal from another
 
 A refusal carries no machine-readable code. Forward's access enforcer builds its
@@ -103,6 +141,7 @@ except ForwardPermissionError as error:
 | --- | --- | --- |
 | `rbac` | `Missing permission: X.Y`, or `No permission for network operation X` | The account lacks permission `X.Y` |
 | `license` | `Unlicensed operation: X.Y` | The licence does not cover `X.Y` |
+| `license` | `Query Q is not permitted for this organization's license tier` | The licence tier does not cover NQE query `Q` |
 | `license_expired` | the licence has expired | Renew, or grant licence management |
 | `org_setting` | `NAME is off for your organization` | An org admin controls `NAME` |
 | `deployment_setting` | `NAME is off for your deployment` | A deployment admin controls `NAME` |

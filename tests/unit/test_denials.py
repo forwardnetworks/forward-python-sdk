@@ -16,6 +16,25 @@ class TestClassifyDenial:
     @pytest.mark.parametrize(
         ("message", "kind", "detail"),
         [
+            # QueryIdentityPolicy: a library query the org's licence tier excludes.
+            (
+                "Query /forwardnetworks/Security/CVE Findings is not permitted for this "
+                "organization's license tier",
+                "license",
+                "/forwardnetworks/Security/CVE Findings",
+            ),
+            # QueryIdentityPolicyUtils: a query written in place, not from the library.
+            (
+                "Custom Query is not permitted for this organization's license tier",
+                "license",
+                None,
+            ),
+            # On the run path Forward names the query by its id, not its path.
+            (
+                "Query FQ_0123abcd is not permitted for this organization's license tier",
+                "license",
+                "FQ_0123abcd",
+            ),
             (
                 "Unlicensed operation: NetworkOperation.USE_NQE",
                 "license",

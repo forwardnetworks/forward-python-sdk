@@ -13,6 +13,9 @@
     "by": "craigjohnson",
     "sha256": "b10c3ad2f0925aaccf91d191c919edfeb87ba245c8226fdb3513ef7ed005cc78"
   },
+  "sealed": {
+    "tests/_async/test_api_key_device_names.py": "2e45baba053acccb2687ccafe25b6f9d74711e795b5a8fb54ae62f226ef32ba7"
+  },
   "specs": [
     {
       "id": "S01",
@@ -23,7 +26,9 @@
       "description": "Python-named credential and device fields are sent under their API names",
       "given": "A credential mapping {\"name\": \"k\", \"type\": \"API_KEY\", \"password\": \"secret\", \"login_type\": \"API_KEY\", \"auto_associate\": false} and a device mapping {\"name\": \"edge-1\", \"host\": \"10.0.0.1\", \"cli_credential_id\": \"C-1\"}, with a transport that records every request",
       "when": "networks.create_classic_device_with_api_key(credential, device, network_id=\"N1\") is awaited",
-      "then": "The recorded credential request body names the fields loginType and autoAssociate, carrying the values API_KEY and false. The recorded device request body names cliCredentialId with the value C-1. name, host, type and password keep the same spelling."
+      "then": "The recorded credential request body names the fields loginType and autoAssociate, carrying the values API_KEY and false. The recorded device request body names cliCredentialId with the value C-1. name, host, type and password keep the same spelling.",
+      "test": "tests/_async/test_api_key_device_names.py::test_s01_python_named_fields_are_sent_under_their_api_names",
+      "red": "2bfc8fb"
     },
     {
       "id": "S02",
@@ -45,7 +50,9 @@
       "description": "No Python field name reaches Forward when it differs from the API name",
       "given": "A credential mapping that uses login_type and auto_associate, and a device mapping that uses cli_credential_id",
       "when": "create_classic_device_with_api_key is awaited and the request bodies are recorded",
-      "then": "None of the request bodies contains the key login_type, auto_associate or cli_credential_id."
+      "then": "None of the request bodies contains the key login_type, auto_associate or cli_credential_id.",
+      "test": "tests/_async/test_api_key_device_names.py::test_s03_no_python_name_reaches_forward",
+      "red": "2bfc8fb"
     },
     {
       "id": "S04",
@@ -56,7 +63,9 @@
       "description": "For every field, both spellings produce the same request",
       "given": "Any model field F of NewHttpCredential or NewClassicDevice with Python name p and API name a, and any value v the model accepts for F, other than a device's http credential",
       "when": "Valid otherwise-identical mappings are sent once with {p: v} and once with {a: v}",
-      "then": "Both calls produce request bodies that carry a: v. Neither body carries p unless p equals a. The two recorded bodies are equal."
+      "then": "Both calls produce request bodies that carry a: v. Neither body carries p unless p equals a. The two recorded bodies are equal.",
+      "test": "tests/_async/test_api_key_device_names.py::test_s04_both_spellings_produce_the_same_request",
+      "red": "2bfc8fb"
     },
     {
       "id": "S05",
@@ -67,7 +76,9 @@
       "description": "A device field named both ways with differing values is refused before any request",
       "given": "A valid API_KEY credential mapping and a device mapping {\"name\": \"edge-1\", \"host\": \"10.0.0.1\", \"cli_credential_id\": \"C-1\", \"cliCredentialId\": \"C-2\"}",
       "when": "create_classic_device_with_api_key is awaited",
-      "then": "It raises ValueError and the transport records no request."
+      "then": "It raises ValueError and the transport records no request.",
+      "test": "tests/_async/test_api_key_device_names.py::test_s05_a_device_field_named_both_ways_with_different_values_is_refused",
+      "red": "2bfc8fb"
     },
     {
       "id": "S06",
@@ -78,7 +89,9 @@
       "description": "A field named both ways is refused even when the two values agree",
       "given": "A credential mapping {\"name\": \"k\", \"type\": \"API_KEY\", \"password\": \"secret\", \"login_type\": \"API_KEY\", \"loginType\": \"API_KEY\"} and a valid device mapping",
       "when": "create_classic_device_with_api_key is awaited",
-      "then": "It raises ValueError and the transport records no request."
+      "then": "It raises ValueError and the transport records no request.",
+      "test": "tests/_async/test_api_key_device_names.py::test_s06_a_field_named_both_ways_is_refused_even_when_the_values_agree",
+      "red": "2bfc8fb"
     },
     {
       "id": "S07",
@@ -89,7 +102,9 @@
       "description": "A mapping that names each field once is not refused, even if it mixes spellings",
       "given": "A credential mapping that uses login_type and autoAssociate, each once, and a valid device mapping",
       "when": "create_classic_device_with_api_key is awaited",
-      "then": "No ValueError is raised for duplicate spelling. The credential request is sent with loginType and autoAssociate."
+      "then": "No ValueError is raised for duplicate spelling. The credential request is sent with loginType and autoAssociate.",
+      "test": "tests/_async/test_api_key_device_names.py::test_s07_mixed_spellings_each_used_once_are_not_refused",
+      "red": "2bfc8fb"
     },
     {
       "id": "S08",
@@ -100,7 +115,9 @@
       "description": "Any field present under both spellings causes refusal",
       "given": "Either argument given as a mapping, any field F of the target model whose Python name p differs from its API name a, and any values v1 and v2, equal or not",
       "when": "The mapping contains both p: v1 and a: v2 and create_classic_device_with_api_key is awaited",
-      "then": "It raises ValueError and no request is made."
+      "then": "It raises ValueError and no request is made.",
+      "test": "tests/_async/test_api_key_device_names.py::test_s08_any_field_under_both_spellings_is_refused",
+      "red": "2bfc8fb"
     },
     {
       "id": "S09",
@@ -122,7 +139,9 @@
       "description": "A device naming an HTTP credential by the Python name is refused",
       "given": "A valid API_KEY credential mapping and a device mapping {\"name\": \"edge-1\", \"host\": \"10.0.0.1\", \"http_credential_id\": \"H-1\"}",
       "when": "create_classic_device_with_api_key is awaited",
-      "then": "It raises ValueError and the transport records no request. No request carries http_credential_id or httpCredentialId."
+      "then": "It raises ValueError and the transport records no request. No request carries http_credential_id or httpCredentialId.",
+      "test": "tests/_async/test_api_key_device_names.py::test_s10_a_device_naming_an_http_credential_by_python_name_is_refused",
+      "red": "2bfc8fb"
     },
     {
       "id": "S11",
@@ -166,7 +185,9 @@
       "description": "The checks give the same verdict whichever spelling is used",
       "given": "Any credential and device mappings, and the same mappings with any subset of fields renamed between Python name and API name, with no field named both ways",
       "when": "create_classic_device_with_api_key is awaited with each version",
-      "then": "Either both versions raise ValueError before any request, or neither is refused by the name, host, API_KEY-type or HTTP-credential checks. Any mapping that names an HTTP credential under either spelling is always refused before any request."
+      "then": "Either both versions raise ValueError before any request, or neither is refused by the name, host, API_KEY-type or HTTP-credential checks. Any mapping that names an HTTP credential under either spelling is always refused before any request.",
+      "test": "tests/_async/test_api_key_device_names.py::test_s14_the_checks_give_the_same_verdict_whichever_spelling",
+      "red": "2bfc8fb"
     },
     {
       "id": "S15",

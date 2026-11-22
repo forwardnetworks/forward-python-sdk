@@ -21,7 +21,7 @@ import builtins
 import json
 import time
 from collections.abc import Collection, Iterator, Mapping, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from forward_sdk._generated.models import (
     AnalysisNqeInlinedType,
@@ -39,7 +39,6 @@ from forward_sdk._ops import nqe as ops
 from forward_sdk._ops import rest
 from forward_sdk._sync.services._base import Service
 from forward_sdk._sync.services.nqe_repo import NqeRepository
-from forward_sdk._sync.transport import Transport
 from forward_sdk.errors import (
     ForwardConfigurationError,
     ForwardExecutionError,
@@ -66,6 +65,9 @@ from forward_sdk.nqe.state import (
     lldp_query,
 )
 from forward_sdk.nqe.telemetry import ExecutionReport, ExecutionReports
+
+if TYPE_CHECKING:  # pragma: no cover
+    from forward_sdk._sync.ports import TransportPort
 
 __all__ = ["NqeExecution", "NqeService"]
 
@@ -420,7 +422,7 @@ def _execution_error_detail(status: Mapping[str, Any]) -> str:
 class NqeService(Service):
     """Run queries and read the query library."""
 
-    def __init__(self, transport: Transport) -> None:
+    def __init__(self, transport: TransportPort) -> None:
         super().__init__(transport)
         self.repo = NqeRepository(transport)
         self._reports = ExecutionReports()

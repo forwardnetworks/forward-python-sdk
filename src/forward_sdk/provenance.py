@@ -23,7 +23,7 @@ import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from forward_sdk.errors import ForwardConfigurationError
+from forward_sdk._ports import ForwardConfigurationError
 
 __all__ = ["ArchiveProvenance", "describe_archive"]
 

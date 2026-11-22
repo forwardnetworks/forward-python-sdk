@@ -26,6 +26,7 @@ from forward_sdk._async.services.snapshots import AsyncSnapshotsService
 from forward_sdk._async.services.tapi import AsyncTapiNetworkContainersService
 from forward_sdk._async.throttle import Throttle
 from forward_sdk._async.transport import AsyncTransport
+from forward_sdk._files import open_upload
 from forward_sdk._generated.operations import OPERATIONS
 from forward_sdk._ops import REGISTRY
 from forward_sdk._ops import rest as _rest  # noqa: F401  registers every builder
@@ -126,7 +127,11 @@ class AsyncForwardClient(AsyncGeneratedServices):
             trust_env=trust_env,
         )
         self._transport = AsyncTransport(
-            self.config, transport=transport, throttle=throttle, hooks=hooks
+            self.config,
+            transport=transport,
+            throttle=throttle,
+            hooks=hooks,
+            open_upload=open_upload,
         )
         self._current_roles: Any = _UNREAD
         self._current_impersonator: str | None = None

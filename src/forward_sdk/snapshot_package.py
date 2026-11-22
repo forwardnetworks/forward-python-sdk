@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from forward_sdk.errors import ForwardConfigurationError
+from forward_sdk._ports import ForwardConfigurationError
 
 __all__ = [
     "SnapshotPackageSource",

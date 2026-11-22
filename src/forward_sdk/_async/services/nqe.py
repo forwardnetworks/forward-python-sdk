@@ -19,11 +19,10 @@ import builtins
 import json
 import time
 from collections.abc import AsyncIterator, Collection, Mapping, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from forward_sdk._async.services._base import AsyncService
 from forward_sdk._async.services.nqe_repo import AsyncNqeRepository
-from forward_sdk._async.transport import AsyncTransport
 from forward_sdk._generated.models import (
     AnalysisNqeInlinedType,
     AnalysisNqeRunMetric,
@@ -64,6 +63,9 @@ from forward_sdk.nqe.state import (
     lldp_query,
 )
 from forward_sdk.nqe.telemetry import ExecutionReport, ExecutionReports
+
+if TYPE_CHECKING:  # pragma: no cover
+    from forward_sdk._async.ports import AsyncTransportPort
 
 __all__ = ["AsyncNqeExecution", "AsyncNqeService"]
 
@@ -418,7 +420,7 @@ def _execution_error_detail(status: Mapping[str, Any]) -> str:
 class AsyncNqeService(AsyncService):
     """Run queries and read the query library."""
 
-    def __init__(self, transport: AsyncTransport) -> None:
+    def __init__(self, transport: AsyncTransportPort) -> None:
         super().__init__(transport)
         self.repo = AsyncNqeRepository(transport)
         self._reports = ExecutionReports()

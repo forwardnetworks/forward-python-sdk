@@ -12,19 +12,26 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from typing import Any
 
 import httpx
 
-from forward_sdk._files import open_upload
-from forward_sdk._http import RETRYABLE_STATUS, backoff_delay, parse_retry_after, raise_for_response
 from forward_sdk._ops import FileUpload, RequestSpec
+from forward_sdk._ports import (
+    RETRYABLE_STATUS,
+    ClientConfig,
+    Counters,
+    ForwardConfigurationError,
+    ForwardTransportError,
+    Hooks,
+    backoff_delay,
+    parse_retry_after,
+    raise_for_response,
+    tls_verify,
+)
 from forward_sdk._sync.throttle import RateLimiter, Throttle
-from forward_sdk.config import ClientConfig, tls_verify
-from forward_sdk.errors import ForwardTransportError
-from forward_sdk.telemetry import Counters, Hooks
 
 logger = logging.getLogger("forward_sdk")
 
@@ -47,8 +54,12 @@ class Transport:
         throttle: Throttle | None = None,
         hooks: Hooks | None = None,
         counters: Counters | None = None,
+        open_upload: Callable[[FileUpload], Any] | None = None,
     ) -> None:
         self.config = config
+        # Opens an upload's file when a request is sent; the client passes the
+        # SDK's own opener (forward_sdk._files.open_upload).
+        self._open_upload = open_upload
         self.counters = counters or Counters()
         self.hooks = hooks
         self._throttle = throttle or self._default_throttle(config)
@@ -79,8 +90,7 @@ class Transport:
     def __exit__(self, *exc: object) -> None:
         self.close()
 
-    @staticmethod
-    def _open_files(spec: RequestSpec, opened: list[Any]) -> Sequence[tuple[str, Any]] | None:
+    def _open_files(self, spec: RequestSpec, opened: list[Any]) -> Sequence[tuple[str, Any]] | None:
         """Open the upload files named in ``spec``, appending each handle to ``opened``.
 
         The caller closes them. They are opened once per call and reused across
@@ -92,7 +102,12 @@ class Transport:
         parts: list[tuple[str, Any]] = []
         for field_name, value in spec.files:
             if isinstance(value, FileUpload):
-                handle = open_upload(value)
+                if self._open_upload is None:
+                    raise ForwardConfigurationError(
+                        "this transport was built without an upload opener; "
+                        "build it through the client to send files"
+                    )
+                handle = self._open_upload(value)
                 opened.append(handle)
                 parts.append((field_name, (value.filename, handle, value.content_type)))
             else:

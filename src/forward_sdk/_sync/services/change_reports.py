@@ -9,7 +9,7 @@ import builtins
 import time
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from forward_sdk._version import __version__
 from forward_sdk.change_report import (
@@ -28,7 +28,32 @@ from forward_sdk.errors import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover
-    from forward_sdk._sync.client import ForwardClient
+    from forward_sdk._sync.services._generated.firewall_predict import (
+        FirewallPredictService,
+    )
+    from forward_sdk._sync.services._generated.flow_trace import FlowTraceService
+    from forward_sdk._sync.services._generated.snapshot_diff_details import (
+        SnapshotDiffDetailsService,
+    )
+    from forward_sdk._sync.services.change_sets import ChangeSetsService
+    from forward_sdk._sync.services.diffs import SnapshotDiffsService
+    from forward_sdk._sync.services.networks import NetworksService
+    from forward_sdk._sync.services.nqe import NqeService
+    from forward_sdk._sync.services.snapshots import SnapshotsService
+
+
+class _ReportClient(Protocol):
+    """The parts of the client a change report reads; the client itself satisfies it."""
+
+    networks: NetworksService
+    snapshots: SnapshotsService
+    snapshot_diffs: SnapshotDiffsService
+    snapshot_diff_details: SnapshotDiffDetailsService
+    nqe: NqeService
+    change_sets: ChangeSetsService
+    flow_trace: FlowTraceService
+    firewall_predict: FirewallPredictService
+
 
 __all__ = ["ChangeReportsService"]
 
@@ -83,7 +108,7 @@ class ChangeReportsService:
     until both SDKs ship it.
     """
 
-    def __init__(self, client: ForwardClient) -> None:
+    def __init__(self, client: _ReportClient) -> None:
         self._client = client
 
     def compare(

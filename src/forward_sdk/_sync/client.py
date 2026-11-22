@@ -12,6 +12,7 @@ from typing import Any, Literal
 
 import httpx
 
+from forward_sdk._files import open_upload
 from forward_sdk._generated.operations import OPERATIONS
 from forward_sdk._ops import REGISTRY
 from forward_sdk._ops import rest as _rest  # noqa: F401  registers every builder
@@ -129,7 +130,11 @@ class ForwardClient(GeneratedServices):
             trust_env=trust_env,
         )
         self._transport = Transport(
-            self.config, transport=transport, throttle=throttle, hooks=hooks
+            self.config,
+            transport=transport,
+            throttle=throttle,
+            hooks=hooks,
+            open_upload=open_upload,
         )
         self._current_roles: Any = _UNREAD
         self._current_impersonator: str | None = None

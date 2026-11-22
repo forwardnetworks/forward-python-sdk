@@ -9,13 +9,13 @@ from forward_sdk.errors import ForwardConfigurationError
 from forward_sdk.nqe.query_ref import LATEST_PROCESSED
 
 if TYPE_CHECKING:  # pragma: no cover
-    from forward_sdk._async.transport import AsyncTransport
+    from forward_sdk._async.ports import AsyncTransportPort
 
 
 class AsyncService:
     """Base for the grouped call surfaces hanging off a client."""
 
-    def __init__(self, transport: AsyncTransport) -> None:
+    def __init__(self, transport: AsyncTransportPort) -> None:
         self._transport = transport
 
     @property

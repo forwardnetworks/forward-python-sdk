@@ -70,11 +70,13 @@ SUBSTITUTIONS: tuple[tuple[str, str], ...] = (
     (r"\bAsyncIterator\b", "Iterator"),
     (r"\bAsyncGenerator\b", "Generator"),
     (r"\bAsyncContextManager\b", "ContextManager"),
+    (r"\bAbstractAsyncContextManager\b", "AbstractContextManager"),
     (r"\basynccontextmanager\b", "contextmanager"),
     (r"\bcollections\.abc import AsyncIterable\b", "collections.abc import Iterable"),
     # Public names.
     (r"\bAsyncForwardClient\b", "ForwardClient"),
     (r"\bAsyncTransport\b", "Transport"),
+    (r"\bAsyncTransportPort\b", "TransportPort"),
     (r"\bAsyncRateLimiter\b", "RateLimiter"),
     (r"\bAsyncService\b", "Service"),
     (r"\bAsyncNqeExecution\b", "NqeExecution"),

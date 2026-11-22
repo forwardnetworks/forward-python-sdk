@@ -413,7 +413,7 @@ def main(argv: list[str] | None = None) -> int:
         [
             "",
             "if TYPE_CHECKING:  # pragma: no cover",
-            "    from forward_sdk._async.transport import AsyncTransport",
+            "    from forward_sdk._async.ports import AsyncTransportPort",
             "",
             "__all__ = [",
         ]
@@ -440,7 +440,7 @@ def main(argv: list[str] | None = None) -> int:
     init.extend(
         [
             "",
-            "    def _attach_generated_services(self, transport: AsyncTransport) -> None:",
+            "    def _attach_generated_services(self, transport: AsyncTransportPort) -> None:",
         ]
     )
     init.extend(f"        self.{attribute} = {cls}(transport)" for _, cls, attribute in exports)

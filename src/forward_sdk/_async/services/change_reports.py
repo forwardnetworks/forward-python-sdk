@@ -6,7 +6,7 @@ import builtins
 import time
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from forward_sdk._version import __version__
 from forward_sdk.change_report import (
@@ -25,7 +25,32 @@ from forward_sdk.errors import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover
-    from forward_sdk._async.client import AsyncForwardClient
+    from forward_sdk._async.services._generated.firewall_predict import (
+        AsyncFirewallPredictService,
+    )
+    from forward_sdk._async.services._generated.flow_trace import AsyncFlowTraceService
+    from forward_sdk._async.services._generated.snapshot_diff_details import (
+        AsyncSnapshotDiffDetailsService,
+    )
+    from forward_sdk._async.services.change_sets import AsyncChangeSetsService
+    from forward_sdk._async.services.diffs import AsyncSnapshotDiffsService
+    from forward_sdk._async.services.networks import AsyncNetworksService
+    from forward_sdk._async.services.nqe import AsyncNqeService
+    from forward_sdk._async.services.snapshots import AsyncSnapshotsService
+
+
+class _ReportClient(Protocol):
+    """The parts of the client a change report reads; the client itself satisfies it."""
+
+    networks: AsyncNetworksService
+    snapshots: AsyncSnapshotsService
+    snapshot_diffs: AsyncSnapshotDiffsService
+    snapshot_diff_details: AsyncSnapshotDiffDetailsService
+    nqe: AsyncNqeService
+    change_sets: AsyncChangeSetsService
+    flow_trace: AsyncFlowTraceService
+    firewall_predict: AsyncFirewallPredictService
+
 
 __all__ = ["AsyncChangeReportsService"]
 
@@ -80,7 +105,7 @@ class AsyncChangeReportsService:
     until both SDKs ship it.
     """
 
-    def __init__(self, client: AsyncForwardClient) -> None:
+    def __init__(self, client: _ReportClient) -> None:
         self._client = client
 
     async def compare(

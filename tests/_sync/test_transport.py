@@ -9,6 +9,7 @@ twin, so both clients are covered by one set of assertions.
 
 from __future__ import annotations
 
+import io
 import json
 from typing import Any
 
@@ -16,13 +17,14 @@ import httpx
 import pytest
 
 from forward_sdk._generated.operations import OPERATIONS
-from forward_sdk._ops import RequestSpec, spec_for
+from forward_sdk._ops import FileUpload, RequestSpec, spec_for
 from forward_sdk._sync.throttle import RateLimiter
 from forward_sdk._sync.transport import Transport
 from forward_sdk.config import RetryPolicy, build_config
 from forward_sdk.errors import (
     ForwardAPIError,
     ForwardAuthError,
+    ForwardConfigurationError,
     ForwardConflictError,
     ForwardNotFoundError,
     ForwardNqeQueryError,
@@ -657,3 +659,44 @@ def test_stream_maps_errors(recorder: Recorder) -> None:
 def test_rate_limiter_first_acquire_is_free() -> None:
     limiter = RateLimiter(60)
     assert limiter.acquire() == 0.0
+
+
+def test_a_transport_without_an_upload_opener_refuses_files(
+    recorder: Recorder, tmp_path: Any
+) -> None:
+    # The client always passes the SDK's opener; a transport built on its own
+    # has none, and must say so rather than send a part it cannot open.
+    archive = tmp_path / "snapshot.zip"
+    archive.write_bytes(b"PK")
+    spec = RequestSpec(
+        operation=OPERATIONS["createSnapshot"],
+        path="/networks/101/snapshots",
+        files=[("file", FileUpload(path=archive, filename="snapshot.zip"))],
+    )
+    with make_transport(recorder) as transport:
+        with pytest.raises(ForwardConfigurationError, match="upload opener"):
+            transport.send(spec)
+    assert recorder.requests == []
+
+
+def test_a_transport_sends_files_through_its_opener(recorder: Recorder, tmp_path: Any) -> None:
+    opened: list[FileUpload] = []
+
+    def opener(upload: FileUpload) -> Any:
+        opened.append(upload)
+        return io.BytesIO(b"PK")
+
+    recorder.add("POST", "/api/networks/101/snapshots", json_response({"id": "s1"}))
+    config = build_config(
+        "https://forward.test", username="key", password="secret", rate_limit_rpm=None
+    )
+    upload = FileUpload(path=tmp_path / "unused.zip", filename="snapshot.zip")
+    spec = RequestSpec(
+        operation=OPERATIONS["createSnapshot"],
+        path="/networks/101/snapshots",
+        files=[("file", upload)],
+    )
+    with Transport(config, transport=recorder.transport, open_upload=opener) as transport:
+        transport.send(spec)
+    assert opened == [upload]
+    assert b'filename="snapshot.zip"' in recorder.requests[-1].read()

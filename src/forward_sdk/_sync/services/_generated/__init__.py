@@ -115,7 +115,7 @@ from forward_sdk._sync.services._generated.wan_circuits import WANCircuitsServic
 from forward_sdk._sync.services._generated.webhooks import WebhooksService
 
 if TYPE_CHECKING:  # pragma: no cover
-    from forward_sdk._sync.transport import Transport
+    from forward_sdk._sync.ports import TransportPort
 
 __all__ = [
     "AccessControlService",
@@ -288,7 +288,7 @@ class GeneratedServices:
     wan_circuits: WANCircuitsService
     webhooks: WebhooksService
 
-    def _attach_generated_services(self, transport: Transport) -> None:
+    def _attach_generated_services(self, transport: TransportPort) -> None:
         self.access_control = AccessControlService(transport)
         self.adjacent_networks = AdjacentNetworksService(transport)
         self.aliases = AliasesService(transport)

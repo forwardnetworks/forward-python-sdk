@@ -5,6 +5,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- `networks.create_classic_device_with_api_key` takes a credential or device mapping keyed by the SDK's field names
+  (`http_credential_id`, `login_type`) as well as Forward's (`httpCredentialId`, `loginType`), and always sends
+  Forward's. A field named both ways is refused before any request, and the existing checks (no name or host, a
+  credential that is not `API_KEY`, a device naming its own HTTP credential) hold whichever spelling is used. Keys
+  the models do not describe are sent unchanged, and model arguments are serialized as before (ADR-2611221115).
+
+### Fixed
+
+- `networks.create_classic_device_with_api_key` refused a device naming its own HTTP credential only as
+  `httpCredentialId`: `http_credential_id` slipped past the check, and the request carried both keys.
+
 ## [0.1.41] - 2026-11-20
 
 ### Added

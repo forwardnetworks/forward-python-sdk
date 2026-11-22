@@ -9,6 +9,8 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from pydantic import BaseModel
+
 from forward_sdk._async.services._base import AsyncService
 from forward_sdk._generated.models import (
     ClassicDevice,
@@ -17,6 +19,7 @@ from forward_sdk._generated.models import (
     LocationPatch,
     Network,
     NewClassicDevice,
+    NewHttpCredential,
     NewLocation,
 )
 from forward_sdk._ops import core as ops
@@ -219,8 +222,10 @@ class AsyncNetworksService(AsyncService):
         ``k8s_cni_control_plane_api`` (the key is the cluster's bearer token).
         ``credential`` is a ``NewHttpCredential`` or its dict without a
         username; its ``type`` is set to ``API_KEY``. ``device`` is a
-        ``NewClassicDevice`` or its dict; its ``httpCredentialId`` is set to the
-        new credential's id, so leave it out.
+        ``NewClassicDevice`` or its dict; its HTTP credential is set to the new
+        credential's id, so leave it out. A dict may name each field by its
+        Python name (``login_type``) or Forward's (``loginType``); Forward is
+        sent its own. Keys the model does not describe are sent unchanged.
 
         Not atomic: if creating the device fails, the credential stays. The
         error raised then carries it as ``error.http_credential``, so it can be
@@ -229,11 +234,13 @@ class AsyncNetworksService(AsyncService):
 
         Raises:
             ValueError: ``device`` has no name or host, ``credential`` names a
-                type other than ``API_KEY``, or ``device`` already names an HTTP
-                credential. All are checked before anything is created.
+                type other than ``API_KEY``, ``device`` already names an HTTP
+                credential (in either spelling), or a dict names one field both
+                ways. All are checked before anything is created.
+            TypeError: An argument is neither a request model nor a mapping.
         """
-        cred = _as_body(credential)
-        dev = _as_body(device)
+        cred = _as_body(credential, NewHttpCredential)
+        dev = _as_body(device, NewClassicDevice)
         given_type = str(cred.get("type") or "API_KEY")
         if given_type.upper() != "API_KEY":
             raise ValueError(f"this creates an API_KEY credential, not {given_type!r}")
@@ -375,10 +382,29 @@ def _host_ok(value: str) -> bool:
     return len(value) <= 253 and bool(_HOSTNAME.fullmatch(value))
 
 
-def _as_body(value: Mapping[str, Any] | Any) -> dict[str, Any]:
-    """A request model or mapping as a fresh dict in the API's own field names."""
+def _as_body(value: Mapping[str, Any] | Any, model: type[BaseModel]) -> dict[str, Any]:
+    """A request model or mapping as a fresh dict in the API's own field names.
+
+    A mapping may name a field of ``model`` by its Python name or its API name;
+    each is sent under the API name. A field named both ways is refused, and a
+    key that is neither is sent unchanged (ADR-2611221115).
+    """
     if hasattr(value, "to_api"):
         return dict(value.to_api())
-    if isinstance(value, Mapping):
-        return dict(value)
-    raise TypeError(f"expected a request model or a mapping, not {type(value).__name__}")
+    if not isinstance(value, Mapping):
+        raise TypeError(f"expected a request model or a mapping, not {type(value).__name__}")
+    # Assumes no Python name equals another field's API name, which holds for
+    # NewHttpCredential and NewClassicDevice; such an overlap would rename silently.
+    api_name = {
+        name: field.alias
+        for name, field in model.model_fields.items()
+        if field.alias and field.alias != name
+    }
+    body: dict[str, Any] = {}
+    for key, item in value.items():
+        if key in api_name and api_name[key] in value:
+            raise ValueError(
+                f"{model.__name__}: {key!r} and {api_name[key]!r} name the same field; use one"
+            )
+        body[api_name.get(key, key)] = item
+    return body

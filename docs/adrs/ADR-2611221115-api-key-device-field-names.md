@@ -1,6 +1,7 @@
 # ADR-2611221115: An API-key classic device takes the SDK's field names as well as Forward's
 
-**Status:** Proposed
+**Status:** Completed
+> 2026-11-22 Completed: landed on main at ec2fe84; gate `uv run mypy && uv run pytest -q` passed
 **Date:** 2026-11-22
 **Drivers:** A review of `networks.create_classic_device_with_api_key` (0.1.41):
 a device mapping written with the SDK's own field name `http_credential_id`
@@ -57,6 +58,10 @@ intent, but it changes what such a request does.
 In `src/forward_sdk/_async/services/networks.py`, `_as_body` (used only by this
 method) maps each Python field name of the target model to its API name, and
 refuses a field named both ways. The sync client is generated from it.
+
+**Built:** decisions 1 to 5 on 2026-11-22 at ec2fe84. Scenarios S01, S03 to S08, S10 and S14 were
+red at 2bfc8fb and pass at ec2fe84 (`tests/_async/test_api_key_device_names.py`, sealed). The
+other eleven pin behaviour this ADR keeps and passed before the change.
 
 ## References
 

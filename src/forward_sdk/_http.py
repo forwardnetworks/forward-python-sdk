@@ -28,7 +28,7 @@ from forward_sdk.errors import (
     status_error_class,
 )
 
-API_PREFIX = "/api"
+_API_PREFIX = "/api"
 
 #: Status codes worth retrying. A 429 means "slow down", the 5xx entries are
 #: transient infrastructure failures, and 408/425 are request-level retries the
@@ -45,12 +45,12 @@ def normalize_base_url(base_url: str) -> str:
     cleaned = base_url.strip().rstrip("/")
     if not cleaned:
         raise ValueError("base_url must not be empty")
-    if cleaned.endswith(API_PREFIX):
+    if cleaned.endswith(_API_PREFIX):
         return cleaned
-    return cleaned + API_PREFIX
+    return cleaned + _API_PREFIX
 
 
-def quote_segment(value: str) -> str:
+def _quote_segment(value: str) -> str:
     """Percent-encode one path segment, including ``/``.
 
     Forward puts user-chosen names in path segments -- device, alias, tag, VRF
@@ -95,7 +95,7 @@ def build_path(template: str, values: Mapping[str, Any], pre_encoded: Collection
                 # client then collapses the segment: a device named ".." would
                 # address its parent resource instead.
                 raise ValueError(f"path parameter {name!r} must not be {str(value)!r}")
-            path = path.replace(placeholder, quote_segment(value))
+            path = path.replace(placeholder, _quote_segment(value))
     if "{" in path:
         missing = path[path.index("{") + 1 : path.index("}")]
         raise ValueError(f"missing path parameter {missing!r} for {template!r}")
@@ -261,7 +261,7 @@ def _query_error_detail(error_info: Any) -> str:
     return f" -- {'; '.join(rendered)}{tail}"
 
 
-def error_message(response: httpx.Response, error_info: Any) -> str:
+def _error_message(response: httpx.Response, error_info: Any) -> str:
     """Build a message that leads with Forward's own explanation."""
     detail = getattr(error_info, "message", None)
     if not detail:
@@ -296,7 +296,7 @@ def raise_for_response(
         return
 
     error_info = parse_error_body(response)
-    message = error_message(response, error_info)
+    message = _error_message(response, error_info)
     request = response.request
 
     kwargs: dict[str, Any] = {

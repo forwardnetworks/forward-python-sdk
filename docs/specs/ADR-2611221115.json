@@ -1,0 +1,234 @@
+{
+  "adr": "ADR-2611221115",
+  "feature": "API-key classic device accepts Python or API field names in mappings",
+  "description": "networks.create_classic_device_with_api_key accepts credential and device mappings keyed by either the model's Python field names or Forward's API names. It always sends API names, refuses a field spelled both ways, keeps its existing checks whatever the spelling, passes unknown keys through unchanged, and leaves model arguments unchanged.",
+  "universal": [
+    "§1",
+    "§2",
+    "§3",
+    "§4",
+    "§5"
+  ],
+  "specs": [
+    {
+      "id": "S01",
+      "decision": [
+        "§1"
+      ],
+      "kind": "example",
+      "description": "Python-named credential and device fields are sent under their API names",
+      "given": "A credential mapping {\"name\": \"k\", \"type\": \"API_KEY\", \"password\": \"secret\", \"login_type\": \"API_KEY\", \"auto_associate\": false} and a device mapping {\"name\": \"edge-1\", \"host\": \"10.0.0.1\", \"cli_credential_id\": \"C-1\"}, with a transport that records every request",
+      "when": "networks.create_classic_device_with_api_key(credential, device, network_id=\"N1\") is awaited",
+      "then": "The recorded credential request body names the fields loginType and autoAssociate, carrying the values API_KEY and false. The recorded device request body names cliCredentialId with the value C-1. name, host, type and password keep the same spelling."
+    },
+    {
+      "id": "S02",
+      "decision": [
+        "§1"
+      ],
+      "kind": "example",
+      "description": "A mapping that already uses API names is sent with those names",
+      "given": "A credential mapping {\"name\": \"k\", \"type\": \"API_KEY\", \"password\": \"secret\", \"loginType\": \"API_KEY\"} and a device mapping {\"name\": \"edge-1\", \"host\": \"10.0.0.1\", \"cliCredentialId\": \"C-1\"}",
+      "when": "create_classic_device_with_api_key is awaited with them",
+      "then": "The credential request body carries loginType with the value API_KEY. The device request body carries cliCredentialId with the value C-1."
+    },
+    {
+      "id": "S03",
+      "decision": [
+        "§1"
+      ],
+      "kind": "negative",
+      "description": "No Python field name reaches Forward when it differs from the API name",
+      "given": "A credential mapping that uses login_type and auto_associate, and a device mapping that uses cli_credential_id",
+      "when": "create_classic_device_with_api_key is awaited and the request bodies are recorded",
+      "then": "None of the request bodies contains the key login_type, auto_associate or cli_credential_id."
+    },
+    {
+      "id": "S04",
+      "decision": [
+        "§1"
+      ],
+      "kind": "property",
+      "description": "For every field, both spellings produce the same request",
+      "given": "Any model field F of NewHttpCredential or NewClassicDevice with Python name p and API name a, and any value v the model accepts for F, other than a device's http credential",
+      "when": "Valid otherwise-identical mappings are sent once with {p: v} and once with {a: v}",
+      "then": "Both calls produce request bodies that carry a: v. Neither body carries p unless p equals a. The two recorded bodies are equal."
+    },
+    {
+      "id": "S05",
+      "decision": [
+        "§2"
+      ],
+      "kind": "negative",
+      "description": "A device field named both ways with differing values is refused before any request",
+      "given": "A valid API_KEY credential mapping and a device mapping {\"name\": \"edge-1\", \"host\": \"10.0.0.1\", \"cli_credential_id\": \"C-1\", \"cliCredentialId\": \"C-2\"}",
+      "when": "create_classic_device_with_api_key is awaited",
+      "then": "It raises ValueError and the transport records no request."
+    },
+    {
+      "id": "S06",
+      "decision": [
+        "§2"
+      ],
+      "kind": "negative",
+      "description": "A field named both ways is refused even when the two values agree",
+      "given": "A credential mapping {\"name\": \"k\", \"type\": \"API_KEY\", \"password\": \"secret\", \"login_type\": \"API_KEY\", \"loginType\": \"API_KEY\"} and a valid device mapping",
+      "when": "create_classic_device_with_api_key is awaited",
+      "then": "It raises ValueError and the transport records no request."
+    },
+    {
+      "id": "S07",
+      "decision": [
+        "§2"
+      ],
+      "kind": "example",
+      "description": "A mapping that names each field once is not refused, even if it mixes spellings",
+      "given": "A credential mapping that uses login_type and autoAssociate, each once, and a valid device mapping",
+      "when": "create_classic_device_with_api_key is awaited",
+      "then": "No ValueError is raised for duplicate spelling. The credential request is sent with loginType and autoAssociate."
+    },
+    {
+      "id": "S08",
+      "decision": [
+        "§2"
+      ],
+      "kind": "property",
+      "description": "Any field present under both spellings causes refusal",
+      "given": "Either argument given as a mapping, any field F of the target model whose Python name p differs from its API name a, and any values v1 and v2, equal or not",
+      "when": "The mapping contains both p: v1 and a: v2 and create_classic_device_with_api_key is awaited",
+      "then": "It raises ValueError and no request is made."
+    },
+    {
+      "id": "S09",
+      "decision": [
+        "§3"
+      ],
+      "kind": "example",
+      "description": "A valid API-key credential and named, hosted device without an HTTP credential is accepted",
+      "given": "A credential mapping {\"name\": \"k\", \"type\": \"API_KEY\", \"password\": \"secret\"} and a device mapping {\"name\": \"edge-1\", \"host\": \"10.0.0.1\"}",
+      "when": "create_classic_device_with_api_key is awaited",
+      "then": "No ValueError is raised and requests are sent to Forward."
+    },
+    {
+      "id": "S10",
+      "decision": [
+        "§3"
+      ],
+      "kind": "negative",
+      "description": "A device naming an HTTP credential by the Python name is refused",
+      "given": "A valid API_KEY credential mapping and a device mapping {\"name\": \"edge-1\", \"host\": \"10.0.0.1\", \"http_credential_id\": \"H-1\"}",
+      "when": "create_classic_device_with_api_key is awaited",
+      "then": "It raises ValueError and the transport records no request. No request carries http_credential_id or httpCredentialId."
+    },
+    {
+      "id": "S11",
+      "decision": [
+        "§3"
+      ],
+      "kind": "negative",
+      "description": "A device naming an HTTP credential by the API name is refused",
+      "given": "A valid API_KEY credential mapping and a device mapping {\"name\": \"edge-1\", \"host\": \"10.0.0.1\", \"httpCredentialId\": \"H-1\"}",
+      "when": "create_classic_device_with_api_key is awaited",
+      "then": "It raises ValueError and the transport records no request."
+    },
+    {
+      "id": "S12",
+      "decision": [
+        "§3"
+      ],
+      "kind": "negative",
+      "description": "A credential whose type is not API_KEY is refused",
+      "given": "A credential mapping {\"name\": \"k\", \"type\": \"LOCAL\", \"password\": \"secret\", \"login_type\": \"API_KEY\"} and a valid device mapping",
+      "when": "create_classic_device_with_api_key is awaited",
+      "then": "It raises ValueError and the transport records no request."
+    },
+    {
+      "id": "S13",
+      "decision": [
+        "§3"
+      ],
+      "kind": "negative",
+      "description": "A device with no name or no host is refused",
+      "given": "A valid API_KEY credential mapping, and in turn the device mappings {\"host\": \"10.0.0.1\", \"cli_credential_id\": \"C-1\"} and {\"name\": \"edge-1\", \"cliCredentialId\": \"C-1\"}",
+      "when": "create_classic_device_with_api_key is awaited with each device",
+      "then": "Each call raises ValueError and the transport records no request."
+    },
+    {
+      "id": "S14",
+      "decision": [
+        "§3"
+      ],
+      "kind": "property",
+      "description": "The checks give the same verdict whichever spelling is used",
+      "given": "Any credential and device mappings, and the same mappings with any subset of fields renamed between Python name and API name, with no field named both ways",
+      "when": "create_classic_device_with_api_key is awaited with each version",
+      "then": "Either both versions raise ValueError before any request, or neither is refused by the name, host, API_KEY-type or HTTP-credential checks. Any mapping that names an HTTP credential under either spelling is always refused before any request."
+    },
+    {
+      "id": "S15",
+      "decision": [
+        "§4"
+      ],
+      "kind": "example",
+      "description": "A key the model does not describe is sent unchanged",
+      "given": "A valid API_KEY credential mapping and a device mapping {\"name\": \"edge-1\", \"host\": \"10.0.0.1\", \"vendorHint\": \"x\"}, where vendorHint is neither a Python nor an API name on NewClassicDevice",
+      "when": "create_classic_device_with_api_key is awaited",
+      "then": "The device request body carries vendorHint with the value x."
+    },
+    {
+      "id": "S16",
+      "decision": [
+        "§4"
+      ],
+      "kind": "negative",
+      "description": "Unknown keys are neither refused nor renamed",
+      "given": "A valid API_KEY credential mapping and a device mapping {\"name\": \"edge-1\", \"host\": \"10.0.0.1\", \"some_extra_field\": 1}, where some_extra_field is not a name on NewClassicDevice",
+      "when": "create_classic_device_with_api_key is awaited",
+      "then": "No ValueError is raised for the unknown key. The device request body carries some_extra_field with the value 1, and does not carry someExtraField."
+    },
+    {
+      "id": "S17",
+      "decision": [
+        "§4"
+      ],
+      "kind": "property",
+      "description": "Every unknown key passes through unchanged",
+      "given": "Any otherwise valid mapping and any key k that is neither a Python nor an API name of the target model's fields, with any value v",
+      "when": "The mapping includes k: v and create_classic_device_with_api_key is awaited",
+      "then": "The corresponding request body carries exactly k: v, and the call is not refused because of k."
+    },
+    {
+      "id": "S18",
+      "decision": [
+        "§5"
+      ],
+      "kind": "example",
+      "description": "Model arguments are serialized with to_api()",
+      "given": "A NewHttpCredential model of type API_KEY and a NewClassicDevice model with name and host set and no HTTP credential",
+      "when": "create_classic_device_with_api_key is awaited with the models",
+      "then": "The credential request body equals credential.to_api(), and the device's caller-supplied fields appear as in device.to_api()."
+    },
+    {
+      "id": "S19",
+      "decision": [
+        "§5"
+      ],
+      "kind": "negative",
+      "description": "A model argument is not re-keyed into Python names",
+      "given": "A NewHttpCredential model with login_type and auto_associate set, and a valid NewClassicDevice model",
+      "when": "create_classic_device_with_api_key is awaited",
+      "then": "The credential request body does not contain login_type or auto_associate. It contains loginType and autoAssociate, as to_api() gives."
+    },
+    {
+      "id": "S20",
+      "decision": [
+        "§5"
+      ],
+      "kind": "property",
+      "description": "For any credential model, the body is exactly to_api()",
+      "given": "Any valid NewHttpCredential model m of type API_KEY and a valid device",
+      "when": "create_classic_device_with_api_key is awaited with m",
+      "then": "The credential request body equals m.to_api()."
+    }
+  ]
+}

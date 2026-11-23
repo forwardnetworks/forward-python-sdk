@@ -388,7 +388,7 @@ def _as_body(value: Mapping[str, Any] | Any, model: type[BaseModel]) -> dict[str
 
     A mapping may name a field of ``model`` by its Python name or its API name;
     each is sent under the API name. A field named both ways is refused, and a
-    key that is neither is sent unchanged (ADR-2611221115).
+    key that is neither is sent unchanged.
     """
     if hasattr(value, "to_api"):
         return dict(value.to_api())

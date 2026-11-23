@@ -11,7 +11,7 @@ All notable changes to this project are documented here. The format follows
   (`http_credential_id`, `login_type`) as well as Forward's (`httpCredentialId`, `loginType`), and always sends
   Forward's. A field named both ways is refused before any request, and the existing checks (no name or host, a
   credential that is not `API_KEY`, a device naming its own HTTP credential) hold whichever spelling is used. Keys
-  the models do not describe are sent unchanged, and model arguments are serialized as before (ADR-2611221115).
+  the models do not describe are sent unchanged, and model arguments are serialized as before.
 
 ### Fixed
 

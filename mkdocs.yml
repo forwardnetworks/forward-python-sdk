@@ -49,11 +49,6 @@ markdown_extensions:
   - toc:
       permalink: true
 
-# Design records: read on GitHub, not published on the docs site.
-exclude_docs: |
-  adrs/
-  specs/
-
 nav:
   - Home: index.md
   - Getting started:

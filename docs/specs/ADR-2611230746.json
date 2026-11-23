@@ -13,7 +13,7 @@
     "sha256": "09775a20b1a60a4e85863a9c9496b6f26d7630e16b59174e8795590e6f913ae6"
   },
   "sealed": {
-    "tests/unit/test_design_records.py": "100b48f8de9095bdae6ed6f7f2baf2f03a0c4939d3f999b578df3bdb76dc0808"
+    "tests/unit/test_design_records.py": "577ff23e645153cd7272814826a8a9ab01e5e06a055900dce5a1a14205a6b7d4"
   },
   "specs": [
     {
@@ -386,6 +386,15 @@
       "from": "792d8c10037c8b699b6c35ca18540cf57989c66f2999a16b07108fa8df0d85cc",
       "reason": "read tracked paths with git ls-files -z: plain ls-files quotes a non-ASCII path, which then escapes the §5 dot-segment check; review finding",
       "to": "100b48f8de9095bdae6ed6f7f2baf2f03a0c4939d3f999b578df3bdb76dc0808"
+    },
+    {
+      "at": "2026-11-23T14:15:20.223429455+00:00",
+      "base_commit": "28a8622966c805cb22aefe3bb14f58e7afbfbbfb",
+      "by": "craigjohnson",
+      "file": "tests/unit/test_design_records.py",
+      "from": "100b48f8de9095bdae6ed6f7f2baf2f03a0c4939d3f999b578df3bdb76dc0808",
+      "reason": "name S15's temporary folders by number: the test ref contains ':', which Windows refuses in a path (failed on windows-latest CI); no assertion changes",
+      "to": "577ff23e645153cd7272814826a8a9ab01e5e06a055900dce5a1a14205a6b7d4"
     }
   ]
 }

@@ -222,8 +222,8 @@ def test_s14_a_renamed_test_is_refused(tmp_path: Path) -> None:
 
 
 def test_s15_a_test_file_outside_tests_or_missing_is_refused(tmp_path: Path) -> None:
-    for ref in ("src/check.py::test_a", "tests/unit/test_gone.py::test_a"):
-        root = tmp_path / ref.replace("/", "_")
+    for number, ref in enumerate(("src/check.py::test_a", "tests/unit/test_gone.py::test_a")):
+        root = tmp_path / str(number)  # not the ref: ":" is not allowed in a Windows path
         write_test_file(root, "src/check.py", "test_a")
         spec(root, "ADR-1", {"adr": "ADR-1", "specs": [bound(ref)]})
         assert checker().check_bindings(root), ref

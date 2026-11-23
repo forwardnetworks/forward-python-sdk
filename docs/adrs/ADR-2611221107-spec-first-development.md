@@ -1,6 +1,8 @@
 # ADR-2611221107: Changes are decided, specified and tested before they are built
 
-**Status:** Accepted
+**Status:** Superseded
+**Superseded-By:** ADR-2611230746
+> 2026-11-23 Superseded: its decisions are restated as claims the repository's own tests check
 **Date:** 2026-11-22
 **Drivers:** The owner's decision to develop the SDK spec-first, after its code
 was given hexagonal layers (ports for the transport and adapters).

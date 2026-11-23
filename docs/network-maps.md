@@ -39,3 +39,9 @@ tree = client.network_maps.get_network_map_directories()  # flat list, root "/" 
 - Listing folders also needs the `NETWORK_MAP_DIRECTORIES` org property; with it off Forward answers 403.
 - BGP links are empty when BGP is off for the organization or the map.
 - `annotations` and `hiddenLinks` come back as plain dicts; their fields are not modelled.
+
+## Source
+
+- `src/forward_sdk/_async/services/_generated/network_maps.py`
+- `src/forward_sdk/_sync/services/_generated/network_maps.py`
+- `spec/unpublished.yaml`

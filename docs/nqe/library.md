@@ -16,10 +16,13 @@ Reach them through `client.nqe.repo`.
 client.nqe.repo.queries(repository="org")  # list
 client.nqe.repo.queries(path="/NetBox/Devices", with_source=True)
 client.nqe.repo.find("/NetBox/Devices")  # one, by path
-client.nqe.repo.index()  # path -> query, cached
+client.nqe.repo.index()  # path -> query, cached for the client's cache_ttl
 client.nqe.repo.head_commit_id()
 client.nqe.repo.history("FQ_...")
 ```
+
+`with_source=True` needs a `path`, since Forward returns committed source one
+query at a time.
 
 `org` is your organization's library; `fwd` is the one Forward ships.
 
@@ -49,6 +52,9 @@ compiles before anyone else sees it. If anything fails, staged drafts and any
 directories created for them are discarded, so a failed run does not leave
 half-staged changes behind.
 
+The dry run blocks the commit only on `ERROR` diagnostics; `WARNING` ones come
+back in `report.warnings`.
+
 `publish()` also refuses when one of the paths already carries an uncommitted
 draft, since a commit names paths rather than changes and would publish
 someone else's half-finished edit alongside yours. Pass `overwrite_drafts=True`
@@ -66,7 +72,8 @@ query imports several levels down cannot be tried without committing it, and a
 baseline cannot be rerun once head has moved past it.
 
 `bundle()` reads the query and everything it imports at one commit, replaces the
-modules you supply, and merges the result into a single query that imports
+modules you supply (each must be one the query imports, directly or through
+another override, or `bundle()` raises `NqeBundleError`), and merges the result into a single query that imports
 nothing:
 
 ```python
@@ -87,6 +94,10 @@ declarations are renamed with a per-module prefix and every reference is
 rewritten to what it resolved to before. Anything the rewrite cannot rename
 safely raises `NqeBundleError` rather than producing a query that means
 something different.
+
+`commit_id` takes the full 40-character hash; an abbreviated one raises
+`ForwardConfigurationError`. `"head"` is resolved once and the commit it
+resolved to is recorded on `bundle.commit_id`.
 
 Two things to check before trusting the numbers:
 
@@ -125,5 +136,14 @@ Forward Library. Read from Forward's source; not yet run live.
 
 Listing drafts: `drafts()` returns each staged change with its `type`. Forward
 gives an edit or a deletion no path of its own, so use `change.query_path`,
-which names the query in every case.
+which names the query for an addition, edit or deletion (for an edit that moves
+or renames it, the destination path). It is empty for a directory or permission
+change.
 
+## Source
+
+- `src/forward_sdk/nqe/query_ref.py`
+- `src/forward_sdk/nqe/repository.py`
+- `src/forward_sdk/nqe/export.py`
+- `src/forward_sdk/nqe/bundle.py`
+- `src/forward_sdk/_async/services/nqe_repo.py`

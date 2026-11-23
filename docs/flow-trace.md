@@ -57,7 +57,7 @@ hop count equal to the path's length.
   confirmed. Put an in-network destination in the `from_` headers
   (`ipv4_dst`), or name a device or interface in `to`.
 - The SDK refuses an empty query and an empty header filter, which Forward
-  itself accepts, as the Go SDK does.
+  itself accepts. The Go SDK refuses them too.
 - An interface is `"<device> <interface>"` with a space. Forward refuses the
   comma form it uses for port names elsewhere. `interface()` builds it.
 - A host or subnet cannot be a chain hop.
@@ -86,3 +86,10 @@ Forward answers to `PERMIT_ALL` with ACL_LESS_ANALYSIS off.
 ## Reference
 
 ::: forward_sdk.trace
+
+## Source
+
+- `src/forward_sdk/trace.py`
+- `src/forward_sdk/_async/services/_generated/flow_trace.py`
+- `src/forward_sdk/_sync/services/_generated/flow_trace.py`
+- `src/forward_sdk/_generated/models.py`

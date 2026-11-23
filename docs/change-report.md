@@ -34,8 +34,13 @@ archive = report.to_json()
   session no longer established, an LLDP adjacency gone, an interface no
   longer admin-up).
 - `incomplete`: something that decides the verdict could not be read or
-  evaluated (the checks were refused, a check timed out, a flow's search did
-  not finish). A refused or unfinished read never reads as `no_regression`.
+  evaluated (the checks were refused, a check that passed before was not
+  evaluated after (`TIMEOUT`, `NONE` or `REQUIRES_ADDITIONAL_SNAPSHOT_PROCESSING`),
+  a flow's search did not finish). A refused or unfinished read never reads as
+  `no_regression`, with one exception: a check type whose diff the Forward build
+  does not serve is skipped without a reason, and the checks section stays `ok`.
+  `incomplete` wins over `regression`: a real regression found alongside an
+  unreadable section shows only in `reasons`.
 - `no_regression`: everything that decides the verdict was read, and nothing
   regressed.
 
@@ -59,8 +64,11 @@ are reported but never decide the verdict.
 | predict (Predict) | the predicted snapshot's processing state |
 
 A section that cannot be read appears as `unavailable` with its reason
-(`forbidden`, `feature_gated`, `not_served`, `not_ready`, `timeout` or `error`),
-and the Markdown footer lists it. Connectivity needs the
+(`forbidden`, `feature_gated`, `not_served`, `timeout` or `error`),
+and the Markdown footer lists it. `predict` and `security_rules` read
+`not_applicable` when the after snapshot is a collection, and an opt-in section
+that was not asked for reads `not_requested`. `ai_summary` is a reserved opt-in
+section that `compare()` never reads, so it is always `not_requested`. Connectivity needs the
 `LOCATION_CONNECTIVITY_DIFFS` org property, which only Forward support can turn
 on. Each list is capped (`max_items`, default 100). Checks, flows and state are
 ordered by severity first, so there a cap only ever drops the least severe rows;
@@ -74,3 +82,9 @@ Built from Forward's API, not the Predict UI's report. Preview: the report's
 schema_version 1 is new, and its reads were checked against Forward's source
 and a live read-only run on a collected pair of snapshots; a Predict comparison
 has not yet run live.
+
+## Source
+
+- `src/forward_sdk/change_report.py`
+- `src/forward_sdk/trace.py`
+- `src/forward_sdk/_async/services/change_reports.py`

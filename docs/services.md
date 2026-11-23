@@ -22,9 +22,13 @@ See [snapshots](snapshots.md) and [the NQE guide](nqe/index.md).
 
 ## Generated services
 
-The remaining groups are generated from Forward's API description. Their method
-names are the operation ids in Python casing, so each maps directly onto
-Forward's API documentation: `getLocations` becomes `get_locations`.
+The remaining groups are generated, from Forward's API description or, for the
+rows whose notes say "unpublished" or "undocumented", from the hand-written
+`spec/unpublished.yaml` (`client.tapi_network_containers` is hand-written because
+it uploads multipart). Their method names are the operation ids in Python casing:
+`getLocations` becomes `get_locations`. For the published groups that maps
+directly onto Forward's API documentation; the unpublished ones have no such
+documentation.
 
 | Attribute | Group | Notes |
 | --- | --- | --- |
@@ -400,3 +404,10 @@ client.checks.get_available_predefined_checks()
 ```
 
 Parameters that Forward accepts more than once take a list.
+
+## Source
+
+- `src/forward_sdk/_async/services/`
+- `src/forward_sdk/_sync/services/`
+- `src/forward_sdk/_generated/operations.py`
+- `spec/unpublished.yaml`

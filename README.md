@@ -80,3 +80,12 @@ modify and redistribute the SDK for any purpose except a competing commercial
 product or service, and each release becomes available under the Apache
 License 2.0 two years after it is published. Releases up to and including
 0.1.41 remain available under the MIT License. See [NOTICE](https://github.com/forwardnetworks/forward-python-sdk/blob/main/NOTICE).
+
+## Source
+
+- `src/forward_sdk/__init__.py`
+- `src/forward_sdk/_sync/client.py`
+- `src/forward_sdk/_async/client.py`
+- `pyproject.toml`
+- `LICENSE`
+- `NOTICE`

@@ -5,9 +5,12 @@ change" without touching a device. The SDK exposes the whole loop: stage device
 changes against a base snapshot, commit them, run Predict to produce a snapshot
 of the network as it would be, then compare that snapshot to the base.
 
-Every endpoint here is unpublished. Their shapes come from Forward's server
-source and were verified against a live instance of the current build, and the
-traps below cost a real integration real time before they were written down.
+Most endpoints here are unpublished (change sets, diffs, firewall Predict, BGP
+advertisements); the checks, NQE and configuration routes it also uses are in
+Forward's API description. The unpublished shapes come from Forward's server
+source. Only the parts that say "seen live" or "ran live" were run against an
+instance, with the version named; the rest were not. The traps below cost a real
+integration real time before they were written down.
 
 ```python
 from forward_sdk import ForwardClient
@@ -131,8 +134,11 @@ pairs per location pair. Read too early, Forward answers `{"counts": []}`, which
 looks the same as no change. It returns `.pairs` and the settled `.comparison`;
 `.no_forwarding_change` is true when Forward found no route, ACL or NAT change
 to compare at all (`.nothing_compared` is the 0.1.38 name for it). Devices with
-no location are not counted in `.pairs`. `type` is `ADDED`, `DELETED` or `MODIFIED`; `ALL` is refused with
-a 400.
+no location are not counted in `.pairs`. `type` is `ADDED`, `DELETED` or `MODIFIED` (case and surrounding spaces are
+ignored); anything else, `ALL` included, raises `ValueError` before any request.
+`loc` restricts the result to one location. These waits stop after 300 seconds
+(600 for `wait_for_check_diffs`) with `ForwardTimeoutError`, whose `.partial` holds
+the last result read.
 
 **Locations** for that comparison: `client.networks.ensure_locations({"Dayton
 DC": {"lat": 39.81, "lng": -84.27}})` creates or updates locations by name
@@ -263,6 +269,9 @@ client.checks.add_check(
 )
 ```
 
+A `subnet()` in `to` returned no results in `trace.py`'s live probe of trace queries; whether a check
+behaves the same is not confirmed, so read the check's result before relying on it.
+
 `existential` passes when the flow has a path, `isolation` when it has none,
 and `reachability` when all of it is delivered. An NQE check without
 parameters takes its name from its query, so Forward answers 400 to a `name`
@@ -326,7 +335,7 @@ problem: a controller-managed device is configured elsewhere.
 `report.blocked` is true when one found a definite problem. A read you lack
 permission for, or a property the API does not return, goes in
 `report.unknown` (with the reason for each in `report.unknown_reasons`) rather
-than raising.
+than raising. Any other API error still raises.
 
 To see what a device received before staging,
 `client.bgp_advertisements.get_device_bgp_advertisements(device_name=,
@@ -390,3 +399,21 @@ handle.preview_device_config("edge-1", "interface Ethernet1\n shutdown")
 
 All of these are from Forward's source and its tests; the account used for live
 checks cannot list change sets (403), so none has been run.
+
+## Source
+
+- `src/forward_sdk/_sync/client.py`
+- `src/forward_sdk/nqe/query_ref.py`
+- `src/forward_sdk/configuration.py`
+- `src/forward_sdk/checks.py`
+- `src/forward_sdk/trace.py`
+- `src/forward_sdk/errors.py`
+- `src/forward_sdk/models/`
+- `src/forward_sdk/_async/services/change_sets.py`
+- `src/forward_sdk/_async/services/diffs.py`
+- `src/forward_sdk/_async/services/_generated/firewall_predict.py`
+- `src/forward_sdk/_sync/services/_generated/firewall_predict.py`
+- `src/forward_sdk/_async/services/_generated/bgp_advertisements.py`
+- `src/forward_sdk/_async/services/_generated/change_set_directories.py`
+- `src/forward_sdk/_async/services/_generated/checks.py`
+- `src/forward_sdk/_generated/models.py`

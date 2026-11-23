@@ -6,7 +6,7 @@ Every failure raises a subclass of `ForwardError`.
 ForwardError
 ├── ForwardConfigurationError   the call cannot work as written; nothing was sent
 ├── ForwardTransportError       no response arrived, after retries
-├── ForwardTimeoutError         a client-side deadline expired
+├── ForwardTimeoutError         a polling helper (such as wait()) stopped waiting
 ├── ForwardPaginationError      paging could not continue safely
 ├── ForwardExecutionError       background work finished without results
 ├── ForwardResponseError        Forward answered, but not in a shape we can read
@@ -44,7 +44,10 @@ except ForwardAPIError as error:
     error.operation  # which API operation this was
 ```
 
-`str(error)` leads with Forward's own message rather than a generic description.
+`str(error)` reads `GET /path failed with HTTP 404: <Forward's message>`, then
+Forward's `reason` in parentheses when it sent one. With no message, it uses the
+raw body text (truncated at 500 characters). A query error appends its first
+three diagnostics.
 
 ## Query errors carry positions
 
@@ -72,7 +75,8 @@ retries would re-stampede the server.
 A request whose body is not safe to repeat, such as creating a network or
 committing queries, is retried **only** on a connection error, where the server
 demonstrably never received it. A read timeout on such a request is surfaced
-rather than silently repeating work that may already have happened. The one
+as `ForwardTransportError` rather than silently repeating work that may already
+have happened. The one
 exception is Forward's rate-limit 429 ("Rate limit exceeded"): that limiter
 refuses before the request reaches its handler, so repeating even a create
 cannot do the work twice. Any other 429 is not repeated for such a request.
@@ -87,6 +91,11 @@ streaming.
 `ForwardAuthError`, `ForwardPermissionError` and `ForwardNotFoundError` can each
 mean several different things, including a missing licence or an
 undeployed feature. See [availability](gating.md).
+
+`error.denial` reads Forward's wording to say what kind of refusal this is
+(`rbac`, `license`, `license_expired`, `org_setting`, `deployment_setting` or
+`authority`), or `None`. It is a hint from prose, not a contract: branch on
+`status`.
 
 A few more cases look like the ordinary kind of the same status:
 
@@ -106,13 +115,15 @@ A few more cases look like the ordinary kind of the same status:
 - `error.check_field_not_allowed` is true for the 400 for a check field its
   type refuses or requires: a name on a Predefined or non-parameterized NQE
   check (or none on a parameterized one), a note on an NQE check, tags on
-  anything but a path check.
+  anything but a path check, `perfMonitoringEnabled` on anything but an
+  Existential check.
 - `error.unrecognized_devices` lists the devices of the 400 Forward answers
   when an atlas update names a device it does not know as a collection source
   (`None` otherwise).
 - `error.org_not_accessible` is true for the 403 a support or cross-org key
   gets for an organization that has not granted it access. The NQE check
-  wordings and the other four were seen live on 26.10.6.
+  wordings were seen live on 26.10.6; the other check wordings are read from
+  source.
 - `error.account_locked` is true for a 401 that means the account is locked, not
   that the credential is wrong. The wording is from Forward's source and has not
   been seen live.
@@ -159,3 +170,9 @@ require nothing at all:
 
 If you do hit one, `payload` is what tells you whether Forward changed or the
 model is wrong. Report it either way.
+
+## Source
+
+- `src/forward_sdk/errors.py`
+- `src/forward_sdk/_http.py`
+- `src/forward_sdk/_error_body.py`

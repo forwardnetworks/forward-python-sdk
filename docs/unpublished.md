@@ -1,8 +1,9 @@
 # Unpublished endpoints
 
 Most of this SDK is generated from the OpenAPI description Forward produces from
-its own server code. A few endpoints are not in that description but are
-supported here anyway.
+its own server code. Many endpoints are not in that description (the operation
+table marks hundreds of them `stability="unpublished"`) but are supported here
+anyway. The table below lists the main groups, not every operation.
 
 ## Why
 
@@ -12,8 +13,14 @@ keeps the queries it ships in step with the code that consumes them.
 
 ## What that means for you
 
-These endpoints are confirmed stable and safe to use. Forward's own integrations
-depend on them, and they are exercised by this SDK's test suite like any other.
+Forward's own integrations depend on some of these endpoints (the Forward NetBox
+and Nautobot plugins use the NQE repository ones), and the SDK's tests record
+an example response shape for each of them. That is
+not a stability promise for every row: Forward does not publish or version them.
+Rows marked "from source, not run live" were read from Forward's source and have
+not been exercised against an instance. Some response fields are labelled
+Preview in the spec because Forward binds them but leaves them out of its API
+description.
 
 Being unpublished means only that they are absent from the OpenAPI description
 Forward generates from its server, so:
@@ -22,11 +29,14 @@ Forward generates from its server, so:
   than deriving them.
 - They will not appear in Forward's generated API reference.
 - A change to one would not show up in a spec diff, so it would not be caught by
-  the drift check that covers the published API. The SDK tolerates the response
-  shape variations seen in the field for exactly that reason.
+  the drift check that covers the published API. Instead, an example response
+  shape is recorded in the spec for each unpublished operation, and
+  `tests/spec/test_unpublished_shapes.py` checks that every one has an example and that
+  the NQE repository ones parse with the SDK's models; the rest are checked as plain
+  dictionaries.
 
-They are kept in their own modules and marked `stability="unpublished"` in the
-operation table, so nothing lands here by accident.
+They are marked `stability="unpublished"` in the operation table, so nothing
+lands here by accident.
 
 ## The list
 
@@ -113,5 +123,11 @@ including the traps a consumer met while working around their absence.
 
 The Forward AI endpoints carry a second condition beyond being unpublished: they
 require the `AI_ALLOWED` organization property, so most organizations are
-refused with a 403 whatever their licence otherwise covers. See
+refused with a 403 on every Forward AI operation whatever their licence otherwise covers. See
 [Forward AI](ai.md).
+
+## Source
+
+- `spec/unpublished.yaml`
+- `src/forward_sdk/_generated/operations.py`
+- `tests/spec/test_unpublished_shapes.py`

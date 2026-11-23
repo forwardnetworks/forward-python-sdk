@@ -33,7 +33,8 @@ from it instead of `os.environ`, for example after translating your own variable
 | `FORWARD_VERIFY_TLS` | `false` disables certificate verification; a path to a CA bundle file or directory verifies against that CA instead of the system trust store (the usual fix for a private CA). |
 | `FORWARD_TIMEOUT` | Read timeout in seconds. |
 | `FORWARD_RETRIES` | Retry count. |
-| `FORWARD_RATE_LIMIT_RPM` | Requests per minute. |
+| `FORWARD_RATE_LIMIT_RPM` | Requests per minute (an integer). |
+| `FORWARD_SNAPSHOT_CACHE_TTL` | `lifetime`, or seconds; see the caching section. |
 | `FORWARD_USER_AGENT` | Extra `User-Agent` token. |
 
 These names match the Forward NetBox and Nautobot plugins, so an existing
@@ -49,12 +50,13 @@ not already there.
 `timeout` accepts a read deadline in seconds, or a full `httpx.Timeout` for
 separate connect, read, write and pool limits. The default allows ten seconds to
 connect and five minutes to read, because a large query legitimately takes
-minutes. Streaming responses get a longer read timeout, since Forward may pause
+minutes. Streaming responses get a longer read timeout (ten minutes), since Forward may pause
 between chunks while it works.
 
 ## Retries
 
-`retries` accepts a count, or a `RetryPolicy` for full control:
+`retries` accepts a count of retries after the first send (`retries=4` allows
+five sends), or a `RetryPolicy` for full control:
 
 ```python
 from forward_sdk.config import RetryPolicy
@@ -62,7 +64,7 @@ from forward_sdk.config import RetryPolicy
 client = ForwardClient(
     "https://fwd.app",
     retries=RetryPolicy(
-        max_attempts=6,
+        max_attempts=6,  # counts the first send, so 5 retries
         backoff_base=0.5,
         backoff_cap=30.0,
         max_retry_after=120.0,
@@ -71,7 +73,8 @@ client = ForwardClient(
 ```
 
 `max_retry_after` caps an honoured `Retry-After`, so an unreasonable server
-value cannot stall a caller indefinitely.
+value cannot stall a caller indefinitely. A lockout longer than the cap is not
+waited out in full.
 
 ## Rate limiting
 
@@ -93,8 +96,9 @@ uses a Django cache so its workers share a budget across processes.
 not delay the request. It blocks the user for a lockout period and answers with
 `429` and a `Retry-After` carrying the remaining block. The lockout defaults to
 one minute and an administrator can set it as high as sixty. The SDK honours
-`Retry-After`, so a client waits correctly, but it waits: a breach costs a sync
-its remaining runtime, not a few hundred milliseconds.
+`Retry-After` up to `max_retry_after` (120 seconds by default) and for as many
+attempts as the retry policy allows, then raises `ForwardRateLimitError`. A
+breach costs a sync the lockout, not a few hundred milliseconds.
 
 **The ceiling is a setting, not a constant.** It is an org property defaulting
 to 2000 per minute, adjustable from 1 to 10,000, and on self-hosted deployments
@@ -129,12 +133,14 @@ credentials or bodies.
 
 ## What the SDK caches, and what it does not
 
-One thing is cached: the NQE query index, the map of library path to query,
-because resolving a batch of paths would otherwise re-fetch the whole library
-once per path. Any write through `client.nqe.repo` clears it.
+By default one thing is cached: the NQE query index, the map of library path to
+query, because resolving a batch of paths would otherwise re-fetch the whole
+library once per path. Any write through `client.nqe.repo` clears it, and it
+expires after `cache_ttl` seconds (default 60; `0` disables it).
 
-Nothing else is. In particular a snapshot is resolved on every call that needs
-one, including `latest_processed` and `latest_collected`. That is deliberate.
+Nothing else is, unless you ask. In particular a snapshot is resolved on every
+call that needs one, including `latest_processed` and `latest_collected_id`.
+That is deliberate.
 Caching a snapshot means deciding how long "latest" stays true, and only the
 caller knows: a long sync wants one snapshot for the whole run, while a
 dashboard polling for new data wants the opposite, and a wrong guess here is
@@ -173,7 +179,7 @@ straddles two moments. Nothing raises, and the data is real on both sides of the
 expiry; it is simply from two different times. That is the same failure this
 whole area keeps producing, an answer that looks entirely plausible.
 
-That covers `latest_processed` and `latest_collected_id`, keyed by the exact
+The same value can be set with `FORWARD_SNAPSHOT_CACHE_TTL`. It covers `latest_processed` and `latest_collected_id`, keyed by the exact
 question asked, so two different tag scopes stay two different answers. A
 network with no processed snapshot is cached as an answer too, since re-asking
 would spend the budget the setting exists to save.
@@ -188,8 +194,7 @@ Leave it off if "latest" genuinely has to mean latest. A stale snapshot does not
 raise. It returns real data from the wrong moment, which is why this is a
 setting rather than a default.
 
-Read `client.counters` for `cache_hits` and `cache_misses` on the one cache
-that exists, and for the request counts that would reveal this kind of change.
+Read `client.counters` for `cache_hits` and `cache_misses` for both caches, and for the request counts that would reveal this kind of change.
 
 ### Why this matters more than it looks
 
@@ -209,3 +214,14 @@ just at whether the results are still correct.
 
 A synchronous `ForwardClient` is safe to share across threads. An
 `AsyncForwardClient` belongs to the event loop that created it.
+
+## Source
+
+- `src/forward_sdk/_sync/client.py`
+- `src/forward_sdk/config.py`
+- `src/forward_sdk/telemetry.py`
+- `src/forward_sdk/_http.py`
+- `src/forward_sdk/_async/throttle.py`
+- `src/forward_sdk/_sync/throttle.py`
+- `src/forward_sdk/_async/services/snapshots.py`
+- `src/forward_sdk/_async/services/nqe_repo.py`

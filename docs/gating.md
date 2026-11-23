@@ -34,7 +34,8 @@ try:
     vulns = client.vulnerability_analysis.get_vulnerabilities(network_id="101")
 except (ForwardPermissionError, ForwardNotFoundError) as error:
     print(error.status)  # 403 or 404
-    print(error.error_info.message)  # Forward's own explanation
+    if error.error_info:  # None when Forward sent no parsed body
+        print(error.error_info.message)  # Forward's own explanation
     print(error.reason)  # a reason code, when Forward sends one
     print(error.gating)  # ("license",) — what is known to gate this
 ```
@@ -70,6 +71,9 @@ access to the network in question.
 
 This table lives in `spec/gating.yaml` and is checked against the API
 description by the test suite, so it cannot name a group that no longer exists.
+The Forward AI row is the exception: the endpoints are unpublished, so that group
+has no entry in the file and `error.gating` is empty for an AI refusal. Use
+`error.denial` there.
 
 ## A licence that has expired
 
@@ -143,8 +147,8 @@ except ForwardPermissionError as error:
 | `license` | `Unlicensed operation: X.Y` | The licence does not cover `X.Y` |
 | `license` | `Query Q is not permitted for this organization's license tier` | The licence tier does not cover NQE query `Q` |
 | `license_expired` | the licence has expired | Renew, or grant licence management |
-| `org_setting` | `NAME is off for your organization` | An org admin controls `NAME` |
-| `deployment_setting` | `NAME is off for your deployment` | A deployment admin controls `NAME` |
+| `org_setting` | `NAME is off for your organization` (also matches `is on`) | An org admin controls `NAME` |
+| `deployment_setting` | `NAME is off for your deployment` (also matches `is on`) | A deployment admin controls `NAME` |
 | `authority` | `... authority required` | A Forward-side role is needed |
 
 These are the enforcer's own format strings, so they are as stable as anything
@@ -179,3 +183,11 @@ has not been seen live, since no checked organization had `ai_allowed` on.
 
 To decide ahead of a call whether an account's roles allow it, see
 [what an account may do](access.md).
+
+## Source
+
+- `src/forward_sdk/_sync/client.py`
+- `src/forward_sdk/errors.py`
+- `spec/gating.yaml`
+- `spec/nqe-network-schema.json`
+- `src/forward_sdk/_generated/operations.py`

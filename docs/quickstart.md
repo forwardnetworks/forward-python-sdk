@@ -41,6 +41,9 @@ with ForwardClient.from_env() as client:
     print(client.version())
 ```
 
+`FORWARD_NETWORK_ID` becomes the default network for calls that omit
+`network_id`. The examples below pass it explicitly for clarity.
+
 Reuse one client rather than creating one per call: it holds a connection pool,
 and a sync job that reconnects for every request pays a TLS handshake each time.
 
@@ -49,11 +52,16 @@ and a sync job that reconnects for every request pays a TLS handshake each time.
 ```python
 networks = client.networks.list()
 snapshot = client.snapshots.latest_processed(networks[0].id)
-print(snapshot.id, snapshot.state, snapshot.processed_at)
+if snapshot is not None:
+    print(snapshot.id, snapshot.state, snapshot.processed_at)
 ```
 
-Every call that takes a `snapshot_id` accepts `None`, which means the network's
-latest processed snapshot. You rarely need to look one up explicitly.
+`latest_processed` returns `None` when the network has no processed snapshot.
+
+Every call that takes a `snapshot_id` accepts `None`, which means the client's
+default `snapshot_id` if you set one (or `FORWARD_SNAPSHOT_ID`), and otherwise
+the network's latest processed snapshot. You rarely need to look one up
+explicitly.
 
 ## Run a query
 
@@ -80,3 +88,12 @@ for device in client.devices.iter(network_id="101", vendor="CISCO"):
 - [Configuration](configuration.md): timeouts, retries, rate limiting, TLS.
 - [The NQE guide](nqe/index.md): background executions, streaming, diffs.
 - [Errors](errors.md) and [availability](gating.md).
+
+## Source
+
+- `src/forward_sdk/_sync/client.py`
+- `src/forward_sdk/_sync/services/networks.py`
+- `src/forward_sdk/_sync/services/snapshots.py`
+- `src/forward_sdk/_sync/services/nqe.py`
+- `src/forward_sdk/_sync/services/devices.py`
+- `src/forward_sdk/config.py`

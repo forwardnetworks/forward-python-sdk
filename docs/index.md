@@ -30,12 +30,16 @@ integrations depend on. The groups people use most are hand-written:
   library. See [the NQE guide](nqe/index.md).
 - **Snapshots**: list, inspect, upload, export, and wait for processing.
 - **Networks**, **devices** and **device tags**.
+- **AI**, **MCP**, **change reports**, **snapshot diffs**, **change sets**,
+  **user events**, **TAPI network containers** and **client software**.
 
 Everything else -- path search, checks, locations, topology, credentials,
 collectors, VPNs, vulnerabilities and the rest -- is generated from Forward's
 API description. See [the API groups](services.md).
 
-Both a synchronous and an asynchronous client, with identical surfaces.
+Both a synchronous and an asynchronous client, with the same surface. The
+synchronous one is generated from the asynchronous one (see
+[asynchronous use](async.md)).
 
 ## Design notes
 
@@ -59,3 +63,10 @@ pip install forward-sdk
 ```
 
 Requires Python 3.10 or newer.
+
+## Source
+
+- `src/forward_sdk/__init__.py`
+- `src/forward_sdk/_sync/client.py`
+- `src/forward_sdk/_async/client.py`
+- `pyproject.toml`

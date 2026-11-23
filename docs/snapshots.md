@@ -16,7 +16,11 @@ client.snapshots.latest_processed_id("101")
 ```
 
 `latest_processed` reads the snapshot listing rather than Forward's dedicated
-endpoint for it, which is deprecated.
+endpoint for it, which is deprecated. The client can reuse a resolved "latest"
+for `snapshot_cache_ttl` seconds (default `0`, off; `"lifetime"` never expires).
+Uploading through the client clears the cache; call `client.snapshots.clear_cache()`
+after an upload from another process or when a snapshot finishes processing
+during the run.
 
 "Latest" is the newest by creation date among processed snapshots, the rule
 Forward uses for its own latest snapshot, so it agrees with the UI and `fwdctl`.
@@ -40,7 +44,8 @@ snapshot_id = client.snapshots.latest_collected_id(
 ```
 
 This probes candidates newest-first with a one-row query and returns the first
-that has devices in scope, raising `ForwardNotFoundError` if none does.
+that has a device whose collection completed (`FORWARD_CUSTOM` devices do not
+count, and `include_tags` narrows the devices), raising `ForwardNotFoundError` if none does.
 
 ## Health
 
@@ -311,3 +316,13 @@ Without that, the same route deletes the snapshots. These were checked against
 Forward's source and, for the reads, a live account. The preview itself needs the
 DELETE_SNAPSHOT permission and was not run, nor were setting the policy and
 favouriting.
+
+## Source
+
+- `src/forward_sdk/provenance.py`
+- `src/forward_sdk/snapshot_package.py`
+- `src/forward_sdk/snapshot_state.py`
+- `src/forward_sdk/collection.py`
+- `src/forward_sdk/progress.py`
+- `src/forward_sdk/_async/services/snapshots.py`
+- `src/forward_sdk/_async/services/devices.py`

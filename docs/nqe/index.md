@@ -48,8 +48,8 @@ QueryRef.by_path("/NetBox/Devices")
 ```
 
 A path is resolved to an ID before the query runs, through an index cached for
-the client's lifetime, so resolving many paths does not refetch the library each
-time. Pin a version with `commit_id`, and pass query parameters as keywords:
+the client's `cache_ttl` (60 seconds by default; 0 turns the cache off), so
+resolving many paths does not refetch the library each time. Pin a version with `commit_id`, and pass query parameters as keywords:
 
 ```python
 QueryRef.by_path("/NetBox/Devices", commit_id=commit, site="nyc")
@@ -129,7 +129,9 @@ for report in client.nqe.execution_reports():
 ```
 
 `terminal_reason` is Forward's outcome when it finished, or the client-side
-reason waiting stopped. Retention is bounded and thread-safe, and reading it
+reason waiting stopped: `CLIENT_TIMEOUT` when your `timeout` ran out, or
+`SERVER_BUDGET_EXPIRED` when Forward's own time budget for the query (plus a
+60-second grace) did. Retention is bounded and thread-safe, and reading it
 never raises, since the place it is usually read is a failure path.
 
 ## Diffing across snapshots
@@ -313,16 +315,16 @@ All three verified against a live instance. The distinctions are not stylistic:
   enum member is not a string.
 
 ```python
-from forward_sdk.models import Vendor
 from forward_sdk.nqe.where import enum_one_of, membership, one_of
 
-enum_one_of("device.platform.vendor", "Vendor", [Vendor.cisco, Vendor.arista])
+enum_one_of("device.platform.vendor", "Vendor", ["CISCO", "ARISTA"])
 one_of("device.platform.osVersion", ["17.9.4"])
 membership("device.tagNames", ["production"])
 ```
 
 Names are validated as identifiers rather than quoted, since quoting one turns
-it into a string and reintroduces the type error.
+it into a string and reintroduces the type error. Pass the NQE member names as
+strings, as above; `enum_one_of` also checks them against NQE's own member list.
 
 !!! warning "NQE's namespace is not the SDK's"
 
@@ -338,7 +340,7 @@ it into a string and reintroduces the type error.
     | `device.platform.vendor` | `Vendor` | `Vendor` |
     | `device.platform.deviceType` | `DeviceType` | `DeviceType` |
     | `device.platform.os` | `OS` | `VendorOs` |
-| `cloudAccounts.cloudType` | `CloudType` | — |
+    | `cloudAccounts.cloudType` | `CloudType` | — |
 
     Passing `VendorOs` fails with *Variable VendorOs not in scope*.
 
@@ -369,3 +371,11 @@ Off by default. Forward's outcomes are `OK`, `SYSTEM_ERROR`, `TIMED_OUT` and
 `USER_ERROR`. A compile error (400) and a client-side `ForwardTimeoutError` are
 never retried. When the last attempt fails, `ForwardExecutionError` carries
 `outcome`, `detail` (Forward's `error` object) and `attempts`.
+
+## Source
+
+- `src/forward_sdk/nqe/`
+- `src/forward_sdk/models/`
+- `src/forward_sdk/_sync/services/nqe.py`
+- `src/forward_sdk/_async/services/nqe.py`
+- `src/forward_sdk/_generated/models.py`

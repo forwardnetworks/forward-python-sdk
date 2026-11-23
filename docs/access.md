@@ -16,25 +16,32 @@ access.at_least("OPERATOR")  # the role ladder
 Operations are named as Forward names them, so the name in a refusal can be pasted
 straight into `can()`. The bare name (`TRIGGER_SNAPSHOT_COLLECTION`) works too.
 `describe_operation(name)` and `operations()` list what Forward says about each:
-read or write, the licence facet it needs, and the lowest network role that holds it.
+read or write, the licence facet it needs, and the lowest network role that holds it
+(`doc` is the `///` comment above the constant in Forward's source, empty when there is none).
+A name the table does not define raises `ValueError` with a "did you mean" hint, so a
+typo is not an answer of `None`.
 
 ```python
 from forward_sdk import describe_operation
 
-describe_operation("NetworkOperation.TRIGGER_SNAPSHOT_COLLECTION")  # needs the table; see below
+# Needs the table: without one this raises. See below.
+describe_operation("NetworkOperation.TRIGGER_SNAPSHOT_COLLECTION")
 # OperationInfo(name='TRIGGER_SNAPSHOT_COLLECTION', scope='network',
 #   access_type='WRITE', license_facet='BASE',
 #   lowest_network_role='WORKSPACE_OPERATOR', doc='Trigger or cancel a snapshot collection')
 ```
 
 If you already hold the user, skip the call: `Access.from_roles(user.roles, network_id)`.
+For an impersonated session also pass `impersonator=` (the support account's name from
+`/users/current`); without it the impersonation guard below does not apply and a "no"
+can be returned where `None` is right.
 
 `may()` says why and which role the answer rested on; `can()` is its `allowed`. A
 `Decision` is not a truth value (`if decision:` raises), because `None` would read
 as no.
 
 The roles are read once and kept on the client; `client.access(refresh=True)` reads
-them again. `GET /users/current` is unpublished, and some accounts are refused it
+them again (the role table is a separate matter; see the end of this page). `GET /users/current` is unpublished, and some accounts are refused it
 (403) or find it absent (404). That does not raise: every answer is `None` and the
 reason says the roles could not be read. Bad credentials and server errors still raise.
 
@@ -75,7 +82,8 @@ a wrong `True`.
 - A **network operation** is checked against the role on that network.
 - An **org operation** is allowed when the org role allows it or when **any** network
   role the account holds does.
-- Some org operations are held by no network role, so only an org admin has them.
+- Some org operations are held by no network role. Only an org admin has those, except
+  that an org read-only role also holds the ones that are reads.
 
 The roles are the **session's** roles, as `GET /users/current` reports them. For
 SAML and LDAP accounts they include roles from access control groups, and when
@@ -99,10 +107,32 @@ export FORWARD_RBAC_TABLE=rbac.json
 ```
 
 or pass `table=RoleTable.from_checkout(...)` / `RoleTable.from_json(...)` to
-`client.access()`. A path that is set but wrong raises; with none set, every answer
-is `None` and the reason says how to supply one. The table records where it was
-read from (`table.source`). Read it again after Forward changes a role: it is only
-as current as the source it came from.
+`client.access()`. If both variables are set, `FORWARD_RBAC_TABLE` wins and
+`FORWARD_SOURCE` is ignored. A checkout must hold the files under
+`app/src/main/java/com/forwardnetworks/cv/access`.
 
-The role ladder (`at_least`) needs no table. System-level operations (those of
+A path that is set but wrong raises. So does a checkout the reader cannot follow: a
+`NetworkRole.java` that builds a role with a stream, `filter(`, set arithmetic or
+`allOf(` (the SDK refuses rather than guess), a role constant that is missing, a role
+that names an operation that does not exist, or no operations found. A change in
+Forward's source can break the reader until it is updated.
+
+With no table set, `may()` and `can()` answer `None` and the reason says how to supply
+one; `describe_operation()` and `operations()` raise `ForwardConfigurationError`. The
+table records where it was read from (`table.source`). It is only as current as the
+source it came from, and the environment lookup is cached for the life of the process
+(per pair of variable values): after Forward changes a role, restart the process or pass
+`table=` explicitly. `refresh=True` does not re-read it.
+
+The role ladder (`at_least`) needs no table, treats an org admin as holding every network
+role, and raises `ValueError` when no network id was given. `can()` raises the same for a network operation, except where the answer needs no
+network (an org admin, or an org read-only role asking about a read), and answers `None`
+when there is no table. `operations(scope)` takes `"network"`, `"org"` or nothing; any other
+value returns an empty list. System-level operations (those of
 Forward's own staff) are not modelled.
+
+## Source
+
+- `src/forward_sdk/access.py`
+- `src/forward_sdk/rbac.py`
+- `src/forward_sdk/rbac_dump.py`

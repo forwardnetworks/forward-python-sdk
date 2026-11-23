@@ -27,7 +27,7 @@ successor, and the plugin can become a thin adapter over it.
 | `get_device_mgmt_tags()` | `client.device_tags.list(with_devices=True)`, or an NQE query |
 | `build_device_tag_scope_where()` | `forward_sdk.nqe.where.tag_scope()` |
 | `QuerySpec` | `forward_sdk.QueryRef` |
-| `_compile_query_file()` | `forward_sdk.nqe.files.load_query()` |
+| `_compile_query_file()` | `forward_sdk.nqe.files.load_query()` (`for_execution=False` when the source is staged for publishing, so `@primaryKey` is kept) |
 
 ## What the SDK already handles
 
@@ -61,12 +61,20 @@ client = ForwardClient(
     verify=source.parameters.get("verify", True),
     # The plugin's Django-cache limiter, shared across worker processes.
     throttle=DjangoCacheThrottle(source),
-    # NetBox's proxy resolution.
-    proxy=resolve_proxies(...),
+    # One proxy URL; resolve NetBox's proxy settings to a single URL first.
+    proxy=resolve_proxy_url(...),
     hooks=PluginTelemetryHooks(),
     user_agent=f"forward-netbox/{__version__}",
 )
 ```
+
+`proxy` takes a single URL, not a per-scheme or per-host mapping, so the
+plugin's `mounts=` routing has no direct equivalent. `trust_env=True` is the
+default, so proxy environment variables are honoured unless you pass
+`trust_env=False`. `cache_ttl` defaults to 60 seconds and bounds only the NQE
+query index; set it to 0 to match an uncached plugin. Latest-snapshot lookups
+are uncached unless you set `snapshot_cache_ttl`. A custom `throttle=` replaces
+the default pacer outright.
 
 Anything with an `acquire()` method works as `throttle=`, which is what a
 cross-process rate limit needs.
@@ -74,15 +82,20 @@ cross-process rate limit needs.
 ## Exceptions
 
 `ForwardClientError` maps to `ForwardAPIError` for a response Forward returned,
-and `ForwardTransportError` for a request that never got one.
-`ForwardFetchBudgetExceededError` maps to `ForwardTimeoutError`, and
-`ForwardQueryError` to `ForwardNqeQueryError`. Aliases are enough for one
+and `ForwardTransportError` for a request that never got one (the status
+subclasses, such as `ForwardAuthError` and `ForwardRateLimitError`, are
+`ForwardAPIError`s).
+`ForwardFetchBudgetExceededError` maps to `ForwardTimeoutError` when it meant a
+wait deadline; page and row ceilings raise `ForwardPaginationError` instead.
+`ForwardQueryError` maps to `ForwardNqeQueryError`. `ForwardPaginationError`,
+`ForwardExecutionError`, `ForwardResponseError` and `ForwardConfigurationError`
+derive from `ForwardError`, not `ForwardAPIError`. Aliases are enough for one
 release:
 
 ```python
-from forward_sdk import ForwardAPIError, ForwardTransportError
+from forward_sdk import ForwardError
 
-ForwardClientError = (ForwardAPIError, ForwardTransportError)
+ForwardClientError = ForwardError
 ```
 
 ## Tests
@@ -93,3 +106,10 @@ The plugin's tests patch `httpx.Client`, and the SDK accepts `transport=`, so
 the exact `httpx.Client(...)` keyword arguments, including `mounts=`, auth
 tuples and Accept headers. Those assertions do not survive the swap and get
 rewritten against the SDK's own surface.
+
+## Source
+
+- `src/forward_sdk/_sync/client.py`
+- `src/forward_sdk/errors.py`
+- `src/forward_sdk/nqe/files.py`
+- `src/forward_sdk/nqe/where.py`

@@ -7,6 +7,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- Licence: from this release forward-sdk is licensed under the Fair Core License 1.0 with an Apache 2.0 future
+  licence (FCL-1.0-ALv2), the licence Forward's integrations use. It is source-available, not open source: any use
+  except a competing commercial product or service is permitted, and each release becomes available under the
+  Apache License 2.0 two years after it is published. Releases up to and including 0.1.41 remain available under
+  the MIT License. The package declares `LicenseRef-FCL-1.0-ALv2` and ships `LICENSE` and `NOTICE`; building it
+  needs hatchling 1.27 or later.
 - `networks.create_classic_device_with_api_key` takes a credential or device mapping keyed by the SDK's field names
   (`http_credential_id`, `login_type`) as well as Forward's (`httpCredentialId`, `loginType`), and always sends
   Forward's. A field named both ways is refused before any request, and the existing checks (no name or host, a

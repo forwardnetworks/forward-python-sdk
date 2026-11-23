@@ -1,0 +1,22 @@
+forward-sdk
+Copyright 2026 Forward Networks, Inc.
+
+The forward-sdk Python package (this repository) is licensed under the Fair
+Core License, Version 1.0, with an Apache 2.0 future license (FCL-1.0-ALv2).
+The full text is in LICENSE.
+
+FCL-1.0-ALv2 is source-available, not open source. You may use, copy, modify
+and redistribute the software for any purpose other than a Competing Use, as
+LICENSE defines it. You may not move, change, disable or circumvent any license
+key functionality in the software. Each release converts to the Apache License,
+Version 2.0 on the second anniversary of the date it was first made available.
+
+Earlier releases keep the license they were published under: releases up to and
+including 0.1.41 carry the MIT License.
+
+Third-party packages the SDK depends on are not covered by this license: they
+keep their own licences. None of their code is copied here; they are installed
+as dependencies and their notices travel with their distributions.
+
+The vendored API description in spec/ is Forward Networks' own document and
+keeps the license it declares.

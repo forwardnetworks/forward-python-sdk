@@ -63,6 +63,8 @@ refuses a field named both ways. The sync client is generated from it.
 red at 2bfc8fb and pass at ec2fe84 (`tests/_async/test_api_key_device_names.py`, sealed). The
 other eleven pin behaviour this ADR keeps and passed before the change.
 
+**Gate:** `uv run pytest tests/_async/test_api_key_device_names.py tests/_sync/test_api_key_device_names.py -q`
+
 ## References
 
 - `docs/specs/` — this ADR's spec.

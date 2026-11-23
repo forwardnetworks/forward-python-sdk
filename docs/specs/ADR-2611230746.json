@@ -13,7 +13,7 @@
     "sha256": "09775a20b1a60a4e85863a9c9496b6f26d7630e16b59174e8795590e6f913ae6"
   },
   "sealed": {
-    "tests/unit/test_design_records.py": "8a8de092cf6d246258f370c5799ead9d74f1e89d907a13d6792457f05933d492"
+    "tests/unit/test_design_records.py": "100b48f8de9095bdae6ed6f7f2baf2f03a0c4939d3f999b578df3bdb76dc0808"
   },
   "specs": [
     {
@@ -366,6 +366,26 @@
       "then": "it passes §5 if and only if the first path segment of every path that starts with \".\" is one of .gitattributes, .github, .gitignore, .pre-commit-config.yaml, .python-version",
       "test": "tests/unit/test_design_records.py::test_s27_the_tracked_dot_segments_are_a_subset_of_the_allow_list",
       "red": "78cc25e"
+    }
+  ],
+  "amendments": [
+    {
+      "at": "2026-11-23T14:03:29.636525572+00:00",
+      "base_commit": "78cc25eb7323029f32f4201d04f71a74b9a12da0",
+      "by": "craigjohnson",
+      "file": "tests/unit/test_design_records.py",
+      "from": "8a8de092cf6d246258f370c5799ead9d74f1e89d907a13d6792457f05933d492",
+      "reason": "S12's property names ^[0-9a-fA-F]{64}$; add a 65-character hash case, which a mutation (search for fullmatch) showed the test did not cover",
+      "to": "792d8c10037c8b699b6c35ca18540cf57989c66f2999a16b07108fa8df0d85cc"
+    },
+    {
+      "at": "2026-11-23T14:06:05.611072830+00:00",
+      "base_commit": "78cc25eb7323029f32f4201d04f71a74b9a12da0",
+      "by": "craigjohnson",
+      "file": "tests/unit/test_design_records.py",
+      "from": "792d8c10037c8b699b6c35ca18540cf57989c66f2999a16b07108fa8df0d85cc",
+      "reason": "read tracked paths with git ls-files -z: plain ls-files quotes a non-ASCII path, which then escapes the §5 dot-segment check; review finding",
+      "to": "100b48f8de9095bdae6ed6f7f2baf2f03a0c4939d3f999b578df3bdb76dc0808"
     }
   ]
 }

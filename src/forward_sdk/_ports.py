@@ -10,6 +10,7 @@ catches what an adapter raises.
 
 from __future__ import annotations
 
+from forward_sdk._error_body import parse_error_body
 from forward_sdk._http import RETRYABLE_STATUS, backoff_delay, parse_retry_after, raise_for_response
 from forward_sdk.config import ClientConfig, tls_verify
 from forward_sdk.errors import ForwardConfigurationError, ForwardTransportError
@@ -23,6 +24,7 @@ __all__ = [
     "ForwardTransportError",
     "Hooks",
     "backoff_delay",
+    "parse_error_body",
     "parse_retry_after",
     "raise_for_response",
     "tls_verify",

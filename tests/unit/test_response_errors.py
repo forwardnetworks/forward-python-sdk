@@ -6,7 +6,8 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
-from forward_sdk._http import parse_error_body, raise_for_response
+from forward_sdk._error_body import parse_error_body
+from forward_sdk._http import raise_for_response
 from forward_sdk.errors import (
     ForwardAPIError,
     ForwardAuthError,
@@ -133,7 +134,7 @@ class TestWhatKindOfRefusalA404Or401Is:
             request=httpx.Request("GET", "https://forward.test/api/x"),
         )
         with pytest.raises(ForwardAPIError) as caught:
-            raise_for_response(response, operation=None)
+            raise_for_response(response, operation=None, error_info=parse_error_body(response))
         return caught.value
 
     def test_a_route_forward_does_not_map(self) -> None:

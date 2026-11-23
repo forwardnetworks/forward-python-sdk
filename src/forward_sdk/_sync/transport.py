@@ -27,6 +27,7 @@ from forward_sdk._ports import (
     ForwardTransportError,
     Hooks,
     backoff_delay,
+    parse_error_body,
     parse_retry_after,
     raise_for_response,
     tls_verify,
@@ -265,7 +266,12 @@ class Transport:
                 else:
                     self.counters.increment("http_rejected")
                 response.read()
-                raise_for_response(response, operation=spec.operation, attempts=attempt + 1)
+                raise_for_response(
+                    response,
+                    operation=spec.operation,
+                    attempts=attempt + 1,
+                    error_info=parse_error_body(response),
+                )
 
             return response
 
@@ -340,7 +346,12 @@ class Transport:
                 self.counters.increment("http_errors")
                 response.read()
                 response.close()
-                raise_for_response(response, operation=spec.operation, attempts=attempt + 1)
+                raise_for_response(
+                    response,
+                    operation=spec.operation,
+                    attempts=attempt + 1,
+                    error_info=parse_error_body(response),
+                )
 
             try:
                 yield response

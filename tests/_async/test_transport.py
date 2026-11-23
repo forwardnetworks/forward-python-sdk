@@ -656,9 +656,12 @@ async def test_stream_maps_errors(recorder: Recorder) -> None:
         stream=True,
     )
     async with make_transport(recorder) as transport:
-        with pytest.raises(ForwardNotFoundError):
+        with pytest.raises(ForwardNotFoundError) as caught:
             async with transport.stream(spec):
                 pass
+    # The parsed body travels with the error, as on the non-streaming path.
+    assert caught.value.error_info is not None
+    assert caught.value.error_info.message == "no such execution"
 
 
 async def test_rate_limiter_first_acquire_is_free() -> None:

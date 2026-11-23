@@ -22,6 +22,7 @@ __all__ = [
     "inline_local_imports",
     "load_query",
     "local_import_closure",
+    "missing_fields",
     "select_field_sets",
     "strip_primary_key",
 ]

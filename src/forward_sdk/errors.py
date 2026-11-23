@@ -1,9 +1,9 @@
 """Exceptions raised by the SDK.
 
 Every failed API call raises a subclass of :class:`ForwardAPIError` carrying the
-parsed :class:`~forward_sdk._generated.models.ErrorInfo` body Forward returns on
-any 4xx or 5xx, so callers can read the server's own explanation rather than
-guess from a status code.
+parsed error body Forward returns on any 4xx or 5xx (an ``ErrorInfo``, read as
+its ``message`` and ``reason``), so callers can read the server's own explanation
+rather than guess from a status code.
 
 **On denials.** Forward reports a missing licence, a feature that is not part of
 this deployment, and an RBAC denial with the same ordinary status codes, and
@@ -25,11 +25,10 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-if TYPE_CHECKING:  # pragma: no cover - imported for typing only
-    import httpx
+from forward_sdk._generated._defs import OpDef
+from forward_sdk._wire_shapes import ErrorBody, HttpResponse, QueryDiagnostic
 
-    from forward_sdk._generated._defs import OpDef
-    from forward_sdk._generated.models import ErrorInfo, NqeErrorInfo, NqeQueryError
+if TYPE_CHECKING:  # pragma: no cover - imported for typing only
     from forward_sdk.bgp import BgpStagingReport
 
 __all__ = [
@@ -277,11 +276,11 @@ class ForwardAPIError(ForwardError):
         status: int,
         method: str = "",
         url: str = "",
-        error_info: ErrorInfo | NqeErrorInfo | None = None,
+        error_info: ErrorBody | None = None,
         text: str = "",
         operation: OpDef | None = None,
         attempts: int = 1,
-        response: httpx.Response | None = None,
+        response: HttpResponse | None = None,
     ) -> None:
         super().__init__(message)
         self.status = status
@@ -451,7 +450,7 @@ class ForwardNqeQueryError(ForwardBadRequestError):
     """
 
     @property
-    def query_errors(self) -> tuple[NqeQueryError, ...]:
+    def query_errors(self) -> tuple[QueryDiagnostic, ...]:
         return tuple(getattr(self.error_info, "errors", None) or ())
 
     @property

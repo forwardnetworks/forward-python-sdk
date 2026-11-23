@@ -1,7 +1,7 @@
 """Pure HTTP helpers.
 
 Everything here is a plain function over plain values: no I/O, no client state.
-That keeps the fiddly parts (URL joining, retry arithmetic, error-body parsing)
+That keeps the fiddly parts (URL joining, retry arithmetic, error messages)
 directly testable, and lets the sync and async transports share them verbatim.
 """
 
@@ -15,16 +15,12 @@ from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import quote, unquote
 
-import httpx
-from pydantic import ValidationError
-
 from forward_sdk._generated._defs import OpDef
-from forward_sdk._generated.models import ErrorInfo, NqeErrorInfo
+from forward_sdk._wire_shapes import ErrorBody, HttpResponse, QueryErrorBody
 from forward_sdk.errors import (
     ForwardAPIError,
     ForwardNqeQueryError,
     ForwardRateLimitError,
-    ForwardResponseError,
     status_error_class,
 )
 
@@ -198,43 +194,12 @@ def backoff_delay(
     return rng.uniform(0.0, ceiling)
 
 
-def parse_error_body(response: httpx.Response) -> Any:
-    """Parse Forward's error body into a model, or ``None`` if it is not one.
-
-    Forward maps errors centrally and returns ``ErrorInfo`` on any 4xx or 5xx,
-    even where the spec documents no such response, so this is attempted for
-    every failure. NQE extends the shape with query diagnostics.
-
-    The body is parsed on its own merits rather than on the content type it
-    arrives with. A proxy that rewrites or drops the header would otherwise turn
-    a described denial into a bare status, and silently: consumers tell a licence
-    or permission denial from an ordinary failure by reading Forward's message,
-    because no endpoint reports an account's entitlements. Anything that is not
-    a JSON object still parses to ``None``, so an HTML gateway page is unchanged.
-    """
-    try:
-        payload = response.json()
-    except ValueError:
-        return None
-    if not isinstance(payload, dict):
-        return None
-    model = NqeErrorInfo if ("errors" in payload or "completionType" in payload) else ErrorInfo
-    try:
-        return model.model_validate(payload)
-    except (ValidationError, ForwardResponseError):
-        # A malformed error body must never mask the HTTP failure it describes.
-        # Both are caught because ForwardModel turns the first into the second;
-        # naming only one would make an unreadable error body raise while the
-        # SDK was building the exception for the failure it belongs to.
-        return None
-
-
 #: How many query diagnostics to fold into an exception message before saying
 #: how many more there are. The rest stay on ``.query_errors``.
 _MAX_QUERY_ERRORS_IN_MESSAGE = 3
 
 
-def _query_error_detail(error_info: Any) -> str:
+def _query_error_detail(error_info: ErrorBody | QueryErrorBody | None) -> str:
     """Summarize NQE's per-error diagnostics for the exception message.
 
     Forward's message for a failed query is the fixed string "Error encountered
@@ -261,7 +226,7 @@ def _query_error_detail(error_info: Any) -> str:
     return f" -- {'; '.join(rendered)}{tail}"
 
 
-def _error_message(response: httpx.Response, error_info: Any) -> str:
+def _error_message(response: HttpResponse, error_info: ErrorBody | None) -> str:
     """Build a message that leads with Forward's own explanation."""
     detail = getattr(error_info, "message", None)
     if not detail:
@@ -286,16 +251,20 @@ def _error_message(response: httpx.Response, error_info: Any) -> str:
 
 
 def raise_for_response(
-    response: httpx.Response,
+    response: HttpResponse,
     *,
     operation: OpDef | None = None,
     attempts: int = 1,
+    error_info: ErrorBody | None = None,
 ) -> None:
-    """Raise the exception that represents ``response``, if it is an error."""
+    """Raise the exception that represents ``response``, if it is an error.
+
+    ``error_info`` is Forward's error body as the caller parsed it; this does
+    not parse the response.
+    """
     if response.status_code < 400:
         return
 
-    error_info = parse_error_body(response)
     message = _error_message(response, error_info)
     request = response.request
 

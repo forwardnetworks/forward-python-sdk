@@ -5,6 +5,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `forward_sdk.nqe.files.missing_fields` is exported: it is listed in the module's `__all__`, so
+  `from forward_sdk.nqe.files import *` brings it in and a dead-export check counts it as public. The function and its
+  import path are unchanged.
+
 ### Changed
 
 - Licence: from this release forward-sdk is licensed under the Fair Core License 1.0 with an Apache 2.0 future
@@ -18,6 +24,15 @@ All notable changes to this project are documented here. The format follows
   Forward's. A field named both ways is refused before any request, and the existing checks (no name or host, a
   credential that is not `API_KEY`, a device naming its own HTTP credential) hold whichever spelling is used. Keys
   the models do not describe are sent unchanged, and model arguments are serialized as before.
+- Type annotations, and where the error body is parsed: `ForwardAPIError.response`, `ForwardAPIError.error_info` and
+  `ForwardNqeQueryError.query_errors` are annotated with small structural protocols (an HTTP response, an error
+  body, a query diagnostic with a region whose start has `line`) instead of `httpx.Response`, the generated
+  `ErrorInfo`/`NqeErrorInfo` and `NqeQueryError`. The objects are the same ones as before. Code that type-checks
+  `.response` as an `httpx.Response`, `.error_info` as a generated model, or the elements of `.query_errors` as
+  `NqeQueryError` (for `location.end`, `location.start.character` or `.model_dump()`) needs a `cast` or an
+  `isinstance` check. The private helper `forward_sdk._ports.raise_for_response` no longer parses the body: a caller
+  passes `error_info=parse_error_body(response)` (also in `forward_sdk._ports`) to get Forward's message, reason and
+  query diagnostics in the exception.
 
 ### Fixed
 

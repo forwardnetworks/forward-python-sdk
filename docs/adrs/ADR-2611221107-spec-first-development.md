@@ -48,6 +48,11 @@ checking, test sealing and verification). Its configuration and hooks are kept
 out of the repository by each developer's local git exclude list. CI is
 unchanged: it runs the same tests.
 
+**Built:** decisions 1 to 5 in effect on 2026-11-22. The gate `uv run mypy && uv run pytest -q` is
+the gate for every commit, and the first change made under this process, ADR-2611221115, went
+through each step: spec accepted by the owner, tests red at 2bfc8fb, sealed, built at ec2fe84,
+every bound scenario proven red then green.
+
 ## References
 
 - `docs/specs/` — the specs, one per ADR.

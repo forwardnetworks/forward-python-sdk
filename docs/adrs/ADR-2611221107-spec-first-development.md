@@ -1,3 +1,14 @@
+---
+id: ADR-2611221107
+status: superseded
+date: 2026-11-22
+supersedes: []
+superseded_by: ADR-2611230746
+depends_on: []
+components: []
+modules: []
+---
+
 # ADR-2611221107: Changes are decided, specified and tested before they are built
 
 **Status:** Superseded

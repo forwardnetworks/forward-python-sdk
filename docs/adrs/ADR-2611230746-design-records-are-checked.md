@@ -1,6 +1,18 @@
+---
+id: ADR-2611230746
+status: completed
+date: 2026-11-23
+supersedes: [ADR-2611221107]
+superseded_by: null
+depends_on: []
+components: []
+modules: []
+---
+
 # ADR-2611230746: The spec-first process is checked by the repository's own tests
 
-**Status:** Proposed
+**Status:** Completed
+> 2026-11-23 Completed: landed on main at 56251c8; gate `uv run mypy && uv run pytest -q` passed
 **Date:** 2026-11-23
 **Drivers:** ADR-2611221107 decided the spec-first process in terms of what people
 do (decide, accept, write red tests), which no test can check, so it has no spec.
@@ -49,6 +61,12 @@ there; that proof needs the history and is run where the work is done.
 A test module, `tests/unit/test_design_records.py`, reads `docs/adrs/`,
 `docs/specs/`, `tests/` and `.github/workflows/ci.yml`, and lists tracked paths
 with `git ls-files`. ADR-2611221107 is marked Superseded by this ADR.
+
+**Built:** decisions 1 to 5 on 2026-11-23 at 28a8622 (`scripts/check_design_records.py`). All 27
+scenarios were red at 78cc25e and pass at 28a8622 (`tests/unit/test_design_records.py`, sealed,
+with two reviewed amendments that only tighten it).
+
+**Gate:** `uv run pytest tests/unit/test_design_records.py -q`
 
 ## References
 

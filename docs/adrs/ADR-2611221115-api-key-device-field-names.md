@@ -1,3 +1,14 @@
+---
+id: ADR-2611221115
+status: completed
+date: 2026-11-22
+supersedes: []
+superseded_by: null
+depends_on: []
+components: []
+modules: []
+---
+
 # ADR-2611221115: An API-key classic device takes the SDK's field names as well as Forward's
 
 **Status:** Completed

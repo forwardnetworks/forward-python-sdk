@@ -188,6 +188,7 @@ def test_s12_acceptance_is_required_exactly_when_something_is_bound(tmp_path: Pa
         (None, [unbound(), bound()], True),
         (good, [unbound(), bound()], False),
         ({"by": "C", "sha256": "z" * 64}, [bound()], True),
+        ({"by": "C", "sha256": "a" * 65}, [bound()], True),
         ({"by": "C"}, [bound()], True),
     ]
     for number, (accepted, scenarios, must_fail) in enumerate(cases):
@@ -355,6 +356,6 @@ def test_s27_the_tracked_dot_segments_are_a_subset_of_the_allow_list() -> None:
 
 def test_this_repository_keeps_every_record_the_process_requires() -> None:
     tracked = subprocess.run(
-        ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
-    ).stdout.splitlines()
+        ["git", "ls-files", "-z"], cwd=ROOT, capture_output=True, text=True, check=True
+    ).stdout.split("\0")
     assert checker().check_all(ROOT, tracked) == []

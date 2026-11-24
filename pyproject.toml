@@ -10,7 +10,7 @@ readme = "README.md"
 license = "LicenseRef-FCL-1.0-ALv2"
 license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.10"
-authors = [{ name = "Forward Networks", email = "support@forwardnetworks.com" }]
+authors = [{ name = "Craig Johnson", email = "craigjohnson@forwardnetworks.com" }]
 keywords = ["forward", "forward-networks", "network", "nqe", "sdk", "api"]
 classifiers = [
   "Development Status :: 3 - Alpha",

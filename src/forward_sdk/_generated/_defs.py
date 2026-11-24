@@ -12,13 +12,13 @@ from dataclasses import dataclass, field
 #: Forward reports a missing licence, an undeployed feature and an RBAC denial
 #: with the same ordinary status codes, so the SDK cannot tell them apart. See
 #: ``docs/gating.md``.
-Gating = str
+_Gating = str
 
 #: Whether an operation appears in Forward's published OpenAPI description.
 #: ``"unpublished"`` operations are stable and safe to use -- Forward's own
 #: integrations depend on them -- but their shapes are described by hand here,
 #: so a change to one would not show up in a spec diff.
-Stability = str
+_Stability = str
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,8 +59,8 @@ class OpDef:
     deprecated: bool = False
     request_media: tuple[str, ...] = ()
     response_media: tuple[str, ...] = ()
-    stability: Stability = "published"
-    gating: tuple[Gating, ...] = field(default_factory=tuple)
+    stability: _Stability = "published"
+    gating: tuple[_Gating, ...] = field(default_factory=tuple)
     response_model: str | None = None
     response_is_array: bool = False
     #: The model the JSON request body is (or is a list of), when the spec names one.

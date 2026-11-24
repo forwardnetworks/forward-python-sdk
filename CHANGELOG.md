@@ -13,6 +13,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- The package's author contact is the maintainer's address, `craigjohnson@forwardnetworks.com`, instead of Forward's support address: the SDK is handled through its GitHub issues, not through Forward Support.
 - Licence: from this release forward-sdk is licensed under the Fair Core License 1.0 with an Apache 2.0 future
   licence (FCL-1.0-ALv2), the licence Forward's integrations use. It is source-available, not open source: any use
   except a competing commercial product or service is permitted, and each release becomes available under the

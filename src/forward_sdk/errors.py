@@ -23,13 +23,10 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from forward_sdk._generated._defs import OpDef
-from forward_sdk._wire_shapes import ErrorBody, HttpResponse, QueryDiagnostic
-
-if TYPE_CHECKING:  # pragma: no cover - imported for typing only
-    from forward_sdk.bgp import BgpStagingReport
+from forward_sdk._wire_shapes import ErrorBody, HttpResponse, QueryDiagnostic, StagingReport
 
 __all__ = [
     "Denial",
@@ -543,7 +540,7 @@ class ForwardBgpKeyMatchedNothingError(ForwardError):
     read-back, one outcome per key.
     """
 
-    def __init__(self, message: str, report: BgpStagingReport) -> None:
+    def __init__(self, message: str, report: StagingReport) -> None:
         super().__init__(message)
         self.report = report
 

@@ -13,9 +13,9 @@ from collections.abc import Iterator
 from dataclasses import dataclass, fields
 from typing import TYPE_CHECKING, Any
 
-if TYPE_CHECKING:  # pragma: no cover - imported for typing only
-    import httpx
+from forward_sdk._wire_shapes import HttpRequest, HttpResponse
 
+if TYPE_CHECKING:  # pragma: no cover - imported for typing only
     from forward_sdk._generated._defs import OpDef
 
 __all__ = ["CounterSnapshot", "Counters", "Hooks"]
@@ -171,12 +171,10 @@ class Hooks:
     was observing.
     """
 
-    def on_request(self, operation: OpDef | None, request: httpx.Request) -> None:
+    def on_request(self, operation: OpDef | None, request: HttpRequest) -> None:
         """Called immediately before a request is sent, once per attempt."""
 
-    def on_response(
-        self, operation: OpDef | None, response: httpx.Response, elapsed: float
-    ) -> None:
+    def on_response(self, operation: OpDef | None, response: HttpResponse, elapsed: float) -> None:
         """Called after a response is received, including error responses."""
 
     def on_retry(self, operation: OpDef | None, attempt: int, delay: float, reason: str) -> None:

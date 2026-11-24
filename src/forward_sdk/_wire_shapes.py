@@ -18,11 +18,13 @@ from typing import Any, Protocol
 
 __all__ = [
     "ErrorBody",
+    "HttpRequest",
     "HttpResponse",
     "QueryDiagnostic",
     "QueryErrorBody",
     "QueryPosition",
     "QueryRegion",
+    "StagingReport",
 ]
 
 
@@ -35,7 +37,9 @@ class _Url(Protocol):
     def path(self) -> str: ...
 
 
-class _Request(Protocol):
+class HttpRequest(Protocol):
+    """An HTTP request: its method, its headers, and the URL with its path."""
+
     @property
     def method(self) -> str: ...
 
@@ -59,7 +63,7 @@ class HttpResponse(Protocol):
     def headers(self) -> _Headers: ...
 
     @property
-    def request(self) -> _Request: ...
+    def request(self) -> HttpRequest: ...
 
     def json(self) -> Any: ...
 
@@ -110,3 +114,20 @@ class QueryErrorBody(ErrorBody, Protocol):
 
     @property
     def completion_type(self) -> object | None: ...
+
+
+class StagingReport(Protocol):
+    """What a read-back of staged BGP advertisements and withdrawals reports.
+
+    One outcome per key staged and per key withdrawn, and one line per key that
+    matched nothing. The error raised for such a key carries one.
+    """
+
+    @property
+    def staged(self) -> Sequence[Any]: ...
+
+    @property
+    def withdrawn(self) -> Sequence[Any]: ...
+
+    @property
+    def unmatched(self) -> Sequence[str]: ...

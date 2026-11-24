@@ -30,7 +30,13 @@ All notable changes to this project are documented here. The format follows
   `ErrorInfo`/`NqeErrorInfo` and `NqeQueryError`. The objects are the same ones as before. Code that type-checks
   `.response` as an `httpx.Response`, `.error_info` as a generated model, or the elements of `.query_errors` as
   `NqeQueryError` (for `location.end`, `location.start.character` or `.model_dump()`) needs a `cast` or an
-  `isinstance` check. The private helper `forward_sdk._ports.raise_for_response` no longer parses the body: a caller
+  `isinstance` check. `ForwardBgpKeyMatchedNothingError.report` is annotated with a `StagingReport` shape (its `staged`, `withdrawn` and
+  `unmatched` lists) instead of `BgpStagingReport`; the object is the same. `flatten_cells` is defined in the new `forward_sdk.nqe.cells` (so its `__module__` is that); `forward_sdk.nqe.rows`
+  and `forward_sdk.nqe` still export it, as the same object. A caller who type-checks `.report` as `BgpStagingReport`
+  needs a `cast`. `Hooks.on_request` and `Hooks.on_response` take an `HttpRequest` and an `HttpResponse` shape instead of `httpx.Request` and
+  `httpx.Response`; a hook receives the same objects. A `Hooks` subclass whose overrides annotate the parameters as `httpx.Request` and
+  `httpx.Response` now fails type-checking (override incompatibility): annotate them as `Any` (or as the
+  `HttpRequest` and `HttpResponse` shapes in the private `forward_sdk._wire_shapes`). `forward_sdk.rbac.RoleTable` and `forward_sdk.access.Access` now subclass the same classes in the private `forward_sdk._role_table` and `forward_sdk._access`, which hold the rules and never read a file, git or the environment; every name, result and error is unchanged, and `isinstance` checks against the public classes hold for everything the SDK builds. The private helper `forward_sdk._ports.raise_for_response` no longer parses the body: a caller
   passes `error_info=parse_error_body(response)` (also in `forward_sdk._ports`) to get Forward's message, reason and
   query diagnostics in the exception.
 

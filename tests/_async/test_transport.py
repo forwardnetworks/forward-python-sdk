@@ -17,6 +17,7 @@ from forward_sdk._async.throttle import AsyncRateLimiter
 from forward_sdk._async.transport import AsyncTransport
 from forward_sdk._generated.operations import OPERATIONS
 from forward_sdk._ops import FileUpload, RequestSpec, spec_for
+from forward_sdk._wire_shapes import HttpRequest, HttpResponse
 from forward_sdk.config import RetryPolicy, build_config
 from forward_sdk.errors import (
     ForwardAPIError,
@@ -577,10 +578,10 @@ async def test_hooks_receive_lifecycle_events(recorder: Recorder, no_sleep: list
     events: list[str] = []
 
     class Recording(Hooks):
-        def on_request(self, operation: Any, request: httpx.Request) -> None:
+        def on_request(self, operation: Any, request: HttpRequest) -> None:
             events.append("request")
 
-        def on_response(self, operation: Any, response: httpx.Response, elapsed: float) -> None:
+        def on_response(self, operation: Any, response: HttpResponse, elapsed: float) -> None:
             events.append(f"response:{response.status_code}")
 
         def on_retry(self, operation: Any, attempt: int, delay: float, reason: str) -> None:
@@ -596,7 +597,7 @@ async def test_hooks_receive_lifecycle_events(recorder: Recorder, no_sleep: list
 
 async def test_broken_hook_does_not_fail_request(recorder: Recorder) -> None:
     class Exploding(Hooks):
-        def on_request(self, operation: Any, request: httpx.Request) -> None:
+        def on_request(self, operation: Any, request: HttpRequest) -> None:
             raise RuntimeError("boom")
 
     recorder.add("GET", "/api/networks", json_response([]))

@@ -108,9 +108,9 @@ EXTRA_MEMBERS: dict[str, str] = {
     def rows(self) -> list[dict[str, Any]]:
         """This page's rows with the typed cells unwrapped to plain values.
 
-        See :func:`forward_sdk.nqe.rows.flatten_cells`.
+        See :func:`forward_sdk.nqe.cells.flatten_cells`.
         """
-        from forward_sdk.nqe.rows import flatten_cells
+        from forward_sdk.nqe.cells import flatten_cells
 
         return [flatten_cells(row) for row in (self.result.values if self.result else None) or []]
 ''',

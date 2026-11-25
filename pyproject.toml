@@ -77,6 +77,11 @@ include = ["src/forward_sdk", "spec", "scripts", "tests", "README.md", "CHANGELO
 [tool.hatch.build.targets.wheel]
 packages = ["src/forward_sdk"]
 
+[tool.uv]
+# Install every dependency group by default, as CI does (`uv sync --all-groups`), so a plain
+# `uv run` runs the tests that need the docs build or the code generators.
+default-groups = "all"
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"

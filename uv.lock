@@ -569,6 +569,7 @@ wheels = [
 [[package]]
 name = "forward-sdk"
 source = { editable = "." }
+default-groups = "all"
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },

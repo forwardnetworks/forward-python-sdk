@@ -13,6 +13,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- `uv run` and `uv sync` install every dependency group (`dev`, `codegen` and `docs`) by default (`[tool.uv] default-groups = "all"`), as CI does, so the tests that need the docs build or the code generators run in a plain checkout. The package's own dependencies are unchanged.
 - The package's author contact is the maintainer's address, `craigjohnson@forwardnetworks.com`, instead of Forward's support address: the SDK is handled through its GitHub issues, not through Forward Support.
 - Licence: from this release forward-sdk is licensed under the Fair Core License 1.0 with an Apache 2.0 future
   licence (FCL-1.0-ALv2), the licence Forward's integrations use. It is source-available, not open source: any use

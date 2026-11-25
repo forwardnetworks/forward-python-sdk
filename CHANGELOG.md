@@ -5,6 +5,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.42] - 2026-11-25
+
 ### Added
 
 - `forward_sdk.nqe.files.missing_fields` is exported: it is listed in the module's `__all__`, so

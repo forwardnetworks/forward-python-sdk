@@ -7,7 +7,8 @@
 # and means a change to one is caught by this SDK's tests rather than by a spec
 # diff, which would not see it.
 #
-# Everything here is reached through client.nqe.repo or client.snapshots.unstable.
+# These operations are reached through the generated services (client.<group>) and through
+# client.nqe.repo; docs/unpublished.md lists them.
 #
 # Each response carries a real schema and an example of what Forward actually
 # sends, recorded from live traffic by the integrations that use these

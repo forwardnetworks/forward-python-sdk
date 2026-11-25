@@ -99,6 +99,11 @@ SUBSTITUTIONS: tuple[tuple[str, str], ...] = (
     (r"\bAsyncNqeRepository\b", "NqeRepository"),
     (r"\bAsyncNqe\b", "Nqe"),
     (r"\bAsyncPager\b", "Pager"),
+    # A sentence of the async client's docstring that is false for the sync one.
+    (
+        r"It is bound to the event loop it was created on\.",
+        "It is safe to share across threads.",
+    ),
     # pytest.
     (r"^@pytest\.mark\.anyio\n", ""),
     (r"\bpytest_asyncio\b", "pytest"),

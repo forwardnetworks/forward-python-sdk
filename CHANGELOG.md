@@ -5,6 +5,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `config_from_env` raises `ForwardConfigurationError`, naming the variable, instead of `ValueError` when
+  `FORWARD_TIMEOUT`, `FORWARD_RATE_LIMIT_RPM`, `FORWARD_RETRIES` or `FORWARD_SNAPSHOT_CACHE_TTL` is not a
+  number (`FORWARD_SNAPSHOT_CACHE_TTL` also accepts `lifetime`). Code that caught `ValueError` for this needs
+  to catch `ForwardConfigurationError`.
+- The synchronous client's docstring says it is safe to share across threads, instead of repeating the
+  asynchronous client's sentence about its event loop.
+
 ## [0.1.42] - 2026-11-25
 
 ### Added

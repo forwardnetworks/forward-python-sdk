@@ -59,7 +59,7 @@ class ForwardClient(GeneratedServices):
     work, but are subject to two-factor authentication and account lockout.
 
     One client holds one connection pool, so reuse it rather than creating one
-    per call. It is bound to the event loop it was created on.
+    per call. It is safe to share across threads.
 
     Services hang off the client by group: ``client.networks``,
     ``client.snapshots``, ``client.devices``, ``client.device_tags`` and

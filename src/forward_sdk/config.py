@@ -11,8 +11,9 @@ from __future__ import annotations
 
 import os
 import ssl
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar
 from urllib.parse import urlsplit
 
 import httpx
@@ -20,6 +21,8 @@ import httpx
 from forward_sdk._http import normalize_base_url
 from forward_sdk._version import __version__
 from forward_sdk.errors import ForwardConfigurationError
+
+_N = TypeVar("_N")
 
 __all__ = ["ClientConfig", "RetryPolicy"]
 
@@ -213,6 +216,21 @@ _FALSE = frozenset({"0", "false", "no", "off"})
 _TRUE = frozenset({"1", "true", "yes", "on"})
 
 
+def _env_number(
+    name: str, value: str, kind: Callable[[str], _N], *, or_word: str | None = None
+) -> _N:
+    """``value`` as a number, or a configuration error that names the variable."""
+    try:
+        return kind(value)
+    except ValueError as error:
+        expected = "an integer" if kind is int else "a number"
+        if or_word is not None:
+            expected += f" or {or_word!r}"
+        raise ForwardConfigurationError(
+            f"{ENV_PREFIX}{name}={value!r} is not {expected}"
+        ) from error
+
+
 def _env_verify(environ: dict[str, str]) -> bool | str:
     """``FORWARD_VERIFY_TLS``: a boolean, or the path to a CA bundle.
 
@@ -280,17 +298,19 @@ def config_from_env(environ: dict[str, str] | None = None, **overrides: Any) -> 
 
     timeout = _env("TIMEOUT", environ)
     if timeout:
-        settings["timeout"] = float(timeout)
+        settings["timeout"] = _env_number("TIMEOUT", timeout, float)
     rpm = _env("RATE_LIMIT_RPM", environ)
     if rpm:
-        settings["rate_limit_rpm"] = int(rpm)
+        settings["rate_limit_rpm"] = _env_number("RATE_LIMIT_RPM", rpm, int)
     retries = _env("RETRIES", environ)
     if retries:
-        settings["retries"] = int(retries)
+        settings["retries"] = _env_number("RETRIES", retries, int)
     snapshot_ttl = _env("SNAPSHOT_CACHE_TTL", environ)
     if snapshot_ttl:
         settings["snapshot_cache_ttl"] = (
-            "lifetime" if snapshot_ttl.lower() == "lifetime" else float(snapshot_ttl)
+            "lifetime"
+            if snapshot_ttl.lower() == "lifetime"
+            else _env_number("SNAPSHOT_CACHE_TTL", snapshot_ttl, float, or_word="lifetime")
         )
 
     settings.update(overrides)

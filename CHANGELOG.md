@@ -5,6 +5,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.44] - 2026-11-26
+
 ### Fixed
 
 - A streamed response that fails while its body is read now raises `ForwardTransportError`, with the `httpx`

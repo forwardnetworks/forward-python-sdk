@@ -51,7 +51,7 @@ poll loops and paging logic therefore cannot diverge between them. The tests in
 
 An `AsyncForwardClient` belongs to the event loop that created it. A synchronous
 `ForwardClient` is safe to share across threads (see
-[Configuration](configuration.md#threads-and-event-loops) for the exceptions).
+[Configuration](configuration.md#threads-and-event-loops) for the one exception).
 
 Either way, one client holds one connection pool, so share it rather than
 creating one per task. Requests are paced by default against Forward's hosted

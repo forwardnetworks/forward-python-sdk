@@ -10,7 +10,12 @@ from typing import Any
 from forward_sdk._async.services._base import AsyncService
 from forward_sdk._ops import mcp as ops
 from forward_sdk._version import __version__
-from forward_sdk.errors import ForwardConfigurationError, ForwardMcpError, ForwardNotFoundError
+from forward_sdk.errors import (
+    ForwardConfigurationError,
+    ForwardMcpError,
+    ForwardNotFoundError,
+    ForwardResponseError,
+)
 from forward_sdk.mcp import (
     PROTOCOL_VERSION,
     McpStyle,
@@ -76,18 +81,24 @@ class AsyncMcpService:
     async def _open(self) -> None:
         self._session_id = None
         self._protocol_version = None
-        result = await self._exchange(
-            "initialize",
-            {
-                "protocolVersion": PROTOCOL_VERSION,
-                "capabilities": {},
-                "clientInfo": {"name": "forward-sdk", "version": __version__},
-            },
-            opening=True,
-        )
-        self._protocol_version = str(result.get("protocolVersion") or PROTOCOL_VERSION)
-        self.server_info = dict(result.get("serverInfo") or {})
-        await self._post({"jsonrpc": "2.0", "method": "notifications/initialized"})
+        try:
+            result = await self._exchange(
+                "initialize",
+                {
+                    "protocolVersion": PROTOCOL_VERSION,
+                    "capabilities": {},
+                    "clientInfo": {"name": "forward-sdk", "version": __version__},
+                },
+                opening=True,
+            )
+            self._protocol_version = str(result.get("protocolVersion") or PROTOCOL_VERSION)
+            self.server_info = dict(result.get("serverInfo") or {})
+            await self._post({"jsonrpc": "2.0", "method": "notifications/initialized"})
+        except BaseException:
+            # A session that did not finish opening is not one: the next call opens another.
+            self._session_id = None
+            self._protocol_version = None
+            raise
 
     async def _exchange(
         self, method: str, params: dict[str, Any], *, opening: bool = False
@@ -113,7 +124,12 @@ class AsyncMcpService:
                 )
             if opening and not self._session_id:
                 raise ForwardMcpError("Forward's MCP server opened no session (no mcp-session-id)")
-            return dict(message.get("result") or {})
+            result = message.get("result")
+            if not isinstance(result, dict):
+                raise ForwardResponseError(
+                    f"{method}: the result is not a JSON object", payload=result
+                )
+            return dict(result)
         raise ForwardMcpError(f"{method}: no answer to request {message_id}")
 
     async def _request(self, method: str, params: dict[str, Any]) -> dict[str, Any]:

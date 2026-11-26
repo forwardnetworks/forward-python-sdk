@@ -39,6 +39,32 @@ logger = logging.getLogger("forward_sdk")
 __all__ = ["Transport"]
 
 
+class _GuardedBody(httpx.SyncByteStream):
+    """A streamed response body whose transport failures are Forward errors.
+
+    Only reading the body goes through here, so an ``httpx`` error raised by the
+    caller's own code inside a stream block is left as it is.
+    """
+
+    def __init__(self, body: httpx.SyncByteStream, spec: RequestSpec, attempts: int) -> None:
+        self._body = body
+        self._spec = spec
+        self._attempts = attempts
+
+    def __iter__(self) -> Iterator[bytes]:
+        try:
+            for chunk in self._body:
+                yield chunk
+        except httpx.TransportError as exc:
+            raise ForwardTransportError(
+                f"{self._spec.method} {self._spec.path} failed while reading the response: {exc}",
+                attempts=self._attempts,
+            ) from exc
+
+    def close(self) -> None:
+        self._body.close()
+
+
 class Transport:
     """Sends requests, with retries, pacing, and error mapping.
 
@@ -293,6 +319,9 @@ class Transport:
 
         A request that is not safe to repeat is retried only when Forward cannot
         have run it, by the same rule as :meth:`send`.
+
+        A transport failure while the body is read, by the caller or here for an
+        error response, raises :class:`~forward_sdk.errors.ForwardTransportError`.
         """
         policy = self.config.retries
         stream_read: float | None = self.config.stream_read_timeout
@@ -332,12 +361,20 @@ class Transport:
                 )
                 continue
 
-            if (
-                response.status_code in RETRYABLE_STATUS
-                and not final
-                and not _slow_and_failed(spec, response.status_code)
-                and (spec.idempotent or _is_rate_limit_refusal(response))
-            ):
+            assert isinstance(response.stream, httpx.SyncByteStream)
+            response.stream = _GuardedBody(response.stream, spec, attempt + 1)
+
+            try:
+                retry = (
+                    response.status_code in RETRYABLE_STATUS
+                    and not final
+                    and not _slow_and_failed(spec, response.status_code)
+                    and (spec.idempotent or _is_rate_limit_refusal(response))
+                )
+            except BaseException:
+                response.close()
+                raise
+            if retry:
                 if response.status_code == 429:
                     self.counters.increment("http_429")
                 retry_after = parse_retry_after(response.headers.get("retry-after"))
@@ -352,8 +389,10 @@ class Transport:
 
             if response.status_code >= 400:
                 self.counters.increment("http_errors")
-                response.read()
-                response.close()
+                try:
+                    response.read()
+                finally:
+                    response.close()
                 raise_for_response(
                     response,
                     operation=spec.operation,

@@ -82,7 +82,7 @@ cross-process rate limit needs.
 ## Exceptions
 
 `ForwardClientError` maps to `ForwardAPIError` for a response Forward returned,
-and `ForwardTransportError` for a request that never got one (the status
+and `ForwardTransportError` for a request that got no complete one (the status
 subclasses, such as `ForwardAuthError` and `ForwardRateLimitError`, are
 `ForwardAPIError`s).
 `ForwardFetchBudgetExceededError` maps to `ForwardTimeoutError` when it meant a

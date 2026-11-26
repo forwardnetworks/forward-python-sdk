@@ -264,11 +264,8 @@ counted.
 A synchronous `ForwardClient` is safe to share across threads. An
 `AsyncForwardClient` belongs to the event loop that created it.
 
-Exceptions today: do not use `client.mcp` from several threads at once (see
-[MCP](mcp.md)); while one thread writes through `client.nqe.repo`, another
-thread's query-path lookup can raise `KeyError`; and while `access()` is reading
-or refreshing roles, another thread can see new roles before the matching
-impersonation flag is set.
+The exception: do not use `client.mcp` from several threads at once (see
+[MCP](mcp.md)).
 
 ## Source
 

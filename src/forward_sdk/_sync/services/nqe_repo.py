@@ -65,8 +65,8 @@ class NqeRepository(Service):
 
     def __init__(self, transport: Any) -> None:
         super().__init__(transport)
-        self._index_cache: dict[str, dict[str, RepositoryQuery]] = {}
-        self._index_fetched_at: dict[str, float] = {}
+        # One entry per repository: when it was fetched, and the index.
+        self._index_cache: dict[str, tuple[float, dict[str, RepositoryQuery]]] = {}
 
     def queries(
         self,
@@ -135,29 +135,27 @@ class NqeRepository(Service):
         paths otherwise re-fetches the whole library for each one. Any write
         through this object clears the cache.
         """
-        if refresh or self._index_is_stale(repository):
+        # Read once and return what was read: a write on another thread may clear
+        # the cache at any point after this.
+        cached = self._index_cache.get(repository)
+        if cached is None or refresh or self._index_is_stale(cached[0]):
             entries = self.queries(repository=repository)
-            self._index_cache[repository] = {e.path: e for e in entries if e.path}
-            self._index_fetched_at[repository] = time.monotonic()
+            index = {e.path: e for e in entries if e.path}
+            self._index_cache[repository] = (time.monotonic(), index)
             self._transport.counters.increment("cache_misses")
-        else:
-            self._transport.counters.increment("cache_hits")
-        return self._index_cache[repository]
+            return index
+        self._transport.counters.increment("cache_hits")
+        return cached[1]
 
-    def _index_is_stale(self, repository: str) -> bool:
+    def _index_is_stale(self, fetched: float) -> bool:
         """Whether the cached index must be fetched again.
 
         The library changes when someone else publishes, so a long-lived client
         would otherwise resolve query paths against an index from hours ago.
         The client's ``cache_ttl`` bounds that; zero disables caching.
         """
-        if repository not in self._index_cache:
-            return True
-        ttl = self._config.cache_ttl
-        if ttl <= 0:
-            return True
-        fetched = self._index_fetched_at.get(repository)
-        return fetched is None or (time.monotonic() - fetched) >= ttl
+        ttl: float = self._config.cache_ttl
+        return ttl <= 0 or (time.monotonic() - fetched) >= ttl
 
     def find(self, path: str, *, repository: str = "org") -> RepositoryQuery:
         """Look up one query by its library path.
@@ -668,4 +666,3 @@ class NqeRepository(Service):
 
     def _invalidate(self) -> None:
         self._index_cache.clear()
-        self._index_fetched_at.clear()

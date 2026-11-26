@@ -5,6 +5,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A streamed response that fails while its body is read now raises `ForwardTransportError`, with the `httpx`
+  error as its cause. Code that catches `httpx.TransportError` around a stream, as 0.1.43's documentation
+  suggested, must catch `ForwardTransportError`. Errors raised by your own code inside the block are unchanged.
+- MCP: a session that fails to open is dropped, so the next call opens a new one; a result that is not a JSON
+  object, `null` included, raises `ForwardResponseError`.
+- A `Retry-After` that is a past date or a negative number no longer retries with no delay: it is ignored, the
+  client uses its own backoff, and `ForwardRateLimitError.retry_after` is `None`.
+- Two thread-safety fixes in the synchronous client: `client.nqe.repo.index()` no longer raises `KeyError` when
+  another thread clears its cache, and `access()` no longer pairs roles with the wrong impersonation flag.
+
 ## [0.1.43] - 2026-11-26
 
 The user documentation also corrects about a hundred statements that disagreed with the code, and states the

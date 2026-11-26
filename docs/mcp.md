@@ -63,8 +63,8 @@ a protocol-level error raises `ForwardMcpError` (so does a server that opens no
 session, a response that does not answer the request, or a repeated `tools/list`
 cursor; `tools()` follows `nextCursor` pages). A response that is neither JSON nor
 Server-Sent Events, or a tool or tool result that does not fit its model, raises
-`ForwardResponseError`. One current limitation: a result that is not a JSON object
-is not checked and can raise a plain `ValueError` or `TypeError`. `result.data()` returns `structured_content`
+`ForwardResponseError`. So does a result that is not a JSON object, `null` included. If
+opening a session fails, the client drops it and the next call opens a new one. `result.data()` returns `structured_content`
 when present, otherwise the text parsed as JSON (`ForwardResponseError` if it is not
 JSON); `result.text` is the text parts joined with newlines. Calls go through the client's
 transport, so errors and `hooks=` apply as everywhere else. The transport

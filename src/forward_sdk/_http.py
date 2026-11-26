@@ -146,9 +146,9 @@ def _scalar(value: Any) -> str:
 def parse_retry_after(value: str | None, *, now: datetime | None = None) -> float | None:
     """Interpret a ``Retry-After`` header as seconds.
 
-    Accepts both forms in RFC 9110: a delta in seconds, and an HTTP date. A date
-    in the past, or an unparseable value, yields ``None`` so the caller falls
-    back to its own backoff.
+    Accepts both forms in RFC 9110: a delta in seconds, and an HTTP date. A
+    negative number, a date that is not in the future, or an unparseable value
+    yields ``None`` so the caller falls back to its own backoff.
     """
     if not value:
         return None
@@ -158,7 +158,7 @@ def parse_retry_after(value: str | None, *, now: datetime | None = None) -> floa
     except ValueError:
         pass
     else:
-        return max(0.0, seconds)
+        return None if seconds < 0 else max(0.0, seconds)
 
     try:
         # Raises rather than returning None on 3.10+.
@@ -168,7 +168,8 @@ def parse_retry_after(value: str | None, *, now: datetime | None = None) -> floa
     if when.tzinfo is None:
         when = when.replace(tzinfo=timezone.utc)
     reference = now or datetime.now(timezone.utc)
-    return max(0.0, (when - reference).total_seconds())
+    wait = (when - reference).total_seconds()
+    return wait if wait > 0 else None
 
 
 def backoff_delay(

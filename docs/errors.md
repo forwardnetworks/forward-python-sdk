@@ -5,14 +5,15 @@ itself raise a plain `ValueError` instead, such as an empty, `.` or `..` path
 parameter, so `except ForwardError` does not catch them. A multipart body with no
 file part raises `TypeError`.
 
-One current limitation: if a streamed response drops while its body is being
-read, the `httpx` exception comes through unwrapped, so also catch
-`httpx.TransportError` around a stream.
+A transport failure while a streamed response's body is being read raises
+`ForwardTransportError` too, with the `httpx` exception as its cause; it is not
+retried, and Forward may already have run the request. An exception your own code raises inside the stream block comes through
+unchanged.
 
 ```
 ForwardError
 ├── ForwardConfigurationError   the call cannot work as written; nothing was sent
-├── ForwardTransportError       no response arrived, after retries
+├── ForwardTransportError       no complete response arrived
 ├── ForwardTimeoutError         a polling helper (such as wait()) stopped waiting
 ├── ForwardPaginationError      paging could not continue safely
 ├── ForwardExecutionError       background work finished without results

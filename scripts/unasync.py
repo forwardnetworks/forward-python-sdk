@@ -49,6 +49,7 @@ SUBSTITUTIONS: tuple[tuple[str, str], ...] = (
     # httpx.
     (r"\bhttpx\.AsyncClient\b", "httpx.Client"),
     (r"\bhttpx\.AsyncBaseTransport\b", "httpx.BaseTransport"),
+    (r"\bhttpx\.AsyncByteStream\b", "httpx.SyncByteStream"),
     (r"\bhttpx\.AsyncHTTPTransport\b", "httpx.HTTPTransport"),
     (r"\bMockTransport\b", "MockTransport"),
     # Response and client methods.

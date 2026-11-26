@@ -45,9 +45,6 @@ from forward_sdk.telemetry import Counters, CounterSnapshot, Hooks
 __all__ = ["AsyncForwardClient"]
 
 
-_UNREAD: Any = object()
-
-
 class AsyncForwardClient(AsyncGeneratedServices):
     """Talks to a Forward Networks instance.
 
@@ -133,8 +130,8 @@ class AsyncForwardClient(AsyncGeneratedServices):
             hooks=hooks,
             open_upload=open_upload,
         )
-        self._current_roles: Any = _UNREAD
-        self._current_impersonator: str | None = None
+        # The roles and the impersonator of one read, stored as one value.
+        self._current_access: tuple[Any, str | None] | None = None
         self.networks = AsyncNetworksService(self._transport)
         self.snapshots = AsyncSnapshotsService(self._transport)
         self.devices = AsyncDevicesService(self._transport)
@@ -237,19 +234,18 @@ class AsyncForwardClient(AsyncGeneratedServices):
         environment).
         """
         resolved = network_id or self._transport.config.network_id
-        if refresh or self._current_roles is _UNREAD:
+        read = self._current_access
+        if refresh or read is None:
             try:
                 current = await self.user_accounts.get_current_user()
             except (ForwardPermissionError, ForwardNotFoundError) as error:
                 return Access.unreadable_because(
                     f"HTTP {error.status} from /users/current", resolved, table
                 )
-            self._current_roles = current.roles
             extra = current.model_extra or {}
-            self._current_impersonator = extra.get("impersonator")
-        return Access.from_roles(
-            self._current_roles, resolved, table, impersonator=self._current_impersonator
-        )
+            read = self._current_access = (current.roles, extra.get("impersonator"))
+        roles, impersonator = read
+        return Access.from_roles(roles, resolved, table, impersonator=impersonator)
 
     @property
     def counters(self) -> CounterSnapshot:

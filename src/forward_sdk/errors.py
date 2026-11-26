@@ -97,10 +97,13 @@ class ForwardResponseError(ForwardError):
 
 
 class ForwardTransportError(ForwardError):
-    """The request never produced an HTTP response.
+    """No complete response arrived.
 
-    Covers connection failures, TLS errors and timeouts, after retries are
-    exhausted. The originating ``httpx`` exception is the ``__cause__``.
+    Covers connection failures, TLS errors and timeouts, after whatever retries
+    the request allows, and a streamed response that fails while its body is being
+    read, which is not retried. In that case Forward answered and may have run the
+    request, so do not take this error to mean it is safe to send again. The
+    originating ``httpx`` exception is the ``__cause__``.
     """
 
     def __init__(self, message: str, *, attempts: int = 1) -> None:

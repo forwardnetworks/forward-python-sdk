@@ -5,6 +5,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.43] - 2026-11-26
+
+The user documentation also corrects about a hundred statements that disagreed with the code, and states the
+known limitations of this release.
+
 ### Fixed
 
 - A streamed request that is not safe to repeat is no longer sent again after a retryable status or a

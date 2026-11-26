@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- A streamed request that is not safe to repeat is no longer sent again after a retryable status or a
+  transport failure. It is retried only after a failure to connect or Forward's rate-limit refusal, as a
+  request that is not streamed already was. This affects `runFdbGarbageCollection`,
+  `getHostCentricBlastRadiusReport`, `explainCommittedNqeQuery` and `explainNqeQueryAtPath`; before,
+  each could reach Forward once per retry.
 - `config_from_env` raises `ForwardConfigurationError`, naming the variable, instead of `ValueError` when
   `FORWARD_TIMEOUT`, `FORWARD_RATE_LIMIT_RPM`, `FORWARD_RETRIES` or `FORWARD_SNAPSHOT_CACHE_TTL` is not a
   number (`FORWARD_SNAPSHOT_CACHE_TTL` also accepts `lifetime`). Code that caught `ValueError` for this needs

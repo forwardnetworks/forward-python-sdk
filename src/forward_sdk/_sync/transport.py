@@ -290,6 +290,9 @@ class Transport:
         has started arriving a failure is surfaced, because rewinding a partly
         consumed stream would silently drop or duplicate rows; callers who need
         resumability should page instead.
+
+        A request that is not safe to repeat is retried only when Forward cannot
+        have run it, by the same rule as :meth:`send`.
         """
         policy = self.config.retries
         stream_read: float | None = self.config.stream_read_timeout
@@ -316,7 +319,11 @@ class Transport:
                 response = self._client.send(request, stream=True)
             except httpx.TransportError as exc:
                 self.counters.increment("transport_errors")
-                if final or _slow_and_started(spec, exc):
+                if (
+                    final
+                    or _slow_and_started(spec, exc)
+                    or not _retry_on_transport_error(spec, exc)
+                ):
                     raise ForwardTransportError(
                         f"{spec.method} {spec.path} failed: {exc}", attempts=attempt + 1
                     ) from exc
@@ -329,6 +336,7 @@ class Transport:
                 response.status_code in RETRYABLE_STATUS
                 and not final
                 and not _slow_and_failed(spec, response.status_code)
+                and (spec.idempotent or _is_rate_limit_refusal(response))
             ):
                 if response.status_code == 429:
                     self.counters.increment("http_429")

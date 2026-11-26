@@ -104,9 +104,8 @@ exception is Forward's rate-limit 429 ("Rate limit exceeded"): that limiter
 refuses before the request reaches its handler, so repeating even a create
 cannot do the work twice. Any other 429 is not repeated for such a request.
 
-One current limitation: streamed requests do not follow this rule yet. While
-connecting, and on any retryable status, they are retried whether or not they are
-safe to repeat.
+Streamed requests follow the same rule: one that is not safe to repeat is not
+sent again unless Forward cannot have run it.
 
 A few slow operations, which carry a longer minimum read timeout, are stricter:
 their 5xx answers are not retried, and a transport failure is retried only when

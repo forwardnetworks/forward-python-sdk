@@ -14,13 +14,12 @@ keeps the queries it ships in step with the code that consumes them.
 ## What that means for you
 
 Forward's own integrations depend on some of these endpoints (the Forward NetBox
-and Nautobot plugins use the NQE repository ones), and the SDK's tests record
-an example response shape for each of them. That is
-not a stability promise for every row: Forward does not publish or version them.
-Rows marked "from source, not run live" were read from Forward's source and have
-not been exercised against an instance. Some response fields are labelled
-Preview in the spec because Forward binds them but leaves them out of its API
-description.
+and Nautobot plugins use the NQE repository ones). That is not a stability promise
+for every row: Forward does not publish or version them. Rows marked "from source,
+not run live" were read from Forward's source and have not been exercised against
+an instance; a row with no note is not by itself a claim that it was run live.
+Some request and response fields are labelled Preview in the spec because Forward
+binds or returns them but leaves them out of its API description.
 
 Being unpublished means only that they are absent from the OpenAPI description
 Forward generates from its server, so:
@@ -28,15 +27,25 @@ Forward generates from its server, so:
 - The SDK describes their shapes by hand, in `spec/unpublished.yaml`, rather
   than deriving them.
 - They will not appear in Forward's generated API reference.
-- A change to one would not show up in a spec diff, so it would not be caught by
-  the drift check that covers the published API. Instead, an example response
-  shape is recorded in the spec for each unpublished operation, and
-  `tests/spec/test_unpublished_shapes.py` checks that every one has an example and that
-  the NQE repository ones parse with the SDK's models; the rest are checked as plain
-  dictionaries.
+- A change to one would not show up in a spec diff, so the drift check that
+  covers the published API would not catch it.
+- `tests/spec/test_unpublished_shapes.py` requires an example in
+  `spec/unpublished.yaml` for every unpublished operation with a JSON success
+  response. An example is not proof that the shape was seen live: some were built
+  from Forward's source. The test reads only stored data and never calls Forward,
+  so it cannot detect a change in what Forward sends. It runs the repository
+  query listing and draft examples through the SDK's parsers and makes a few
+  field checks on the head commit, reachability job, current user and AI chat
+  examples. For the other operations it checks only that an example exists.
 
 They are marked `stability="unpublished"` in the operation table, so nothing
-lands here by accident.
+lands here by accident. A generated service method for one also says
+"Unpublished" in its docstring.
+
+The same spec file also adjusts the published description: for example, it adds
+fields to some published models, lets `OsVulnerability.dependsOnConfig` be null
+or absent, and adds `includePredicted` to the snapshot listing (see
+[predicted snapshots](snapshots.md#predicted-snapshots)).
 
 ## The list
 
@@ -130,4 +139,5 @@ refused with a 403 on every Forward AI operation whatever their licence otherwis
 
 - `spec/unpublished.yaml`
 - `src/forward_sdk/_generated/operations.py`
+- `src/forward_sdk/nqe/repository.py`
 - `tests/spec/test_unpublished_shapes.py`

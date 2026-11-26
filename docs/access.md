@@ -106,12 +106,15 @@ python -m forward_sdk.rbac_dump --fwd ~/src/fwd > rbac.json
 export FORWARD_RBAC_TABLE=rbac.json
 ```
 
-or pass `table=RoleTable.from_checkout(...)` / `RoleTable.from_json(...)` to
-`client.access()`. If both variables are set, `FORWARD_RBAC_TABLE` wins and
+or pass `table=RoleTable.from_checkout(...)` / `RoleTable.from_json(...)`
+(`RoleTable` is in `forward_sdk.rbac`) to `client.access()`, `describe_operation()`
+or `operations()`. If both variables are set, `FORWARD_RBAC_TABLE` wins and
 `FORWARD_SOURCE` is ignored. A checkout must hold the files under
-`app/src/main/java/com/forwardnetworks/cv/access`.
+`app/src/main/java/com/forwardnetworks/cv/access`. Reading a checkout (including
+with `rbac_dump`) also runs `git` to record its commit, so `git` must be on the
+`PATH`.
 
-A path that is set but wrong raises. So does a checkout the reader cannot follow: a
+A path that is set but wrong raises `ForwardConfigurationError`. So does a checkout the reader cannot follow: a
 `NetworkRole.java` that builds a role with a stream, `filter(`, set arithmetic or
 `allOf(` (the SDK refuses rather than guess), a role constant that is missing, a role
 that names an operation that does not exist, or no operations found. A change in
@@ -119,7 +122,8 @@ Forward's source can break the reader until it is updated.
 
 With no table set, `may()` and `can()` answer `None` and the reason says how to supply
 one; `describe_operation()` and `operations()` raise `ForwardConfigurationError`. The
-table records where it was read from (`table.source`). It is only as current as the
+table records where it was read from (`table.source`: for a checkout, normally its
+short `HEAD` commit, which does not show uncommitted edits). It is only as current as the
 source it came from, and the environment lookup is cached for the life of the process
 (per pair of variable values): after Forward changes a role, restart the process or pass
 `table=` explicitly. `refresh=True` does not re-read it.
@@ -136,3 +140,6 @@ Forward's own staff) are not modelled.
 - `src/forward_sdk/access.py`
 - `src/forward_sdk/rbac.py`
 - `src/forward_sdk/rbac_dump.py`
+- `src/forward_sdk/_access.py`
+- `src/forward_sdk/_role_table.py`
+- `src/forward_sdk/_sync/client.py`

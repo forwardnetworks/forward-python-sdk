@@ -26,18 +26,35 @@ with ForwardClient.from_env() as client:
     )
 ```
 
-Authentication is HTTP basic with an API token: its access key is the username
-and its secret is the password.
+`from_env` reads `FORWARD_URL`, `FORWARD_USERNAME`, `FORWARD_PASSWORD` and the
+other variables listed under
+[Configuration](https://forwardnetworks.github.io/forward-python-sdk/configuration/).
+
+Authentication is HTTP basic. Use an API token: its access key is the username
+and its secret is the password. A login name and password also work, but are
+subject to two-factor authentication and account lockout.
 
 ## What it covers
 
-Every operation in Forward's API. The groups integrations use most -- NQE,
-snapshots, networks, devices and device tags -- are hand-written with curated
-names and behaviour such as waiting for a snapshot to finish processing. The
-rest are generated from the OpenAPI description Forward produces from its own
-server code.
+Every operation in Forward's API. Some groups, among them NQE, snapshots,
+networks, devices and device tags, are hand-written with curated names and
+behaviour such as waiting for a snapshot to finish processing. Most of the others
+are generated from the OpenAPI description Forward produces from its own server
+code.
 
-Both a synchronous and an asynchronous client, with identical surfaces.
+Both a synchronous and an asynchronous client, with the same surface except that
+you close the asynchronous one with `aclose()` rather than `close()`. An
+asynchronous client belongs to the event loop that created it.
+
+The client also has `call(operation_id, ...)`, for an operation chosen at run
+time (streaming operations are refused); `access()`, which reports what your
+account may do from its roles, read through an unpublished endpoint and cached
+until `refresh=True`; `version()`; and request `counters`.
+
+By default, requests to Forward's hosted service are paced
+(`rate_limit_rpm="auto"`) and requests to self-hosted deployments are not. Where
+`snapshot_id` is optional and neither the call nor the client sets one, Forward
+uses the network's latest processed snapshot.
 
 ## Notable
 
@@ -77,8 +94,10 @@ Python 3.10 or newer.
 Fair Core License 1.0 with an Apache 2.0 future licence (FCL-1.0-ALv2, see
 [LICENSE](https://github.com/forwardnetworks/forward-python-sdk/blob/main/LICENSE)). It is source-available, not open source: you can use,
 modify and redistribute the SDK for any purpose except a competing commercial
-product or service, and each release becomes available under the Apache
-License 2.0 two years after it is published. Releases up to and including
+product or service. You may not move, change, disable or circumvent license key
+functionality, or modify code the license key protects to use the protected
+functionality without a valid key or to remove that functionality. Each release
+becomes available under the Apache License 2.0 two years after it is published. Releases up to and including
 0.1.41 remain available under the MIT License. See [NOTICE](https://github.com/forwardnetworks/forward-python-sdk/blob/main/NOTICE).
 
 ## Source
@@ -86,6 +105,7 @@ License 2.0 two years after it is published. Releases up to and including
 - `src/forward_sdk/__init__.py`
 - `src/forward_sdk/_sync/client.py`
 - `src/forward_sdk/_async/client.py`
+- `src/forward_sdk/config.py`
 - `pyproject.toml`
 - `LICENSE`
 - `NOTICE`

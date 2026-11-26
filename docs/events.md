@@ -1,5 +1,9 @@
 # Live events
 
+!!! warning "Unpublished"
+
+    This stream is not part of Forward's published API.
+
 Forward pushes Server-Sent Events to each user: per-device collection progress,
 snapshot processing stages, change-set updates, collector tasks, connectivity
 test results and more. The stream is the only source of per-device collection
@@ -16,14 +20,17 @@ The sync client offers the same as a plain iterator.
 
 ## What arrives
 
-Each `UserEvent` has a `type`, a decoded `data` payload, and `raw`, the `data:`
-text as received (several `data:` lines are joined with newlines). `data` is `None`,
-with `raw` kept and no error raised, when the payload is empty, is `0`, or is not
-JSON. A message with no `event:` line has type `message`. The type is a string rather
-than an enum because Forward adds names between releases and an unknown name is
-delivered rather than dropped. The names known when the SDK was built are constants on
-the service (`AsyncUserEventsService.NQE_PROGRESS` and so on); the table below is not
-the full list, and the SDK does not check payload shapes.
+Each `UserEvent` has a `type`, a decoded `data` payload, and `raw`, the `data:` text as
+received (several `data:` lines are joined with newlines). `data` is `None`, with `raw`
+kept and no error raised, when the payload is empty, is `0`, or is not JSON. A JSON
+`null` payload also gives `None`; `raw` tells these cases apart. A message with no event
+name (no `event:` line, or an empty one) has type `message`. The type is a string rather
+than an enum because Forward adds names between releases; without `types=`, an unknown
+name is delivered rather than dropped. The service has constants for many names
+(`AsyncUserEventsService.NQE_PROGRESS` and so on, and the same on the sync
+`UserEventsService`; see `src/forward_sdk/_async/services/events.py`). Neither those
+constants nor the table below is a complete list, and the SDK does not check
+payload shapes.
 
 Payloads worth knowing:
 
@@ -52,8 +59,9 @@ resumption: Forward keeps no cursor, so a caller that must not miss an event
 re-reads the state it cares about after reconnecting rather than assuming the
 gap was empty.
 
-`types=` filters on the client (an empty collection means no filter). The stream itself cannot be filtered, so every
-event is still received; the argument saves a comparison, not bandwidth.
+`types=` filters on the client: only the names you list are delivered (`None` or an
+empty collection means no filter). The stream itself cannot be filtered, so every event
+is still received; the argument saves a comparison, not bandwidth.
 
 ## Source
 

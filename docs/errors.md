@@ -1,6 +1,13 @@
 # Errors
 
-Every failure raises a subclass of `ForwardError`.
+Failed requests raise a subclass of `ForwardError`. Some arguments the SDK checks
+itself raise a plain `ValueError` instead, such as an empty, `.` or `..` path
+parameter, so `except ForwardError` does not catch them. A multipart body with no
+file part raises `TypeError`.
+
+One current limitation: if a streamed response drops while its body is being
+read, the `httpx` exception comes through unwrapped, so also catch
+`httpx.TransportError` around a stream.
 
 ```
 ForwardError
@@ -41,13 +48,28 @@ except ForwardAPIError as error:
     error.reason  # a machine-readable reason code, when present
     error.text  # the raw body, always
     error.attempts  # how many times the request was sent
-    error.operation  # which API operation this was
+    error.response  # the HTTP response
+    error.operation  # the API operation's definition (error.operation.operation_id)
 ```
+
+`ForwardRateLimitError` adds `retry_after`: the seconds `Retry-After` asked for,
+uncapped, or `None`. An error body that cannot be parsed leaves `error_info` as
+`None`; the HTTP error is still raised.
+
+Other errors carry their own detail:
+
+- `ForwardTransportError.attempts`
+- `ForwardPaginationError.rows` and `.pages`: how much was collected before paging
+  stopped (short of the promised total, a page that did not advance, or a page or
+  row ceiling).
+- `ForwardExecutionError`, raised for NQE executions and for snapshot and
+  collection jobs: `.execution_key`, `.status`, `.outcome`, `.detail` and
+  `.attempts`.
 
 `str(error)` reads `GET /path failed with HTTP 404: <Forward's message>`, then
 Forward's `reason` in parentheses when it sent one. With no message, it uses the
-raw body text (truncated at 500 characters). A query error appends its first
-three diagnostics.
+raw body text (truncated at 500 characters). A query error appends up to three of
+its diagnostics.
 
 ## Query errors carry positions
 
@@ -68,7 +90,8 @@ except ForwardNqeQueryError as error:
 
 Retries are automatic for connection failures and for `408`, `425`, `429`,
 `500`, `502`, `503` and `504`. `Retry-After` is honoured when Forward sends it,
-in either of its two forms, and otherwise the delay is exponential with full
+in either of its two forms, up to `RetryPolicy.max_retry_after` (120 seconds by
+default), and otherwise the delay is exponential with full
 jitter, because SDK callers commonly fan out across a thread pool and lockstep
 retries would re-stampede the server.
 
@@ -81,6 +104,15 @@ exception is Forward's rate-limit 429 ("Rate limit exceeded"): that limiter
 refuses before the request reaches its handler, so repeating even a create
 cannot do the work twice. Any other 429 is not repeated for such a request.
 
+One current limitation: streamed requests do not follow this rule yet. While
+connecting, and on any retryable status, they are retried whether or not they are
+safe to repeat.
+
+A few slow operations, which carry a longer minimum read timeout, are stricter:
+their 5xx answers are not retried, and a transport failure is retried only when
+the request never left (a connect failure or a wait for a pooled connection; for
+a request not safe to repeat, a connect failure only).
+
 Streaming responses are retried while connecting, but not once the body has
 started arriving, since a partly consumed stream cannot be rewound without
 dropping or duplicating rows. When you need resumability, page instead of
@@ -92,10 +124,12 @@ streaming.
 mean several different things, including a missing licence or an
 undeployed feature. See [availability](gating.md).
 
-`error.denial` reads Forward's wording to say what kind of refusal this is
-(`rbac`, `license`, `license_expired`, `org_setting`, `deployment_setting` or
-`authority`), or `None`. It is a hint from prose, not a contract: branch on
-`status`.
+`error.denial` reads Forward's wording and returns a `Denial`, or `None`.
+`error.denial.kind` is `rbac`, `license`, `license_expired`, `org_setting`,
+`deployment_setting` or `authority`; `error.denial.detail` is the permission,
+setting, authority or query Forward named, or `None`.
+`forward_sdk.errors.classify_denial(message)` does the same for a message. It is
+a hint from prose, not a contract: branch on `status`.
 
 A few more cases look like the ordinary kind of the same status:
 
@@ -116,14 +150,14 @@ A few more cases look like the ordinary kind of the same status:
   type refuses or requires: a name on a Predefined or non-parameterized NQE
   check (or none on a parameterized one), a note on an NQE check, tags on
   anything but a path check, `perfMonitoringEnabled` on anything but an
-  Existential check.
+  Existential check. The NQE check wordings were seen live on 26.10.6; the other
+  check wordings are read from source.
 - `error.unrecognized_devices` lists the devices of the 400 Forward answers
   when an atlas update names a device it does not know as a collection source
   (`None` otherwise).
 - `error.org_not_accessible` is true for the 403 a support or cross-org key
-  gets for an organization that has not granted it access. The NQE check
-  wordings were seen live on 26.10.6; the other check wordings are read from
-  source.
+  gets for an organization that has not granted it access (seen live on
+  26.10.6).
 - `error.account_locked` is true for a 401 that means the account is locked, not
   that the credential is wrong. The wording is from Forward's source and has not
   been seen live.
@@ -156,9 +190,8 @@ come from Forward's own generated description rather than from a guess here: a
 missing one means the response is not the thing it claims to be, and a model
 with a hole in it would carry that silently into whatever you write next.
 
-That strictness is narrower than it sounds. Of 276 generated models, 170 require
-at least one field, 379 fields in total, and the models on the busiest paths
-require nothing at all:
+That strictness is narrower than it sounds. Many generated models require nothing,
+including several on the busiest paths:
 
 | Model | Required fields |
 | --- | --- |
@@ -176,3 +209,6 @@ model is wrong. Report it either way.
 - `src/forward_sdk/errors.py`
 - `src/forward_sdk/_http.py`
 - `src/forward_sdk/_error_body.py`
+- `src/forward_sdk/_async/transport.py`
+- `src/forward_sdk/config.py`
+- `src/forward_sdk/_generated/models.py`

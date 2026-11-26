@@ -8,8 +8,8 @@ of the network as it would be, then compare that snapshot to the base.
 Most endpoints here are unpublished (change sets, diffs, firewall Predict, BGP
 advertisements); the checks, NQE and configuration routes it also uses are in
 Forward's API description. The unpublished shapes come from Forward's server
-source. Only the parts that say "seen live" or "ran live" were run against an
-instance, with the version named; the rest were not. The traps below cost a real
+source. Treat a part as run against an instance only where it says it was seen
+live, observed or ran live (the version is named where it was recorded). The traps below cost a real
 integration real time before they were written down.
 
 ```python
@@ -115,10 +115,21 @@ in Forward until computed. `diffs.wait_for_check_diffs(base.id, predicted.id,
 **A settled zero pairs count means no forwarding change.** Forward compares
 only the subnet pairs that a route, ACL or NAT change between the two snapshots
 could affect, so `total_subnet_pairs` of zero means it found no such change: a
-real "no reachability change". Seen live on 26.10.6: a change whose route diff
+real "no reachability change". The one degenerate case is a network with no
+device subnets, which also gives zero. Seen live on 26.10.6: a change whose route diff
 was empty gave zero pairs, six route changes gave 42, and restoring a link gave
 168 with 14 subnet pairs gained. (Earlier versions of this page said zero meant
 the network had no locations; that was wrong.)
+
+**Routing loops and vulnerabilities** are not among the `counts()` areas below.
+`diffs.routing_loops(base.id, predicted.id)` gives `count` and `complete`;
+`complete` false means the search stopped early, so `count` is a lower bound and a
+zero does not clear the change. `diffs.vulnerability_counts()` gives
+`new_cve_count`, the only field present on every deployment.
+`routing_loops_bidirectional()` and `vulnerabilities_bidirectional()` return
+`warnings` and `improvements`; the latter counts with `cve_count`, not
+`new_cve_count`. `file_summary()` reports the devices and locations touched,
+directly and indirectly.
 
 **Gating differs per diff.** Connectivity needs the `LOCATION_CONNECTIVITY_DIFFS`
 org property. The bidirectional views, which split a change into what it makes
@@ -237,6 +248,13 @@ deployment. `get_deployment_config()` lists every one with its value, and the
 needs a Forward administrator, or an org administrator on a self-hosted
 deployment for the properties marked configurable there.
 
+Network properties are another scope, a small subset of the org properties,
+written with `set_network_config_property(property=..., value=...)` and cleared
+with `delete_network_config_property(property=...)`.
+`forward_sdk.configuration` has constants for those it knows, such as
+`ADVANCED_REACHABILITY_ANALYSIS`. An unknown name, including an org-only one such
+as `location_connectivity_diffs`, is a 400 (`error.unknown_network_property`).
+
 Writes follow the same split. Properties declared org-scoped, including every
 Predict gate, have an immutable global default: the global write refuses with
 "Permission denied. Global default value cannot be changed for X", and the org
@@ -269,15 +287,21 @@ client.checks.add_check(
 )
 ```
 
-A `subnet()` in `to` returned no results in `trace.py`'s live probe of trace queries; whether a check
+A `subnet()` in `to` returned no results in `trace.py`'s live probe of trace queries
+(Forward 26.11, a two-device lab); whether a check
 behaves the same is not confirmed, so read the check's result before relying on it.
 
 `existential` passes when the flow has a path, `isolation` when it has none,
 and `reachability` when all of it is delivered. An NQE check without
 parameters takes its name from its query, so Forward answers 400 to a `name`
 beside it; one with parameters needs a name; neither takes a note or tags
-(`error.check_field_not_allowed`). `checks.validate_new_check(body)` applies
-Forward's rules before a request. Existential, Isolation and NQE checks of this shape ran
+(`error.check_field_not_allowed`). A Predefined check takes no `name`, only path
+checks (`existential`, `isolation`, `reachability`) take `tags`, and only
+Existential checks take `perfMonitoringEnabled`.
+`checks.validate_new_check(body)` applies these rules without a request;
+`add_check` does not call it, so call it yourself. The three path builders also
+take `noise_types` and `header_fields_with_defaults`, and `existential` takes
+`return_path` (`"ANY"` or `"SYMMETRIC"`) to require a path back. Existential, Isolation and NQE checks of this shape ran
 live on 26.10.6 (the AutoCon6 workshop).
 
 ## Webhooks
@@ -333,7 +357,8 @@ three reads once. A device with no classic collection source is unknown, not a
 problem: a controller-managed device is configured elsewhere.
 `report.ready` is true only when every check ran and found nothing;
 `report.blocked` is true when one found a definite problem. A read you lack
-permission for, or a property the API does not return, goes in
+permission for, a route this Forward does not serve
+(`error.endpoint_not_served`), or a property the API does not return, goes in
 `report.unknown` (with the reason for each in `report.unknown_reasons`) rather
 than raising. Any other API error still raises.
 
@@ -365,7 +390,12 @@ unless `retain_change_sets` is passed as false.
 - `validate_commands` errors seen live were all `INVALID` with line, columns and expected arguments. PAN-OS
   answers empty for anything, and EOS flags some real commands, so an empty or negative result is not proof.
 
-## Cleaning up
+## Listing, tagging and cleaning up
+
+`client.change_sets.list()` returns the network's change sets, each with its
+predicted snapshots newest first. `client.change_sets.tag(ids, add=...,
+remove=...)` edits tags; with `remove_all=True` it ignores `add` and `remove`.
+`create()` also takes `description`, `tags` and `dir_path` (its directory).
 
 `handle.delete()` removes a change set. `client.change_sets.delete([...])`
 removes several, using the bulk action whose body key is `changeSetIds`; Forward
@@ -411,6 +441,11 @@ checks cannot list change sets (403), so none has been run.
 - `src/forward_sdk/models/`
 - `src/forward_sdk/_async/services/change_sets.py`
 - `src/forward_sdk/_async/services/diffs.py`
+- `src/forward_sdk/_async/services/snapshots.py`
+- `src/forward_sdk/_async/services/networks.py`
+- `src/forward_sdk/_async/services/nqe.py`
+- `src/forward_sdk/_ops/`
+- `src/forward_sdk/bgp.py`
 - `src/forward_sdk/_async/services/_generated/firewall_predict.py`
 - `src/forward_sdk/_sync/services/_generated/firewall_predict.py`
 - `src/forward_sdk/_async/services/_generated/bgp_advertisements.py`

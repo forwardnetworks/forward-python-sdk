@@ -1,7 +1,7 @@
 # Availability: why a call can be refused
 
-Not every endpoint is available to every caller. Three separate things can make
-Forward refuse a request:
+Not every endpoint is available to every caller. Common reasons Forward refuses
+a request are:
 
 - **Licensing.** Some capabilities are licensed separately, and vulnerability
   analysis is the clearest example.
@@ -12,17 +12,21 @@ Forward refuse a request:
   [unpublished surface](unpublished.md); an organization without it is refused
   with a 403 carrying Forward's own explanation.
 - **Role-based access control.** A user may not see a network, or may not hold
-  the administrative role that user accounts, credentials and system settings
-  require.
+  the permission an operation needs, such as the administrative role that user
+  accounts, credentials and system settings require.
+- **Organization settings.** An organization property that is on or off can
+  refuse a call.
 
 ## The SDK cannot tell them apart
 
-Forward reports all three the same way: an ordinary `401`, `403` or `404` with
+Forward reports these the same way: an ordinary `401`, `403` or `404` with
 its usual error body. There is no distinct status code, and no documented
 machine-readable reason code that separates "your licence does not include this"
 from "you may not see this" or "there is nothing here".
 
-So the SDK does not pretend to distinguish them. There is no
+So the SDK does not distinguish them by exception type. (It does read Forward's
+wording, best effort: see [telling one refusal from
+another](#telling-one-refusal-from-another).) There is no
 `FeatureUnavailableError`, and the client never probes your instance at
 construction to discover what it supports. Status maps to exception, and the
 server's own explanation is handed to you:
@@ -66,8 +70,9 @@ the user's role.
 | Licensing | | | ✅ |
 | Backups | | ✅ | ✅ |
 
-Everything else in the published API is available to any authenticated user with
-access to the network in question.
+The other groups have no gating hint. That does not mean any user can call them:
+an operation can still need a [permission](access.md) the account lacks, and a
+licence or a setting can still refuse it.
 
 This table lives in `spec/gating.yaml` and is checked against the API
 description by the test suite, so it cannot name a group that no longer exists.
@@ -103,9 +108,11 @@ that there is nothing to find.
 Read from Forward's `NqeLicenseTierPolicyService`; the API does not report an
 organization's tier. A whole query the tier does not cover, by contrast, is
 refused with HTTP 403 ("Query ... is not permitted for this organization's
-license tier", or "Custom Query ..." for one written in place), which
-`error.denial` reads as kind `license` with the query's path, or its id
-(`FQ_...` or `Q_...`) when Forward did not resolve a path, in `detail`.
+license tier"), which `error.denial` reads as kind `license` with the query's
+path, or its id (`FQ_...` or `Q_...`) when Forward did not resolve a path, in
+`detail`. For a query written in place the message is "Custom Query is not
+permitted for this organization's license tier": also `license`, with no
+`detail`.
 
 Some of these fields hold data only for some devices even on a full tier:
 `platform.osSupport` and `platform.components.support` are optional dates
@@ -146,6 +153,7 @@ except ForwardPermissionError as error:
 | `rbac` | `Missing permission: X.Y`, or `No permission for network operation X` | The account lacks permission `X.Y` |
 | `license` | `Unlicensed operation: X.Y` | The licence does not cover `X.Y` |
 | `license` | `Query Q is not permitted for this organization's license tier` | The licence tier does not cover NQE query `Q` |
+| `license` | `Custom Query is not permitted for this organization's license tier` | The licence tier does not cover custom queries (no `detail`) |
 | `license_expired` | the licence has expired | Renew, or grant licence management |
 | `org_setting` | `NAME is off for your organization` (also matches `is on`) | An org admin controls `NAME` |
 | `deployment_setting` | `NAME is off for your deployment` (also matches `is on`) | A deployment admin controls `NAME` |

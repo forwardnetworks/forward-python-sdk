@@ -5,9 +5,11 @@ against one.
 
 ## Choosing a snapshot
 
-Passing `snapshot_id=None` anywhere in the SDK means the network's latest
-processed snapshot. Forward implements that by omitting the parameter, so it
-costs no extra request.
+Leaving an optional `snapshot_id` as `None` means the client's default
+`snapshot_id` if you set one, and otherwise the network's latest processed
+snapshot. For the latter, the SDK omits the parameter and Forward chooses, so it
+costs no extra request. The `device_tags` methods are the exception: they send
+only an ID you pass them.
 
 ```python
 client.snapshots.list(network_id="101")
@@ -26,8 +28,8 @@ during the run.
 Forward uses for its own latest snapshot, so it agrees with the UI and `fwdctl`.
 It is not the snapshot that finished processing last: reprocessing an older
 snapshot updates its `processed_at` in place and must not make it the latest.
-Drafts and forks (snapshots with a parent) are never chosen, and predictions are skipped unless you pass
-`include_predicted=True`.
+Drafts, and forks (snapshots with a parent) other than predictions, are never chosen.
+Predictions are skipped unless you pass `include_predicted=True`.
 
 ### Latest *collected*
 
@@ -108,11 +110,13 @@ client.snapshots.upload(
 )
 ```
 
-`wait_until_processed` polls the network's snapshot listing, because Forward has
-no endpoint for a single snapshot. It raises `ForwardExecutionError` if
-processing fails, and `ForwardTimeoutError` if your deadline passes first, in
-which case processing continues on Forward. Pass `on_poll` to see each look,
-called as `on_poll(snapshot, elapsed_seconds)`:
+`wait_until_processed` polls the network's snapshot listing every 15 seconds
+(`poll_interval`), because Forward has no endpoint for a single snapshot. It
+raises `ForwardExecutionError` if the snapshot ends `FAILED`, `CANCELED`,
+`TIMED_OUT` or `RESTORE_FAILED`, and `ForwardTimeoutError` if your `timeout` (one
+hour by default) passes first, in which case processing continues on Forward.
+Pass `on_poll` to see each look, called as
+`on_poll(snapshot, elapsed_seconds)`:
 
 ```python
 client.snapshots.wait_until_processed(
@@ -139,7 +143,10 @@ snapshot = client.snapshots.upload("collection.zip", note=archive.note("CHG-1234
 ```
 
 Files named `"<device>,<file>"`, the naming Forward lists a snapshot's raw files
-under, are grouped by device; anything else is listed in `other_files`.
+under, are grouped by device, ignoring any directory in the entry's path;
+anything else is listed in `other_files`. A missing file raises
+`FileNotFoundError`, and a file that is not a ZIP raises
+`ForwardConfigurationError`.
 
 ## Collecting
 
@@ -166,9 +173,12 @@ because every device failed; the error does not look for it, so check the listin
 `collect()` has been checked against Forward's source and against recorded response
 shapes, not against a live collection. A task that fails, times out or is cancelled raises
 `ForwardExecutionError` with the task's status. Your own `timeout` raises
-`ForwardTimeoutError`, and the collection carries on in Forward. Pass
-`wait=False` to return as soon as the task is queued, and `on_poll` to watch the
-task: `on_poll(task, elapsed_seconds)`.
+`ForwardTimeoutError`, and the collection carries on in Forward. Pass `on_poll`
+to watch the task: `on_poll(task, elapsed_seconds)`.
+
+The result also has `task_id` and `status`. With `wait=False`, `collect()`
+returns without polling the task: `status` is `"QUEUED"` and `snapshot_id` is
+`None`, so there is no snapshot to pass to `wait_until_processed`.
 
 ## Raw files
 
@@ -277,11 +287,52 @@ Forward 26.11 also leaves predicted snapshots out of `list()` unless you pass
 them where it has to: `wait_until_processed` looks a snapshot up in the listing,
 and a Predict run waits on a predicted one.
 
+`list()` also takes `state` and `limit`, and leaves out archived snapshots unless
+you pass `include_archived=True`.
+
 `list()` takes the same idea as a filter: `exclude_triggers=["PREDICT"]` drops
 predictions from a listing. Forward does not filter by trigger, so the SDK does,
 and when a `limit` is also given the listing is fetched without a server limit
 and cut afterwards, so you get up to `limit` matching snapshots rather than a
 short page. That costs a larger response.
+
+## Reprocessing
+
+```python
+change = client.snapshots.reprocess(snapshot_id)
+change.previous_state, change.state  # state is as of acceptance, not the final one
+client.snapshots.wait_until_processed(snapshot_id)
+```
+
+`reprocess()` rebuilds a snapshot in place from its collected data; by default it
+invalidates and requests processing in one call. `invalidate(snapshot_id)` only
+discards the model, unless you pass `reprocess=True`. Until processing finishes
+the snapshot cannot answer queries. Both are unpublished and return a
+`SnapshotStateChange`.
+
+## Reading an exported package
+
+`forward_sdk.snapshot_package` reads the `sources.json` index of an exported
+snapshot ZIP. It is a preview: the entry's shape was read from a real package,
+not from Forward's source.
+
+```python
+from pathlib import Path
+
+from forward_sdk.snapshot_package import read_sources, redact_log
+
+sources = read_sources("snapshot.zip")
+print(sources.devices_without_snapshots())
+
+safe = redact_log(Path("cli-execution.log").read_text())
+```
+
+`devices_without_snapshots()` lists devices generated for a collection source
+that have no snapshot of their own, which can explain a snapshot that processed
+with no devices. Forward writes a Kubernetes bearer token into
+`cli-execution.log` unmasked, so run `redact_log` before you store or share a
+package log. It masks authorization headers and `Bearer` or `Basic` tokens; it
+does not prove that no secret remains.
 
 ## Progress, logs and retention
 

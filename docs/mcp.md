@@ -29,7 +29,8 @@ Path(".vscode/mcp.json").write_text(json.dumps(client.mcp.config(style="vscode")
 
 The entry is keyed `forward` unless you pass `name=`. It holds the credential, so
 keep the file out of version control. `config()` raises `ForwardConfigurationError`
-for a client built without a username and password.
+for a client built without a username and password, and `ValueError` for an
+unknown `style`.
 `forward_sdk.mcp.client_config(url, username, password, name=..., style=...)` does
 the same without a client.
 
@@ -51,25 +52,34 @@ client.mcp.close()
 ```
 
 `call()` sends the client's network unless `network_id=` is given, and the
-client's pinned snapshot (if any) unless `snapshot_id=` is; with neither, a
-tool uses the network's latest processed snapshot. Check a
+client's pinned snapshot (if any) unless `snapshot_id=` is; with no snapshot, a
+tool uses the network's latest processed snapshot. Use those two arguments, not
+the wire names: a `networkId=` argument overrides `network_id=` and the client's
+network (one of which you still need), while `snapshotId=` is overwritten by `snapshot_id=` or a pinned
+snapshot. Check a
 tool's argument names with `tools()`: `nqe`, for one, takes `prompt`, not
 `query`. A tool that ran and failed returns `is_error` with Forward's message;
 a protocol-level error raises `ForwardMcpError` (so does a server that opens no
 session, a response that does not answer the request, or a repeated `tools/list`
-cursor; `tools()` follows `nextCursor` pages), and a body that is not the expected
-shape raises `ForwardResponseError`. `result.data()` returns `structured_content`
+cursor; `tools()` follows `nextCursor` pages). A response that is neither JSON nor
+Server-Sent Events, or a tool or tool result that does not fit its model, raises
+`ForwardResponseError`. One current limitation: a result that is not a JSON object
+is not checked and can raise a plain `ValueError` or `TypeError`. `result.data()` returns `structured_content`
 when present, otherwise the text parsed as JSON (`ForwardResponseError` if it is not
 JSON); `result.text` is the text parts joined with newlines. Calls go through the client's
-transport, so errors and `hooks=` apply as everywhere else. They are retried
-only when Forward never saw them (a connect error, a 429): a repeated
-`tools/call` would run the tool again, and some tools call a language model.
+transport, so errors and `hooks=` apply as everywhere else. The transport
+retries them only when Forward cannot have run them (a connect error, or its
+rate limiter's "Rate limit exceeded" 429): a repeated `tools/call` would run the
+tool again, and some tools call a language model. Separately, any 404 on a
+`tools/list` or `tools/call` request makes the client open a new session and send
+the request once more.
 
 One `client.mcp` is not for concurrent use from several tasks or threads:
 concurrent first calls would each open a session. Closing the client ends the
-session. `close()` ignores a 404 (the session is already gone), and the next call
-opens a new session. There is an async counterpart (`AsyncMcpService`) with the same
-methods awaited.
+session. `close()` ignores a 404 (the session is already gone); any other error
+reaches the caller. Either way the client drops the session, and the next call
+opens a new one. There is an async counterpart (`AsyncMcpService`): await
+`tools()`, `call()` and `close()`; `config()` is a plain method.
 
 ## What the server actually does
 
@@ -96,3 +106,5 @@ Forward's source.
 - `src/forward_sdk/_async/services/mcp.py`
 - `src/forward_sdk/_sync/services/mcp.py`
 - `src/forward_sdk/_sync/client.py`
+- `src/forward_sdk/_ops/mcp.py`
+- `src/forward_sdk/events.py`

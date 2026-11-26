@@ -19,6 +19,12 @@ with ForwardClient.from_env() as client:
         print(network.id, network.name)
 ```
 
+`from_env` needs `FORWARD_URL`, and `FORWARD_USERNAME` and `FORWARD_PASSWORD` to
+authenticate. Authentication is HTTP basic, preferably with an API token. The
+[quickstart](quickstart.md) shows how to get one, and
+[configuration](configuration.md) covers the other variables and client settings:
+TLS, proxies, timeouts, retries, rate limiting and caching.
+
 ## What it covers
 
 The whole published API, plus a few endpoints Forward does not publish that
@@ -37,9 +43,14 @@ Everything else -- path search, checks, locations, topology, credentials,
 collectors, VPNs, vulnerabilities and the rest -- is generated from Forward's
 API description. See [the API groups](services.md).
 
-Both a synchronous and an asynchronous client, with the same surface. The
-synchronous one is generated from the asynchronous one (see
-[asynchronous use](async.md)).
+Both a synchronous and an asynchronous client, with the same surface apart from
+`close()` and `aclose()`. The synchronous one is generated from the asynchronous
+one (see [asynchronous use](async.md)).
+
+The client itself also offers `access()`, to check what your account's roles
+allow (see [access](access.md)), and `call(operation_id, ...)`, to run an
+operation chosen at run time, except a streaming one. SDK errors such as refused
+requests and timeouts are described under [errors](errors.md).
 
 ## Design notes
 
@@ -62,7 +73,8 @@ are `dict[str, Any]`.
 pip install forward-sdk
 ```
 
-Requires Python 3.10 or newer.
+Requires Python 3.10 or newer. The package is pre-release (alpha), under the
+Fair Core License (FCL-1.0-ALv2).
 
 ## Source
 

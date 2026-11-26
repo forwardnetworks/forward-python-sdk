@@ -22,13 +22,20 @@ See [snapshots](snapshots.md) and [the NQE guide](nqe/index.md).
 
 ## Generated services
 
-The remaining groups are generated, from Forward's API description or, for the
-rows whose notes say "unpublished" or "undocumented", from the hand-written
-`spec/unpublished.yaml` (`client.tapi_network_containers` is hand-written because
-it uploads multipart). Their method names are the operation ids in Python casing:
-`getLocations` becomes `get_locations`. For the published groups that maps
-directly onto Forward's API documentation; the unpublished ones have no such
-documentation.
+Most of the remaining groups are generated, from Forward's API description and
+from the hand-written `spec/unpublished.yaml`. In the table below,
+`client.change_sets`, `client.snapshot_diffs`, `client.user_events` and
+`client.tapi_network_containers` are hand-written instead. In the generated
+groups, method names are the operation ids in Python casing: `getLocations`
+becomes `get_locations`.
+
+Published or unpublished is a property of each operation, not of the group.
+Groups such as `client.checks`, `client.classic_devices` and
+`client.endpoint_profiles` hold both, whatever their notes say. Published
+operations map directly onto Forward's API documentation; unpublished ones have
+no such documentation, and a generated method for one says "Unpublished" in its
+docstring. More groups are listed under
+[Brought over from the Go SDK](#brought-over-from-the-go-sdk).
 
 | Attribute | Group | Notes |
 | --- | --- | --- |
@@ -93,6 +100,8 @@ documentation.
 | `client.blast_radius` | Blast Radius | Unpublished; `VIEW_SECURITY_ANALYSIS` |
 | `client.internet_exposure` | Internet Exposure | Unpublished; `VIEW_SECURITY_ANALYSIS` |
 | `client.connectivity_tests` | Connectivity Tests | Unpublished; `TEST_COLLECTION_SOURCES` |
+| `client.collectors` | Collectors | Unpublished; register, delete and upgrade collectors |
+| `client.predict_verification` | Predict Verification | Unpublished; unit packet tests need the `UNIT_PACKET_TEST` org property, the model comparison needs `MANAGE_PROTOCOL_MODELING` (network admin) |
 
 "Notes" says what is known to gate a group. It is a hint for interpreting a
 refusal, not a guarantee; see [availability](gating.md).
@@ -118,15 +127,21 @@ client = ForwardClient.from_env(network_id="101")
 client.network_locations.get_locations()
 ```
 
-**Snapshot.** Any method taking `snapshot_id` runs against the network's latest
-processed snapshot when you omit it.
+**Snapshot.** When you omit an optional `snapshot_id`, the client's default
+`snapshot_id` applies if you set one; otherwise the call runs against the
+network's latest processed snapshot.
 
 **Parameter names.** Query parameters use Python casing: `maxResults` becomes
 `max_results`. Two of Forward's names are Python keywords, so `with` and `from`
 become `with_` and `from_`.
 
-**Bodies.** Methods that send a body take it as `body`, passed through as JSON.
-The API reference for each operation gives its shape.
+**Bodies.** Generated methods that send a body take it as `body`, usually sent as
+JSON. For a multipart operation such as `client.data_files.add_data_file`, `body`
+maps each part name to its content: a dict is sent as a JSON part, and bytes, a
+file object or a `(filename, content)` tuple as a file part. Form-encoded
+operations take a mapping of fields, and octet-stream ones take bytes. Forward's
+API reference gives the shape for published operations;
+`spec/unpublished.yaml` gives it for the others.
 
 **Streaming.** Methods whose response is not JSON, such as exporting the CVE
 index, return an iterator of bytes.
@@ -375,6 +390,9 @@ device.collector_id  # "C3", or None when the network's default serves it
 - On a patch (`patch_classic_devices`, the endpoint patches), leave it out to leave
   the setting alone and send `null` to return the source to the default.
 - It applies to classic devices and to CLI, SNMP and HTTP endpoints.
+- New classic devices and classic device patches also take a preview
+  `concurrency` integer. Omit it to keep Forward's default on a new device, or to
+  leave the setting unchanged on a patch.
 
 This is a preview: it is taken from Forward's source and exercised by tests, not
 yet by a live write.
@@ -404,6 +422,11 @@ client.checks.get_available_predefined_checks()
 ```
 
 Parameters that Forward accepts more than once take a list.
+
+An NQE check's result in the checks list carries `nqe_result_key` (seen on
+Forward 26.11). Pass it with the same snapshot to
+`client.nqe.check_result(snapshot_id, result_key)` to read the check's rows
+(unpublished).
 
 ## Source
 

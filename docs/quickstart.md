@@ -56,12 +56,19 @@ if snapshot is not None:
     print(snapshot.id, snapshot.state, snapshot.processed_at)
 ```
 
-`latest_processed` returns `None` when the network has no processed snapshot.
+"Latest" means newest by creation time, not most recently processed.
+`latest_processed` skips drafts, forks and, unless you pass
+`include_predicted=True`, predicted snapshots. It returns `None` when no
+processed snapshot qualifies.
 
-Every call that takes a `snapshot_id` accepts `None`, which means the client's
-default `snapshot_id` if you set one (or `FORWARD_SNAPSHOT_ID`), and otherwise
-the network's latest processed snapshot. You rarely need to look one up
-explicitly.
+For queries, device reads and most other calls where `snapshot_id` is optional,
+leaving it out means the client's default `snapshot_id` if you set one (with
+`from_env`, `FORWARD_SNAPSHOT_ID`), and otherwise the network's latest processed
+snapshot. The `device_tags` methods send only an ID you pass them. You rarely
+need to look one up explicitly. Without a fixed ID, though, two calls can see
+different snapshots if a new one finishes processing between them. A job that
+needs one point in time should look up an ID once and pass it to every call, or
+set it as the client's `snapshot_id`.
 
 ## Run a query
 

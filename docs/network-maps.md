@@ -33,7 +33,10 @@ tree = client.network_maps.get_network_map_directories()  # flat list, root "/" 
 | `get_network_map_directories` | The folders and which maps sit in each |
 | `get_network_map_link_appearance_rules`, `get_network_map_link_appearance_rule` | How the map styles links |
 
-- `snapshot_id` defaults to the network's latest processed snapshot, as elsewhere.
+- `network_id` is optional on every method and defaults to the client's network.
+  With neither set, the call raises `ForwardConfigurationError`.
+- `snapshot_id` defaults to the client's default snapshot if you set one, and
+  otherwise to the network's latest processed snapshot.
 - Device names in a saved map are lower-case. A map device that is absent from the
   snapshot is left out of the snapshot view.
 - Listing folders also needs the `NETWORK_MAP_DIRECTORIES` org property; with it off Forward answers 403.
@@ -44,4 +47,5 @@ tree = client.network_maps.get_network_map_directories()  # flat list, root "/" 
 
 - `src/forward_sdk/_async/services/_generated/network_maps.py`
 - `src/forward_sdk/_sync/services/_generated/network_maps.py`
+- `src/forward_sdk/_async/services/_base.py`
 - `spec/unpublished.yaml`

@@ -5,6 +5,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.45] - 2026-11-26
+
 ### Removed
 
 - The import paths `forward_sdk._async.services._generated.snapshot_diffs` and

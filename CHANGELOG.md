@@ -5,6 +5,30 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Removed
+
+- The import paths `forward_sdk._async.services._generated.snapshot_diffs` and
+  `forward_sdk._sync.services._generated.snapshot_diffs`. They were left over from before the snapshot
+  comparison service was written by hand, and nothing in the SDK used them. `client.snapshot_diffs` is
+  unchanged; the service is in `services.diffs`.
+
+### Fixed
+
+- A response body that does not match its `Content-Encoding` no longer escapes as `httpx.DecodingError`. On a
+  successful response it raises `ForwardResponseError`, so code that catches `httpx.DecodingError` must catch
+  `ForwardResponseError`. On an error response you get that status's usual error, and it is retried wherever
+  that status with an empty body would be.
+- A `Retry-After` that is not a finite number is ignored. `nan` no longer retries with no delay, and infinity no
+  longer reaches `ForwardRateLimitError.retry_after` or the wait for an NQE execution.
+- MCP: when opening a session fails after Forward issued a session id, the client now tries to end that
+  session, and `client.mcp.server_info` is emptied.
+- `client.snapshots.delete()` clears the snapshot cache, so a cached "latest" cannot be the deleted snapshot.
+- `latest_collected_id()` considers the same snapshots as `latest_processed()`: no predictions, drafts or forks,
+  newest first. It can return an older snapshot than before.
+- `collect(start=False, wait=False)` reports the joined task's status instead of `QUEUED`.
+- Streamed requests now call `on_response` (before the body is read) and update the status counters like other
+  requests.
+
 ## [0.1.44] - 2026-11-26
 
 ### Fixed

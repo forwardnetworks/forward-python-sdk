@@ -64,7 +64,9 @@ session, a response that does not answer the request, or a repeated `tools/list`
 cursor; `tools()` follows `nextCursor` pages). A response that is neither JSON nor
 Server-Sent Events, or a tool or tool result that does not fit its model, raises
 `ForwardResponseError`. So does a result that is not a JSON object, `null` included. If
-opening a session fails, the client drops it and the next call opens a new one. `result.data()` returns `structured_content`
+opening a session fails, the client drops it, empties `server_info` and, if Forward had
+issued a session id and the failure was an `Exception`, tries to end that session; the
+next call opens a new one. `result.data()` returns `structured_content`
 when present, otherwise the text parsed as JSON (`ForwardResponseError` if it is not
 JSON); `result.text` is the text parts joined with newlines. Calls go through the client's
 transport, so errors and `hooks=` apply as everywhere else. The transport

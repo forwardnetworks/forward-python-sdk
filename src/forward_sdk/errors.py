@@ -85,6 +85,10 @@ class ForwardResponseError(ForwardError):
     The originating ``ValidationError`` is kept as ``__cause__``, and the body
     that failed is on :attr:`payload`.
 
+    Also raised when a successful response's body does not match its
+    ``Content-Encoding``. The cause is then ``httpx.DecodingError``, nothing
+    could be read, and :attr:`payload` is ``None``.
+
     Attributes:
         payload: What Forward actually sent, unparsed.
         model_name: The model the SDK tried to build from it.

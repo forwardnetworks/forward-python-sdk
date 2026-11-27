@@ -8,6 +8,7 @@ directly testable, and lets the sync and async transports share them verbatim.
 from __future__ import annotations
 
 import email.utils
+import math
 import random
 import re
 from collections.abc import Collection, Iterable, Mapping, Sequence
@@ -21,6 +22,7 @@ from forward_sdk.errors import (
     ForwardAPIError,
     ForwardNqeQueryError,
     ForwardRateLimitError,
+    ForwardResponseError,
     status_error_class,
 )
 
@@ -147,7 +149,8 @@ def parse_retry_after(value: str | None, *, now: datetime | None = None) -> floa
     """Interpret a ``Retry-After`` header as seconds.
 
     Accepts both forms in RFC 9110: a delta in seconds, and an HTTP date. A
-    negative number, a date that is not in the future, or an unparseable value
+    negative number, a number that is not finite (``nan``, ``inf``, or too large
+    to hold), a date that is not in the future, or an unparseable value
     yields ``None`` so the caller falls back to its own backoff.
     """
     if not value:
@@ -158,7 +161,9 @@ def parse_retry_after(value: str | None, *, now: datetime | None = None) -> floa
     except ValueError:
         pass
     else:
-        return None if seconds < 0 else max(0.0, seconds)
+        if not math.isfinite(seconds) or seconds < 0:
+            return None
+        return max(0.0, seconds)
 
     try:
         # Raises rather than returning None on 3.10+.
@@ -257,13 +262,21 @@ def raise_for_response(
     operation: OpDef | None = None,
     attempts: int = 1,
     error_info: ErrorBody | None = None,
+    undecodable: Exception | None = None,
 ) -> None:
     """Raise the exception that represents ``response``, if it is an error.
 
     ``error_info`` is Forward's error body as the caller parsed it; this does
-    not parse the response.
+    not parse the response. ``undecodable`` is the failure to decode the body of
+    a response below 400, which nothing of can then be read.
     """
     if response.status_code < 400:
+        if undecodable is not None:
+            request = response.request
+            raise ForwardResponseError(
+                f"{request.method} {request.url.path}: the response body does not "
+                "match its Content-Encoding"
+            ) from undecodable
         return
 
     message = _error_message(response, error_info)

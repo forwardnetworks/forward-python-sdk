@@ -102,21 +102,11 @@ def remove(path: Path) -> None:
         path.unlink()
 
 
-#: Checked-in files that no generator writes any more, by output. A known defect,
-#: listed so that it cannot grow: "Snapshot Diffs" became a hand-written service
-#: and its generated module stayed behind, because ``gen_services.py`` never
-#: deletes. It is still a recorded import path, so removing it is its own change;
-#: remove the entry here with it. Nothing checks the leftover's own contents, and
-#: ``unasync.py`` still builds a sync twin from it.
-LEFTOVERS = {"src/forward_sdk/_async/services/_generated": {"snapshot_diffs.py"}}
-
-
-def assert_rebuilt(checkout: Path, output: str, *, leftovers: frozenset[str] = frozenset()) -> None:
-    """``output`` as rebuilt equals what is checked in, apart from exactly ``leftovers``."""
+def assert_rebuilt(checkout: Path, output: str) -> None:
+    """``output`` as rebuilt equals what is checked in."""
     rebuilt, checked_in = python_and_data(checkout / output), python_and_data(ROOT / output)
     assert checked_in, output
-    assert set(checked_in) - set(rebuilt) == leftovers, output
-    assert set(rebuilt) - set(checked_in) == set(), output
+    assert sorted(rebuilt) == sorted(checked_in), output
     for name in sorted(rebuilt):
         if rebuilt[name] != checked_in[name]:
             changed = difflib.unified_diff(
@@ -143,7 +133,7 @@ def test_a_generator_rebuilds_what_is_checked_in(checkout: Path, script: str, ou
     result = run(checkout, script)
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert_rebuilt(checkout, output, leftovers=frozenset(LEFTOVERS.get(output, ())))
+    assert_rebuilt(checkout, output)
 
 
 # --------------------------------------------------------------------------- sync_spec.py
@@ -289,5 +279,4 @@ def test_a_full_sync_runs_every_generator(checkout: Path, tmp_path: Path) -> Non
 
     assert result.returncode == 0, result.stdout + result.stderr
     for output in outputs:
-        # The leftover was copied in and no step removes it, so nothing is missing here.
         assert_rebuilt(checkout, output)

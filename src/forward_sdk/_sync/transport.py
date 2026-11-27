@@ -65,6 +65,55 @@ class _GuardedBody(httpx.SyncByteStream):
         self._body.close()
 
 
+def _with_empty_body(response: httpx.Response) -> httpx.Response:
+    """``response`` as if it had arrived with no body.
+
+    Used for an error response whose body does not match its
+    ``Content-Encoding``: the status still says what happened, so it is handled
+    as that status with nothing to read.
+    """
+    headers = httpx.Headers(response.headers)
+    headers.pop("content-encoding", None)
+    headers.pop("content-length", None)
+    stand_in = httpx.Response(
+        response.status_code,
+        headers=headers,
+        content=b"",
+        request=response.request,
+        extensions=response.extensions,
+    )
+    stand_in.elapsed = response.elapsed  # Set once ``response`` is closed.
+    return stand_in
+
+
+def _guard_decoding(response: httpx.Response) -> None:
+    """Make a failure to decode ``response``'s body a Forward error.
+
+    ``httpx`` decodes above the byte stream, and every decoding read of a
+    response goes through its ``iter_bytes``. Only this response is changed, so
+    the same error from anything else inside a stream block passes through.
+
+    The failure is remembered: a hook may have read the body first and had its
+    error ignored, and the caller's read must then fail the same way, not with
+    ``httpx``'s complaint that the stream is already consumed.
+    """
+    decoded = response.iter_bytes
+    failures: list[httpx.DecodingError] = []
+
+    def iter_bytes(chunk_size: int | None = None) -> Iterator[bytes]:
+        if failures:
+            raise_for_response(response, undecodable=failures[0])
+        try:
+            for chunk in decoded(chunk_size):
+                yield chunk
+        except httpx.DecodingError as exc:
+            failures.append(exc)
+            raise_for_response(response, undecodable=exc)
+            raise  # Only a success is guarded, and that always raises above.
+
+    response.iter_bytes = iter_bytes  # type: ignore[method-assign]
+
+
 class Transport:
     """Sends requests, with retries, pacing, and error mapping.
 
@@ -240,8 +289,19 @@ class Transport:
             self.counters.mark_attempt(time.time())
             started = time.monotonic()
 
+            undecodable: httpx.DecodingError | None = None
             try:
-                response = self._client.send(request)
+                # Streamed and then read here, so that a body that cannot be
+                # decoded still leaves the status to act on.
+                response = self._client.send(request, stream=True)
+                try:
+                    response.read()
+                except httpx.DecodingError as exc:
+                    undecodable = exc
+                finally:
+                    response.close()
+                if undecodable is not None:
+                    response = _with_empty_body(response)
             except httpx.TransportError as exc:
                 self.counters.increment("transport_errors")
                 if isinstance(exc, httpx.TimeoutException):
@@ -262,6 +322,8 @@ class Transport:
 
             self._notify("on_response", spec.operation, response, time.monotonic() - started)
             self.counters.record_status(response.status_code)
+            if undecodable is not None and response.status_code < 400:
+                raise_for_response(response, undecodable=undecodable)
 
             # Forward's rate limiter is a filter in front of the handler, so its
             # 429 cannot follow a processed request and a create may be repeated.
@@ -273,9 +335,7 @@ class Transport:
                 and not _slow_and_failed(spec, response.status_code)
                 and (spec.idempotent or _is_rate_limit_refusal(response))
             ):
-                if response.status_code == 429:
-                    self.counters.increment("http_429")
-                self.counters.increment("http_transient")
+                self._count_retried(response.status_code)
                 response.read()
                 delay = self._retry_delay(
                     attempt, parse_retry_after(response.headers.get("retry-after"))
@@ -284,13 +344,7 @@ class Transport:
                 continue
 
             if response.status_code >= 400:
-                self.counters.increment("http_errors")
-                if response.status_code == 429:
-                    self.counters.increment("http_429")
-                if response.status_code in RETRYABLE_STATUS:
-                    self.counters.increment("http_transient")
-                else:
-                    self.counters.increment("http_rejected")
+                self._count_refused(response.status_code)
                 response.read()
                 raise_for_response(
                     response,
@@ -308,6 +362,20 @@ class Transport:
             attempts=policy.max_attempts,
         ) from last_error
 
+    def _count_retried(self, status: int) -> None:
+        if status == 429:
+            self.counters.increment("http_429")
+        self.counters.increment("http_transient")
+
+    def _count_refused(self, status: int) -> None:
+        self.counters.increment("http_errors")
+        if status == 429:
+            self.counters.increment("http_429")
+        if status in RETRYABLE_STATUS:
+            self.counters.increment("http_transient")
+        else:
+            self.counters.increment("http_rejected")
+
     @contextmanager
     def stream(self, spec: RequestSpec) -> Iterator[httpx.Response]:
         """Open a streaming response.
@@ -322,6 +390,12 @@ class Transport:
 
         A transport failure while the body is read, by the caller or here for an
         error response, raises :class:`~forward_sdk.errors.ForwardTransportError`.
+        A body that does not match its ``Content-Encoding`` raises
+        :class:`~forward_sdk.errors.ForwardResponseError`, or, with an error
+        status, is treated as empty.
+
+        ``on_response`` is called when each response's head arrives, before its
+        body is read, and the elapsed time it is given ends there.
         """
         policy = self.config.retries
         stream_read: float | None = self.config.stream_read_timeout
@@ -342,6 +416,7 @@ class Transport:
             request.extensions["timeout"] = timeout.as_dict()
             self._notify("on_request", spec.operation, request)
             self.counters.mark_attempt(time.time())
+            started = time.monotonic()
 
             response: httpx.Response | None = None
             try:
@@ -363,8 +438,12 @@ class Transport:
 
             assert isinstance(response.stream, httpx.SyncByteStream)
             response.stream = _GuardedBody(response.stream, spec, attempt + 1)
+            if response.status_code < 400:
+                _guard_decoding(response)
 
             try:
+                self._notify("on_response", spec.operation, response, time.monotonic() - started)
+                self.counters.record_status(response.status_code)
                 retry = (
                     response.status_code in RETRYABLE_STATUS
                     and not final
@@ -375,8 +454,7 @@ class Transport:
                 response.close()
                 raise
             if retry:
-                if response.status_code == 429:
-                    self.counters.increment("http_429")
+                self._count_retried(response.status_code)
                 retry_after = parse_retry_after(response.headers.get("retry-after"))
                 response.close()
                 self._sleep_before_retry(
@@ -388,11 +466,17 @@ class Transport:
                 continue
 
             if response.status_code >= 400:
-                self.counters.increment("http_errors")
+                self._count_refused(response.status_code)
+                unreadable = False
                 try:
                     response.read()
+                except (httpx.DecodingError, httpx.StreamConsumed):
+                    # Consumed: an earlier read here or in a hook already failed.
+                    unreadable = True
                 finally:
                     response.close()
+                if unreadable:
+                    response = _with_empty_body(response)
                 raise_for_response(
                     response,
                     operation=spec.operation,
@@ -448,5 +532,8 @@ def _is_rate_limit_refusal(response: httpx.Response) -> bool:
     """Whether this is Forward's per-user rate-limit lockout (a 429 before any handler)."""
     if response.status_code != 429:
         return False
-    response.read()
+    try:
+        response.read()
+    except (httpx.DecodingError, httpx.StreamConsumed):
+        return False  # No readable body, so nothing says it is the rate limiter.
     return "rate limit exceeded" in response.text.lower()

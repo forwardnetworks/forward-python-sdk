@@ -94,11 +94,22 @@ class AsyncMcpService:
             self._protocol_version = str(result.get("protocolVersion") or PROTOCOL_VERSION)
             self.server_info = dict(result.get("serverInfo") or {})
             await self._post({"jsonrpc": "2.0", "method": "notifications/initialized"})
-        except BaseException:
-            # A session that did not finish opening is not one: the next call opens another.
-            self._session_id = None
-            self._protocol_version = None
+        except BaseException as failure:
+            await self._abandon(failure)
             raise
+
+    async def _abandon(self, failure: BaseException) -> None:
+        """Drop a session that did not finish opening: the next call opens another.
+
+        Forward may hold the session it named, so it is ended. Anything that is not
+        an ``Exception`` (a cancellation, an interrupt) sends nothing more.
+        """
+        session, self._session_id = self._session_id, None
+        version, self._protocol_version = self._protocol_version, None
+        self.server_info = {}
+        if session is not None and isinstance(failure, Exception):
+            with contextlib.suppress(Exception):  # the opening error is the one to raise
+                await self._end(session, version)
 
     async def _exchange(
         self, method: str, params: dict[str, Any], *, opening: bool = False
@@ -190,6 +201,9 @@ class AsyncMcpService:
         if session is None:
             return
         with contextlib.suppress(ForwardNotFoundError):  # already gone
-            await self._service._transport.send(
-                ops.end_session(session_id=session, protocol_version=self._protocol_version)
-            )
+            await self._end(session, self._protocol_version)
+
+    async def _end(self, session: str, protocol_version: str | None) -> None:
+        await self._service._transport.send(
+            ops.end_session(session_id=session, protocol_version=protocol_version)
+        )

@@ -85,7 +85,8 @@ client = ForwardClient(
 ```
 
 `max_retry_after` caps an honoured `Retry-After`, so an unreasonable server
-value cannot stall a caller indefinitely. A lockout longer than the cap is not
+value cannot stall a request's retries indefinitely. A value that is not a finite
+number (`nan`, `inf`, or too large to hold) is ignored. A lockout longer than the cap is not
 waited out in full. `backoff_cap` does not limit a `Retry-After`. A
 `max_attempts` below 1, or a backoff value that is not positive, raises
 `ForwardConfigurationError`.
@@ -141,16 +142,20 @@ client.counters  # requests, retries, 429s, sleep time, NQE rows and pages
 ```
 
 Pass `hooks=` with a subclass of `forward_sdk.telemetry.Hooks`, and override
-only the methods you need: `on_request` (each attempt), `on_response` (responses
-to non-streaming requests), `on_retry` (before a retry delay) and `on_sleep`
-(reports a rate-limit pacing pause). They run inline, so keep them cheap. A hook
-that raises is logged and ignored rather than failing the request it was
-watching.
+only the methods you need: `on_request` (each attempt), `on_response` (each
+response), `on_retry` (before a retry delay) and `on_sleep` (reports a
+rate-limit pacing pause). They run inline, so keep them cheap. A hook that raises
+is logged and ignored rather than failing the request it was watching.
+
+For a streamed request, `on_response` runs when the response head arrives, its
+elapsed time ends there, and the response it gets is unread. Reading it in the
+hook takes the whole body into memory, so a hook for large results should look
+only at the status and headers.
 
 `client.counters` also splits failures into `http_timeouts`, `transport_errors`
 (which includes the timeouts), `http_transient` and `http_rejected`.
-`client.counters_raw.status_classes()` counts the responses to non-streaming
-requests by status class.
+`client.counters_raw.status_classes()` counts responses by status class,
+streamed ones included.
 
 The SDK logs to the `forward_sdk` logger: retries at debug level, and a warning
 with the traceback when a hook, progress callback or `on_poll` callback raises.
@@ -228,8 +233,9 @@ question asked, so two different tag scopes stay two different answers. A
 network with no processed snapshot is cached as an answer too, since re-asking
 would spend the budget the setting exists to save.
 
-Uploading, invalidating, reprocessing or collecting through
-`client.snapshots` clears it, with either kind of setting. For other changes, such
+Uploading, invalidating, reprocessing, collecting or deleting through
+`client.snapshots` clears it, with either kind of setting; a delete clears it even
+when the request fails. For other changes, such
 as an upload from another process or a snapshot that finished while you were
 running, call `client.snapshots.clear_cache()`.
 

@@ -135,30 +135,37 @@ def _add_import(body: str, statement: str) -> str:
     return statement + "\n" + body
 
 
-def sync_tree(source_root: Path, target_root: Path) -> list[Path]:
-    written: list[Path] = []
+def sync_tree(source_root: Path, target_root: Path, *, write: bool = True) -> list[Path]:
+    """Bring ``target_root`` up to date, and return the files that differed.
+
+    With ``write=False`` nothing is created, changed or deleted: the result is
+    what a writing run would touch.
+    """
+    differing: list[Path] = []
     if not source_root.exists():
-        return written
+        return differing
 
     expected: set[Path] = set()
     for source in sorted(source_root.rglob("*.py")):
         relative = source.relative_to(source_root)
         target = target_root / relative
         expected.add(target)
-        target.parent.mkdir(parents=True, exist_ok=True)
         converted = tidy(convert(source.read_text(encoding="utf-8"), str(source)), str(target))
         if not target.exists() or target.read_text(encoding="utf-8") != converted:
-            target.write_text(converted, encoding="utf-8")
-            written.append(target)
+            if write:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(converted, encoding="utf-8")
+            differing.append(target)
 
     # Remove generated files whose async source is gone, so a rename does not
     # leave an orphan behind that still imports and still passes tests.
     for stale in sorted(target_root.rglob("*.py")):
         if stale not in expected:
-            stale.unlink()
-            written.append(stale)
+            if write:
+                stale.unlink()
+            differing.append(stale)
 
-    return written
+    return differing
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -168,25 +175,16 @@ def main(argv: list[str] | None = None) -> int:
 
     changed: list[Path] = []
     for source_root, target_root in TREES:
-        if args.check:
-            before = (
-                {path: path.read_text(encoding="utf-8") for path in target_root.rglob("*.py")}
-                if target_root.exists()
-                else {}
-            )
-            sync_tree(source_root, target_root)
-            after = {path: path.read_text(encoding="utf-8") for path in target_root.rglob("*.py")}
-            if before != after:
-                changed.extend(sorted(set(after) - set(before)) or list(after))
-        else:
-            changed.extend(sync_tree(source_root, target_root))
-
-    if args.check and changed:
-        print("sync tree is stale; run: uv run python scripts/unasync.py")
-        return 1
+        changed.extend(sync_tree(source_root, target_root, write=not args.check))
 
     for path in changed:
-        print(f"  {path}")
+        print(f"  {path.as_posix()}")
+    if args.check:
+        if changed:
+            print("sync tree is stale; run: uv run python scripts/unasync.py")
+            return 1
+        print("sync tree is up to date")
+        return 0
     print(f"unasync: {len(changed)} file(s) updated")
     return 0
 

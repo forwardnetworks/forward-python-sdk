@@ -20,7 +20,7 @@ client.snapshots.latest_processed_id("101")
 `latest_processed` reads the snapshot listing rather than Forward's dedicated
 endpoint for it, which is deprecated. The client can reuse a resolved "latest"
 for `snapshot_cache_ttl` seconds (default `0`, off; `"lifetime"` never expires).
-Uploading through the client clears the cache; call `client.snapshots.clear_cache()`
+Uploading or deleting through the client clears the cache; call `client.snapshots.clear_cache()`
 after an upload from another process or when a snapshot finishes processing
 during the run.
 
@@ -45,7 +45,9 @@ snapshot_id = client.snapshots.latest_collected_id(
 )
 ```
 
-This probes candidates newest-first with a one-row query and returns the first
+The candidates are the snapshots `latest_processed` would consider by default (no
+predictions, drafts or forks), and `scan_limit` counts those. This probes them
+newest-first with a one-row query and returns the first
 that has a device whose collection completed (`FORWARD_CUSTOM` devices do not
 count, and `include_tags` narrows the devices), raising `ForwardNotFoundError` if none does.
 
@@ -177,8 +179,9 @@ shapes, not against a live collection. A task that fails, times out or is cancel
 to watch the task: `on_poll(task, elapsed_seconds)`.
 
 The result also has `task_id` and `status`. With `wait=False`, `collect()`
-returns without polling the task: `status` is `"QUEUED"` and `snapshot_id` is
-`None`, so there is no snapshot to pass to `wait_until_processed`.
+returns without polling the task: `snapshot_id` is `None`, so there is no snapshot
+to pass to `wait_until_processed`. `status` is `"QUEUED"` for a task it started;
+with `start=False` it is the status Forward listed for the task it joined.
 
 ## Raw files
 

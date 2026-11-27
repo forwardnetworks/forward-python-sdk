@@ -54,7 +54,7 @@ except ForwardAPIError as error:
 ```
 
 `ForwardRateLimitError` adds `retry_after`: the seconds `Retry-After` asked for,
-uncapped, or `None`. An error body that cannot be parsed leaves `error_info` as
+uncapped, or `None` (also when the header is not a finite number). An error body that cannot be parsed leaves `error_info` as
 `None`; the HTTP error is still raised.
 
 Other errors carry their own detail:
@@ -170,6 +170,13 @@ A successful call whose body does not fit the model raises
 through every `except ForwardError` a caller had written and surfaced as an
 unhandled crash. A sync would die with a validation traceback in a job log
 instead of a failure its own handling could classify.
+
+It is also raised when a successful response's body does not match its
+`Content-Encoding`, for an ordinary request or while a stream is read. Then
+`payload` is `None`, `model_name` is empty and `__cause__` is
+`httpx.DecodingError`. An error response whose body cannot be decoded is handled
+as that status with an empty body, so a 404 is still `ForwardNotFoundError` and
+the usual retry rules apply.
 
 ```python
 from forward_sdk import ForwardError

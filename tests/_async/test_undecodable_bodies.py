@@ -1,0 +1,70 @@
+"""Bodies that do not match their ``Content-Encoding``: what a caller can still do.
+
+The error a caller gets must be usable like any other, and must stay a Forward
+error however the response was read before the caller reached it.
+"""
+
+from __future__ import annotations
+
+from datetime import timedelta
+from typing import Any
+
+import httpx
+import pytest
+
+from forward_sdk._async.client import AsyncForwardClient
+from forward_sdk._ops import client_software as ops
+from forward_sdk.errors import ForwardNotFoundError, ForwardResponseError
+from forward_sdk.telemetry import Hooks
+
+pytestmark = pytest.mark.anyio
+
+
+class _Corrupt(httpx.AsyncByteStream):
+    async def __aiter__(self) -> Any:
+        yield b"this is not gzip"
+
+
+def make_client(status: int, hooks: Hooks | None = None) -> AsyncForwardClient:
+    def handle(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(status, headers={"content-encoding": "gzip"}, stream=_Corrupt())
+
+    return AsyncForwardClient(
+        "https://forward.test",
+        username="key",
+        password="secret",
+        rate_limit_rpm=None,
+        transport=httpx.MockTransport(handle),
+        hooks=hooks,
+    )
+
+
+async def test_the_error_for_an_undecodable_error_body_carries_a_whole_response() -> None:
+    async with make_client(404) as client:
+        with pytest.raises(ForwardNotFoundError) as raised:
+            await client.networks.list()
+
+    response = raised.value.response
+    assert isinstance(response, httpx.Response)
+    assert response.status_code == 404
+    assert response.elapsed >= timedelta(0)
+
+
+async def test_a_hook_that_reads_a_stream_first_does_not_change_the_callers_error() -> None:
+    class ReadsInTheHook(Hooks):
+        def __init__(self) -> None:
+            self.responses: list[Any] = []
+
+        def on_response(self, operation: Any, response: Any, elapsed: float) -> None:
+            self.responses.append(response)
+
+    hooks = ReadsInTheHook()
+    async with make_client(200, hooks) as client:
+        with pytest.raises(ForwardResponseError):
+            async with client._transport.stream(
+                ops.get_client_package(type="HEADLESS_LINUX")
+            ) as response:
+                # Stands for a hook that read the body: its own failure was ignored.
+                with pytest.raises(ForwardResponseError):
+                    await hooks.responses[0].aread()
+                await response.aread()

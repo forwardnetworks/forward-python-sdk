@@ -155,8 +155,9 @@ class AsyncSnapshotsService(AsyncService):
 
         Call this when something you did makes "latest" mean something new and
         the SDK cannot know: an upload from another process, or a snapshot that
-        finished processing while this client was running. Uploading through
-        this client clears it for you.
+        finished processing while this client was running. Uploading,
+        invalidating, reprocessing, collecting and deleting through this client
+        clear it for you.
         """
         self._resolved.clear()
 
@@ -294,20 +295,11 @@ class AsyncSnapshotsService(AsyncService):
         snapshots = await self.list(
             network_id, state=PROCESSED, include_predicted=include_predicted
         )
-        # Forward's own test for a fork is a parent snapshot, whatever the
-        # trigger says: a reprocessed fork reports REPROCESS, and a caller may
-        # name any trigger when forking. Predictions have a parent too, so an
-        # explicit include_predicted keeps them.
-        snapshots = [
-            s
-            for s in snapshots
-            if not s.is_draft
-            and (s.parent_snapshot_id is None or (include_predicted and is_predicted(s)))
-            and _trigger_of(s) != FORK_TRIGGER
-        ]
-        if not include_predicted:
-            snapshots = [s for s in snapshots if not is_predicted(s)]
-        latest = max(snapshots, key=_creation_order, default=None)
+        latest = max(
+            _real_snapshots(snapshots, include_predicted=include_predicted),
+            key=_creation_order,
+            default=None,
+        )
         return self._remember(key, latest)  # type: ignore[no-any-return]
 
     async def latest_processed_id(
@@ -333,8 +325,12 @@ class AsyncSnapshotsService(AsyncService):
         data (a sync job, say) want this rather than simply the latest processed
         snapshot. Each candidate is probed with a one-row query.
 
+        The candidates are the snapshots :meth:`latest_processed` would consider
+        by default (processed; no predictions, drafts or forks), newest first in
+        its order.
+
         Args:
-            scan_limit: How many recent snapshots to probe before giving up.
+            scan_limit: How many of those snapshots to probe before giving up.
             include_tags: Only count devices carrying one of these tags.
             exclude_tags: Ignore devices carrying any of these tags.
             include_match: Whether one included tag is enough, or all are needed.
@@ -374,10 +370,14 @@ class AsyncSnapshotsService(AsyncService):
         )
         probe = COLLECTED_PROBE.format(scope=scope)
 
-        candidates = await self.list(resolved, state=PROCESSED, limit=scan_limit)
+        # Listed without a limit: scan_limit counts the snapshots that qualify, and
+        # the listing's own order is not documented.
+        listed = await self.list(resolved, state=PROCESSED)
+        ranked = sorted(
+            (s for s in _real_snapshots(listed) if s.id), key=_creation_order, reverse=True
+        )
+        candidates = ranked[: max(scan_limit, 0)]
         for snapshot in candidates:
-            if not snapshot.id:
-                continue
             result = await self._nqe().run(
                 probe, network_id=resolved, snapshot_id=snapshot.id, limit=1
             )
@@ -448,7 +448,12 @@ class AsyncSnapshotsService(AsyncService):
         return SnapshotStateChange.from_payload(payload)
 
     async def delete(self, snapshot_id: str) -> None:
-        await self._send_json(ops.delete_snapshot(snapshot_id=snapshot_id))
+        """Delete a snapshot, and forget any cached snapshot resolution."""
+        try:
+            await self._send_json(ops.delete_snapshot(snapshot_id=snapshot_id))
+        finally:
+            # Even a request that raised may have deleted it.
+            self.clear_cache()
 
     async def upload(
         self,
@@ -854,8 +859,10 @@ class AsyncSnapshotsService(AsyncService):
         error does not look for it.
 
         Args:
-            wait: Poll until the task finishes. With ``False`` the call returns as
-                soon as the task is queued, with no snapshot id.
+            wait: Poll until the task finishes. With ``False`` the call returns
+                with no snapshot id, and the status is ``QUEUED`` for a task it
+                started. With ``start=False`` the status is the one Forward listed
+                for the task joined.
             start: With ``False``, start nothing and wait for the collection
                 already queued or running on this network (the newest one, if
                 there are several). Raises if there is none.
@@ -882,10 +889,10 @@ class AsyncSnapshotsService(AsyncService):
                     f"Forward started a collection on network {resolved} but returned no task id"
                 )
         else:
-            task_id = await self._active_collection_task(resolved)
+            task_id, found = await self._active_collection_task(resolved)
         self.clear_cache()
         if not wait:
-            return CollectionRun(task_id=task_id, status="QUEUED")
+            return CollectionRun(task_id=task_id, status="QUEUED" if start else found)
 
         began = time.monotonic()
         deadline = None if timeout is None else began + timeout
@@ -928,8 +935,8 @@ class AsyncSnapshotsService(AsyncService):
                 )
             await asyncio.sleep(min(poll_interval, 5.0))
 
-    async def _active_collection_task(self, network_id: str) -> str:
-        """The newest queued or running collector task for a network."""
+    async def _active_collection_task(self, network_id: str) -> tuple[str, str]:
+        """The newest queued or running collector task for a network: its id and status."""
         listing = await self._send_json(
             rest.BUILDERS["getCollectorTasks"](status=["QUEUED", "RUNNING"])
         )
@@ -941,7 +948,8 @@ class AsyncSnapshotsService(AsyncService):
                 outcome="NO_COLLECTION",
             )
         # Forward lists newest first, but do not lean on that.
-        return str(max(mine, key=lambda t: str(t.created_at or "")).id)
+        newest = max(mine, key=lambda t: str(t.created_at or ""))
+        return str(newest.id), _plain(newest.status)
 
     async def compute_advanced_reachability(self, snapshot_id: str) -> Mapping[str, Any]:
         """Start advanced reachability computation for a snapshot."""
@@ -1051,6 +1059,29 @@ class AsyncReachabilityJob:
                     f"reachability job {self.key} was still {state or 'pending'} after {timeout}s"
                 )
             await asyncio.sleep(poll_interval)
+
+
+def _real_snapshots(
+    snapshots: Sequence[SnapshotInfo], *, include_predicted: bool = False
+) -> list[SnapshotInfo]:
+    """The listed snapshots that count as the network's own: no drafts or forks.
+
+    Predictions are left out too, unless asked for. Order is kept.
+    """
+    # Forward's own test for a fork is a parent snapshot, whatever the
+    # trigger says: a reprocessed fork reports REPROCESS, and a caller may
+    # name any trigger when forking. Predictions have a parent too, so an
+    # explicit include_predicted keeps them.
+    real = [
+        s
+        for s in snapshots
+        if not s.is_draft
+        and (s.parent_snapshot_id is None or (include_predicted and is_predicted(s)))
+        and _trigger_of(s) != FORK_TRIGGER
+    ]
+    if not include_predicted:
+        real = [s for s in real if not is_predicted(s)]
+    return real
 
 
 def _creation_order(snapshot: SnapshotInfo) -> tuple[str, str]:
